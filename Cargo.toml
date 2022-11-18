@@ -6,8 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-miette = { version = "5.4.1", features = [ "fancy"] }
-miette-derive = "5.4.1"
-thiserror = "1.0.37"
 chumsky = "0.8.0"
 ariadne = "0.1.5"

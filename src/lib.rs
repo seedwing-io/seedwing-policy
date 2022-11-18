@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 
 mod lang;
-mod lang2;
 
 pub const BOOLEAN: Type = Type::Boolean(BooleanType::Any);
 
