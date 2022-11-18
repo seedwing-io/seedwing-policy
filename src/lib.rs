@@ -5,9 +5,7 @@ use std::fmt::Debug;
 mod lang;
 
 pub const BOOLEAN: Type = Type::Boolean(BooleanType::Any);
-
 pub const INTEGER: Type = Type::Integer(IntegerType::Any);
-
 pub const DECIMAL: Type = Type::Decimal(DecimalType::Any);
 
 #[derive(PartialEq, Clone, Debug)]
@@ -16,7 +14,7 @@ pub enum Type {
     Integer(IntegerType),
     Decimal(DecimalType),
     Boolean(BooleanType),
-    String(StringConstraint),
+    String(StringType),
     Nothing,
     //
     Join(Box<Type>, Box<Type>),
@@ -310,7 +308,7 @@ impl From<bool> for BooleanType {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum StringConstraint {
+pub enum StringType {
     Any,
     StartsWith(String),
     Equal(String),
