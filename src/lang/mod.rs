@@ -67,7 +67,7 @@ impl Field {
 pub type ParserInput = char;
 pub type ParserError = Simple<char>;
 
-fn integer_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
+fn integer_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
     let value = text::int::<char, ParserError>(10)
         .map(|s: String| Value::Integer(s.parse().unwrap()))
         .padded();
@@ -75,7 +75,7 @@ fn integer_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> 
     value.map_with_span(|value, span| (Expr::Value(value), span))
 }
 
-fn decimal_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
+fn decimal_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
     let value = text::int(10)
         .then(just('.').then(text::int(10)))
         .map(|(integral, (_dot, decimal)): (String, (char, String))| {
@@ -86,33 +86,29 @@ fn decimal_expr() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> 
     value.map_with_span(|value, span| (Expr::Value(value), span))
 }
 
-fn this() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
-    just("this").map_with_span(|v, span| {
-        (Expr::This, span)
-    })
+fn this() -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
+    just("this").map_with_span(|_, span| (Expr::This, span))
 }
 
-fn atom() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
-    this()
-        .or(decimal_expr())
-        .or(integer_expr())
+fn atom() -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
+    this().or(decimal_expr()).or(integer_expr())
 }
 
 fn op(
     text: &'static str,
-) -> impl Parser<ParserInput, Spanned<String>, Error=ParserError> + Clone {
+) -> impl Parser<ParserInput, Spanned<String>, Error = ParserError> + Clone {
     just(text)
         .map_with_span(|v, span| (v.to_string(), span))
         .padded()
 }
 
-fn expr() -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
-    recursive(|expr| {
-        relational(expr)
-    })
+fn expr() -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
+    recursive(|expr| relational(expr))
 }
 
-fn relational(expr: impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> + Clone {
+fn relational(
+    expr: impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone,
+) -> impl Parser<ParserInput, Spanned<Expr>, Error = ParserError> + Clone {
     atom()
         .then(
             (op(">")
@@ -123,8 +119,8 @@ fn relational(expr: impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> +
                 .or(op("!=").to(Expr::Inequal as fn(_, _) -> Expr))
                 .or(op("==").to(Expr::Equal as fn(_, _) -> Expr))
                 .then(expr.clone()))
-                .repeated()
-                .at_most(1),
+            .repeated()
+            .at_most(1),
         )
         .foldl(|lhs, (op, rhs)| {
             let span = lhs.1.start()..rhs.1.end();
@@ -133,7 +129,7 @@ fn relational(expr: impl Parser<ParserInput, Spanned<Expr>, Error=ParserError> +
         .padded()
 }
 
-fn type_name() -> impl Parser<ParserInput, Spanned<String>, Error=ParserError> + Clone {
+fn type_name() -> impl Parser<ParserInput, Spanned<String>, Error = ParserError> + Clone {
     filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(
@@ -143,48 +139,49 @@ fn type_name() -> impl Parser<ParserInput, Spanned<String>, Error=ParserError> +
         .map_with_span(|v, span| (v, span))
 }
 
-fn ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> + Clone {
-    just("type").padded().map_with_span(|_, span| {
-        span
-    })
-        .then(type_name().padded()
-            .map(|(name, span)| {
-                Type::new(name)
-            })
-            .then(just("{").padded().ignored())
-            .then(field().separated_by(just(",").padded().ignored()).allow_trailing())
-            .then(just("}").padded().map_with_span(|args, span| { span }))
-            .map(|((mut ty, fields), end_span)| {
-                for f in fields {
-                    ty.0.add_field(f.0);
-                }
-                (ty, end_span)
-            })
+fn ty() -> impl Parser<ParserInput, Spanned<Type>, Error = ParserError> + Clone {
+    just("type")
+        .padded()
+        .map_with_span(|_, span| span)
+        .then(
+            type_name()
+                .padded()
+                .map(|(name, _span)| Type::new(name))
+                .then(just("{").padded().ignored())
+                .then(
+                    field()
+                        .separated_by(just(",").padded().ignored())
+                        .allow_trailing(),
+                )
+                .then(just("}").padded().map_with_span(|_args, span| span))
+                .map(|((mut ty, fields), end_span)| {
+                    for f in fields {
+                        ty.0.add_field(f.0);
+                    }
+                    (ty, end_span)
+                }),
         )
-        .map(|(start_span, ((ty, _), end_span))| {
-            (ty, start_span.start()..end_span.end())
-        })
+        .map(|(start_span, ((ty, _), end_span))| (ty, start_span.start()..end_span.end()))
 }
 
-fn field() -> impl Parser<ParserInput, Spanned<Field>, Error=ParserError> + Clone {
-    text::ident().padded().map_with_span(|v, span| (v, span))
+fn field() -> impl Parser<ParserInput, Spanned<Field>, Error = ParserError> + Clone {
+    text::ident()
+        .padded()
+        .map_with_span(|v, span| (v, span))
         .then(just(":").padded().ignored())
         .then(expr())
-        .map(|(((name, span), _), expr)| {
-            (Field::new(name, expr.0), span.start()..expr.1.end())
-        })
+        .map(|(((name, span), _), expr)| (Field::new(name, expr.0), span.start()..expr.1.end()))
 }
-
 
 #[derive(Copy, Clone, Default)]
 pub struct PolicyParser {}
 
 impl PolicyParser {
     pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Spanned<Expr>, Vec<ParserError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let parser = expr();
         let parser = parser.padded().then_ignore(end());
@@ -204,17 +201,19 @@ mod test {
         assert_eq!("Bob", result.0);
 
         let result = type_name().parse("bob");
-        assert!(matches!( result, Err(_)));
+        assert!(matches!(result, Err(_)));
     }
 
     #[test]
     fn parse_type() {
-        let result = ty().parse(r#"
+        let result = ty().parse(
+            r#"
         type Bob {
             age: this > 49,
             name: this < 23,
         }
-        "#);
+        "#,
+        );
 
         println!("{:?}", result);
     }
