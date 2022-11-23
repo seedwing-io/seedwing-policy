@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use crate::lang::expression::{Expr, expr};
@@ -6,7 +7,81 @@ mod expression;
 mod ty;
 
 pub type Span = std::ops::Range<usize>;
-pub type Spanned<T> = (T, Span);
+
+
+#[derive(Clone, Debug)]
+pub struct Location {
+    span: Span,
+}
+
+impl Location {
+    pub fn span(&self) -> Span {
+        self.span.clone()
+    }
+}
+
+impl From<Span> for Location {
+    fn from(span: Span) -> Self {
+        Self {
+            span
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Located<T> {
+    inner: T,
+    location: Location,
+}
+
+impl<T:Clone> Clone for Located<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            location: self.location.clone(),
+        }
+    }
+}
+
+impl<T> Located<T> {
+    pub fn new<L: Into<Location>>(inner: T, location: L) -> Self {
+        Self {
+            location: location.into(),
+            inner,
+        }
+    }
+
+    pub fn location(&self) -> Location {
+        self.location.clone()
+    }
+
+    pub fn span(&self) -> Span {
+        self.location.span.clone()
+    }
+
+
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+
+    pub fn split(self) -> (T, Location) {
+        (self.inner, self.location)
+    }
+}
+
+impl<T> Deref for Located<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for Located<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -24,11 +99,25 @@ type ParserInput = char;
 type ParserError = Simple<char>;
 
 
+#[derive(Clone, Debug)]
+pub struct FieldName(String);
+
+impl FieldName {
+    pub fn new(name: String) -> Self {
+        Self(name)
+    }
+
+    pub fn name(&self) -> String {
+        self.0.clone()
+    }
+}
+
+
 #[derive(Copy, Clone, Default)]
 pub struct PolicyParser {}
 
 impl PolicyParser {
-    pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Spanned<Expr>, Vec<ParserError>>
+    pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Located<Expr>, Vec<ParserError>>
         where
             Self: Sized,
             Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
