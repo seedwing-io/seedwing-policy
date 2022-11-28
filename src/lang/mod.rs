@@ -1,7 +1,9 @@
+use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, DerefMut};
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
-use crate::lang::expression::{Expr, expr};
+use crate::lang::expression::expr;
+use crate::lang::ty::Type;
 
 mod expression;
 mod ty;
@@ -28,10 +30,15 @@ impl From<Span> for Location {
     }
 }
 
-#[derive(Debug)]
 pub struct Located<T> {
     inner: T,
     location: Location,
+}
+
+impl<T: Debug> Debug for Located<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.inner)
+    }
 }
 
 impl<T:Clone> Clone for Located<T> {
@@ -83,14 +90,26 @@ impl<T> DerefMut for Located<T> {
     }
 }
 
+
+
 #[derive(Clone, Debug)]
-pub enum Value {
-    Integer(i64),
-    Decimal(f64),
-    String(String),
-    Boolean(bool),
+pub enum ComparisonOp {
+    LessThan,
+    LessThanEqual,
+    Equal,
+    NotEqual,
+    GreaterThanEqual,
+    GreaterThan,
 }
 
+#[derive(Clone, Debug)]
+pub enum DerivationOp {
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Modulo,
+}
 
 
 #[allow(unused)]
@@ -117,7 +136,7 @@ impl FieldName {
 pub struct PolicyParser {}
 
 impl PolicyParser {
-    pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Located<Expr>, Vec<ParserError>>
+    pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Located<Type>, Vec<ParserError>>
         where
             Self: Sized,
             Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
@@ -126,7 +145,8 @@ impl PolicyParser {
         let parser = expr();
         let parser = parser.padded().then_ignore(end());
 
-        parser.parse(stream)
+        //parser.parse(stream)
+        todo!()
     }
 }
 

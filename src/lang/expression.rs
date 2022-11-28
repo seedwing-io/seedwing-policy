@@ -1,50 +1,57 @@
 use chumsky::Parser;
 use chumsky::prelude::*;
-use crate::lang::{ParserError, ParserInput, Located, Value, Location, FieldName};
+use crate::lang::{ParserError, ParserInput, Located, Location, FieldName, ComparisonOp, DerivationOp};
+use crate::lang::ty::Type;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     SelfLiteral,
-    True,
-    False,
-
+    /* self */
+    Value(Located<Value>),
+    Navigation(Box<Located<Expr>>, Located<String>),
+    /* self.len */
+    Function(Located<String>, Box<Located<Expr>>),
+    /* len(self) */
+    Add(Box<Located<Expr>>, Box<Located<Expr>>),
+    Subtract(Box<Located<Expr>>, Box<Located<Expr>>),
+    Multiply(Box<Located<Expr>>, Box<Located<Expr>>),
+    Divide(Box<Located<Expr>>, Box<Located<Expr>>),
     LessThan(Box<Located<Expr>>, Box<Located<Expr>>),
     LessThanEqual(Box<Located<Expr>>, Box<Located<Expr>>),
     GreaterThan(Box<Located<Expr>>, Box<Located<Expr>>),
     GreaterThanEqual(Box<Located<Expr>>, Box<Located<Expr>>),
     Equal(Box<Located<Expr>>, Box<Located<Expr>>),
-    Inequal(Box<Located<Expr>>, Box<Located<Expr>>),
-
-    And(Box<Located<Expr>>, Box<Located<Expr>>),
-    Or(Box<Located<Expr>>, Box<Located<Expr>>),
-
-    Value(Value),
-    Negative(Box<Located<Expr>>),
-    Add(Box<Located<Expr>>, Box<Located<Expr>>),
-    Subtract(Box<Located<Expr>>, Box<Located<Expr>>),
-    Multiply(Box<Located<Expr>>, Box<Located<Expr>>),
-    Divide(Box<Located<Expr>>, Box<Located<Expr>>),
-
-    Field(Located<FieldName>, Box<Located<Expr>>),
-    //Type(TypeName),
+    NotEqual(Box<Located<Expr>>, Box<Located<Expr>>),
+    LogicalAnd(Box<Located<Expr>>, Box<Located<Expr>>),
+    LogicalOr(Box<Located<Expr>>, Box<Located<Expr>>),
 }
 
-pub fn op(
-    text: &'static str,
-) -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
-    just(text)
-        .padded()
-        .map_with_span(|v, span| {
-            Located::new(v.into(), span)
-        })
+#[derive(Clone, Debug)]
+pub enum Value {
+    Integer(i64),
+    Decimal(f64),
+    String(String),
+    Boolean(bool),
+}
+
+pub fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
+    just(op).padded()
 }
 
 pub fn integer_expr() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     text::int::<char, ParserError>(10)
-        .map(|s: String| Value::Integer(s.parse().unwrap()))
+        .map_with_span(|s: String, span| {
+            Located::new(
+                Value::Integer(s.parse().unwrap()),
+                span,
+            )
+        })
         .padded()
         .map_with_span(|value, span| {
-            Located::new(Expr::Value(value), span)
+            Located::new(
+                Expr::Value(value),
+                span,
+            )
         })
 }
 
@@ -54,44 +61,26 @@ pub fn decimal_expr() -> impl Parser<ParserInput, Located<Expr>, Error=ParserErr
             just('.')
                 .then(text::int(10)))
         .padded()
-        .map(|(integral, (_dot, decimal)): (String, (char, String))| {
-            Value::Decimal(format!("{}.{}", integral, decimal).parse().unwrap())
+        .map_with_span(|(integral, (_dot, decimal)): (String, (char, String)), span| {
+            Located::new(
+                Value::Decimal(format!("{}.{}", integral, decimal).parse().unwrap()),
+                span)
         })
         .map_with_span(|value, span|
-            Located::new(Expr::Value(value), span)
+            Located::new(
+                Expr::Value(value),
+                span,
+            )
         )
 }
 
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     just("self")
-        .map_with_span(|v, span| {
-            Located::new(Expr::SelfLiteral, span)
-        })
-}
-
-pub fn field_name() -> impl Parser<ParserInput, Located<FieldName>, Error=ParserError> + Clone {
-    text::ident()
         .padded()
         .map_with_span(|v, span| {
-            Located::new(FieldName::new(v), span)
-        })
-}
-
-pub fn field_expr() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
-    field_name()
-        .then(
-            just(":")
-                .padded()
-                .ignored()
-        )
-        .then(expr())
-        .map_with_span(|((name, _colon, ), expr), span| {
             Located::new(
-                Expr::Field(
-                    name,
-                    Box::new(expr),
-                ), span,
-            )
+                Expr::SelfLiteral,
+                span)
         })
 }
 
@@ -103,45 +92,107 @@ pub fn atom() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Cl
 
 pub fn expr() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     recursive(|expr| {
-        logical(expr)
+        parenthesized_expr(expr.clone())
+            .or(
+                logical_or(expr)
+            )
+    }).then_ignore(end())
+}
+
+pub fn parenthesized_expr(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    just("(").padded().ignored()
+        .then(expr)
+        .then(just(")").padded().ignored())
+        .map(|((_left_paren, expr), _right_paren)| {
+            expr
+        })
+}
+
+pub fn logical_or(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    logical_and(expr.clone())
+        .then(
+            op("||").then(expr.clone()).repeated()
+        )
+        .foldl(|lhs, (_op, rhs)| {
+            let span = lhs.span().start()..rhs.span().end();
+            Located::new(
+                Expr::LogicalOr(
+                    Box::new(lhs),
+                    Box::new(rhs)), span)
+        })
+}
+
+pub fn logical_and(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone)
+                   -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    relational_expr(expr.clone())
+        .then(
+            op("&&").then(expr.clone()).repeated()
+        )
+        .foldl(|lhs, (_op, rhs)| {
+            let span = lhs.span().start()..rhs.span().end();
+            Located::new(
+                Expr::LogicalAnd(
+                    Box::new(lhs),
+                    Box::new(rhs)), span)
+        })
+}
+
+pub fn relational_expr(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone)
+                       -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    additive_expr(expr.clone())
+        .then(
+            op(">=").map_with_span(|_, span| Located::new(Expr::GreaterThanEqual as fn(_, _) -> _, span))
+                .or(op(">").map_with_span(|_, span| Located::new(Expr::GreaterThan as fn(_, _) -> _, span)))
+                .or(op("<=").map_with_span(|_, span| Located::new(Expr::LessThanEqual as fn(_, _) -> _, span)))
+                .or(op("<").map_with_span(|_, span| Located::new(Expr::LessThan as fn(_, _) -> _, span)))
+                .or(op("==").map_with_span(|_, span| Located::new(Expr::Equal as fn(_, _) -> _, span)))
+                .or(op("!=").map_with_span(|_, span| Located::new(Expr::NotEqual as fn(_, _) -> _, span)))
+                .then(expr).or_not()
+        ).map(|(lhs, rhs)| {
+        if let Some((op, rhs)) = rhs {
+            let span = op.span().start()..rhs.span().end;
+            Located::new(
+                op(Box::new(lhs), Box::new(rhs)),
+                span)
+        } else {
+            lhs
+        }
     })
 }
 
-pub fn logical(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
-    relational(expr.clone())
+
+pub fn additive_expr(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone)
+                     -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    multiplicative_expr(expr.clone())
         .then(
-            (op("&&").to(Expr::And as fn(_, _) -> Expr)
-                .or(op("||").to(Expr::Or as fn(_, _) -> Expr))
-                .then(expr))
-                .repeated()
-                .at_most(1),
+            op("+").map_with_span(|_, span| Located::new(Expr::Add as fn(_, _) -> _, span))
+                .or(op("-").map_with_span(|_, span| Located::new(Expr::Subtract as fn(_, _) -> _, span)))
+                .then(multiplicative_expr(expr.clone())).repeated()
         )
         .foldl(|lhs, (op, rhs)| {
-            let span = lhs.span().start()..rhs.span().end();
-            Located::new(op(Box::new(lhs), Box::new(rhs)), span)
+            let span = lhs.span().start()..rhs.span().end;
+            Located::new(
+                op(Box::new(lhs),
+                   Box::new(rhs)),
+                span)
         })
-        .padded()
 }
 
-pub fn relational(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+pub fn multiplicative_expr(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone)
+                           -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     atom()
         .then(
-            (op(">")
-                .to(Expr::GreaterThan as fn(_, _) -> Expr)
-                .or(op(">=").to(Expr::GreaterThanEqual as fn(_, _) -> Expr))
-                .or(op("<").to(Expr::LessThan as fn(_, _) -> Expr))
-                .or(op("<=").to(Expr::LessThanEqual as fn(_, _) -> Expr))
-                .or(op("!=").to(Expr::Inequal as fn(_, _) -> Expr))
-                .or(op("==").to(Expr::Equal as fn(_, _) -> Expr))
-                .then(expr))
-                .repeated()
-                .at_most(1),
+            op("*").map_with_span(|_, span| Located::new(Expr::Multiply as fn(_, _) -> _, span))
+                .or(op("/").map_with_span(|_, span| Located::new(Expr::Divide as fn(_, _) -> _, span)))
+                .then(atom()).repeated()
         )
         .foldl(|lhs, (op, rhs)| {
-            let span = lhs.span().start()..rhs.span().end();
-            Located::new(op(Box::new(lhs), Box::new(rhs)), span)
+            let span = lhs.span().start()..rhs.span().end;
+            Located::new(
+                op(Box::new(lhs),
+                   Box::new(rhs)),
+                span)
         })
-        .padded()
 }
 
 
@@ -149,6 +200,64 @@ pub fn relational(expr: impl Parser<ParserInput, Located<Expr>, Error=ParserErro
 mod test {
     use super::*;
 
+    #[test]
+    fn parse_self() {
+        let ty = expr().parse(r#"
+            self
+        "#).unwrap().into_inner();
+
+        assert!(matches!( ty, Expr::SelfLiteral ));
+    }
+
+    #[test]
+    fn parse_integer_literal() {
+        let ty = expr().parse(r#"
+            42
+        "#).unwrap().into_inner();
+
+        assert!(matches!( ty,
+            Expr::Value(
+                Located {
+                    inner: Value::Integer(42),
+                    ..
+                }
+        )));
+    }
+
+    #[test]
+    fn parse_decimal_literal() {
+        let ty = expr().parse(r#"
+            42.1415
+        "#).unwrap().into_inner();
+
+        assert!(matches!( ty,
+            Expr::Value(
+                Located {
+                    inner:  Value::Decimal(x),
+                    ..
+                } )
+            if x > 42.1 && x < 42.2) );
+    }
+
+    #[test]
+    fn parse_parenthesized_expr() {
+        let ty = expr().parse(r#"
+            (42 + 88)
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+    }
+
+    #[test]
+    fn parse_math() {
+        let ty = expr().parse(r#"
+            self * 1 + 2 * 3 + 4
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+    }
+
+    /*
     #[test]
     fn parse_field_expr() {
         let expr = field_expr().parse(r#"
@@ -170,4 +279,6 @@ mod test {
             assert_eq!("foo", name.name());
         }
     }
+
+     */
 }

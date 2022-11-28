@@ -1,8 +1,9 @@
+use std::fmt::{Debug, Formatter};
 use chumsky::Span;
 use chumsky::Parser;
 use chumsky::prelude::*;
-use crate::lang::expression::{Expr, expr, field_expr};
-use crate::lang::{ParserError, ParserInput, Located, Location};
+use crate::lang::expression::{expr, Expr};
+use crate::lang::{ParserError, ParserInput, Located, Location, ComparisonOp, DerivationOp};
 
 #[derive(Clone, Debug)]
 pub struct TypeName(String);
@@ -41,16 +42,32 @@ impl TypeDefn {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Type {
     Anything,
     Ref(TypeRef),
-    Constrained(Located<Expr>),
+    Derived(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
     Nothing,
+    SelfType,
 }
 
+impl Debug for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Anything => write!(f, "Anything"),
+            Type::Ref(r) => write!(f, "{:?}", r),
+            Type::Derived(expr) => write!(f, "{:?}", expr),
+            Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
+            Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
+            Type::Nothing => write!(f, "Nothing"),
+            Type::SelfType => write!(f, "Self"),
+        }
+    }
+}
+
+/*
 #[derive(Clone, Debug)]
 pub struct ObjectType {
     fields: Vec<Field>,
@@ -69,6 +86,9 @@ impl ObjectType {
     }
 }
 
+ */
+
+/*
 #[derive(Clone, Debug)]
 pub struct Field {
     name: String,
@@ -83,8 +103,10 @@ impl Field {
         }
     }
 }
+ */
 
 
+/*
 pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
         .map(Some)
@@ -245,7 +267,6 @@ pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clon
 }
 
 
-/*
 pub fn expr_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> + Clone {
     expr().then(just(";").padded().ignored())
         .map(|(expr, _semi)| {
@@ -253,9 +274,6 @@ pub fn expr_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> +
         })
 }
 
- */
-
-/*
 pub fn object_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> + Clone {
     just("{").padded().ignored().map_with_span(|_, span| span)
         .then(field().separated_by(just(",").padded().ignored()).allow_trailing())
@@ -268,7 +286,6 @@ pub fn object_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError>
             (Type::Object(object_ty), open_curly.start()..close_curly.end())
         })
 }
- */
 
 fn field() -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clone {
     text::ident().padded().map_with_span(|v, span| (v, span))
@@ -279,12 +296,14 @@ fn field() -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clon
             Located::new(Field::new(name, expr), span.start()..expr_location.span().end())
         })
 }
+ */
 
 
 #[cfg(test)]
 mod test {
     use super::*;
 
+    /*
     #[test]
     fn primordial_type() {
         let ty = ty().parse(r#"
@@ -377,4 +396,6 @@ mod test {
 
         println!("{:?}", ty);
     }
+
+     */
 }
