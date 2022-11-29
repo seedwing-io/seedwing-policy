@@ -5,6 +5,23 @@ use chumsky::Parser;
 use chumsky::Span;
 use std::fmt::{Debug, Formatter};
 
+#[derive(Debug)]
+pub struct CompilationUnit {
+    types: Vec<Located<TypeDefn>>,
+}
+
+impl CompilationUnit {
+    pub fn new() -> Self {
+        Self {
+            types: Default::default(),
+        }
+    }
+
+    pub fn add(&mut self, ty: Located<TypeDefn>) {
+        self.types.push(ty)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct TypeName(String);
 
@@ -12,27 +29,21 @@ impl TypeName {
     pub fn new(name: String) -> Self {
         Self(name)
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct TypeRef {
-    name: TypeName,
-}
-
-impl TypeRef {
-    pub fn new(name: TypeName) -> Self {
-        Self { name }
+    pub fn name(&self) -> &str {
+        self.0.as_str()
     }
 }
 
+
 #[derive(Clone, Debug)]
 pub struct TypeDefn {
-    name: TypeName,
-    ty: Type,
+    name: Located<TypeName>,
+    ty: Located<Type>,
 }
 
 impl TypeDefn {
-    pub fn new(name: TypeName, ty: Type) -> Self {
+    pub fn new(name: Located<TypeName>, ty: Located<Type>) -> Self {
         Self { name, ty }
     }
 }
@@ -40,7 +51,7 @@ impl TypeDefn {
 #[derive(Clone)]
 pub enum Type {
     Anything,
-    Ref(TypeRef),
+    Ref(Located<TypeName>),
     Const(Located<Value>),
     Object(ObjectType),
     Constrained(Located<Expr>),
@@ -64,6 +75,7 @@ impl Debug for Type {
     }
 }
 
+
 #[derive(Clone, Debug)]
 pub struct ObjectType {
     fields: Vec<Located<Field>>,
@@ -84,19 +96,276 @@ impl ObjectType {
 
 #[derive(Clone, Debug)]
 pub struct Field {
-    name: String,
-    expr: Option<Located<Expr>>,
+    name: Located<String>,
+    ty: Option<Located<Type>>,
 }
 
 impl Field {
-    pub fn new(name: String, expr: Located<Expr>) -> Self {
+    pub fn new(name: Located<String>, expr: Located<Type>) -> Self {
         Self {
             name,
-            expr: Some(expr),
+            ty: Some(expr),
         }
     }
 }
 
+
+pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+    filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
+        .map(Some)
+        .chain::<char, Vec<_>, _>(
+            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
+        )
+        .collect()
+        .padded()
+        .map_with_span(|v, span|
+            Located::new(TypeName(v), span)
+        )
+}
+
+pub fn ty_defn() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
+    just("type")
+        .padded()
+        .ignored()
+        .then(
+            ty_name()
+        )
+        .then(
+            ty().or_not()
+        )
+        .map(|((_, ty_name), ty)| {
+            if let Some(ty) = ty {
+                let loc = ty_name.span().start()..ty.span().end();
+                Located::new(
+                    TypeDefn::new(ty_name, ty),
+                    loc)
+            } else {
+                let loc = ty_name.location();
+                Located::new(
+                    TypeDefn::new(ty_name,
+                                  Located::new(Type::Anything, loc.clone()),
+                    ),
+                    loc,
+                )
+            }
+        })
+}
+
+pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    recursive(|ty| {
+        ty_constraint(ty.clone())
+            .or(
+                ty_object(ty.clone())
+            ).or(
+            ty_ref()
+        )
+    })
+}
+
+pub fn ty_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    ty_name()
+        .map(|name| {
+            let loc = name.location();
+            Located::new(
+                Type::Ref(
+                    Located::new(
+                        name.into_inner(),
+                        loc.clone())
+                ),
+                loc,
+            )
+        })
+}
+
+pub fn ty_constraint(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    expr()
+        .map(|expr| {
+            let loc = expr.location();
+            Located::new(
+                Type::Constrained(expr),
+                loc,
+            )
+        })
+}
+
+pub fn ty_object(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    just("{")
+        .padded()
+        .map_with_span(|_, span| {
+            span
+        })
+        .then(
+            field_definition(ty)
+                .separated_by(
+                    just(",")
+                        .padded()
+                        .ignored()
+                )
+                .allow_trailing()
+        )
+        .then(
+            just("}")
+                .padded()
+                .map_with_span(|_, span| {
+                    span
+                })
+        ).map(|((start, fields), end)| {
+        let loc = start.start()..end.end();
+        let mut ty = ObjectType::new();
+        for f in fields {
+            ty.add_field(f);
+        }
+
+        Located::new(
+            Type::Object(ty),
+            loc,
+        )
+    })
+}
+
+pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
+    text::ident().map_with_span(|name, span| {
+        Located::new(name, span)
+    })
+}
+
+
+pub fn field_definition(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clone {
+    field_name()
+        .then(just(":").padded().ignored())
+        .then(ty)
+        .map(|((name, _), ty)| {
+            let loc = name.span().start()..ty.span().end();
+            Located::new(
+                Field::new(name, ty),
+                loc,
+            )
+        })
+}
+
+pub fn compilation_unit() -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
+    ty_defn().padded().repeated()
+        .then_ignore(end())
+        .map(|ty| {
+            let mut unit = CompilationUnit::new();
+
+            for e in ty {
+                unit.add(e)
+            }
+
+            unit
+        })
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_ty_name() {
+        let name = ty_name().parse("Bob").unwrap().into_inner();
+
+        assert_eq!(name.name(), "Bob");
+    }
+
+    #[test]
+    fn parse_ty_defn() {
+        let ty = ty_defn().parse("type Bob").unwrap().into_inner();
+
+        assert_eq!(ty.name.name(), "Bob");
+    }
+
+    #[test]
+    fn parse_ty_ref() {
+        let ty_ref = ty_ref().parse("Bob").unwrap().into_inner();
+
+        println!("{:?}", ty_ref);
+
+        assert!(
+            matches!(
+                ty_ref,
+                Type::Ref(ty_name)
+            if ty_name.name() == "Bob")
+        );
+    }
+
+    #[test]
+    fn parse_simple_obj_ty() {
+        let ty = ty().then_ignore(end()).parse(r#"
+            {
+                foo: self > 23,
+                bar: 4.2,
+            }
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+
+        assert!(
+            matches!(
+                ty,
+                Type::Object(_)
+            )
+        );
+
+        if let Type::Object(ty) = ty {
+            assert!(
+                matches!(
+                    ty.fields.iter().find(|e| *e.name == "foo"),
+                    Some(_)
+                )
+            );
+            assert!(
+                matches!(
+                    ty.fields.iter().find(|e| *e.name == "bar"),
+                    Some(_)
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn parse_nested_obj_ty() {
+        let ty = ty().then_ignore(end()).parse(r#"
+            {
+                foo: self > 23,
+                bar: {
+                  quux: self < 14,
+                },
+                taco: Integer,
+            }
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+    }
+
+    #[test]
+    fn parse_compilation_unit() {
+        let unit = compilation_unit().parse(r#"
+            type Bob {
+                foo: self > 23,
+                bar: {
+                  quux: self < 14,
+                },
+                taco: Integer,
+            }
+
+            type Jim {
+            }
+
+            type Dan
+
+            type Lily {
+
+            }
+
+        "#).unwrap();
+
+        println!("{:?}", unit);
+    }
+}
+
+/*
 pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
         .map(Some)
@@ -430,3 +699,6 @@ mod test {
 
      */
 }
+
+
+ */
