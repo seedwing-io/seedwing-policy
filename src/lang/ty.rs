@@ -1,9 +1,9 @@
-use std::fmt::{Debug, Formatter};
-use chumsky::Span;
-use chumsky::Parser;
+use crate::lang::expression::{expr, Expr, field_expr, Value};
+use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput};
 use chumsky::prelude::*;
-use crate::lang::expression::{expr, Expr};
-use crate::lang::{ParserError, ParserInput, Located, Location, ComparisonOp, DerivationOp};
+use chumsky::Parser;
+use chumsky::Span;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Clone, Debug)]
 pub struct TypeName(String);
@@ -21,9 +21,7 @@ pub struct TypeRef {
 
 impl TypeRef {
     pub fn new(name: TypeName) -> Self {
-        Self {
-            name
-        }
+        Self { name }
     }
 }
 
@@ -35,10 +33,7 @@ pub struct TypeDefn {
 
 impl TypeDefn {
     pub fn new(name: TypeName, ty: Type) -> Self {
-        Self {
-            name,
-            ty,
-        }
+        Self { name, ty }
     }
 }
 
@@ -46,11 +41,12 @@ impl TypeDefn {
 pub enum Type {
     Anything,
     Ref(TypeRef),
-    Derived(Located<Expr>),
+    Const(Located<Value>),
+    Object(ObjectType),
+    Constrained(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
     Nothing,
-    SelfType,
 }
 
 impl Debug for Type {
@@ -58,19 +54,19 @@ impl Debug for Type {
         match self {
             Type::Anything => write!(f, "Anything"),
             Type::Ref(r) => write!(f, "{:?}", r),
-            Type::Derived(expr) => write!(f, "{:?}", expr),
+            Type::Const(value) => write!(f, "{:?}", value),
+            Type::Constrained(expr) => write!(f, "{:?}", expr),
             Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
             Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
             Type::Nothing => write!(f, "Nothing"),
-            Type::SelfType => write!(f, "Self"),
+            Type::Object(obj) => write!(f, "{:?}", obj),
         }
     }
 }
 
-/*
 #[derive(Clone, Debug)]
 pub struct ObjectType {
-    fields: Vec<Field>,
+    fields: Vec<Located<Field>>,
 }
 
 impl ObjectType {
@@ -80,15 +76,12 @@ impl ObjectType {
         }
     }
 
-    pub fn add_field(&mut self, field: Field) -> &Self {
+    pub fn add_field(&mut self, field: Located<Field>) -> &Self {
         self.fields.push(field);
         self
     }
 }
 
- */
-
-/*
 #[derive(Clone, Debug)]
 pub struct Field {
     name: String,
@@ -103,10 +96,7 @@ impl Field {
         }
     }
 }
- */
 
-
-/*
 pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
         .map(Some)
@@ -147,7 +137,7 @@ pub fn ty_decl() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserErro
                     super_ty_decl().or_not()
                 )
                 .then(
-                    constrained_ty().or_not()
+                    constraint_list()
                 )
         )
         .map(|(type_span, ((name, super_ty), defn))| {
@@ -169,7 +159,9 @@ pub fn ty_decl() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserErro
                 }
                 (None, Some(defn)) => {
                     println!("C");
-                    let (defn_ty, defn_location) = defn.split();
+                    let (defn_ty, defn_location) = defn.clone().split();
+
+                    let defn_ty = Type::Constrained(defn);
 
                     Located::new(
                         TypeDefn::new(defn_name, defn_ty),
@@ -178,6 +170,7 @@ pub fn ty_decl() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserErro
                 (Some(super_ty), Some(defn)) => {
                     println!("D");
                     let span = type_span.start()..defn_location.span().end();
+                    let defn = Located::new( Type::Constrained(defn.clone()), defn.location());
                     Located::new(
                         TypeDefn::new(defn_name,
                                       Type::Meet(
@@ -186,24 +179,25 @@ pub fn ty_decl() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserErro
                         ), span)
                 }
             }
-        })
+        }).then_ignore(end())
 }
 
-pub fn constraints() -> impl Parser<ParserInput, Option<Located<Expr>>, Error=ParserError> + Clone {
+pub fn constraint_list() -> impl Parser<ParserInput, Option<Located<Expr>>, Error=ParserError> + Clone {
     just("{").padded().ignored()
         .map(|v| {
             println!("saw open curly");
             v
         })
         .then(
-            expr().or( field_expr() )
+            expr().or(field_expr())
                 .repeated()
                 .separated_by(
                     just(",")
                         .padded()
                         .ignored()
                 )
-                .allow_trailing().padded()
+                .allow_trailing()
+                .padded()
         )
         .then(
             just("}")
@@ -218,7 +212,7 @@ pub fn constraints() -> impl Parser<ParserInput, Option<Located<Expr>>, Error=Pa
             let expr = exprs.iter().flatten().cloned().reduce(|accum, each| {
                 let span = accum.span().start()..each.span().end();
                 Located::new(
-                    Expr::And(
+                    Expr::LogicalAnd(
                         Box::new(accum),
                         Box::new(each)),
                     span)
@@ -235,20 +229,25 @@ pub fn constraints() -> impl Parser<ParserInput, Option<Located<Expr>>, Error=Pa
 }
 
 pub fn constrained_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    constraints()
-        .map_with_span(|v, span| {
-            Located::new(
-                v.map_or(Type::Anything, |v| Type::Constrained(v),
-                ), span)
-        })
+    just("->").padded().ignored()
+        .then(
+            constraint_list()
+                .map_with_span(|v, span| {
+                    Located::new(
+                        v.map_or(Type::Anything, |v| Type::Constrained(v),
+                        ), span)
+                })
+        ).map(|(_arrow, ty)| {
+        ty
+    })
 }
 
 
 pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     ty_ref()
         .then(
-            constraints().or_not()
-        )
+            constraint_list().or_not()
+        ).then_ignore(end())
         .map(|(ty, constraints)| {
             if let Some(Some(constraints)) = constraints {
                 let span = ty.span().start()..constraints.span().end();
@@ -267,23 +266,29 @@ pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clon
 }
 
 
-pub fn expr_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> + Clone {
+pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     expr().then(just(";").padded().ignored())
-        .map(|(expr, _semi)| {
-            (Type::Expr(expr.0), expr.1)
+        .map_with_span(|(expr, _semi), span| {
+            //(Type::Expr(expr.0), expr.1)
+            expr.evaluate_to_type().unwrap()
         })
 }
 
-pub fn object_ty() -> impl Parser<ParserInput, Spanned<Type>, Error=ParserError> + Clone {
+pub fn object_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("{").padded().ignored().map_with_span(|_, span| span)
         .then(field().separated_by(just(",").padded().ignored()).allow_trailing())
         .then(just("}").padded().ignored().map_with_span(|_, span| span))
         .map(|((open_curly, fields), close_curly)| {
             let mut object_ty = ObjectType::new();
             for f in fields {
-                object_ty.add_field(f.0);
+                object_ty.add_field(f);
             }
-            (Type::Object(object_ty), open_curly.start()..close_curly.end())
+            Located::new(
+                Type::Object(
+                    object_ty
+                ),
+                open_curly.start()..close_curly.end(),
+            )
         })
 }
 
@@ -296,14 +301,11 @@ fn field() -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clon
             Located::new(Field::new(name, expr), span.start()..expr_location.span().end())
         })
 }
- */
-
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    /*
     #[test]
     fn primordial_type() {
         let ty = ty().parse(r#"
@@ -338,6 +340,7 @@ mod test {
 
         println!("{:?}", ty);
     }
+
 
     #[test]
     fn bare_type() {
@@ -380,6 +383,34 @@ mod test {
         println!("{:?}", ty);
     }
 
+    #[test]
+    fn nested_object_type_defn() {
+        let ty = ty_decl().parse(r#"
+            type RandomObject {
+                foo: 42,
+                baz: {
+                    quux: "howdy"
+                }
+            }
+        "#).unwrap();
+
+        println!("{:?}", ty);
+    }
+
+    /*
+    #[test]
+    fn const_type() {
+        let ty = ty_decl().parse(r#"
+            type Version {
+                42
+            }
+        "#).unwrap();
+
+        println!("{:?}", ty);
+    }
+     */
+
+    /*
     #[test]
     fn object_type_defn() {
         let ty = ty_decl().parse(r#"

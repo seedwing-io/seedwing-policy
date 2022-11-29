@@ -25,9 +25,7 @@ pub enum Type {
 impl Type {
     pub fn boolean(value: Option<bool>) -> Type {
         if let Some(value) = value {
-            Type::Boolean(
-                value.into()
-            )
+            Type::Boolean(value.into())
         } else {
             BOOLEAN
         }
@@ -38,11 +36,8 @@ impl Type {
     }
 
     pub fn integer(value: i64) -> Type {
-        Type::Integer(
-            IntegerType::Equal(value)
-        )
+        Type::Integer(IntegerType::Equal(value))
     }
-
 
     pub fn join(&self, other: &Type) -> Type {
         // TODO: optimize
@@ -62,22 +57,16 @@ impl Type {
         println!("try meet {:?} vs {:?}", self, other);
         match self {
             Type::Anything => Some(other.clone()),
-            Type::Integer(c1) => {
-                match other {
-                    Type::Anything => Some(self.clone()),
-                    Type::Integer(c2) => {
-                        Some(
-                            c1.meet_integer(c2)?
-                        )
-                    }
-                    Type::Decimal(_) => todo!(),
-                    Type::Boolean(_) => None,
-                    Type::String(_) => None,
-                    Type::Nothing => None,
-                    Type::Join(_, _) => todo!(),
-                    Type::Meet(_, _) => todo!(),
-                }
-            }
+            Type::Integer(c1) => match other {
+                Type::Anything => Some(self.clone()),
+                Type::Integer(c2) => Some(c1.meet_integer(c2)?),
+                Type::Decimal(_) => todo!(),
+                Type::Boolean(_) => None,
+                Type::String(_) => None,
+                Type::Nothing => None,
+                Type::Join(_, _) => todo!(),
+                Type::Meet(_, _) => todo!(),
+            },
             Type::Decimal(_) => todo!(),
             Type::Boolean(_) => todo!(),
             Type::String(_) => todo!(),
@@ -92,12 +81,8 @@ impl Type {
                     (Some(_), Some(_)) => {
                         Some(Type::Join(Box::new(self.clone()), Box::new(other.clone())))
                     }
-                    (Some(_), None) => {
-                        Some(Type::Join(Box::new(self.clone()), c1.clone()))
-                    }
-                    (None, Some(_)) => {
-                        Some(Type::Join(Box::new(self.clone()), c2.clone()))
-                    }
+                    (Some(_), None) => Some(Type::Join(Box::new(self.clone()), c1.clone())),
+                    (None, Some(_)) => Some(Type::Join(Box::new(self.clone()), c2.clone())),
                 }
             }
             Type::Meet(_, _) => todo!(),
@@ -106,7 +91,7 @@ impl Type {
 
     pub fn accepts<T: Borrow<Type>>(&self, other: T) -> bool {
         let result = self.meet(other.borrow());
-        !matches!( result, Type::Nothing)
+        !matches!(result, Type::Nothing)
     }
 }
 
@@ -199,7 +184,9 @@ impl IntegerType {
                         todo!()
                     }
                     IntegerType::Equal(v2) if v2 > v1 => Some(Type::Integer(other.clone())),
-                    IntegerType::GreaterThan(v2) => Some(IntegerType::GreaterThan(*v1.max(v2)).into()),
+                    IntegerType::GreaterThan(v2) => {
+                        Some(IntegerType::GreaterThan(*v1.max(v2)).into())
+                    }
                     _ => None,
                 }
             }
@@ -211,21 +198,13 @@ impl IntegerType {
             IntegerType::Any => Type::Integer(self.clone()),
             IntegerType::LessThan(v1) | IntegerType::Equal(v1) | IntegerType::GreaterThan(v1) => {
                 match self.partial_cmp(other) {
-                    None => {
-                        Type::Join(
-                            Box::new(Type::Integer(self.clone())),
-                            Box::new(Type::Integer(other.clone())),
-                        )
-                    }
-                    Some(Ordering::Equal) => {
-                        Type::Integer(self.clone())
-                    }
-                    Some(Ordering::Less) => {
-                        Type::Integer(other.clone())
-                    }
-                    Some(Ordering::Greater) => {
-                        Type::Integer(self.clone())
-                    }
+                    None => Type::Join(
+                        Box::new(Type::Integer(self.clone())),
+                        Box::new(Type::Integer(other.clone())),
+                    ),
+                    Some(Ordering::Equal) => Type::Integer(self.clone()),
+                    Some(Ordering::Less) => Type::Integer(other.clone()),
+                    Some(Ordering::Greater) => Type::Integer(self.clone()),
                 }
             }
         }
@@ -237,28 +216,22 @@ impl PartialOrd for IntegerType {
         println!("self {:?} other {:?}", self, other);
         match self {
             IntegerType::Any => Some(Ordering::Greater),
-            IntegerType::LessThan(v1) => {
-                match other {
-                    IntegerType::Any => Some(Ordering::Less),
-                    IntegerType::LessThan(v2) if v1 < v2 => Some(Ordering::Less),
-                    IntegerType::LessThan(v2) if v1 > v2 => Some(Ordering::Greater),
-                    IntegerType::LessThan(v2) if v1 == v2 => Some(Ordering::Equal),
-                    IntegerType::Equal(v2) if v1 > v2 => Some(Ordering::Greater),
-                    _ => None,
-                }
-            }
-            IntegerType::Equal(v1) => {
-                match other {
-                    IntegerType::Any => Some(Ordering::Less),
-                    IntegerType::LessThan(v2) if v2 > v1 => Some(Ordering::Less),
-                    IntegerType::Equal(v2) if v1 == v2 => Some(Ordering::Equal),
-                    IntegerType::GreaterThan(v2) if v1 > v2 => Some(Ordering::Less),
-                    _ => None
-                }
-            }
-            IntegerType::GreaterThan(v1) => {
-                other.partial_cmp(self).map(Ordering::reverse)
-            }
+            IntegerType::LessThan(v1) => match other {
+                IntegerType::Any => Some(Ordering::Less),
+                IntegerType::LessThan(v2) if v1 < v2 => Some(Ordering::Less),
+                IntegerType::LessThan(v2) if v1 > v2 => Some(Ordering::Greater),
+                IntegerType::LessThan(v2) if v1 == v2 => Some(Ordering::Equal),
+                IntegerType::Equal(v2) if v1 > v2 => Some(Ordering::Greater),
+                _ => None,
+            },
+            IntegerType::Equal(v1) => match other {
+                IntegerType::Any => Some(Ordering::Less),
+                IntegerType::LessThan(v2) if v2 > v1 => Some(Ordering::Less),
+                IntegerType::Equal(v2) if v1 == v2 => Some(Ordering::Equal),
+                IntegerType::GreaterThan(v2) if v1 > v2 => Some(Ordering::Less),
+                _ => None,
+            },
+            IntegerType::GreaterThan(v1) => other.partial_cmp(self).map(Ordering::reverse),
         }
     }
 }
@@ -316,12 +289,11 @@ pub enum StringType {
     EndsWith(String),
 }
 
-
 #[cfg(test)]
 mod test {
-    use std::rc::Rc;
-    use crate::Type::Integer;
     use super::*;
+    use crate::Type::Integer;
+    use std::rc::Rc;
 
     #[test]
     fn integer_constraints() {
@@ -335,7 +307,10 @@ mod test {
 
         assert!(IntegerType::greater_than(10) > IntegerType::equal(42));
 
-        assert!(matches!( IntegerType::greater_than(42).partial_cmp(&IntegerType::equal(42)), None));
+        assert!(matches!(
+            IntegerType::greater_than(42).partial_cmp(&IntegerType::equal(42)),
+            None
+        ));
 
         /*
         /// Expresses a constraint of `value <= 42`

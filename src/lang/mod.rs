@@ -1,15 +1,15 @@
-use std::fmt::{Debug, Formatter};
-use std::ops::{Deref, DerefMut};
-use chumsky::prelude::*;
-use chumsky::{Error, Parser, Stream};
 use crate::lang::expression::expr;
 use crate::lang::ty::Type;
+use chumsky::prelude::*;
+use chumsky::{Error, Parser, Stream};
+use std::fmt::{Debug, Formatter};
+use std::ops::{Deref, DerefMut};
 
 mod expression;
 mod ty;
+mod typ;
 
 pub type Span = std::ops::Range<usize>;
-
 
 #[derive(Clone, Debug)]
 pub struct Location {
@@ -24,9 +24,7 @@ impl Location {
 
 impl From<Span> for Location {
     fn from(span: Span) -> Self {
-        Self {
-            span
-        }
+        Self { span }
     }
 }
 
@@ -41,7 +39,7 @@ impl<T: Debug> Debug for Located<T> {
     }
 }
 
-impl<T:Clone> Clone for Located<T> {
+impl<T: Clone> Clone for Located<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -66,7 +64,6 @@ impl<T> Located<T> {
         self.location.span.clone()
     }
 
-
     pub fn into_inner(self) -> T {
         self.inner
     }
@@ -90,8 +87,6 @@ impl<T> DerefMut for Located<T> {
     }
 }
 
-
-
 #[derive(Clone, Debug)]
 pub enum ComparisonOp {
     LessThan,
@@ -111,12 +106,10 @@ pub enum DerivationOp {
     Modulo,
 }
 
-
 #[allow(unused)]
 type ParserInput = char;
 #[allow(unused)]
 type ParserError = Simple<char>;
-
 
 #[derive(Clone, Debug)]
 pub struct FieldName(String);
@@ -131,16 +124,15 @@ impl FieldName {
     }
 }
 
-
 #[derive(Copy, Clone, Default)]
 pub struct PolicyParser {}
 
 impl PolicyParser {
     pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Located<Type>, Vec<ParserError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let parser = expr();
         let parser = parser.padded().then_ignore(end());
