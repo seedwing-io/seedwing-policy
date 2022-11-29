@@ -4,6 +4,7 @@ use chumsky::prelude::*;
 use chumsky::Parser;
 use chumsky::Span;
 use std::fmt::{Debug, Formatter};
+use crate::lang::ty::Type::Meet;
 
 #[derive(Debug)]
 pub struct CompilationUnit {
@@ -123,6 +124,20 @@ pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserErro
         )
 }
 
+pub fn super_tys() -> impl Parser<ParserInput, Vec<Located<TypeName>>, Error=ParserError> + Clone {
+    just(":")
+        .padded()
+        .ignored()
+        .then(
+            ty_name().separated_by(
+                just("+").padded().ignored()
+            )
+        )
+        .map(|(_, names)| {
+            names
+        })
+}
+
 pub fn ty_defn() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
     just("type")
         .padded()
@@ -131,22 +146,57 @@ pub fn ty_defn() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserErro
             ty_name()
         )
         .then(
+            super_tys().or_not()
+        )
+        .then(
             ty().or_not()
         )
-        .map(|((_, ty_name), ty)| {
-            if let Some(ty) = ty {
-                let loc = ty_name.span().start()..ty.span().end();
-                Located::new(
-                    TypeDefn::new(ty_name, ty),
-                    loc)
-            } else {
+        .map(|(((_, ty_name), super_tys), ty)| {
+            let primary_ty = match ty {
+                None => {
+                    let loc = ty_name.location();
+                    Located::new(Type::Anything, loc.clone())
+                }
+                Some(ty) => {
+                    ty
+                }
+            };
+
+            let super_ty = super_tys.map(|super_tys| {
+                super_tys
+                    .iter()
+                    .map(|e| {
+                        Located::new(
+                            Type::Ref(e.clone()),
+                            e.location(),
+                        )
+                    })
+                    .reduce(|accum, next| {
+                        let accum_loc = accum.location();
+                        let next_loc = next.location();
+                        Located::new(
+                            Type::Meet(
+                                Box::new(accum),
+                                Box::new(next),
+                            ),
+                            accum_loc.span().start()..next_loc.span().end())
+                    })
+            }).flatten();
+
+            if let Some(super_ty) = super_ty {
                 let loc = ty_name.location();
+                let ty = Type::Meet(Box::new(super_ty), Box::new(primary_ty));
                 Located::new(
                     TypeDefn::new(ty_name,
-                                  Located::new(Type::Anything, loc.clone()),
+                                  Located::new(ty, loc.clone()),
                     ),
                     loc,
                 )
+            } else {
+                let loc = ty_name.span().start()..primary_ty.span().end();
+                Located::new(
+                    TypeDefn::new(ty_name, primary_ty),
+                    loc)
             }
         })
 }
@@ -229,7 +279,6 @@ pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error=ParserErr
     })
 }
 
-
 pub fn field_definition(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clone {
     field_name()
         .then(just(":").padded().ignored())
@@ -256,7 +305,6 @@ pub fn compilation_unit() -> impl Parser<ParserInput, CompilationUnit, Error=Par
             unit
         })
 }
-
 
 #[cfg(test)]
 mod test {
@@ -350,7 +398,7 @@ mod test {
                 taco: Integer,
             }
 
-            type Jim {
+            type Jim : Integer + Taco {
             }
 
             type Dan
