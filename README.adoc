@@ -1,0 +1,7 @@
+# Seedwing Policy
+
+A nascent attempt at a simpler alternative to
+https://www.openpolicyagent.org/[OPA/Rego], which can be a bit tedious
+and overgeneralized. It may go nowhere, but if it works,
+https://github.com/seedwing-io/seedwing-proxy[seedwing-proxy] should
+be able to use it as an alternative to OPA.
