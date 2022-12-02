@@ -1,10 +1,11 @@
-use crate::lang::expression::{expr, Expr, field_expr, Value};
-use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput};
+//use crate::lang::expr::{expr, Expr, field_expr, Value};
+use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput, Span};
 use chumsky::prelude::*;
 use chumsky::Parser;
-use chumsky::Span;
 use std::fmt::{Debug, Formatter};
-use crate::lang::ty::Type::Meet;
+use crate::lang::expr::{Expr, expr};
+//use crate::lang::expr::Expr;
+//use crate::lang::ty::Type::Meet;
 
 #[derive(Debug)]
 pub struct CompilationUnit {
@@ -52,13 +53,23 @@ impl TypeDefn {
 #[derive(Clone)]
 pub enum Type {
     Anything,
+    Primordial(PrimordialType),
     Ref(Located<TypeName>),
     Const(Located<Value>),
     Object(ObjectType),
-    Constrained(Located<Expr>),
+    Expr(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
+    Functional(Located<TypeName>, Box<Located<Type>>),
+    List(Box<Located<Type>>),
     Nothing,
+}
+
+#[derive(Debug, Clone)]
+pub enum PrimordialType {
+    Integer,
+    Decimal,
+    Boolean,
 }
 
 impl Debug for Type {
@@ -66,14 +77,25 @@ impl Debug for Type {
         match self {
             Type::Anything => write!(f, "Anything"),
             Type::Ref(r) => write!(f, "{:?}", r),
+            Type::Primordial(p) => write!(f, "{:?}", p),
             Type::Const(value) => write!(f, "{:?}", value),
-            Type::Constrained(expr) => write!(f, "{:?}", expr),
             Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
             Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
             Type::Nothing => write!(f, "Nothing"),
             Type::Object(obj) => write!(f, "{:?}", obj),
+            Type::Functional(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),
+            Type::List(ty) => write!(f, "[{:?}]", ty),
+            Type::Expr(expr) => write!(f, "#({:?})", expr)
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum Value {
+    Integer(i64),
+    Decimal(f64),
+    String(String),
+    Boolean(bool),
 }
 
 
@@ -98,20 +120,23 @@ impl ObjectType {
 #[derive(Clone, Debug)]
 pub struct Field {
     name: Located<String>,
-    ty: Option<Located<Type>>,
+    ty: Located<Type>,
 }
 
 impl Field {
-    pub fn new(name: Located<String>, expr: Located<Type>) -> Self {
+    pub fn new(name: Located<String>, ty: Located<Type>) -> Self {
         Self {
             name,
-            ty: Some(expr),
+            ty,
         }
     }
 }
 
+fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
+    just(op).padded()
+}
 
-pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(
@@ -124,96 +149,229 @@ pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserErro
         )
 }
 
-pub fn super_tys() -> impl Parser<ParserInput, Vec<Located<TypeName>>, Error=ParserError> + Clone {
-    just(":")
-        .padded()
-        .ignored()
-        .then(
-            ty_name().separated_by(
-                just("+").padded().ignored()
-            )
-        )
-        .map(|(_, names)| {
-            names
-        })
-}
-
-pub fn ty_defn() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
+pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
     just("type")
         .padded()
         .ignored()
         .then(
-            ty_name()
+            type_name()
         )
         .then(
-            super_tys().or_not()
-        )
-        .then(
-            ty().or_not()
-        )
-        .map(|(((_, ty_name), super_tys), ty)| {
-            let primary_ty = match ty {
-                None => {
-                    let loc = ty_name.location();
-                    Located::new(Type::Anything, loc.clone())
-                }
-                Some(ty) => {
-                    ty
-                }
-            };
-
-            let super_ty = super_tys.map(|super_tys| {
-                super_tys
-                    .iter()
-                    .map(|e| {
-                        Located::new(
-                            Type::Ref(e.clone()),
-                            e.location(),
-                        )
-                    })
-                    .reduce(|accum, next| {
-                        let accum_loc = accum.location();
-                        let next_loc = next.location();
-                        Located::new(
-                            Type::Meet(
-                                Box::new(accum),
-                                Box::new(next),
-                            ),
-                            accum_loc.span().start()..next_loc.span().end())
-                    })
-            }).flatten();
-
-            if let Some(super_ty) = super_ty {
-                let loc = ty_name.location();
-                let ty = Type::Meet(Box::new(super_ty), Box::new(primary_ty));
-                Located::new(
-                    TypeDefn::new(ty_name,
-                                  Located::new(ty, loc.clone()),
-                    ),
-                    loc,
+            just("=")
+                .padded()
+                .ignored()
+                .then(
+                    type_expr()
                 )
-            } else {
-                let loc = ty_name.span().start()..primary_ty.span().end();
-                Located::new(
-                    TypeDefn::new(ty_name, primary_ty),
-                    loc)
-            }
+                .or_not()
+        )
+        .map(|((_, ty_name), ty)| {
+            let ty = ty.unwrap_or({
+                let loc = ty_name.location();
+                ((), Located::new(Type::Nothing, loc.clone()))
+            }).1;
+
+            let loc = ty_name.span().start()..ty.span().end();
+            Located::new(
+                TypeDefn::new(ty_name, ty),
+                loc)
         })
 }
 
-pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    recursive(|ty| {
-        ty_constraint(ty.clone())
+pub fn type_expr() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    recursive(|expr| {
+        parenthesized_expr(expr.clone())
             .or(
-                ty_object(ty.clone())
-            ).or(
-            ty_ref()
-        )
+                logical_or(expr)
+            )
     })
 }
 
-pub fn ty_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    ty_name()
+pub fn parenthesized_expr(
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    just("(")
+        .padded()
+        .ignored()
+        .then(expr)
+        .then(just(")").padded().ignored())
+        .map(|((_left_paren, expr), _right_paren)|
+            expr
+        )
+}
+
+pub fn logical_or(
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    logical_and(expr.clone())
+        .then(op("||").then(expr.clone()).repeated())
+        .foldl(|lhs, (_op, rhs)| {
+            let location = lhs.span().start()..rhs.span().end();
+            Located::new(
+                Type::Join(
+                    Box::new(lhs),
+                    Box::new(rhs)),
+                location)
+        })
+}
+
+pub fn logical_and(
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    ty(expr.clone())
+        .then(op("&&").then(expr.clone()).repeated())
+        .foldl(|lhs, (_op, rhs)| {
+            let location = lhs.span().start()..rhs.span().end();
+            Located::new(
+                Type::Meet(
+                    Box::new(lhs),
+                    Box::new(rhs)),
+                location)
+        })
+}
+
+
+pub fn integer_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
+    text::int::<char, ParserError>(10)
+        .padded()
+        .map_with_span(|s: String, span| Located::new(Value::Integer(s.parse().unwrap()), span))
+}
+
+pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
+    text::int(10)
+        .then(just('.').then(text::int(10)))
+        .padded()
+        .map_with_span(
+            |(integral, (_dot, decimal)): (String, (char, String)), span| {
+                Located::new(
+                    Value::Decimal(format!("{}.{}", integral, decimal).parse().unwrap()),
+                    span,
+                )
+            },
+        )
+}
+
+pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
+    just('"')
+        .ignored()
+        .then(
+            filter(|c: &char| *c != '"')
+                .repeated()
+                .collect()
+        )
+        .then(
+            just('"')
+                .ignored()
+        )
+        .padded()
+        .map_with_span(|((_, x), _), span: Span| {
+            Located::new(
+                Value::String(
+                    x
+                ),
+                span.clone(),
+            )
+        })
+}
+
+
+pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    decimal_literal()
+        .or(
+            integer_literal()
+        )
+        .or(
+            string_literal()
+        )
+        .map(|v| {
+            let location = v.location();
+            Located::new(
+                Type::Const(v),
+                location,
+            )
+        })
+}
+
+pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    just("$(")
+        .padded()
+        .ignored()
+        .then(expr())
+        .then(
+            just(")")
+                .padded()
+                .ignored())
+        .map_with_span(|((_, expr), y), span| {
+            Located::new(
+                Type::Expr(expr),
+                span,
+            )
+        })
+}
+
+pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    type_name()
+        .then(
+            just("(")
+                .padded()
+                .ignored()
+        )
+        .then(expr.clone())
+        .then(
+            just(")")
+                .padded()
+                .ignored()
+        )
+        .map(|(((fn_name, _), ty), _)| {
+            let location = fn_name.span().start()..ty.span().end();
+
+            Located::new(
+                Type::Functional(fn_name, Box::new(ty)),
+                location,
+            )
+        })
+}
+
+pub fn list_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    just("[")
+        .padded()
+        .ignored()
+        .then(expr)
+        .then(
+            just("]")
+                .padded()
+                .ignored()
+        )
+        .map_with_span(|((_, ty), _), span| {
+            Located::new(
+                Type::List(Box::new(ty)),
+                span,
+            )
+        })
+}
+
+pub fn ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    expr_ty()
+        .or(
+            list_ty(expr.clone())
+        )
+        .or(
+            functional_ty(expr.clone())
+        )
+        .or(
+            const_type()
+        )
+        .or(
+            type_ref()
+        )
+        .or(
+            object_type(expr.clone())
+        )
+    //})
+}
+
+pub fn type_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    type_name()
         .map(|name| {
             let loc = name.location();
             Located::new(
@@ -227,18 +385,7 @@ pub fn ty_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + 
         })
 }
 
-pub fn ty_constraint(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    expr()
-        .map(|expr| {
-            let loc = expr.location();
-            Located::new(
-                Type::Constrained(expr),
-                loc,
-            )
-        })
-}
-
-pub fn ty_object(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+pub fn object_type(ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("{")
         .padded()
         .map_with_span(|_, span| {
@@ -293,7 +440,7 @@ pub fn field_definition(ty: impl Parser<ParserInput, Located<Type>, Error=Parser
 }
 
 pub fn compilation_unit() -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
-    ty_defn().padded().repeated()
+    type_definition().padded().repeated()
         .then_ignore(end())
         .map(|ty| {
             let mut unit = CompilationUnit::new();
@@ -312,21 +459,21 @@ mod test {
 
     #[test]
     fn parse_ty_name() {
-        let name = ty_name().parse("Bob").unwrap().into_inner();
+        let name = type_name().parse("Bob").unwrap().into_inner();
 
         assert_eq!(name.name(), "Bob");
     }
 
     #[test]
     fn parse_ty_defn() {
-        let ty = ty_defn().parse("type Bob").unwrap().into_inner();
+        let ty = type_definition().parse("type Bob").unwrap().into_inner();
 
         assert_eq!(ty.name.name(), "Bob");
     }
 
     #[test]
     fn parse_ty_ref() {
-        let ty_ref = ty_ref().parse("Bob").unwrap().into_inner();
+        let ty_ref = type_ref().parse("Bob").unwrap().into_inner();
 
         println!("{:?}", ty_ref);
 
@@ -340,9 +487,9 @@ mod test {
 
     #[test]
     fn parse_simple_obj_ty() {
-        let ty = ty().then_ignore(end()).parse(r#"
+        let ty = type_expr().then_ignore(end()).parse(r#"
             {
-                foo: self > 23,
+                foo: 81,
                 bar: 4.2,
             }
         "#).unwrap().into_inner();
@@ -374,11 +521,11 @@ mod test {
 
     #[test]
     fn parse_nested_obj_ty() {
-        let ty = ty().then_ignore(end()).parse(r#"
+        let ty = type_expr().then_ignore(end()).parse(r#"
             {
-                foo: self > 23,
+                foo: 23,
                 bar: {
-                  quux: self < 14,
+                  quux: 14,
                 },
                 taco: Integer,
             }
@@ -388,365 +535,46 @@ mod test {
     }
 
     #[test]
+    fn parse_function_transform() {
+        let ty = type_expr().then_ignore(end()).parse(r#"
+            {
+                name: String && Length( $(self + 1 > 13) ),
+            }
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+    }
+
+    #[test]
+    fn parse_collections() {
+        let ty = type_expr().then_ignore(end()).parse(r#"
+            {
+                name: [Integer && $(self == 2)]
+            }
+        "#).unwrap().into_inner();
+
+        println!("{:?}", ty);
+    }
+
+    #[test]
     fn parse_compilation_unit() {
         let unit = compilation_unit().parse(r#"
-            type Bob {
-                foo: self > 23,
+            type Bob = {
+                foo: Integer,
                 bar: {
-                  quux: self < 14,
+                  quux: Integer
                 },
                 taco: Integer,
             }
 
-            type Jim : Integer + Taco {
-            }
+            type Jim = Integer && Taco
 
-            type Dan
+            type UnsignedInteger = Integer && $( self >= 0 )
 
-            type Lily {
-
-            }
+            type Lily
 
         "#).unwrap();
 
         println!("{:?}", unit);
     }
 }
-
-/*
-pub fn ty_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
-    filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
-        .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
-        )
-        .collect()
-        .padded()
-        .map_with_span(|v, span|
-            Located::new(TypeName(v), span)
-        )
-}
-
-pub fn ty_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    ty_name().map(|name| {
-        let hoisted_location = name.location();
-        Located::new(Type::Ref(
-            TypeRef::new(name.into_inner())
-        ), hoisted_location)
-    })
-}
-
-pub fn super_ty_decl() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    just(":").padded().ignored()
-        .then(ty())
-        .map(|v| {
-            v.1
-        })
-}
-
-pub fn ty_decl() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
-    just("type").padded().map_with_span(|_, span| {
-        span
-    })
-        .then(
-            ty_name().padded()
-                .then(
-                    super_ty_decl().or_not()
-                )
-                .then(
-                    constraint_list()
-                )
-        )
-        .map(|(type_span, ((name, super_ty), defn))| {
-            let (defn_name, defn_location) = name.clone().split();
-            match (super_ty, defn) {
-                (None, None) => {
-                    println!("A");
-                    Located::new(
-                        TypeDefn::new(defn_name, Type::Anything),
-                        type_span.start()..defn_location.span().end(),
-                    )
-                }
-                (Some(super_ty), None) => {
-                    println!("B");
-                    let (super_ty, super_location) = super_ty.split();
-                    Located::new(
-                        TypeDefn::new(defn_name, super_ty),
-                        type_span.start()..super_location.span().end())
-                }
-                (None, Some(defn)) => {
-                    println!("C");
-                    let (defn_ty, defn_location) = defn.clone().split();
-
-                    let defn_ty = Type::Constrained(defn);
-
-                    Located::new(
-                        TypeDefn::new(defn_name, defn_ty),
-                        type_span.start()..defn_location.span().end())
-                }
-                (Some(super_ty), Some(defn)) => {
-                    println!("D");
-                    let span = type_span.start()..defn_location.span().end();
-                    let defn = Located::new( Type::Constrained(defn.clone()), defn.location());
-                    Located::new(
-                        TypeDefn::new(defn_name,
-                                      Type::Meet(
-                                          Box::new(super_ty),
-                                          Box::new(defn)),
-                        ), span)
-                }
-            }
-        }).then_ignore(end())
-}
-
-pub fn constraint_list() -> impl Parser<ParserInput, Option<Located<Expr>>, Error=ParserError> + Clone {
-    just("{").padded().ignored()
-        .map(|v| {
-            println!("saw open curly");
-            v
-        })
-        .then(
-            expr().or(field_expr())
-                .repeated()
-                .separated_by(
-                    just(",")
-                        .padded()
-                        .ignored()
-                )
-                .allow_trailing()
-                .padded()
-        )
-        .then(
-            just("}")
-                .padded()
-                .ignored()
-        )
-        .map(|v| {
-            println!("close curly");
-            v
-        })
-        .map_with_span(|((_left_curly, exprs), _right_curly), span| {
-            let expr = exprs.iter().flatten().cloned().reduce(|accum, each| {
-                let span = accum.span().start()..each.span().end();
-                Located::new(
-                    Expr::LogicalAnd(
-                        Box::new(accum),
-                        Box::new(each)),
-                    span)
-            });
-
-            println!("---> {:?}", expr);
-
-            if let Some(expr) = expr {
-                Some(expr)
-            } else {
-                None
-            }
-        })
-}
-
-pub fn constrained_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    just("->").padded().ignored()
-        .then(
-            constraint_list()
-                .map_with_span(|v, span| {
-                    Located::new(
-                        v.map_or(Type::Anything, |v| Type::Constrained(v),
-                        ), span)
-                })
-        ).map(|(_arrow, ty)| {
-        ty
-    })
-}
-
-
-pub fn ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    ty_ref()
-        .then(
-            constraint_list().or_not()
-        ).then_ignore(end())
-        .map(|(ty, constraints)| {
-            if let Some(Some(constraints)) = constraints {
-                let span = ty.span().start()..constraints.span().end();
-                let hoisted_location = constraints.location();
-                Located::new(
-                    Type::Meet(
-                        Box::new(ty),
-                        Box::new(
-                            Located::new(Type::Constrained(constraints), hoisted_location)
-                        )),
-                    span)
-            } else {
-                ty
-            }
-        })
-}
-
-
-pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    expr().then(just(";").padded().ignored())
-        .map_with_span(|(expr, _semi), span| {
-            //(Type::Expr(expr.0), expr.1)
-            expr.evaluate_to_type().unwrap()
-        })
-}
-
-pub fn object_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    just("{").padded().ignored().map_with_span(|_, span| span)
-        .then(field().separated_by(just(",").padded().ignored()).allow_trailing())
-        .then(just("}").padded().ignored().map_with_span(|_, span| span))
-        .map(|((open_curly, fields), close_curly)| {
-            let mut object_ty = ObjectType::new();
-            for f in fields {
-                object_ty.add_field(f);
-            }
-            Located::new(
-                Type::Object(
-                    object_ty
-                ),
-                open_curly.start()..close_curly.end(),
-            )
-        })
-}
-
-fn field() -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clone {
-    text::ident().padded().map_with_span(|v, span| (v, span))
-        .then(just(":").padded().ignored())
-        .then(expr())
-        .map(|(((name, span), _), expr)| {
-            let expr_location = expr.location();
-            Located::new(Field::new(name, expr), span.start()..expr_location.span().end())
-        })
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn primordial_type() {
-        let ty = ty().parse(r#"
-            String
-        "#).unwrap();
-
-        let expected = TypeName("String".into());
-
-        assert!(matches!( &*ty, Type::Ref(
-            TypeRef{
-                name : TypeName(expected)
-            }
-       ) ));
-
-        println!("{:?}", ty);
-    }
-
-    #[test]
-    fn primordial_type_no_constraints() {
-        let ty = ty().parse(r#"
-            Integer -> { }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    #[test]
-    fn primordial_type_with_constraints() {
-        let ty = ty().parse(r#"
-            Integer -> { self > 42 }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-
-    #[test]
-    fn bare_type() {
-        let ty = ty_decl().parse(r#"
-            type LargerInteger
-        "#).unwrap();
-
-        println!("{:?}", ty)
-    }
-
-    #[test]
-    fn type_alias_decl() {
-        let ty = ty_decl().parse(r#"
-            type LargerInteger : Integer
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    #[test]
-    fn primordial_type_defn() {
-        let ty = ty_decl().parse(r#"
-            type LargerInteger : Integer {
-                self > 42,
-            }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    #[test]
-    fn simple_object_type_defn() {
-        let ty = ty_decl().parse(r#"
-            type RandomObject {
-                foo: 42,
-                baz: self > 82,
-            }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    #[test]
-    fn nested_object_type_defn() {
-        let ty = ty_decl().parse(r#"
-            type RandomObject {
-                foo: 42,
-                baz: {
-                    quux: "howdy"
-                }
-            }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    /*
-    #[test]
-    fn const_type() {
-        let ty = ty_decl().parse(r#"
-            type Version {
-                42
-            }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-     */
-
-    /*
-    #[test]
-    fn object_type_defn() {
-        let ty = ty_decl().parse(r#"
-            type RandomObject {
-                foo: Integer { self > 42 },
-                bar: LargerInteger,
-                baz: {
-                    x: 42,
-                    y: String,
-                },
-                quux: String { self in [ "bob", "jim" ] },
-            }
-        "#).unwrap();
-
-        println!("{:?}", ty);
-    }
-
-     */
-}
-
-
- */

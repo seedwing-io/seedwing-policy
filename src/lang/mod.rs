@@ -1,13 +1,12 @@
-use crate::lang::expression::expr;
+//use crate::lang::expr::expr;
 use crate::lang::ty::Type;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, DerefMut};
 
-mod expression;
+mod expr;
 mod ty;
-mod typ;
 
 pub type Span = std::ops::Range<usize>;
 
@@ -134,8 +133,8 @@ impl PolicyParser {
         Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
         S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
-        let parser = expr();
-        let parser = parser.padded().then_ignore(end());
+        //let parser = expr();
+        //let parser = parser.padded().then_ignore(end());
 
         //parser.parse(stream)
         todo!()

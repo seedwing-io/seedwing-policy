@@ -30,26 +30,6 @@ pub enum Expr {
     LogicalOr(Box<Located<Expr>>, Box<Located<Expr>>),
 }
 
-#[derive(Debug)]
-pub enum TypeOrExpr {
-    Type(Type),
-    Expr(Expr),
-}
-
-impl Located<Expr> {
-    pub fn evaluate_to_type(&self) -> Result<Located<Type>, ExprError> {
-        let location = self.location();
-        let inner = Expr::evaluate_to_type(self)?;
-        match inner {
-            TypeOrExpr::Type(inner) => Ok(Located::new(inner, location)),
-            TypeOrExpr::Expr(inner) => Ok(Located::new(
-                Type::Constrained(Located::new(inner, location.clone())),
-                location,
-            )),
-        }
-    }
-}
-
 impl Expr {
     pub fn is_constant(&self) -> bool {
         match self {
@@ -165,26 +145,6 @@ impl Expr {
                 ))
             }
             _ => Ok(self.clone()),
-        }
-    }
-
-    pub fn evaluate_to_type(&self) -> Result<TypeOrExpr, ExprError> {
-        let simplified = self.simplify_expr()?;
-        match simplified {
-            Expr::Value(value) => Ok(TypeOrExpr::Type(Type::Const(value.clone()))),
-            Expr::LogicalAnd(lhs, rhs) => Ok(TypeOrExpr::Type(Type::Meet(
-                Box::new(lhs.evaluate_to_type()?),
-                Box::new(rhs.evaluate_to_type()?),
-            ))),
-
-            Expr::LogicalOr(lhs, rhs) => {
-                let location = lhs.span().start()..rhs.span().end();
-                Ok(TypeOrExpr::Type(Type::Meet(
-                    Box::new(lhs.evaluate_to_type()?),
-                    Box::new(rhs.evaluate_to_type()?),
-                )))
-            }
-            _ => Ok(TypeOrExpr::Expr(simplified)),
         }
     }
 }
@@ -321,6 +281,34 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Expr>, Error=Parser
         .map_with_span(|value, span| Located::new(Expr::Value(value), span))
 }
 
+pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
+    just('"')
+        .ignored()
+        .then(
+            filter(|c: &char| *c != '"')
+                .repeated()
+                .collect()
+        )
+        .then(
+            just('"')
+                .ignored()
+        )
+        .padded()
+        .map_with_span(|((_, x), _), span: Span| {
+            Located::new(
+                Expr::Value(
+                    Located::new(
+                        Value::String(
+                            x
+                        ),
+                        span.clone(),
+                    )
+                ),
+                span,
+            )
+        })
+}
+
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     just("self").padded().map_with_span(|v, span: Span| {
         Located::new(Expr::SelfLiteral(Location::from(span.clone())), span)
@@ -346,20 +334,21 @@ pub fn field_expr() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError
                     ),
                     field_name,
                 ),
-                primary_location.clone()
+                primary_location.clone(),
             );
 
             let field_location = primary_location.span().start()..expr.span().end();
 
             Located::new(
-                Expr::Field( Box::new( expr_self), Box::new(expr) ),
-               field_location
+                Expr::Field(Box::new(expr_self), Box::new(expr)),
+                field_location,
             )
         })
 }
 
 pub fn atom() -> impl Parser<ParserInput, Located<Expr>, Error=ParserError> + Clone {
     self_literal()
+        .or(string_literal())
         .or(decimal_literal())
         .or(integer_literal())
         .or(boolean_literal())
@@ -488,6 +477,18 @@ mod test {
             .into_inner();
 
         assert!(matches!(ty, Expr::SelfLiteral(_)));
+    }
+
+    #[test]
+    fn parse_string() {
+        let ty = expr()
+            .parse(r#"
+                    "howdy"
+            "#)
+            .unwrap()
+            .into_inner();
+
+        println!("{:?}", ty);
     }
 
     #[test]
@@ -656,93 +657,4 @@ mod test {
             })
         ));
     }
-
-    #[test]
-    fn evaluate_to_type_const_boolean() {
-        let value = expr()
-            .parse(
-                r#"
-            false || true
-        "#,
-            )
-            .unwrap()
-            .into_inner();
-
-        let ty = value.evaluate_to_type().unwrap();
-
-        assert!(matches!(
-            ty,
-            TypeOrExpr::Type(Type::Const(Located {
-                inner: Value::Boolean(true),
-                ..
-            }))
-        ));
-    }
-
-    #[test]
-    fn evaluate_to_type_const_number() {
-        let value = expr()
-            .parse(
-                r#"
-            42 + 22.2
-        "#,
-            )
-            .unwrap()
-            .into_inner();
-
-        let ty = value.evaluate_to_type().unwrap();
-
-        assert!(matches!(
-                ty,
-                TypeOrExpr::Type(
-                    Type::Const(
-                        Located {
-                            inner: Value::Decimal(v),
-                            ..
-                        }
-                    )
-                    )
-            if v > 64.1 && v < 64.3));
-    }
-
-    #[test]
-    fn evaluate_to_type_numeric_relational() {
-        let value = expr()
-            .parse(
-                r#"
-            self > 42
-        "#,
-            )
-            .unwrap()
-            .into_inner();
-
-        let ty = value.evaluate_to_type().unwrap();
-
-        println!("{:?}", ty);
-    }
-
-    /*
-    #[test]
-    fn parse_field_expr() {
-        let expr = field_expr().parse(r#"
-            foo: 42
-        "#).unwrap();
-
-        let expr = expr.into_inner();
-
-        assert!(
-            matches!(
-                expr,
-                Expr::Field(..)
-            )
-        );
-
-        println!("{:?}", expr);
-
-        if let Expr::Field(name, expr) = expr {
-            assert_eq!("foo", name.name());
-        }
-    }
-
-     */
 }
