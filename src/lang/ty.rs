@@ -1,5 +1,5 @@
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput, Span};
+use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput, Span, TypePath};
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Formatter};
@@ -9,18 +9,40 @@ use crate::lang::expr::{Expr, expr};
 
 #[derive(Debug)]
 pub struct CompilationUnit {
+    uses: Vec<Located<Use>>,
     types: Vec<Located<TypeDefn>>,
 }
 
 impl CompilationUnit {
     pub fn new() -> Self {
         Self {
+            uses: Default::default(),
             types: Default::default(),
         }
     }
 
-    pub fn add(&mut self, ty: Located<TypeDefn>) {
+    pub fn add_use(&mut self, ty: Located<Use>) {
+        self.uses.push(ty)
+    }
+
+    pub fn add_type(&mut self, ty: Located<TypeDefn>) {
         self.types.push(ty)
+    }
+
+}
+
+#[derive(Debug)]
+pub struct Use {
+    type_path: Located<TypePath>,
+    as_name: Option<Located<TypeName>>,
+}
+
+impl Use {
+    pub fn new(type_path: Located<TypePath>, as_name: Option<Located<TypeName>>) -> Self {
+        Self {
+            type_path,
+            as_name,
+        }
     }
 }
 
@@ -139,7 +161,40 @@ fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
     just(op).padded()
 }
 
-pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserError> + Clone {
+    just("use") .padded() .ignored()
+        .then(type_path())
+        .then(as_clause().or_not())
+       // .then( just(";").padded().ignored() )
+        .map_with_span(|(((_,  type_path),  as_clause)), span| {
+            Located::new(
+                Use::new(type_path, as_clause),
+                span,
+            )
+        })
+}
+
+pub fn as_clause() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+    just("as").padded().ignored()
+        .then(package_or_type_name())
+        .map(|(_, v)| {
+            v
+        })
+}
+
+pub fn type_path() -> impl Parser<ParserInput, Located<TypePath>, Error=ParserError> + Clone {
+    package_or_type_name()
+        .separated_by(just("::").padded().ignored())
+        .at_least(2)
+        .map_with_span(|segments, span| {
+            Located::new(
+                TypePath::new(segments ),
+                span,
+            )
+        })
+}
+
+pub fn package_or_type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     filter(|c: &char| {
         (!c.is_uppercase() && c.is_alphanumeric())
             || *c == '_' || *c == '-'
@@ -162,7 +217,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error=Pa
         .padded()
         .ignored()
         .then(
-            type_name()
+            package_or_type_name()
         )
         .then(
             just("=")
@@ -395,7 +450,7 @@ pub fn ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clo
 }
 
 pub fn type_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    type_name()
+    package_or_type_name()
         .map(|name| {
             let loc = name.location();
             Located::new(
@@ -464,13 +519,20 @@ pub fn field_definition(ty: impl Parser<ParserInput, Located<Type>, Error=Parser
 }
 
 pub fn compilation_unit() -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
-    type_definition().padded().repeated()
+    use_statement().padded().repeated()
+        .then(
+            type_definition().padded().repeated()
+        )
         .then_ignore(end())
-        .map(|ty| {
+        .map(|(use_statements, types)| {
             let mut unit = CompilationUnit::new();
 
-            for e in ty {
-                unit.add(e)
+            for e in use_statements {
+                unit.add_use( e )
+            }
+
+            for e in types {
+                unit.add_type(e)
             }
 
             unit
@@ -483,7 +545,7 @@ mod test {
 
     #[test]
     fn parse_ty_name() {
-        let name = type_name().parse("bob").unwrap().into_inner();
+        let name = package_or_type_name().parse("bob").unwrap().into_inner();
 
         assert_eq!(name.name(), "bob");
     }
@@ -583,6 +645,9 @@ mod test {
     #[test]
     fn parse_compilation_unit() {
         let unit = compilation_unit().parse(r#"
+            use foo::bar::baz
+            use x::y::z as zed
+
             type bob = {
                 foo: int,
                 bar: {

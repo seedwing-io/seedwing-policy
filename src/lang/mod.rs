@@ -1,5 +1,5 @@
 //use crate::lang::expr::expr;
-use crate::lang::ty::Type;
+use crate::lang::ty::{Type, TypeName};
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use std::fmt::{Debug, Formatter};
@@ -9,6 +9,16 @@ mod expr;
 mod ty;
 
 pub type Span = std::ops::Range<usize>;
+
+#[derive(Debug)]
+pub struct TypePath(Vec<Located<TypeName>>, Located<TypeName>);
+
+impl TypePath {
+    pub fn new(mut package: Vec<Located<TypeName>>) -> Self {
+        let type_name = package.pop().unwrap();
+        Self (package, type_name)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Location {
