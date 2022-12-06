@@ -27,6 +27,9 @@ impl CompilationUnit {
 #[derive(Clone, Debug)]
 pub struct TypeName(String);
 
+#[derive(Clone, Debug)]
+pub struct FunctionName(String);
+
 impl TypeName {
     pub fn new(name: String) -> Self {
         Self(name)
@@ -60,7 +63,7 @@ pub enum Type {
     Expr(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
-    Functional(Located<TypeName>, Box<Located<Type>>),
+    Functional(Located<FunctionName>, Box<Located<Type>>),
     List(Box<Located<Type>>),
     Nothing,
 }
@@ -137,10 +140,15 @@ fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
 }
 
 pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
-    filter(|c: &char| (c.is_ascii_alphabetic() && c.is_uppercase()) || *c == '_')
+    filter(|c: &char| {
+        (!c.is_uppercase() && c.is_alphanumeric())
+            || *c == '_' || *c == '-'
+    })
         .map(Some)
         .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
+            filter(|c: &char| {
+                c.is_alphanumeric() || *c == '_' || *c == '-'
+            }).repeated(),
         )
         .collect()
         .padded()
@@ -309,8 +317,25 @@ pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> +
         })
 }
 
+pub fn function_name() -> impl Parser<ParserInput, Located<FunctionName>, Error=ParserError> + Clone {
+    filter(|c: &char| {
+        c.is_uppercase() && c.is_alphanumeric()
+    })
+        .map(Some)
+        .chain::<char, Vec<_>, _>(
+            filter(|c: &char| {
+                c.is_alphanumeric() || *c == '_' || *c == '-'
+            }).repeated(),
+        )
+        .collect()
+        .padded()
+        .map_with_span(|v, span|
+            Located::new(FunctionName(v), span)
+        )
+}
+
 pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    type_name()
+    function_name()
         .then(
             just("(")
                 .padded()
@@ -362,12 +387,11 @@ pub fn ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clo
             const_type()
         )
         .or(
-            type_ref()
-        )
-        .or(
             object_type(expr.clone())
         )
-    //})
+        .or(
+            type_ref()
+        )
 }
 
 pub fn type_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
@@ -459,21 +483,21 @@ mod test {
 
     #[test]
     fn parse_ty_name() {
-        let name = type_name().parse("Bob").unwrap().into_inner();
+        let name = type_name().parse("bob").unwrap().into_inner();
 
-        assert_eq!(name.name(), "Bob");
+        assert_eq!(name.name(), "bob");
     }
 
     #[test]
     fn parse_ty_defn() {
-        let ty = type_definition().parse("type Bob").unwrap().into_inner();
+        let ty = type_definition().parse("type bob").unwrap().into_inner();
 
-        assert_eq!(ty.name.name(), "Bob");
+        assert_eq!(ty.name.name(), "bob");
     }
 
     #[test]
     fn parse_ty_ref() {
-        let ty_ref = type_ref().parse("Bob").unwrap().into_inner();
+        let ty_ref = type_ref().parse("bob").unwrap().into_inner();
 
         println!("{:?}", ty_ref);
 
@@ -481,7 +505,7 @@ mod test {
             matches!(
                 ty_ref,
                 Type::Ref(ty_name)
-            if ty_name.name() == "Bob")
+            if ty_name.name() == "bob")
         );
     }
 
@@ -527,7 +551,7 @@ mod test {
                 bar: {
                   quux: 14,
                 },
-                taco: Integer,
+                taco: int,
             }
         "#).unwrap().into_inner();
 
@@ -538,7 +562,7 @@ mod test {
     fn parse_function_transform() {
         let ty = type_expr().then_ignore(end()).parse(r#"
             {
-                name: String && Length( $(self + 1 > 13) ),
+                name: string && Length( $(self + 1 > 13) ),
             }
         "#).unwrap().into_inner();
 
@@ -549,7 +573,7 @@ mod test {
     fn parse_collections() {
         let ty = type_expr().then_ignore(end()).parse(r#"
             {
-                name: [Integer && $(self == 2)]
+                name: [int && $(self == 2)]
             }
         "#).unwrap().into_inner();
 
@@ -559,19 +583,19 @@ mod test {
     #[test]
     fn parse_compilation_unit() {
         let unit = compilation_unit().parse(r#"
-            type Bob = {
-                foo: Integer,
+            type bob = {
+                foo: int,
                 bar: {
-                  quux: Integer
+                  quux: int
                 },
-                taco: Integer,
+                taco: int,
             }
 
-            type Jim = Integer && Taco
+            type jim = int && taco
 
-            type UnsignedInteger = Integer && $( self >= 0 )
+            type unsigned-int = int && $( self >= 0 )
 
-            type Lily
+            type lily
 
         "#).unwrap();
 
