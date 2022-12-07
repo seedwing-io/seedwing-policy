@@ -1,52 +1,12 @@
+use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::{ComparisonOp, DerivationOp, Located, Location, ParserError, ParserInput, Span, TypePath};
+use crate::lang::{CompilationUnit, Located, Location, ParserError, ParserInput, Source, Span, TypePath, Use};
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Formatter};
 use crate::lang::expr::{Expr, expr};
-//use crate::lang::expr::Expr;
-//use crate::lang::ty::Type::Meet;
 
-#[derive(Debug)]
-pub struct CompilationUnit {
-    uses: Vec<Located<Use>>,
-    types: Vec<Located<TypeDefn>>,
-}
-
-impl CompilationUnit {
-    pub fn new() -> Self {
-        Self {
-            uses: Default::default(),
-            types: Default::default(),
-        }
-    }
-
-    pub fn add_use(&mut self, ty: Located<Use>) {
-        self.uses.push(ty)
-    }
-
-    pub fn add_type(&mut self, ty: Located<TypeDefn>) {
-        self.types.push(ty)
-    }
-
-}
-
-#[derive(Debug)]
-pub struct Use {
-    type_path: Located<TypePath>,
-    as_name: Option<Located<TypeName>>,
-}
-
-impl Use {
-    pub fn new(type_path: Located<TypePath>, as_name: Option<Located<TypeName>>) -> Self {
-        Self {
-            type_path,
-            as_name,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct TypeName(String);
 
 #[derive(Clone, Debug)]
@@ -73,13 +33,28 @@ impl TypeDefn {
     pub fn new(name: Located<TypeName>, ty: Located<Type>) -> Self {
         Self { name, ty }
     }
+
+    pub fn name(&self) -> Located<TypeName> {
+        self.name.clone()
+    }
+
+    pub fn ty(&self) -> &Located<Type> {
+        &self.ty
+    }
+
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+        self.ty.referenced_types()
+    }
+
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+        self.ty.qualify_types(types);
+    }
 }
 
 #[derive(Clone)]
 pub enum Type {
     Anything,
-    Primordial(PrimordialType),
-    Ref(Located<TypeName>),
+    Ref(Located<TypePath>),
     Const(Located<Value>),
     Object(ObjectType),
     Expr(Located<Expr>),
@@ -90,11 +65,57 @@ pub enum Type {
     Nothing,
 }
 
-#[derive(Debug, Clone)]
-pub enum PrimordialType {
-    Integer,
-    Decimal,
-    Boolean,
+impl Type {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+        match self {
+            Type::Anything => Vec::default(),
+            Type::Ref(inner) => vec![
+                inner.clone()
+            ],
+            Type::Const(_) => Vec::default(),
+            Type::Object(inner) => inner.referenced_types(),
+            Type::Expr(_) => Vec::default(),
+            Type::Join(lhs, rhs) => lhs.referenced_types().iter().chain(rhs.referenced_types().iter()).cloned().collect(),
+            Type::Meet(lhs, rhs) => lhs.referenced_types().iter().chain(rhs.referenced_types().iter()).cloned().collect(),
+            Type::Functional(_, inner) => inner.referenced_types(),
+            Type::List(inner) => inner.referenced_types(),
+            Type::Nothing => Vec::default(),
+        }
+    }
+
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+        match self {
+            Type::Anything => {}
+            Type::Ref(ref mut path) => {
+                if path.inner.0.is_empty() {
+                    // it's a simple single-word name, needs qualifying, perhaps.
+                    if let Some(Some(qualified)) = types.get(&*path.inner.1) {
+                        *path = qualified.clone();
+                    }
+                }
+            }
+            Type::Const(_) => {}
+            Type::Object(inner) => {
+                inner.qualify_types(types);
+            }
+            Type::Expr(_) => {}
+            Type::Join(lhs, rhs) => {
+                lhs.qualify_types(types);
+                rhs.qualify_types(types);
+            }
+            Type::Meet(lhs, rhs) => {
+                lhs.qualify_types(types);
+                rhs.qualify_types(types);
+            }
+            Type::Functional(_, inner) => {
+                inner.qualify_types(types);
+            }
+            Type::List(inner) => {
+                inner.qualify_types(types);
+            }
+            Type::Nothing => {}
+        }
+    }
 }
 
 impl Debug for Type {
@@ -102,7 +123,6 @@ impl Debug for Type {
         match self {
             Type::Anything => write!(f, "Anything"),
             Type::Ref(r) => write!(f, "{:?}", r),
-            Type::Primordial(p) => write!(f, "{:?}", p),
             Type::Const(value) => write!(f, "{:?}", value),
             Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
             Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
@@ -140,6 +160,22 @@ impl ObjectType {
         self.fields.push(field);
         self
     }
+
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+        self.fields.iter().flat_map(|e| {
+            e.referenced_types()
+        }).collect()
+    }
+
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+        for field in &mut self.fields {
+            field.qualify_types(types);
+        }
+    }
+
+    pub fn fields(&self) -> &Vec<Located<Field>> {
+        &self.fields
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -155,6 +191,22 @@ impl Field {
             ty,
         }
     }
+
+    pub fn name(&self) -> &Located<String> {
+        &self.name
+    }
+
+    pub fn ty(&self) -> &Located<Type> {
+        &self.ty
+    }
+
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+        self.ty.referenced_types()
+    }
+
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+        self.ty.qualify_types(types)
+    }
 }
 
 fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
@@ -162,11 +214,11 @@ fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
 }
 
 pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserError> + Clone {
-    just("use") .padded() .ignored()
+    just("use").padded().ignored()
         .then(type_path())
         .then(as_clause().or_not())
-       // .then( just(";").padded().ignored() )
-        .map_with_span(|(((_,  type_path),  as_clause)), span| {
+        // .then( just(";").padded().ignored() )
+        .map_with_span(|(((_, type_path), as_clause)), span| {
             Located::new(
                 Use::new(type_path, as_clause),
                 span,
@@ -185,10 +237,10 @@ pub fn as_clause() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserEr
 pub fn type_path() -> impl Parser<ParserInput, Located<TypePath>, Error=ParserError> + Clone {
     package_or_type_name()
         .separated_by(just("::").padded().ignored())
-        .at_least(2)
+        .at_least(1)
         .map_with_span(|segments, span| {
             Located::new(
-                TypePath::new(segments ),
+                TypePath::new(segments),
                 span,
             )
         })
@@ -450,7 +502,7 @@ pub fn ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clo
 }
 
 pub fn type_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    package_or_type_name()
+    type_path()
         .map(|name| {
             let loc = name.location();
             Located::new(
@@ -518,17 +570,17 @@ pub fn field_definition(ty: impl Parser<ParserInput, Located<Type>, Error=Parser
         })
 }
 
-pub fn compilation_unit() -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
+pub fn compilation_unit<S: Into<Source> + Clone>(source: S) -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
     use_statement().padded().repeated()
         .then(
             type_definition().padded().repeated()
         )
         .then_ignore(end())
-        .map(|(use_statements, types)| {
-            let mut unit = CompilationUnit::new();
+        .map(move |(use_statements, types)| {
+            let mut unit = CompilationUnit::new(source.clone().into());
 
             for e in use_statements {
-                unit.add_use( e )
+                unit.add_use(e)
             }
 
             for e in types {
@@ -567,7 +619,7 @@ mod test {
             matches!(
                 ty_ref,
                 Type::Ref(ty_name)
-            if ty_name.name() == "bob")
+            if ty_name.type_name().name() == "bob")
         );
     }
 
@@ -644,9 +696,9 @@ mod test {
 
     #[test]
     fn parse_compilation_unit() {
-        let unit = compilation_unit().parse(r#"
-            use foo::bar::baz
-            use x::y::z as zed
+        let unit = compilation_unit("my_file.dog").parse(r#"
+            use foo::bar::bar
+            use x::y::z as osi-approved-license
 
             type bob = {
                 foo: int,

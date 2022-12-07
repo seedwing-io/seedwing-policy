@@ -1,6 +1,6 @@
 use crate::lang::ty::Type;
 use crate::lang::{
-    ComparisonOp, DerivationOp, FieldName, Located, Location, ParserError, ParserInput, Span,
+    FieldName, Located, Location, ParserError, ParserInput, Span,
 };
 use chumsky::prelude::*;
 use chumsky::Parser;

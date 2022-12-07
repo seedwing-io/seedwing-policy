@@ -1,22 +1,145 @@
 //use crate::lang::expr::expr;
-use crate::lang::ty::{Type, TypeName};
+use crate::lang::ty::{compilation_unit, Type, TypeDefn, TypeName};
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+use crate::runtime::BuildError;
 
-mod expr;
-mod ty;
+pub mod expr;
+pub mod ty;
 
 pub type Span = std::ops::Range<usize>;
 
+
 #[derive(Debug)]
+pub struct CompilationUnit {
+    source: Source,
+    uses: Vec<Located<Use>>,
+    types: Vec<Located<TypeDefn>>,
+}
+
+impl CompilationUnit {
+    pub fn new(source: Source) -> Self {
+        Self {
+            source,
+            uses: Default::default(),
+            types: Default::default(),
+        }
+    }
+
+    pub fn source(&self) -> Source {
+        self.source.clone()
+    }
+
+    pub fn add_use(&mut self, ty: Located<Use>) {
+        self.uses.push(ty)
+    }
+
+    pub fn add_type(&mut self, ty: Located<TypeDefn>) {
+        self.types.push(ty)
+    }
+
+    pub(crate) fn uses(&self) -> &Vec<Located<Use>> {
+        &self.uses
+    }
+
+    pub(crate) fn types(&self) -> &Vec<Located<TypeDefn>> {
+        &self.types
+    }
+
+    pub(crate) fn types_mut(&mut self) -> &mut Vec<Located<TypeDefn>> {
+        &mut self.types
+    }
+
+
+}
+
+#[derive(Debug)]
+pub struct Use {
+    type_path: Located<TypePath>,
+    as_name: Option<Located<TypeName>>,
+}
+
+impl Use {
+    pub fn new(type_path: Located<TypePath>, as_name: Option<Located<TypeName>>) -> Self {
+        Self {
+            type_path,
+            as_name,
+        }
+    }
+
+    pub fn type_path(&self) -> Located<TypePath> {
+        self.type_path.clone()
+    }
+
+    pub fn as_name(&self) -> Option<Located<TypeName>> {
+        self.as_name.clone()
+    }
+
+    pub fn as_source(&self) -> Source {
+        self.type_path.clone().into_inner().into()
+    }
+}
+
+
+#[derive(Debug, Clone)]
 pub struct TypePath(Vec<Located<TypeName>>, Located<TypeName>);
 
 impl TypePath {
     pub fn new(mut package: Vec<Located<TypeName>>) -> Self {
         let type_name = package.pop().unwrap();
-        Self (package, type_name)
+        Self(package, type_name)
+    }
+
+    pub fn is_simple(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn type_name(&self) -> &Located<TypeName> {
+        &self.1
+    }
+
+    pub fn join(&self, tail: Located<TypeName>) -> Self {
+        let mut segments = Vec::new();
+        for segment in &self.0 {
+            segments.push( segment.clone() );
+        }
+
+        segments.push( self.1.clone() );
+        segments.push( tail );
+
+        Self::new(segments)
+    }
+
+    pub fn as_path_str(&self) -> String {
+        let mut segments: Vec<String> = Vec::new();
+        segments.extend( self.0.iter().map(|e|e.name().into()));
+        segments.push( self.1.clone().name().into());
+
+        segments.join("::")
+    }
+}
+
+impl From<TypePath> for Source {
+    fn from(path: TypePath) -> Self {
+        let src = path.0.iter().map(|e| e.name()).collect::<Vec<&str>>().join("/");
+        src.into()
+    }
+}
+
+impl From<Source> for TypePath {
+    fn from(src: Source) -> Self {
+        let segments = src.name.split("/").map(|e| {
+            Located::new(
+                TypeName::new(e.into()),
+                0..0
+
+            )
+        }).collect::<Vec<Located<TypeName>>>();
+
+        Self::new(segments)
     }
 }
 
@@ -47,6 +170,40 @@ impl<T: Debug> Debug for Located<T> {
         write!(f, "{:?}", self.inner)
     }
 }
+
+impl<T: PartialEq> PartialEq for Located<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (&self.inner).eq( &other.inner )
+    }
+}
+
+
+/*
+impl<T: Eq> Eq for Located<T> {
+
+}
+
+ */
+
+/*
+impl<T: PartialEq> PartialEq<Self> for Located<T> {
+    fn eq(&self, other: &Self) -> bool {
+        ////self.inner.eq( &other.inner )
+        PartialEq::eq( &self.inner, &other.inner )
+    }
+}
+
+impl<T: Eq + PartialEq<T>> Eq for Located<T> {
+
+}
+ */
+
+impl<T: Hash> Hash for Located<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state)
+    }
+}
+
 
 impl<T: Clone> Clone for Located<T> {
     fn clone(&self) -> Self {
@@ -82,6 +239,7 @@ impl<T> Located<T> {
     }
 }
 
+
 impl<T> Deref for Located<T> {
     type Target = T;
 
@@ -96,29 +254,10 @@ impl<T> DerefMut for Located<T> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum ComparisonOp {
-    LessThan,
-    LessThanEqual,
-    Equal,
-    NotEqual,
-    GreaterThanEqual,
-    GreaterThan,
-}
-
-#[derive(Clone, Debug)]
-pub enum DerivationOp {
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Modulo,
-}
-
 #[allow(unused)]
-type ParserInput = char;
+pub type ParserInput = char;
 #[allow(unused)]
-type ParserError = Simple<char>;
+pub type ParserError = Simple<char>;
 
 #[derive(Clone, Debug)]
 pub struct FieldName(String);
@@ -133,21 +272,40 @@ impl FieldName {
     }
 }
 
+#[derive(Hash, PartialEq, Eq, PartialOrd, Debug, Clone)]
+pub struct Source {
+    name: String,
+}
+
+impl From<String> for Source {
+    fn from(name: String) -> Self {
+        Self {
+            name
+        }
+    }
+}
+
+impl From<&str> for Source {
+    fn from(name: &str) -> Self {
+        Self {
+            name: name.into(),
+
+        }
+    }
+}
+
 #[derive(Copy, Clone, Default)]
 pub struct PolicyParser {}
 
 impl PolicyParser {
-    pub fn parse<'a, Iter, S>(&self, stream: S) -> Result<Located<Type>, Vec<ParserError>>
-    where
-        Self: Sized,
-        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    pub fn parse<'a, Iter, Src, S>(&self, source: Src, stream: S) -> Result<CompilationUnit, Vec<ParserError>>
+        where
+            Self: Sized,
+            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+            Src: Into<Source> + Clone,
+            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
-        //let parser = expr();
-        //let parser = parser.padded().then_ignore(end());
-
-        //parser.parse(stream)
-        todo!()
+        Ok(compilation_unit(source).parse(stream)?)
     }
 }
 

@@ -1,0 +1,4 @@
+
+type bob
+
+type jim = foo::bar::quux::taco

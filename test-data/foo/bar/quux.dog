@@ -1,0 +1,4 @@
+
+use foo::bar::baz::bob
+
+type taco
