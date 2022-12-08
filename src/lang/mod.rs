@@ -84,7 +84,7 @@ impl Use {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TypePath(Vec<Located<TypeName>>, Located<TypeName>);
 
 impl TypePath {

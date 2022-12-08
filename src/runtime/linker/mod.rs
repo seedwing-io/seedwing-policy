@@ -18,7 +18,7 @@ impl Linker {
     pub fn link(mut self) -> Result<Rc<Runtime>, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         for mut unit in &mut self.units {
-            let visible_types = unit.uses().iter()
+            let mut visible_types = unit.uses().iter()
                 .map(|e| {
                     if let Some(name) = e.as_name() {
                         (name.clone().into_inner(), Some(e.type_path()))
@@ -33,13 +33,15 @@ impl Linker {
                         })).
                 collect::<HashMap<TypeName, Option<Located<TypePath>>>>();
 
+            visible_types.insert( TypeName::new( "int".into()), None );
+
             for defn in unit.types() {
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
                     if ty.is_simple() {
                         if !visible_types.contains_key(ty.type_name()) {
-                            todo!("unknown type referenced")
+                            todo!("unknown type referenced {:?}", ty )
                         }
                     }
                 }
@@ -53,6 +55,8 @@ impl Linker {
         // next, perform inter-unit linking.
 
         let mut world = Vec::new();
+
+        world.push("int".into() );
 
         for unit in &self.units {
             let unit_path = TypePath::from(unit.source());
@@ -73,7 +77,7 @@ impl Linker {
 
                 for each in referenced {
                     if !world.contains(&each.as_path_str()) {
-                        todo!("failed to inter-unit link");
+                        todo!("failed to inter-unit link for {:?}", each.as_path_str());
                     }
                 }
             }

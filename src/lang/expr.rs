@@ -4,6 +4,7 @@ use crate::lang::{
 };
 use chumsky::prelude::*;
 use chumsky::Parser;
+use crate::runtime::{EvaluationResult, RuntimeError, RuntimeType};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -31,6 +32,7 @@ pub enum Expr {
 }
 
 impl Expr {
+
     pub fn is_constant(&self) -> bool {
         match self {
             Expr::SelfLiteral(_) => false,

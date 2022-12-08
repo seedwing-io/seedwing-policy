@@ -135,7 +135,7 @@ impl Debug for Type {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
     Decimal(f64),
