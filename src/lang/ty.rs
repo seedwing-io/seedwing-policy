@@ -5,6 +5,7 @@ use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Formatter};
 use crate::lang::expr::{Expr, expr};
+use crate::value::Value;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct TypeName(String);
@@ -134,15 +135,6 @@ impl Debug for Type {
         }
     }
 }
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Value {
-    Integer(i64),
-    Decimal(f64),
-    String(String),
-    Boolean(bool),
-}
-
 
 #[derive(Clone, Debug)]
 pub struct ObjectType {
@@ -349,7 +341,7 @@ pub fn logical_and(
 pub fn integer_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
     text::int::<char, ParserError>(10)
         .padded()
-        .map_with_span(|s: String, span| Located::new(Value::Integer(s.parse().unwrap()), span))
+        .map_with_span(|s: String, span| Located::new(s.parse::<i64>().unwrap().into(), span))
 }
 
 pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
@@ -359,7 +351,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error=Parse
         .map_with_span(
             |(integral, (_dot, decimal)): (String, (char, String)), span| {
                 Located::new(
-                    Value::Decimal(format!("{}.{}", integral, decimal).parse().unwrap()),
+                    format!("{}.{}", integral, decimal).parse::<f64>().unwrap().into(),
                     span,
                 )
             },
@@ -372,7 +364,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error=Parser
         .then(
             filter(|c: &char| *c != '"')
                 .repeated()
-                .collect()
+                .collect::<String>()
         )
         .then(
             just('"')
@@ -381,9 +373,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error=Parser
         .padded()
         .map_with_span(|((_, x), _), span: Span| {
             Located::new(
-                Value::String(
-                    x
-                ),
+                x.into(),
                 span.clone(),
             )
         })

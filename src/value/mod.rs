@@ -1,15 +1,112 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::lang::expr::Expr;
 use crate::lang::Located;
-use crate::runtime::{RuntimeError, RuntimeType};
+use crate::runtime::{RuntimeError, RuntimeField, RuntimeType};
 
 mod json;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum Noted {
+    Type(Rc<Located<RuntimeType>>),
+    Field(Rc<Located<RuntimeField>>),
+    Expr(Rc<Located<Expr>>),
+}
+
+impl From<Rc<Located<RuntimeType>>> for Noted {
+    fn from(inner: Rc<Located<RuntimeType>>) -> Self {
+        Self::Type(inner)
+    }
+}
+
+impl From<Rc<Located<RuntimeField>>> for Noted {
+    fn from(inner: Rc<Located<RuntimeField>>) -> Self {
+        Self::Field(inner)
+    }
+}
+
+impl From<Rc<Located<Expr>>> for Noted {
+    fn from(inner: Rc<Located<Expr>>) -> Self {
+        Self::Expr(inner)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Value {
     inner: InnerValue,
-    matches: Vec<Rc<Located<RuntimeType>>>,
-    nonmatches: Vec<Rc<Located<RuntimeType>>>,
+    matches: Vec<Noted>,
+    nonmatches: Vec<Noted>,
+}
+
+impl PartialEq<Self> for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self.inner, &other.inner)  {
+            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => {
+                lhs == rhs
+            }
+            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => {
+                lhs == rhs
+            }
+            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => {
+                lhs == rhs
+            }
+            (InnerValue::String(lhs), InnerValue::String(rhs)) => {
+                lhs == rhs
+            }
+            _ => false
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (&self.inner, &other.inner) {
+            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => {
+                lhs.partial_cmp(rhs)
+            }
+            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => {
+                lhs.partial_cmp(rhs)
+            }
+            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => {
+                lhs.partial_cmp(rhs)
+            }
+            (InnerValue::Decimal(lhs), InnerValue::Integer(rhs)) => {
+                lhs.partial_cmp(&(*rhs as f64) )
+            }
+            (InnerValue::Integer(lhs), InnerValue::Decimal(rhs)) => {
+                (*lhs as f64).partial_cmp(rhs)
+            }
+            (InnerValue::String(lhs), InnerValue::String(rhs)) => {
+                lhs.partial_cmp(rhs)
+            }
+            _ => None
+        }
+    }
+}
+
+impl From<i64> for Value {
+    fn from(inner: i64) -> Self {
+        InnerValue::Integer(inner).into()
+    }
+}
+
+impl From<f64> for Value {
+    fn from(inner: f64) -> Self {
+        InnerValue::Decimal(inner).into()
+    }
+}
+
+impl From<bool> for Value {
+    fn from(inner: bool) -> Self {
+        InnerValue::Boolean(inner).into()
+    }
+}
+
+impl From<String> for Value {
+    fn from(inner: String) -> Self {
+        InnerValue::String(inner).into()
+    }
 }
 
 impl Value {
@@ -26,7 +123,7 @@ impl From<InnerValue> for Value {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum InnerValue {
     Null,
     String(String),
@@ -38,11 +135,11 @@ pub enum InnerValue {
 }
 
 impl Value {
-    pub(crate) fn note(&mut self, ty: Rc<Located<RuntimeType>>, matches: bool) {
+    pub(crate) fn note<N: Into<Noted>>(&mut self, noted: N, matches: bool) {
         if matches {
-            self.matches.push(ty);
+            self.matches.push(noted.into());
         } else {
-            self.nonmatches.push(ty);
+            self.nonmatches.push(noted.into());
         }
     }
 
@@ -122,7 +219,7 @@ impl Value {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     fields: HashMap<String, Value>
 }

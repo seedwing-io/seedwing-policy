@@ -10,8 +10,8 @@ use std::rc::Rc;
 use chumsky::{Error, Stream};
 use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source, TypePath};
 use crate::lang::expr::Expr;
-use crate::lang::ty::{FunctionName, Type, TypeName, Value};
-use crate::value::Value as RuntimeValue;
+use crate::lang::ty::{FunctionName, Type, TypeName};
+use crate::value::{Value as RuntimeValue, Value};
 use crate::runtime::linker::Linker;
 
 #[derive(Debug)]
@@ -156,13 +156,13 @@ impl Runtime {
                     RuntimeType::Object(
                         RuntimeObjectType {
                             fields: inner.fields().iter().map(|f| {
-                                Located::new(
+                                Rc::new(Located::new(
                                     RuntimeField {
                                         name: f.name().clone(),
                                         ty: Rc::new(self.convert(f.ty())),
                                     },
                                     ty.location(),
-                                )
+                                ))
                             }).collect()
                         }
                     ),
@@ -171,7 +171,7 @@ impl Runtime {
             }
             Type::Expr(inner) => {
                 Located::new(
-                    RuntimeType::Expr(inner.clone()),
+                    RuntimeType::Expr(Rc::new(inner.clone())),
                     ty.location(),
                 )
             }
@@ -187,8 +187,8 @@ impl Runtime {
             Type::Meet(lhs, rhs) => {
                 Located::new(
                     RuntimeType::Meet(
-                        Box::new(self.convert(&**lhs)),
-                        Box::new(self.convert(&**rhs)),
+                        Rc::new(self.convert(&**lhs)),
+                        Rc::new(self.convert(&**rhs)),
                     ),
                     ty.location(),
                 )
@@ -218,9 +218,9 @@ pub enum RuntimeType {
     Ref(Rc<Runtime>, Located<TypePath>),
     Const(Located<Value>),
     Object(RuntimeObjectType),
-    Expr(Located<Expr>),
+    Expr(Rc<Located<Expr>>),
     Join(Rc<Located<RuntimeType>>, Rc<Located<RuntimeType>>),
-    Meet(Box<Located<RuntimeType>>, Box<Located<RuntimeType>>),
+    Meet(Rc<Located<RuntimeType>>, Rc<Located<RuntimeType>>),
     Functional(Located<FunctionName>, Box<Located<RuntimeType>>),
     List(Box<Located<RuntimeType>>),
     Nothing,
@@ -304,24 +304,13 @@ impl Located<RuntimeType> {
                 return runtime.evaluate(path.as_path_str(), value);
             }
             RuntimeType::Const(inner) => {
-                match &**inner {
-                    Value::Integer(inner) => {}
-                    Value::Decimal(inner) => {}
-                    Value::String(inner) => {
-                        if let Some(str_value) = value.try_get_string() {
-                            if str_value == *inner {
-                                value.note(self.clone(), true);
-                                return Ok(EvaluationResult::new().set_matches(true));
-                            } else {
-                                value.note(self.clone(), false);
-                                return Ok(EvaluationResult::new().set_matches(false));
-                            }
-                        } else {
-                            value.note(self.clone(), false);
-                            return Ok(EvaluationResult::new().set_matches(false));
-                        }
-                    }
-                    Value::Boolean(inner) => {}
+
+                if (**inner).eq( value ) {
+                    value.note(self.clone(), true);
+                    return Ok(EvaluationResult::new().set_matches(true));
+                } else {
+                    value.note(self.clone(), false);
+                    return Ok(EvaluationResult::new().set_matches(false));
                 }
             }
             RuntimeType::Object(inner) => {
@@ -345,9 +334,9 @@ impl Located<RuntimeType> {
                         }
                         if ! mismatch.is_empty() {
                             println!("mismatch obj");
-                            //for e in mismatch {
-                                //value.note( e.ty.clone(), false );
-                            //}
+                            for e in mismatch {
+                                value.note( e.clone(), false );
+                            }
                             value.note(self.clone(), false);
                             return Ok(EvaluationResult::new().set_matches(false));
                         } else {
@@ -364,7 +353,17 @@ impl Located<RuntimeType> {
                     return Ok(EvaluationResult::new().set_matches(false));
                 }
             }
-            RuntimeType::Expr(_) => {}
+            RuntimeType::Expr(expr) => {
+                let result = expr.evaluate(value)?;
+                if let Some(true) = result.try_get_boolean() {
+                    value.note(self.clone(), true);
+                    return Ok(EvaluationResult::new().set_matches(true));
+                } else {
+                    value.note(self.clone(), false);
+                    return Ok(EvaluationResult::new().set_matches(false));
+                }
+
+            }
             RuntimeType::Join(lhs, rhs) => {
                 let lhs_result = lhs.evaluate(value)?;
                 let rhs_result = rhs.evaluate(value)?;
@@ -383,7 +382,24 @@ impl Located<RuntimeType> {
 
                 return Ok(EvaluationResult::new().set_matches(false));
             }
-            RuntimeType::Meet(_, _) => {}
+            RuntimeType::Meet(lhs, rhs) => {
+                let lhs_result = lhs.evaluate(value)?;
+                let rhs_result = rhs.evaluate(value)?;
+
+                if lhs_result.matches {
+                    value.note( lhs.clone(), true );
+                }
+
+                if rhs_result.matches {
+                    value.note( rhs.clone(), true );
+                }
+
+                if rhs_result.matches && lhs_result.matches {
+                    return Ok(EvaluationResult::new().set_matches(true));
+                }
+
+                return Ok(EvaluationResult::new().set_matches(false));
+            }
             RuntimeType::Functional(_, _) => {}
             RuntimeType::List(_) => {}
             RuntimeType::Nothing => {}
@@ -404,7 +420,7 @@ pub enum PrimordialType {
 
 #[derive(Debug)]
 pub struct RuntimeObjectType {
-    fields: Vec<Located<RuntimeField>>,
+    fields: Vec<Rc<Located<RuntimeField>>>,
 }
 
 #[derive(Debug)]
@@ -453,9 +469,16 @@ mod test {
     fn evaluate_matches() {
         let src = Ephemeral::new("foo::bar".into(), r#"
         type bob = {
-            name: "Bob" || "Jim",
-            age: int,
+            name: "Bob",
+            age: $(self > 48),
         }
+
+        type jim = {
+            name: "Jim",
+            age: $(self > 52),
+        }
+
+        type folks = bob || jim
         "#.into());
 
         let mut builder = Builder::new();
@@ -466,6 +489,7 @@ mod test {
         let good_bob = json!(
             {
                 "name": "Bob",
+                "age": 49,
             }
         );
 
@@ -473,7 +497,7 @@ mod test {
 
         let mut good_bob = (&good_bob).into();
 
-        let result = runtime.evaluate("foo::bar::bob".into(), &mut good_bob);
+        let result = runtime.evaluate("foo::bar::folks".into(), &mut good_bob);
         println!("{:?}", result);
 
         println!("{:?}", good_bob);
