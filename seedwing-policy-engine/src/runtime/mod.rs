@@ -1,12 +1,12 @@
-mod sources;
-mod linker;
+pub mod sources;
+pub mod linker;
 
 use std::borrow::BorrowMut;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::mem;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use chumsky::{Error, Stream};
 use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source, TypePath};
 use crate::lang::expr::Expr;
@@ -31,7 +31,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             units: Default::default(),
         }
@@ -72,7 +72,7 @@ impl Builder {
         self.units.push(unit)
     }
 
-    pub fn link(self) -> Result<Rc<Runtime>, Vec<BuildError>> {
+    pub fn link(self) -> Result<Arc<Runtime>, Vec<BuildError>> {
         Linker::new(self.units).link()
     }
 }
@@ -93,6 +93,10 @@ impl EvaluationResult {
         self.matches = matches;
         self
     }
+
+    pub fn matches(&self) -> bool {
+        self.matches
+    }
 }
 
 #[derive(Debug)]
@@ -101,40 +105,40 @@ pub enum RuntimeError {
 }
 
 pub struct Runtime {
-    types: RefCell<HashMap<String, Rc<Located<RuntimeType>>>>,
+    types: Mutex<HashMap<String, Arc<Located<RuntimeType>>>>,
 }
 
 impl Runtime {
-    pub(crate) fn new() -> Rc<Self> {
-        let this = Rc::new(Self {
-            types: RefCell::new(Default::default())
+    pub(crate) fn new() -> Arc<Self> {
+        let this = Arc::new(Self {
+            types: Mutex::new(Default::default())
         });
 
-        this.types.borrow_mut().insert(
+        this.types.lock().unwrap().insert(
             "int".into(),
-            Rc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)));
+            Arc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)));
 
         this
     }
 
     pub fn evaluate(&self, path: String, value: &mut RuntimeValue) -> Result<EvaluationResult, RuntimeError> {
-        let ty = self.types.borrow()[&path].clone();
+        let ty = self.types.lock().unwrap()[&path].clone();
 
         ty.evaluate(value)
     }
 
-    fn define(self: &mut Rc<Self>, path: TypePath, ty: &Located<Type>) {
+    fn define(self: &mut Arc<Self>, path: TypePath, ty: &Located<Type>) {
         println!("define {:?}", path.as_path_str());
         let converted = self.convert(ty);
 
-        self.types.borrow_mut().insert(
+        self.types.lock().unwrap().insert(
             path.as_path_str(),
-            Rc::new(converted),
+            Arc::new(converted),
             //self.convert(&Located::new(Type::Nothing, 0..0))
         );
     }
 
-    fn convert(self: &Rc<Self>, ty: &Located<Type>) -> Located<RuntimeType> {
+    fn convert(self: &Arc<Self>, ty: &Located<Type>) -> Located<RuntimeType> {
         match &**ty {
             Type::Anything => {
                 Located::new(RuntimeType::Anything, ty.location())
@@ -156,10 +160,10 @@ impl Runtime {
                     RuntimeType::Object(
                         RuntimeObjectType {
                             fields: inner.fields().iter().map(|f| {
-                                Rc::new(Located::new(
+                                Arc::new(Located::new(
                                     RuntimeField {
                                         name: f.name().clone(),
-                                        ty: Rc::new(self.convert(f.ty())),
+                                        ty: Arc::new(self.convert(f.ty())),
                                     },
                                     ty.location(),
                                 ))
@@ -171,15 +175,15 @@ impl Runtime {
             }
             Type::Expr(inner) => {
                 Located::new(
-                    RuntimeType::Expr(Rc::new(inner.clone())),
+                    RuntimeType::Expr(Arc::new(inner.clone())),
                     ty.location(),
                 )
             }
             Type::Join(lhs, rhs) => {
                 Located::new(
                     RuntimeType::Join(
-                        Rc::new(self.convert(&**lhs)),
-                        Rc::new(self.convert(&**rhs)),
+                        Arc::new(self.convert(&**lhs)),
+                        Arc::new(self.convert(&**rhs)),
                     ),
                     ty.location(),
                 )
@@ -187,8 +191,8 @@ impl Runtime {
             Type::Meet(lhs, rhs) => {
                 Located::new(
                     RuntimeType::Meet(
-                        Rc::new(self.convert(&**lhs)),
-                        Rc::new(self.convert(&**rhs)),
+                        Arc::new(self.convert(&**lhs)),
+                        Arc::new(self.convert(&**rhs)),
                     ),
                     ty.location(),
                 )
@@ -215,12 +219,12 @@ impl Runtime {
 pub enum RuntimeType {
     Anything,
     Primordial(PrimordialType),
-    Ref(Rc<Runtime>, Located<TypePath>),
+    Ref(Arc<Runtime>, Located<TypePath>),
     Const(Located<Value>),
     Object(RuntimeObjectType),
-    Expr(Rc<Located<Expr>>),
-    Join(Rc<Located<RuntimeType>>, Rc<Located<RuntimeType>>),
-    Meet(Rc<Located<RuntimeType>>, Rc<Located<RuntimeType>>),
+    Expr(Arc<Located<Expr>>),
+    Join(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
+    Meet(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
     Functional(Located<FunctionName>, Box<Located<RuntimeType>>),
     List(Box<Located<RuntimeType>>),
     Nothing,
@@ -245,7 +249,7 @@ impl Debug for RuntimeType {
 }
 
 impl Located<RuntimeType> {
-    pub fn evaluate(self: &Rc<Self>, value: &mut RuntimeValue) -> Result<EvaluationResult, RuntimeError> {
+    pub fn evaluate(self: &Arc<Self>, value: &mut RuntimeValue) -> Result<EvaluationResult, RuntimeError> {
         println!("eval self {:?}", self);
         match &***self {
             RuntimeType::Anything => {
@@ -420,13 +424,13 @@ pub enum PrimordialType {
 
 #[derive(Debug)]
 pub struct RuntimeObjectType {
-    fields: Vec<Rc<Located<RuntimeField>>>,
+    fields: Vec<Arc<Located<RuntimeField>>>,
 }
 
 #[derive(Debug)]
 pub struct RuntimeField {
     name: Located<String>,
-    ty: Rc<Located<RuntimeType>>,
+    ty: Arc<Located<RuntimeType>>,
 }
 
 #[cfg(test)]
@@ -482,7 +486,6 @@ mod test {
         "#.into());
 
         let mut builder = Builder::new();
-
         let result = builder.build(src.iter());
         let runtime = builder.link().unwrap();
 

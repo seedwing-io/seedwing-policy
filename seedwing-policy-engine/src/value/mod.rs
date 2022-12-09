@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 use crate::lang::expr::Expr;
 use crate::lang::Located;
 use crate::runtime::{RuntimeError, RuntimeField, RuntimeType};
@@ -9,25 +10,25 @@ mod json;
 
 #[derive(Debug, Clone)]
 pub enum Noted {
-    Type(Rc<Located<RuntimeType>>),
-    Field(Rc<Located<RuntimeField>>),
-    Expr(Rc<Located<Expr>>),
+    Type(Arc<Located<RuntimeType>>),
+    Field(Arc<Located<RuntimeField>>),
+    Expr(Arc<Located<Expr>>),
 }
 
-impl From<Rc<Located<RuntimeType>>> for Noted {
-    fn from(inner: Rc<Located<RuntimeType>>) -> Self {
+impl From<Arc<Located<RuntimeType>>> for Noted {
+    fn from(inner: Arc<Located<RuntimeType>>) -> Self {
         Self::Type(inner)
     }
 }
 
-impl From<Rc<Located<RuntimeField>>> for Noted {
-    fn from(inner: Rc<Located<RuntimeField>>) -> Self {
+impl From<Arc<Located<RuntimeField>>> for Noted {
+    fn from(inner: Arc<Located<RuntimeField>>) -> Self {
         Self::Field(inner)
     }
 }
 
-impl From<Rc<Located<Expr>>> for Noted {
-    fn from(inner: Rc<Located<Expr>>) -> Self {
+impl From<Arc<Located<Expr>>> for Noted {
+    fn from(inner: Arc<Located<Expr>>) -> Self {
         Self::Expr(inner)
     }
 }

@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use std::sync::Arc;
 use crate::lang::{CompilationUnit, Located, TypePath};
 use crate::lang::ty::TypeName;
 use crate::runtime::{BuildError, Runtime};
@@ -15,7 +16,7 @@ impl Linker {
         }
     }
 
-    pub fn link(mut self) -> Result<Rc<Runtime>, Vec<BuildError>> {
+    pub fn link(mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         for mut unit in &mut self.units {
             let unit_path = TypePath::from(unit.source());

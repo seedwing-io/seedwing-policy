@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::rc::Rc;
+use std::sync::Arc;
 use crate::lang::ty::Type;
 use crate::lang::{
     FieldName, Located, Location, ParserError, ParserInput, Span,
@@ -36,7 +37,7 @@ pub enum Expr {
 
 impl Located<Expr> {
 
-    pub fn evaluate(self: &Rc<Self>, value: &mut RuntimeValue) -> Result<RuntimeValue, RuntimeError> {
+    pub fn evaluate(self: &Arc<Self>, value: &mut RuntimeValue) -> Result<RuntimeValue, RuntimeError> {
         match &***self {
             Expr::SelfLiteral(_) => return Ok(value.clone()),
             Expr::Value(inner) => return Ok(inner.clone().into_inner()),
@@ -50,8 +51,8 @@ impl Located<Expr> {
             Expr::LessThan(_, _) => todo!(),
             Expr::LessThanEqual(_, _) => todo!(),
             Expr::GreaterThan(lhs, rhs) => {
-                let lhs = Rc::new(*lhs.clone()).evaluate(value)?;
-                let rhs = Rc::new(*rhs.clone()).evaluate(value)?;
+                let lhs = Arc::new(*lhs.clone()).evaluate(value)?;
+                let rhs = Arc::new(*rhs.clone()).evaluate(value)?;
 
                 return if let Some(Ordering::Greater) = lhs.partial_cmp(&rhs) {
                     Ok(true.into())
