@@ -1,18 +1,21 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
+use crate::function::FunctionPackage;
 use crate::lang::{CompilationUnit, Located, TypePath};
 use crate::lang::ty::TypeName;
 use crate::runtime::{BuildError, Runtime};
 
 pub struct Linker {
     units: Vec<CompilationUnit>,
+    packages: HashMap<String, FunctionPackage>,
 }
 
 impl Linker {
-    pub fn new(units: Vec<CompilationUnit>) -> Self {
+    pub fn new(units: Vec<CompilationUnit>, packages: HashMap<String, FunctionPackage>) -> Self {
         Self {
-            units
+            units,
+            packages,
         }
     }
 
@@ -69,6 +72,22 @@ impl Linker {
         let mut world = Vec::new();
 
         world.push("int".into());
+
+        for (path, package) in &self.packages {
+            let package_path = path;
+
+            world.extend_from_slice(
+                &package.function_names().iter().map(|e| {
+                    let mut fq = String::new();
+                    fq.push_str(package_path);
+                    fq.push_str("::");
+                    fq.push_str(e);
+                    fq
+                }).collect::<Vec<String>>()
+            );
+
+            println!("{:?}", world);
+        }
 
         for unit in &self.units {
             let unit_path = TypePath::from(unit.source());

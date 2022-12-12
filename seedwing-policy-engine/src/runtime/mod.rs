@@ -8,6 +8,7 @@ use std::fmt::{Debug, Formatter};
 use std::mem;
 use std::sync::{Arc, Mutex};
 use chumsky::{Error, Stream};
+use crate::function::FunctionPackage;
 use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source, TypePath};
 use crate::lang::expr::Expr;
 use crate::lang::ty::{FunctionName, Type, TypeName};
@@ -28,12 +29,14 @@ impl From<ParserError> for BuildError {
 
 pub struct Builder {
     units: Vec<CompilationUnit>,
+    packages: HashMap<String, FunctionPackage>,
 }
 
 impl Builder {
     pub fn new() -> Self {
         Self {
             units: Default::default(),
+            packages: Default::default(),
         }
     }
 
@@ -49,7 +52,7 @@ impl Builder {
             let unit = PolicyParser::default().parse(source, stream);
             match unit {
                 Ok(unit) => {
-                    self.add(unit)
+                    self.add_compilation_unit(unit)
                 }
                 Err(err) => {
                     for e in err {
@@ -68,12 +71,16 @@ impl Builder {
         }
     }
 
-    fn add(&mut self, unit: CompilationUnit) {
+    fn add_compilation_unit(&mut self, unit: CompilationUnit) {
         self.units.push(unit)
     }
 
+    pub fn add_function_package(&mut self, path: String, package: FunctionPackage) {
+        self.packages.insert( path, package );
+    }
+
     pub fn link(self) -> Result<Arc<Runtime>, Vec<BuildError>> {
-        Linker::new(self.units).link()
+        Linker::new(self.units, self.packages).link()
     }
 }
 
@@ -201,7 +208,8 @@ impl Runtime {
                 Located::new(
                     RuntimeType::Functional(
                         fn_name.clone(),
-                        Box::new(self.convert(&*inner))),
+                        //Box::new(self.convert(&*inner))),
+                    inner.as_ref().map(|e| Arc::new( self.convert(&e) ))),
                     ty.location(),
                 )
             }
@@ -225,7 +233,7 @@ pub enum RuntimeType {
     Expr(Arc<Located<Expr>>),
     Join(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
     Meet(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
-    Functional(Located<FunctionName>, Box<Located<RuntimeType>>),
+    Functional(Located<FunctionName>, Option<Arc<Located<RuntimeType>>>),
     List(Box<Located<RuntimeType>>),
     Nothing,
 }
@@ -483,6 +491,9 @@ mod test {
         }
 
         type folks = bob || jim
+
+        type signed = sigstore::SHA256
+
         "#.into());
 
         let mut builder = Builder::new();

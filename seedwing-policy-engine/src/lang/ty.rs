@@ -61,7 +61,7 @@ pub enum Type {
     Expr(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
-    Functional(Located<FunctionName>, Box<Located<Type>>),
+    Functional(Located<FunctionName>, Option<Box<Located<Type>>>),
     List(Box<Located<Type>>),
     Nothing,
 }
@@ -78,7 +78,7 @@ impl Type {
             Type::Expr(_) => Vec::default(),
             Type::Join(lhs, rhs) => lhs.referenced_types().iter().chain(rhs.referenced_types().iter()).cloned().collect(),
             Type::Meet(lhs, rhs) => lhs.referenced_types().iter().chain(rhs.referenced_types().iter()).cloned().collect(),
-            Type::Functional(_, inner) => inner.referenced_types(),
+            Type::Functional(_, inner) => inner.as_ref().map_or(Vec::default(), |inner| inner.referenced_types()),
             Type::List(inner) => inner.referenced_types(),
             Type::Nothing => Vec::default(),
         }
@@ -109,7 +109,10 @@ impl Type {
                 rhs.qualify_types(types);
             }
             Type::Functional(_, inner) => {
-                inner.qualify_types(types);
+                //inner.qualify_types(types);
+                inner.as_mut().map(|inner| {
+                    inner.qualify_types(types)
+                });
             }
             Type::List(inner) => {
                 inner.qualify_types(types);
@@ -438,18 +441,22 @@ pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserE
                 .padded()
                 .ignored()
         )
-        .then(expr.clone())
+        .then(expr.clone().or_not())
         .then(
             just(")")
                 .padded()
                 .ignored()
         )
-        .map(|(((fn_name, _), ty), _)| {
-            let location = fn_name.span().start()..ty.span().end();
+        .map_with_span(|((((fn_name, _)), ty), _), span| {
+            let fn_type = Type::Functional(
+                fn_name,
+                //ty.map(|inner| Box::new(inner))
+                None,
+            );
 
             Located::new(
-                Type::Functional(fn_name, Box::new(ty)),
-                location,
+                fn_type,
+                span,
             )
         })
 }
@@ -689,6 +696,8 @@ mod test {
         let unit = compilation_unit("my_file.dog").parse(r#"
             use foo::bar::bar
             use x::y::z as osi-approved-license
+
+            type signed = SHA256()
 
             type bob = {
                 foo: int,
