@@ -414,7 +414,7 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserEr
                 None
             } else {
                 Some(PackagePath {
-                    is_absolute: absolute.is_some(),
+                    is_absolute: true,
                     path: segments.iter().map(|e| {
                         Located::new(
                             PackageName(e.clone().into_inner()),
