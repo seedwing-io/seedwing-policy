@@ -2,17 +2,17 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 use crate::function::FunctionPackage;
-use crate::lang::{CompilationUnit, Located, TypePath};
-use crate::lang::ty::TypeName;
+use crate::lang::{CompilationUnit, Located};
+use crate::lang::ty::{PackagePath, TypeName};
 use crate::runtime::{BuildError, Runtime};
 
 pub struct Linker {
     units: Vec<CompilationUnit>,
-    packages: HashMap<String, FunctionPackage>,
+    packages: HashMap<PackagePath, FunctionPackage>,
 }
 
 impl Linker {
-    pub fn new(units: Vec<CompilationUnit>, packages: HashMap<String, FunctionPackage>) -> Self {
+    pub fn new(units: Vec<CompilationUnit>, packages: HashMap<PackagePath, FunctionPackage>) -> Self {
         Self {
             units,
             packages,
@@ -22,16 +22,13 @@ impl Linker {
     pub fn link(mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         for mut unit in &mut self.units {
-            let unit_path = TypePath::from(unit.source());
+            let unit_path = PackagePath::from(unit.source());
 
-            let mut visible_types = unit.uses().iter()
-
+            let mut visible_types = unit
+                .uses()
+                .iter()
                 .map(|e| {
-                    if let Some(name) = e.as_name() {
-                        (name.clone().into_inner(), Some(e.type_path()))
-                    } else {
-                        (e.type_path().type_name().clone().into_inner(), None)
-                    }
+                    (e.as_name().clone().into_inner(), Some(e.type_name()))
                 })
                 .chain(
                     unit.types().iter()
@@ -40,27 +37,42 @@ impl Linker {
                                 e.name().into_inner(),
                                 Some(
                                     Located::new(
-                                        unit_path.join(e.name()),
+                                        TypeName::new(e.name().clone().into_inner()),
                                         e.location(),
                                     )
                                 )
                             )
                         })).
-                collect::<HashMap<TypeName, Option<Located<TypePath>>>>();
+                collect::<HashMap<String, Option<Located<TypeName>>>>();
 
-            visible_types.insert(TypeName::new("int".into()), None);
+            visible_types.insert("int".into(), None);
 
             for defn in unit.types() {
+                visible_types.insert(
+                    defn.name().clone().into_inner(),
+                    Some(
+                        Located::new(
+                            unit_path.type_name( defn.name().clone().into_inner() ),
+                                defn.location(),
+                        )
+                    ),
+                );
+            }
+
+            for defn in unit.types() {
+                println!("defn {:?}", defn);
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
-                    if ty.is_simple() {
-                        if !visible_types.contains_key(ty.type_name()) {
+                    if !ty.is_qualified() {
+                        if !visible_types.contains_key(&ty.name()) {
                             todo!("unknown type referenced {:?}", ty)
                         }
                     }
                 }
             }
+
+            println!("qualify with {:?}", visible_types);
 
             for defn in unit.types_mut() {
                 defn.qualify_types(&visible_types)
@@ -71,45 +83,48 @@ impl Linker {
 
         let mut world = Vec::new();
 
-        world.push("int".into());
+        world.push(
+            TypeName::new("int".into())
+        );
+
+        //world.push("int".into());
 
         for (path, package) in &self.packages {
             let package_path = path;
 
             world.extend_from_slice(
-                &package.function_names().iter().map(|e| {
-                    let mut fq = String::new();
-                    fq.push_str(package_path);
-                    fq.push_str("::");
-                    fq.push_str(e);
-                    fq
-                }).collect::<Vec<String>>()
+                &package.function_names()
+                    .iter().map(|e| {
+                    package_path.type_name(e.clone())
+                }).collect::<Vec<TypeName>>()
             );
 
             println!("{:?}", world);
         }
 
         for unit in &self.units {
-            let unit_path = TypePath::from(unit.source());
+            let unit_path = PackagePath::from(unit.source());
+            println!("@@@@ {:?}", unit_path);
 
             let unit_types = unit.types().iter()
                 .map(|e| {
-                    unit_path.join(e.name()).as_path_str()
+                    unit_path.type_name(e.name().clone().into_inner())
                 })
-                .collect::<Vec<String>>();
+                .collect::<Vec<TypeName>>();
 
             world.extend_from_slice(&unit_types);
         }
 
+        println!("world {:?}", world);
         for unit in &self.units {
             for defn in unit.types() {
                 // these should be fully-qualified now
                 let referenced = defn.referenced_types();
 
                 for each in referenced {
-                    if !world.contains(&each.as_path_str()) {
+                    if !world.contains(&each.clone().into_inner()) {
                         println!("{:?}", world);
-                        todo!("failed to inter-unit link for {:?}", each.as_path_str());
+                        todo!("failed to inter-unit link for {:?}", each )
                     }
                 }
             }
@@ -120,12 +135,12 @@ impl Linker {
         let mut runtime = Runtime::new();
 
         for unit in &self.units {
-            let unit_path = TypePath::from(unit.source());
+            let unit_path = PackagePath::from(unit.source());
 
             unit.types().iter()
                 .map(|e| {
                     (Located::new(
-                        unit_path.join(e.name()),
+                        unit_path.type_name(e.name().clone().into_inner()),
                         e.location(),
                     ), e.ty())
                 })

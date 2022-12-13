@@ -1,5 +1,5 @@
 //use crate::lang::expr::expr;
-use crate::lang::ty::{compilation_unit, Type, TypeDefn, TypeName};
+use crate::lang::ty::{compilation_unit, PackagePath, Type, TypeDefn, TypeName};
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use std::fmt::{Debug, Formatter};
@@ -52,94 +52,35 @@ impl CompilationUnit {
     pub(crate) fn types_mut(&mut self) -> &mut Vec<Located<TypeDefn>> {
         &mut self.types
     }
-
-
 }
 
 #[derive(Debug)]
 pub struct Use {
-    type_path: Located<TypePath>,
-    as_name: Option<Located<TypeName>>,
+    type_path: Located<TypeName>,
+    as_name: Option<Located<String>>,
 }
 
 impl Use {
-    pub fn new(type_path: Located<TypePath>, as_name: Option<Located<TypeName>>) -> Self {
+    pub fn new(type_path: Located<TypeName>, as_name: Option<Located<String>>) -> Self {
         Self {
             type_path,
             as_name,
         }
     }
 
-    pub fn type_path(&self) -> Located<TypePath> {
+    pub fn type_name(&self) -> Located<TypeName> {
         self.type_path.clone()
     }
 
-    pub fn as_name(&self) -> Option<Located<TypeName>> {
-        self.as_name.clone()
-    }
-
-    pub fn as_source(&self) -> Source {
-        self.type_path.clone().into_inner().into()
-    }
-}
-
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct TypePath(Vec<Located<TypeName>>, Located<TypeName>);
-
-impl TypePath {
-    pub fn new(mut package: Vec<Located<TypeName>>) -> Self {
-        let type_name = package.pop().unwrap();
-        Self(package, type_name)
-    }
-
-    pub fn is_simple(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn type_name(&self) -> &Located<TypeName> {
-        &self.1
-    }
-
-    pub fn join(&self, tail: Located<TypeName>) -> Self {
-        let mut segments = Vec::new();
-        for segment in &self.0 {
-            segments.push( segment.clone() );
-        }
-
-        segments.push( self.1.clone() );
-        segments.push( tail );
-
-        Self::new(segments)
-    }
-
-    pub fn as_path_str(&self) -> String {
-        let mut segments: Vec<String> = Vec::new();
-        segments.extend( self.0.iter().map(|e|e.name().into()));
-        segments.push( self.1.clone().name().into());
-
-        segments.join("::")
-    }
-}
-
-impl From<TypePath> for Source {
-    fn from(path: TypePath) -> Self {
-        let src = path.0.iter().map(|e| e.name()).collect::<Vec<&str>>().join("/");
-        src.into()
-    }
-}
-
-impl From<Source> for TypePath {
-    fn from(src: Source) -> Self {
-        let segments = src.name.split("/").map(|e| {
+    pub fn as_name(&self) -> Located<String> {
+        if let Some(as_name) = &self.as_name {
+            as_name.clone()
+        } else {
             Located::new(
-                TypeName::new(e.into()),
-                0..0
-
+                self.type_path.name().clone(),
+                self.type_path.location(),
             )
-        }).collect::<Vec<Located<TypeName>>>();
-
-        Self::new(segments)
+        }
     }
 }
 
@@ -171,9 +112,11 @@ impl<T: Debug> Debug for Located<T> {
     }
 }
 
+impl<T: Eq + PartialEq> Eq for Located<T> {}
+
 impl<T: PartialEq> PartialEq for Located<T> {
     fn eq(&self, other: &Self) -> bool {
-        (&self.inner).eq( &other.inner )
+        (&self.inner).eq(&other.inner)
     }
 }
 
@@ -290,6 +233,18 @@ impl From<&str> for Source {
         Self {
             name: name.into(),
 
+        }
+    }
+}
+
+impl From<PackagePath> for Source {
+    fn from(package: PackagePath) -> Self {
+        Source {
+            name: package
+                .path().iter().map(|e| {
+                (*(e.clone().into_inner())).clone()
+            })
+                .collect::<Vec<String>>().join("/")
         }
     }
 }

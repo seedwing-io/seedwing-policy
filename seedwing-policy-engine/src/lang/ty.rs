@@ -1,41 +1,192 @@
 use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::{CompilationUnit, Located, Location, ParserError, ParserInput, Source, Span, TypePath, Use};
+use crate::lang::{CompilationUnit, Located, Location, ParserError, ParserInput, Source, Span, Use};
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Formatter};
+use std::ops::Deref;
 use crate::lang::expr::{Expr, expr};
 use crate::value::Value;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct TypeName(String);
+pub struct PackageName(String);
 
-#[derive(Clone, Debug)]
-pub struct FunctionName(String);
+impl Deref for PackageName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct PackagePath {
+    is_absolute: bool,
+    path: Vec<Located<PackageName>>,
+}
+
+impl From<Vec<String>> for PackagePath {
+    fn from(mut segments: Vec<String>) -> Self {
+        let first = segments.get(0).unwrap();
+        let is_absolute = (first == "");
+        if is_absolute {
+            segments = segments[1..].to_vec()
+        }
+
+        Self {
+            is_absolute: true,
+            path: segments.iter().map(|e| {
+                Located::new(
+                    PackageName(e.clone()),
+                    0..0,
+                )
+            }).collect(),
+        }
+    }
+}
+
+impl PackagePath {
+    pub fn from_parts(segments: Vec<&str>) -> Self {
+        Self {
+            is_absolute: true,
+            path: segments.iter().map(|e| {
+                Located::new(
+                    PackageName(String::from(*e)),
+                    0..0
+                )
+            }).collect(),
+        }
+    }
+
+    pub fn is_absolute(&self) -> bool {
+        self.is_absolute
+    }
+
+    pub fn is_qualified(&self) -> bool {
+        self.path.len() > 1
+    }
+
+    pub fn type_name(&self, name: String) -> TypeName {
+        println!("TN {:?} -> {}", self.path, name);
+        TypeName {
+            package: Some(self.clone()),
+            name,
+        }
+    }
+
+    pub fn as_package_str(&self) -> String {
+        let mut fq = String::new();
+        if self.is_absolute {
+            fq.push_str("::".into());
+        }
+
+        fq.push_str(
+            &self.path.iter().map(|e| e.inner.0.clone()).collect::<Vec<String>>().join("::")
+        );
+
+        fq
+    }
+
+    pub fn path(&self) -> &Vec<Located<PackageName>> {
+        &self.path
+    }
+}
+
+impl From<Source> for PackagePath {
+    fn from(src: Source) -> Self {
+        let segments = src.name
+            .split("/")
+            .map(|segment| {
+                Located::new(
+                    PackageName(segment.into()),
+                    0..0,
+                )
+            })
+            .collect();
+
+        Self {
+            is_absolute: true,
+            path: segments,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct TypeName {
+    package: Option<PackagePath>,
+    name: String,
+}
 
 impl TypeName {
     pub fn new(name: String) -> Self {
-        Self(name)
+        println!("TN {}", name);
+        Self {
+            package: None,
+            name,
+        }
     }
 
-    pub fn name(&self) -> &str {
-        self.0.as_str()
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn is_qualified(&self) -> bool {
+        self.package.is_some()
+    }
+
+    pub fn as_type_str(&self) -> String {
+        let mut fq = String::new();
+        if let Some(package) = &self.package {
+            fq.push_str(
+                &package.as_package_str()
+            );
+            fq.push_str("::");
+        }
+
+        fq.push_str(&self.name);
+
+        fq
+    }
+}
+
+impl From<String> for TypeName {
+    fn from(path: String) -> Self {
+        let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
+        println!("segments {:?}", segments);
+        if segments.is_empty() {
+            Self::new("".into())
+        } else {
+            let tail = segments.pop().unwrap();
+            if segments.is_empty() {
+                Self {
+                    package: None,
+                    name: tail,
+                }
+            } else {
+                let package = Some(segments.into());
+                Self {
+                    package,
+                    name: tail,
+
+                }
+            }
+        }
     }
 }
 
 
 #[derive(Clone, Debug)]
 pub struct TypeDefn {
-    name: Located<TypeName>,
+    name: Located<String>,
     ty: Located<Type>,
 }
 
 impl TypeDefn {
-    pub fn new(name: Located<TypeName>, ty: Located<Type>) -> Self {
+    pub fn new(name: Located<String>, ty: Located<Type>) -> Self {
         Self { name, ty }
     }
 
-    pub fn name(&self) -> Located<TypeName> {
+    pub fn name(&self) -> Located<String> {
         self.name.clone()
     }
 
@@ -43,11 +194,11 @@ impl TypeDefn {
         &self.ty
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types);
     }
 }
@@ -55,19 +206,19 @@ impl TypeDefn {
 #[derive(Clone)]
 pub enum Type {
     Anything,
-    Ref(Located<TypePath>),
+    Ref(Located<TypeName>),
     Const(Located<Value>),
     Object(ObjectType),
     Expr(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),
     Meet(Box<Located<Type>>, Box<Located<Type>>),
-    Functional(Located<FunctionName>, Option<Box<Located<Type>>>),
+    Functional(Located<TypeName>, Option<Box<Located<Type>>>),
     List(Box<Located<Type>>),
     Nothing,
 }
 
 impl Type {
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         match self {
             Type::Anything => Vec::default(),
             Type::Ref(inner) => vec![
@@ -84,14 +235,15 @@ impl Type {
         }
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         match self {
             Type::Anything => {}
-            Type::Ref(ref mut path) => {
-                if path.inner.0.is_empty() {
+            Type::Ref(ref mut name) => {
+                if !name.is_qualified() {
                     // it's a simple single-word name, needs qualifying, perhaps.
-                    if let Some(Some(qualified)) = types.get(&*path.inner.1) {
-                        *path = qualified.clone();
+                    if let Some(Some(qualified)) = types.get(&name.name()) {
+                        println!("replace {:?} with {:?}", name, qualified);
+                        *name = qualified.clone();
                     }
                 }
             }
@@ -156,13 +308,13 @@ impl ObjectType {
         self
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         self.fields.iter().flat_map(|e| {
             e.referenced_types()
         }).collect()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         for field in &mut self.fields {
             field.qualify_types(types);
         }
@@ -195,11 +347,11 @@ impl Field {
         &self.ty
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypePath>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<TypeName, Option<Located<TypePath>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types)
     }
 }
@@ -210,7 +362,7 @@ fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
 
 pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserError> + Clone {
     just("use").padded().ignored()
-        .then(type_path())
+        .then(type_name())
         .then(as_clause().or_not())
         // .then( just(";").padded().ignored() )
         .map_with_span(|(((_, type_path), as_clause)), span| {
@@ -221,42 +373,65 @@ pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserErr
         })
 }
 
-pub fn as_clause() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
     just("as").padded().ignored()
-        .then(package_or_type_name())
+        .then(simple_type_name())
         .map(|(_, v)| {
             v
         })
 }
 
-pub fn type_path() -> impl Parser<ParserInput, Located<TypePath>, Error=ParserError> + Clone {
-    package_or_type_name()
-        .separated_by(just("::").padded().ignored())
-        .at_least(1)
-        .map_with_span(|segments, span| {
-            Located::new(
-                TypePath::new(segments),
-                span,
-            )
-        })
-}
-
-pub fn package_or_type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
     filter(|c: &char| {
-        (!c.is_uppercase() && c.is_alphanumeric())
-            || *c == '_' || *c == '-'
-    })
-        .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| {
-                c.is_alphanumeric() || *c == '_' || *c == '-'
-            }).repeated(),
-        )
+        (c.is_alphanumeric())
+            || *c == '@'
+            || *c == '_'
+            || *c == '-'
+    }).repeated()
         .collect()
         .padded()
         .map_with_span(|v, span|
-            Located::new(TypeName(v), span)
+            Located::new(v, span)
         )
+}
+
+pub fn simple_type_name() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
+    path_segment()
+}
+
+pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
+    just("::").padded().ignored().or_not()
+        .then(
+            simple_type_name()
+                .separated_by(just("::"))
+                .at_least(1)
+                .allow_leading()
+        )
+        .map_with_span(|(absolute, mut segments), span| {
+            let tail = segments.pop().unwrap();
+
+            let package = if segments.is_empty() {
+                None
+            } else {
+                Some(PackagePath {
+                    is_absolute: absolute.is_some(),
+                    path: segments.iter().map(|e| {
+                        Located::new(
+                            PackageName(e.clone().into_inner()),
+                            e.location(),
+                        )
+                    }).collect(),
+                })
+            };
+
+            Located::new(
+                TypeName {
+                    package,
+                    name: tail.into_inner(),
+                },
+                span,
+            )
+        })
 }
 
 pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone {
@@ -264,7 +439,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error=Pa
         .padded()
         .ignored()
         .then(
-            package_or_type_name()
+            simple_type_name()
         )
         .then(
             just("=")
@@ -316,6 +491,8 @@ pub fn logical_or(
     logical_and(expr.clone())
         .then(op("||").then(expr.clone()).repeated())
         .foldl(|lhs, (_op, rhs)| {
+            println!("lhs {:?}", lhs);
+            println!("rhs {:?}", rhs);
             let location = lhs.span().start()..rhs.span().end();
             Located::new(
                 Type::Join(
@@ -417,25 +594,8 @@ pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> +
         })
 }
 
-pub fn function_name() -> impl Parser<ParserInput, Located<FunctionName>, Error=ParserError> + Clone {
-    filter(|c: &char| {
-        c.is_uppercase() && c.is_alphanumeric()
-    })
-        .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| {
-                c.is_alphanumeric() || *c == '_' || *c == '-'
-            }).repeated(),
-        )
-        .collect()
-        .padded()
-        .map_with_span(|v, span|
-            Located::new(FunctionName(v), span)
-        )
-}
-
 pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    function_name()
+    type_name()
         .then(
             just("(")
                 .padded()
@@ -499,7 +659,7 @@ pub fn ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clo
 }
 
 pub fn type_ref() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
-    type_path()
+    type_name()
         .map(|name| {
             let loc = name.location();
             Located::new(
@@ -594,7 +754,7 @@ mod test {
 
     #[test]
     fn parse_ty_name() {
-        let name = package_or_type_name().parse("bob").unwrap().into_inner();
+        let name = type_name().parse("bob").unwrap().into_inner();
 
         assert_eq!(name.name(), "bob");
     }
@@ -603,9 +763,10 @@ mod test {
     fn parse_ty_defn() {
         let ty = type_definition().parse("type bob").unwrap().into_inner();
 
-        assert_eq!(ty.name.name(), "bob");
+        assert_eq!(&*ty.name.into_inner(), "bob");
     }
 
+    /*
     #[test]
     fn parse_ty_ref() {
         let ty_ref = type_ref().parse("bob").unwrap().into_inner();
@@ -619,6 +780,7 @@ mod test {
             if ty_name.type_name().name() == "bob")
         );
     }
+     */
 
     #[test]
     fn parse_simple_obj_ty() {

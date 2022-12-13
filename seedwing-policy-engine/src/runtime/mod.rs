@@ -9,9 +9,9 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use chumsky::{Error, Stream};
 use crate::function::FunctionPackage;
-use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source, TypePath};
+use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source};
 use crate::lang::expr::Expr;
-use crate::lang::ty::{FunctionName, Type, TypeName};
+use crate::lang::ty::{PackagePath, Type, TypeName};
 use crate::value::{Value as RuntimeValue, Value};
 use crate::runtime::linker::Linker;
 
@@ -29,7 +29,7 @@ impl From<ParserError> for BuildError {
 
 pub struct Builder {
     units: Vec<CompilationUnit>,
-    packages: HashMap<String, FunctionPackage>,
+    packages: HashMap<PackagePath, FunctionPackage>,
 }
 
 impl Builder {
@@ -75,7 +75,7 @@ impl Builder {
         self.units.push(unit)
     }
 
-    pub fn add_function_package(&mut self, path: String, package: FunctionPackage) {
+    pub fn add_function_package(&mut self, path: PackagePath, package: FunctionPackage) {
         self.packages.insert( path, package );
     }
 
@@ -112,7 +112,7 @@ pub enum RuntimeError {
 }
 
 pub struct Runtime {
-    types: Mutex<HashMap<String, Arc<Located<RuntimeType>>>>,
+    types: Mutex<HashMap<TypeName, Arc<Located<RuntimeType>>>>,
 }
 
 impl Runtime {
@@ -122,24 +122,26 @@ impl Runtime {
         });
 
         this.types.lock().unwrap().insert(
-            "int".into(),
+            TypeName::new("int".into()),
             Arc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)));
 
         this
     }
 
     pub fn evaluate(&self, path: String, value: &mut RuntimeValue) -> Result<EvaluationResult, RuntimeError> {
+        let path = TypeName::from(path);
+        println!("------------> {:?}", path);
+        println!("------------> {:?}", self.types.lock());
         let ty = self.types.lock().unwrap()[&path].clone();
-
         ty.evaluate(value)
     }
 
-    fn define(self: &mut Arc<Self>, path: TypePath, ty: &Located<Type>) {
-        println!("define {:?}", path.as_path_str());
+    fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
+        println!("define {:?}", path.as_type_str());
         let converted = self.convert(ty);
 
         self.types.lock().unwrap().insert(
-            path.as_path_str(),
+            path,
             Arc::new(converted),
             //self.convert(&Located::new(Type::Nothing, 0..0))
         );
@@ -227,13 +229,13 @@ impl Runtime {
 pub enum RuntimeType {
     Anything,
     Primordial(PrimordialType),
-    Ref(Arc<Runtime>, Located<TypePath>),
+    Ref(Arc<Runtime>, Located<TypeName>),
     Const(Located<Value>),
     Object(RuntimeObjectType),
     Expr(Arc<Located<Expr>>),
     Join(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
     Meet(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
-    Functional(Located<FunctionName>, Option<Arc<Located<RuntimeType>>>),
+    Functional(Located<TypeName>, Option<Arc<Located<RuntimeType>>>),
     List(Box<Located<RuntimeType>>),
     Nothing,
 }
@@ -243,7 +245,7 @@ impl Debug for RuntimeType {
         match self {
             RuntimeType::Anything => write!(f, "anything"),
             RuntimeType::Primordial(inner) => write!(f, "{:?}", inner),
-            RuntimeType::Ref(_, name) => write!(f, "{}", name.as_path_str()),
+            RuntimeType::Ref(_, name) => write!(f, "{}", name.as_type_str()),
             RuntimeType::Const(inner) => write!(f, "{:?}", inner),
             RuntimeType::Object(inner) => write!(f, "{:?}", inner),
             RuntimeType::Expr(inner) => write!(f, "$({:?})", inner),
@@ -313,7 +315,7 @@ impl Located<RuntimeType> {
                 }
             }
             RuntimeType::Ref(runtime, path) => {
-                return runtime.evaluate(path.as_path_str(), value);
+                return runtime.evaluate(path.as_type_str(), value);
             }
             RuntimeType::Const(inner) => {
 
@@ -451,7 +453,7 @@ mod test {
 
     #[test]
     fn ephemeral_sources() {
-        let src = Ephemeral::new("foo::bar".into(), "type bob".into());
+        let src = Ephemeral::new(PackagePath::from_parts(vec!["foo", "bar"]), "type bob".into());
 
         let mut builder = Builder::new();
 
@@ -479,7 +481,7 @@ mod test {
 
     #[test]
     fn evaluate_matches() {
-        let src = Ephemeral::new("foo::bar".into(), r#"
+        let src = Ephemeral::new(PackagePath::from_parts(vec!["foo", "bar"]), r#"
         type bob = {
             name: "Bob",
             age: $(self > 48),
@@ -491,8 +493,6 @@ mod test {
         }
 
         type folks = bob || jim
-
-        type signed = sigstore::SHA256
 
         "#.into());
 

@@ -4,6 +4,7 @@ use std::iter::{once, Once};
 use std::path::{Iter, Path, PathBuf};
 use walkdir::WalkDir;
 use crate::lang::Source;
+use crate::lang::ty::PackagePath;
 
 pub struct Ephemeral {
     source: Source,
@@ -11,7 +12,7 @@ pub struct Ephemeral {
 }
 
 impl Ephemeral {
-    pub fn new(package: String, content: String) -> Self {
+    pub fn new(package: PackagePath, content: String) -> Self {
         Self {
             source: package.into(),
             content,
