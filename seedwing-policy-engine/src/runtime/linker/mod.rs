@@ -3,8 +3,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 use crate::function::FunctionPackage;
 use crate::lang::{CompilationUnit, Located};
-use crate::lang::ty::{PackagePath, TypeName};
-use crate::runtime::{BuildError, Runtime};
+use crate::lang::ty::{PackagePath, Type, TypeName};
+use crate::runtime::{BuildError, Runtime, RuntimeType};
 
 pub struct Linker {
     units: Vec<CompilationUnit>,
@@ -52,8 +52,8 @@ impl Linker {
                     defn.name().clone().into_inner(),
                     Some(
                         Located::new(
-                            unit_path.type_name( defn.name().clone().into_inner() ),
-                                defn.location(),
+                            unit_path.type_name(defn.name().clone().into_inner()),
+                            defn.location(),
                         )
                     ),
                 );
@@ -124,7 +124,7 @@ impl Linker {
                 for each in referenced {
                     if !world.contains(&each.clone().into_inner()) {
                         println!("{:?}", world);
-                        todo!("failed to inter-unit link for {:?}", each )
+                        todo!("failed to inter-unit link for {:?}", each)
                     }
                 }
             }
@@ -147,6 +147,13 @@ impl Linker {
                 .for_each(|(path, ty)| {
                     runtime.define(path.into_inner(), ty);
                 })
+        }
+
+        for (path, package) in &self.packages {
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                runtime.define_function(path, func);
+            }
         }
 
         Ok(runtime)

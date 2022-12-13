@@ -13,3 +13,7 @@ serde_json = "1.0.89"
 
 # functions
 sigstore = "0.6.0"
+base64 = "0.20.0"
+
+[dev-dependencies]
+actix-rt = "2.7.0"

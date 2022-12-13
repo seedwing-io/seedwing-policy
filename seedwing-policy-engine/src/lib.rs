@@ -1,5 +1,4 @@
 #![allow(unused)]
-extern crate core;
 
 pub mod lang;
 pub mod runtime;

@@ -1,4 +1,6 @@
 use std::future::Future;
+use std::pin::Pin;
+use std::str::from_utf8;
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
@@ -7,15 +9,16 @@ use crate::value::Value;
 
 pub fn package() -> FunctionPackage {
     let mut pkg = FunctionPackage::new();
-    pkg.register( "SHA256".into(), Sha256 );
+    pkg.register("SHA256".into(), Sha256);
     pkg
 }
 
+#[derive(Debug)]
 pub struct Sha256;
 
 impl Function for Sha256 {
-    fn call<'v>(&'v self, input: &'v mut Value) -> Box<dyn Future<Output=Result<Value, ()>> + 'v>  {
-        Box::new(
+    fn call<'v>(&'v self, input: &'v mut Value) -> Pin<Box<dyn Future<Output=Result<Value, ()>> + 'v>> {
+        Box::pin(
             async move {
                 if let Some(digest) = input.try_get_string() {
                     let configuration = Configuration::default();
@@ -30,10 +33,19 @@ impl Function for Sha256 {
                             let entry =
                                 entries_api::get_log_entry_by_uuid(&configuration, uuid).await;
                             if let Ok(entry) = entry {
-                                println!("{:?}", entry.body);
+                                let body = base64::decode(entry.body);
+                                if let Ok(body) = body {
+                                    let body: Result<serde_json::Value, _> = serde_json::from_slice( &*body);
+                                    if let Ok(body) = body {
+                                        println!("{:?}", body);
+                                        let value = (&body).into();
+                                        println!("OKAY OKAY OKAY");
+                                        return Ok(value)
+                                    }
+                                }
                             }
                         }
-                        Ok(true.into())
+                        Err(())
                     } else {
                         Err(())
                     }

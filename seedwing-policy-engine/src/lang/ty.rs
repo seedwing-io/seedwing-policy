@@ -610,8 +610,7 @@ pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserE
         .map_with_span(|((((fn_name, _)), ty), _), span| {
             let fn_type = Type::Functional(
                 fn_name,
-                //ty.map(|inner| Box::new(inner))
-                None,
+                ty.map(|ty| Box::new(ty))
             );
 
             Located::new(
