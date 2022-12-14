@@ -152,7 +152,6 @@ impl Runtime {
         self.types.lock().unwrap().insert(
             path,
             Arc::new(converted),
-            //self.convert(&Located::new(Type::Nothing, 0..0))
         );
     }
 
@@ -161,6 +160,7 @@ impl Runtime {
 
         let runtime_type = Located::new(RuntimeType::Primordial(
             PrimordialType::Function(
+                path.clone(),
                 func.clone()
             )
         ), 0..0);
@@ -344,12 +344,13 @@ impl Located<RuntimeType> {
                             return Box::pin(ready(Ok(EvaluationResult::new())));
                         }
                     }
-                    PrimordialType::Function(func) => {
+                    PrimordialType::Function(name, func) => {
                         return Box::pin(async move {
                             let mut result = func.call(value).await;
-                            if let Ok(value) = result {
-                                println!("fn call -> {:?}", value);
-                                return Ok(EvaluationResult::new().set_value(value.clone()));
+                            if let Ok(transform) = result {
+                                value.transform( name.clone(), transform.clone() );
+                                println!("fn call -> {:?}", transform);
+                                return Ok(EvaluationResult::new().set_value(transform.clone()));
                             } else {
                                 println!("fn call failed?");
                                 return Ok(EvaluationResult::new());
@@ -516,7 +517,7 @@ pub enum PrimordialType {
     Decimal,
     Boolean,
     String,
-    Function(Arc<dyn Function>),
+    Function(TypeName, Arc<dyn Function>),
 }
 
 #[derive(Debug)]
@@ -571,7 +572,7 @@ mod test {
         let src = Ephemeral::new(PackagePath::from_parts(vec!["foo", "bar"]), r#"
             type signed-thing = {
                 digest: sigstore::SHA256( {
-                    apiVersion: "0.0.2",
+                    apiVersion: "0.0.1",
                 } ),
             }
         "#.into());

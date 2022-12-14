@@ -32,7 +32,7 @@ pub async fn evaluate(runtime: web::Data<Arc<Runtime>>, mut req: HttpRequest, mu
         let path = req.path().strip_prefix("/").unwrap().replace("/", "::");
 
         println!("{} {:?}", path, value);
-        match runtime.evaluate( path, &mut value ) {
+        match runtime.evaluate( path, &mut value ).await {
             Ok(result) => {
                 if result.matches() {
                     HttpResponse::Ok().finish()

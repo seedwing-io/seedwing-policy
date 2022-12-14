@@ -7,8 +7,9 @@ use crate::runtime::RuntimeType::Primordial;
 use crate::value::Value;
 
 pub mod sigstore;
+pub mod base64;
 
-pub trait Function : Debug {
+pub trait Function : Sync + Send + Debug {
     fn call<'v>(&'v self, input: &'v mut Value) -> Pin<Box<dyn Future<Output=Result<Value, ()>> + 'v >>;
 }
 

@@ -2,8 +2,10 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
+use crate::function::Function;
 use crate::lang::expr::Expr;
 use crate::lang::Located;
+use crate::lang::ty::TypeName;
 use crate::runtime::{RuntimeError, RuntimeField, RuntimeType};
 
 mod json;
@@ -38,6 +40,7 @@ pub struct Value {
     inner: InnerValue,
     matches: Vec<Noted>,
     nonmatches: Vec<Noted>,
+    transforms: HashMap<TypeName, Box<Value>>,
 }
 
 impl PartialEq<Self> for Value {
@@ -110,6 +113,18 @@ impl From<String> for Value {
     }
 }
 
+impl From<Vec<u8>> for Value {
+    fn from(inner: Vec<u8>) -> Self {
+        InnerValue::Octets(inner).into()
+    }
+}
+
+impl From<Vec<Value>> for Value {
+    fn from(inner: Vec<Value>) -> Self {
+        InnerValue::List(inner).into()
+    }
+}
+
 impl Value {
 
 }
@@ -119,7 +134,8 @@ impl From<InnerValue> for Value {
         Self {
             inner,
             matches: vec![],
-            nonmatches: vec![]
+            nonmatches: vec![],
+            transforms: Default::default()
         }
     }
 }
@@ -132,7 +148,8 @@ pub enum InnerValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(Vec<InnerValue>),
+    List(Vec<Value>),
+    Octets(Vec<u8>),
 }
 
 impl Value {
@@ -142,6 +159,10 @@ impl Value {
         } else {
             self.nonmatches.push(noted.into());
         }
+    }
+
+    pub(crate) fn transform(&mut self, name: TypeName, value: Value) {
+        self.transforms.insert( name, Box::new(value));
     }
 
     pub fn is_string(&self) -> bool {
@@ -199,6 +220,21 @@ impl Value {
     pub fn try_get_boolean(&self) -> Option<bool> {
         if let InnerValue::Boolean(inner) = &self.inner {
             Some(*inner)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_list(&self) -> bool {
+        match &self.inner {
+            InnerValue::List(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn try_get_list(&mut self) -> Option<&mut Vec<Value>> {
+        if let InnerValue::List(inner) = &mut self.inner {
+            Some(inner)
         } else {
             None
         }

@@ -29,23 +29,26 @@ impl Function for Sha256 {
                     };
                     let uuid_vec = index_api::search_index(&configuration, query).await;
                     if let Ok(uuid_vec) = uuid_vec {
+                        let mut transform: Vec<Value> = Vec::new();
                         for uuid in uuid_vec.iter() {
                             let entry =
                                 entries_api::get_log_entry_by_uuid(&configuration, uuid).await;
                             if let Ok(entry) = entry {
                                 let body = base64::decode(entry.body);
                                 if let Ok(body) = body {
-                                    let body: Result<serde_json::Value, _> = serde_json::from_slice( &*body);
+                                    let body: Result<serde_json::Value, _> = serde_json::from_slice(&*body);
                                     if let Ok(body) = body {
                                         println!("{:?}", body);
                                         let value = (&body).into();
                                         println!("OKAY OKAY OKAY");
-                                        return Ok(value)
+                                        //return Ok(value);
+                                        transform.push(value)
                                     }
                                 }
                             }
                         }
-                        Err(())
+
+                        return Ok(transform.into())
                     } else {
                         Err(())
                     }
