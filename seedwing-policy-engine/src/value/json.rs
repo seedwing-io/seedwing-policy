@@ -1,4 +1,7 @@
-
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::{Arc};
+use async_mutex::Mutex;
 use serde_json::{Number, Value as JsonValue};
 use crate::value::{Object, InnerValue, Value};
 
@@ -29,7 +32,7 @@ impl From<&JsonValue> for InnerValue {
             ),
             JsonValue::Object(inner) => {
                 let fields = inner.iter().map(|(k,v)|{
-                    (k.clone(), Value::from(v))
+                    (k.clone(), Arc::new(Mutex::new(Value::from(v))))
                 }).collect();
 
                 InnerValue::Object( Object {

@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     println!("loading {:?}", src);
     let mut builder = PolicyBuilder::new();
     let result = builder.build(src.iter());
-    let runtime = builder.link().unwrap();
+    let runtime = builder.link().await.unwrap();
 
     let server = HttpServer::new(move || {
         App::new()

@@ -1,8 +1,13 @@
+use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::str::from_utf8;
-use crate::function::{Function, FunctionPackage};
+use std::sync::{Arc};
+use async_mutex::Mutex;
+use crate::function::{Function, FunctionError, FunctionPackage};
 use crate::value::Value;
 
 pub fn package() -> FunctionPackage {
@@ -15,17 +20,18 @@ pub fn package() -> FunctionPackage {
 pub struct Base64;
 
 impl Function for Base64 {
-    fn call<'v>(&'v self, value: &'v mut Value) -> Pin<Box<dyn Future<Output=Result<Value, ()>> + 'v>> {
+
+    fn call<'v>(&'v self, input: &'v Value) -> Pin<Box<dyn Future<Output=Result<Value, FunctionError>> + 'v>> {
         Box::pin(
             async move {
-                if let Some(inner) = value.try_get_string() {
+                if let Some(inner) = input.try_get_string() {
                     if let Ok(decoded) = base64::decode(inner) {
                         Ok(decoded.into())
                     } else {
-                        Err(())
+                        Err(FunctionError::Other("unable to decode base64".into()))
                     }
                 } else {
-                    Err(())
+                    Err(FunctionError::Other("invalid input type".into()))
                 }
             }
         )

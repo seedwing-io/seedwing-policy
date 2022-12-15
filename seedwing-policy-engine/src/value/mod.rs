@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc};
+use async_mutex::Mutex;
 use crate::function::Function;
 use crate::lang::expr::Expr;
 use crate::lang::Located;
@@ -40,7 +42,7 @@ pub struct Value {
     inner: InnerValue,
     matches: Vec<Noted>,
     nonmatches: Vec<Noted>,
-    transforms: HashMap<TypeName, Box<Value>>,
+    transforms: HashMap<TypeName, Arc<Mutex<Value>>>,
 }
 
 impl PartialEq<Self> for Value {
@@ -161,8 +163,8 @@ impl Value {
         }
     }
 
-    pub(crate) fn transform(&mut self, name: TypeName, value: Value) {
-        self.transforms.insert( name, Box::new(value));
+    pub(crate) fn transform(&mut self, name: TypeName, value: Arc<Mutex<Value>>) {
+        self.transforms.insert( name, value );
     }
 
     pub fn is_string(&self) -> bool {
@@ -247,8 +249,8 @@ impl Value {
         }
     }
 
-    pub fn try_get_object(&mut self) -> Option<&mut Object> {
-        if let InnerValue::Object(inner) = &mut self.inner {
+    pub fn try_get_object(&self) -> Option<&Object> {
+        if let InnerValue::Object(inner) = &self.inner {
             Some(inner)
         } else {
             None
@@ -258,14 +260,13 @@ impl Value {
 
 #[derive(Debug, Clone)]
 pub struct Object {
-    fields: HashMap<String, Value>
+    fields: HashMap<String, Arc<Mutex<Value>>>
 }
 
 impl Object {
 
-    pub fn get(&mut self, name: String) -> Option<&mut Value> {
-        self.fields.get_mut(&name)
-
+    pub fn get(&self, name: String) -> Option<Arc<Mutex<Value>>> {
+        self.fields.get(&name).cloned()
     }
 
 }

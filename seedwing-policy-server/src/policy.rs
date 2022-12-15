@@ -7,6 +7,7 @@ use actix_web::{HttpRequest, HttpMessage, Responder, web, post, HttpResponse, Ha
 use actix_web::http::Method;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::web::service;
+use async_mutex::Mutex;
 use seedwing_policy_engine::runtime::{EvaluationResult, Runtime, RuntimeError};
 use seedwing_policy_engine::value;
 use futures_util::stream::StreamExt;
@@ -32,7 +33,7 @@ pub async fn evaluate(runtime: web::Data<Arc<Runtime>>, mut req: HttpRequest, mu
         let path = req.path().strip_prefix("/").unwrap().replace("/", "::");
 
         println!("{} {:?}", path, value);
-        match runtime.evaluate( path, &mut value ).await {
+        match runtime.evaluate( path, Arc::new(Mutex::new(value ))).await {
             Ok(result) => {
                 if result.matches() {
                     HttpResponse::Ok().finish()

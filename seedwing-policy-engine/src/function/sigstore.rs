@@ -1,11 +1,16 @@
+use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::str::from_utf8;
+use std::sync::{Arc};
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
-use crate::function::{Function, FunctionPackage};
+use crate::function::{Function, FunctionError, FunctionPackage};
 use crate::value::Value;
+use async_mutex::Mutex;
 
 pub fn package() -> FunctionPackage {
     let mut pkg = FunctionPackage::new();
@@ -17,7 +22,7 @@ pub fn package() -> FunctionPackage {
 pub struct Sha256;
 
 impl Function for Sha256 {
-    fn call<'v>(&'v self, input: &'v mut Value) -> Pin<Box<dyn Future<Output=Result<Value, ()>> + 'v>> {
+    fn call<'v>(&'v self, input: &'v Value) -> Pin<Box<dyn Future<Output=Result<Value, FunctionError>> + 'v>> {
         Box::pin(
             async move {
                 if let Some(digest) = input.try_get_string() {
@@ -48,12 +53,12 @@ impl Function for Sha256 {
                             }
                         }
 
-                        return Ok(transform.into())
+                        return Ok(transform.into());
                     } else {
-                        Err(())
+                        Err(FunctionError::Other("no signatures".into()))
                     }
                 } else {
-                    Err(())
+                    Err(FunctionError::Other("invalid input".into()))
                 }
             }
         )

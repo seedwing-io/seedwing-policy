@@ -19,7 +19,7 @@ impl Linker {
         }
     }
 
-    pub fn link(mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
+    pub async fn link(mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         for mut unit in &mut self.units {
             let unit_path = PackagePath::from(unit.source());
@@ -137,22 +137,21 @@ impl Linker {
         for unit in &self.units {
             let unit_path = PackagePath::from(unit.source());
 
-            unit.types().iter()
+            for (path, ty) in unit.types().iter()
                 .map(|e| {
                     (Located::new(
                         unit_path.type_name(e.name().clone().into_inner()),
                         e.location(),
                     ), e.ty())
-                })
-                .for_each(|(path, ty)| {
-                    runtime.define(path.into_inner(), ty);
-                })
+                }) {
+                runtime.define(path.into_inner(), ty).await;
+            }
         }
 
         for (path, package) in &self.packages {
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
-                runtime.define_function(path, func);
+                runtime.define_function(path, func).await;
             }
         }
 
