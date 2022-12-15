@@ -123,7 +123,33 @@ pub enum RuntimeError {
 }
 
 pub struct Runtime {
-    types: Mutex<HashMap<TypeName, Arc<Located<RuntimeType>>>>,
+    //types: Mutex<HashMap<TypeName, Arc<Located<RuntimeType>>>>,
+    types: Mutex<HashMap<TypeName, TypeHandle>>,
+}
+
+struct TypeHandle {
+    ty: Option<Arc<Located<RuntimeType>>>,
+}
+
+impl TypeHandle {
+    pub fn new() -> Self {
+        Self {
+            ty: None
+        }
+    }
+
+    fn with(mut self, ty: Located<RuntimeType>) -> Self {
+        self.define(ty);
+        self
+    }
+
+    fn define(&mut self, ty: Located<RuntimeType>) {
+        self.ty.replace( Arc::new( ty ) );
+    }
+
+    fn ty(&self) -> Arc<Located<RuntimeType>> {
+        self.ty.as_ref().unwrap().clone()
+    }
 }
 
 impl Runtime {
@@ -131,7 +157,12 @@ impl Runtime {
         let mut initial_types = HashMap::new();
         initial_types.insert(
             TypeName::new("int".into()),
-            Arc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)),
+            //Arc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)),
+            TypeHandle::new().with(
+                Located::new(
+                    RuntimeType::Primordial(PrimordialType::Integer),
+                    0..0)
+            ),
         );
 
         Arc::new(Self {
@@ -141,18 +172,28 @@ impl Runtime {
 
     pub async fn evaluate(&self, path: String, value: Arc<Mutex<RuntimeValue>>) -> Result<EvaluationResult, RuntimeError> {
         let path = TypeName::from(path);
-        let ty = self.types.lock().await[&path].clone();
+        let ty = self.types.lock().await[&path].ty();
         ty.evaluate(value).await
+    }
+
+    async fn declare(self: &mut Arc<Self>, path: TypeName) {
+        self.types.lock().await.insert(
+            path,
+            TypeHandle::new(),
+        );
     }
 
     async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
         println!("define {:?}", path.as_type_str());
         let converted = self.convert(ty);
 
-        self.types.lock().await.insert(
-            path,
-            Arc::new(converted),
-        );
+        if let Some(handle) = self.types.lock().await.get_mut(&path) {
+            handle.define( converted )
+        }
+        //self.types.lock().await.insert(
+            //path,
+            //Arc::new(converted),
+        //);
     }
 
     async fn define_function(self: &mut Arc<Self>, path: TypeName, func: Arc<dyn Function>) {
@@ -165,10 +206,15 @@ impl Runtime {
             )
         ), 0..0);
 
-        self.types.lock().await.insert(
-            path,
-            Arc::new(runtime_type),
-        );
+        if let Some(handle) = self.types.lock().await.get_mut(&path) {
+            handle.define( runtime_type )
+        }
+
+
+        //self.types.lock().await.insert(
+            //path,
+            //Arc::new(runtime_type),
+        //);
     }
 
     fn convert(self: &Arc<Self>, ty: &Located<Type>) -> Located<RuntimeType> {
@@ -364,8 +410,8 @@ impl Located<RuntimeType> {
                             let mut locked_value = value.lock().await;
                             let mut result = func.call(&*locked_value).await;
                             if let Ok(transform) = result {
-                                let transform = Arc::new( Mutex::new( transform ) );
-                                locked_value.transform(name.clone(), transform.clone() );
+                                let transform = Arc::new(Mutex::new(transform));
+                                locked_value.transform(name.clone(), transform.clone());
                                 println!("fn call -> {:?}", transform);
                                 return Ok(EvaluationResult::new().set_value(transform));
                             } else {

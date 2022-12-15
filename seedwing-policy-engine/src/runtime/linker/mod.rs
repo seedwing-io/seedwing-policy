@@ -137,6 +137,27 @@ impl Linker {
         for unit in &self.units {
             let unit_path = PackagePath::from(unit.source());
 
+            for (path, _) in unit.types().iter()
+                .map(|e| {
+                    (Located::new(
+                        unit_path.type_name(e.name().clone().into_inner()),
+                        e.location(),
+                    ), e.ty())
+                }) {
+                runtime.declare(path.into_inner()).await;
+            }
+        }
+
+        for (path, package) in &self.packages {
+            for (fn_name, _) in package.functions() {
+                let path = path.type_name(fn_name);
+                runtime.declare(path).await;
+            }
+        }
+
+        for unit in &self.units {
+            let unit_path = PackagePath::from(unit.source());
+
             for (path, ty) in unit.types().iter()
                 .map(|e| {
                     (Located::new(
