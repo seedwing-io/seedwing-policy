@@ -1,24 +1,27 @@
+use crate::runtime::RuntimeType::Primordial;
+use crate::value::Value;
+use async_mutex::Mutex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::{Arc};
-use crate::runtime::RuntimeType::Primordial;
-use crate::value::Value;
-use async_mutex::Mutex;
+use std::sync::Arc;
 
-pub mod sigstore;
 pub mod base64;
+pub mod sigstore;
 
 #[derive(Debug)]
 pub enum FunctionError {
     Other(String),
 }
 
-pub trait Function : Sync + Send + Debug {
-    fn call<'v>(&'v self, input: &'v Value) -> Pin<Box<dyn Future<Output=Result<Value, FunctionError>> + 'v >>;
+pub trait Function: Sync + Send + Debug {
+    fn call<'v>(
+        &'v self,
+        input: &'v Value,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>>;
 }
 
 pub struct FunctionPackage {
@@ -28,7 +31,7 @@ pub struct FunctionPackage {
 impl FunctionPackage {
     pub fn new() -> Self {
         Self {
-            fns: Default::default()
+            fns: Default::default(),
         }
     }
 
@@ -43,9 +46,7 @@ impl FunctionPackage {
     pub fn functions(&self) -> Vec<(String, Arc<dyn Function>)> {
         self.fns
             .iter()
-            .map(|(k, v)| {
-                (k.clone(), v.clone())
-            })
+            .map(|(k, v)| (k.clone(), v.clone()))
             .collect()
     }
 }

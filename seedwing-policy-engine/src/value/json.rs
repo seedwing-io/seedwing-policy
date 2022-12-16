@@ -1,9 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::{Arc};
+use crate::value::{InnerValue, Object, Value};
 use async_mutex::Mutex;
 use serde_json::{Number, Value as JsonValue};
-use crate::value::{Object, InnerValue, Value};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
 
 impl From<&JsonValue> for Value {
     fn from(value: &JsonValue) -> Self {
@@ -28,16 +28,18 @@ impl From<&JsonValue> for InnerValue {
             }
             JsonValue::String(inner) => InnerValue::String(inner.clone()),
             JsonValue::Array(inner) => InnerValue::List(
-                inner.iter().map(|e| Arc::new(Mutex::new(Value::from(e)))).collect()
+                inner
+                    .iter()
+                    .map(|e| Arc::new(Mutex::new(Value::from(e))))
+                    .collect(),
             ),
             JsonValue::Object(inner) => {
-                let fields = inner.iter().map(|(k,v)|{
-                    (k.clone(), Arc::new(Mutex::new(Value::from(v))))
-                }).collect();
+                let fields = inner
+                    .iter()
+                    .map(|(k, v)| (k.clone(), Arc::new(Mutex::new(Value::from(v)))))
+                    .collect();
 
-                InnerValue::Object( Object {
-                    fields,
-                })
+                InnerValue::Object(Object { fields })
             }
         }
     }

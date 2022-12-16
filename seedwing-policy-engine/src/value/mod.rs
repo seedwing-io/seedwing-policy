@@ -1,14 +1,14 @@
+use crate::function::Function;
+use crate::lang::expr::Expr;
+use crate::lang::ty::TypeName;
+use crate::lang::Located;
+use crate::runtime::{RuntimeError, RuntimeField, RuntimeType, TypeHandle};
+use async_mutex::Mutex;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::{Arc};
-use async_mutex::Mutex;
-use crate::function::Function;
-use crate::lang::expr::Expr;
-use crate::lang::Located;
-use crate::lang::ty::TypeName;
-use crate::runtime::{RuntimeError, RuntimeField, RuntimeType, TypeHandle};
+use std::sync::Arc;
 
 mod json;
 
@@ -54,20 +54,12 @@ pub struct Value {
 
 impl PartialEq<Self> for Value {
     fn eq(&self, other: &Self) -> bool {
-        match (&self.inner, &other.inner)  {
-            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => {
-                lhs == rhs
-            }
-            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => {
-                lhs == rhs
-            }
-            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => {
-                lhs == rhs
-            }
-            (InnerValue::String(lhs), InnerValue::String(rhs)) => {
-                lhs == rhs
-            }
-            _ => false
+        match (&self.inner, &other.inner) {
+            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs == rhs,
+            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => lhs == rhs,
+            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => lhs == rhs,
+            (InnerValue::String(lhs), InnerValue::String(rhs)) => lhs == rhs,
+            _ => false,
         }
     }
 }
@@ -75,25 +67,13 @@ impl PartialEq<Self> for Value {
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (&self.inner, &other.inner) {
-            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => {
-                lhs.partial_cmp(rhs)
-            }
-            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => {
-                lhs.partial_cmp(rhs)
-            }
-            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => {
-                lhs.partial_cmp(rhs)
-            }
-            (InnerValue::Decimal(lhs), InnerValue::Integer(rhs)) => {
-                lhs.partial_cmp(&(*rhs as f64) )
-            }
-            (InnerValue::Integer(lhs), InnerValue::Decimal(rhs)) => {
-                (*lhs as f64).partial_cmp(rhs)
-            }
-            (InnerValue::String(lhs), InnerValue::String(rhs)) => {
-                lhs.partial_cmp(rhs)
-            }
-            _ => None
+            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs.partial_cmp(rhs),
+            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => lhs.partial_cmp(rhs),
+            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => lhs.partial_cmp(rhs),
+            (InnerValue::Decimal(lhs), InnerValue::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
+            (InnerValue::Integer(lhs), InnerValue::Decimal(rhs)) => (*lhs as f64).partial_cmp(rhs),
+            (InnerValue::String(lhs), InnerValue::String(rhs)) => lhs.partial_cmp(rhs),
+            _ => None,
         }
     }
 }
@@ -131,14 +111,16 @@ impl From<Vec<u8>> for Value {
 impl From<Vec<Value>> for Value {
     fn from(inner: Vec<Value>) -> Self {
         InnerValue::List(
-            inner.iter().map(|e| Arc::new( Mutex::new( e.clone() ) ) ).collect()
-        ).into()
+            inner
+                .iter()
+                .map(|e| Arc::new(Mutex::new(e.clone())))
+                .collect(),
+        )
+        .into()
     }
 }
 
-impl Value {
-
-}
+impl Value {}
 
 impl From<InnerValue> for Value {
     fn from(inner: InnerValue) -> Self {
@@ -146,7 +128,7 @@ impl From<InnerValue> for Value {
             inner,
             matches: vec![],
             nonmatches: vec![],
-            transforms: Default::default()
+            transforms: Default::default(),
         }
     }
 }
@@ -173,7 +155,7 @@ impl Value {
     }
 
     pub(crate) fn transform(&mut self, name: TypeName, value: Arc<Mutex<Value>>) {
-        self.transforms.insert( name, value );
+        self.transforms.insert(name, value);
     }
 
     pub fn is_string(&self) -> bool {
@@ -239,7 +221,7 @@ impl Value {
     pub fn is_list(&self) -> bool {
         match &self.inner {
             InnerValue::List(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -269,13 +251,11 @@ impl Value {
 
 #[derive(Debug, Clone)]
 pub struct Object {
-    fields: HashMap<String, Arc<Mutex<Value>>>
+    fields: HashMap<String, Arc<Mutex<Value>>>,
 }
 
 impl Object {
-
     pub fn get(&self, name: String) -> Option<Arc<Mutex<Value>>> {
         self.fields.get(&name).cloned()
     }
-
 }

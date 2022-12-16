@@ -1,17 +1,16 @@
 //use crate::lang::expr::expr;
 use crate::lang::ty::{compilation_unit, PackagePath, Type, TypeDefn, TypeName};
+use crate::runtime::BuildError;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
-use crate::runtime::BuildError;
 
 pub mod expr;
 pub mod ty;
 
 pub type Span = std::ops::Range<usize>;
-
 
 #[derive(Debug)]
 pub struct CompilationUnit {
@@ -62,10 +61,7 @@ pub struct Use {
 
 impl Use {
     pub fn new(type_path: Located<TypeName>, as_name: Option<Located<String>>) -> Self {
-        Self {
-            type_path,
-            as_name,
-        }
+        Self { type_path, as_name }
     }
 
     pub fn type_name(&self) -> Located<TypeName> {
@@ -76,10 +72,7 @@ impl Use {
         if let Some(as_name) = &self.as_name {
             as_name.clone()
         } else {
-            Located::new(
-                self.type_path.name().clone(),
-                self.type_path.location(),
-            )
+            Located::new(self.type_path.name().clone(), self.type_path.location())
         }
     }
 }
@@ -120,7 +113,6 @@ impl<T: PartialEq> PartialEq for Located<T> {
     }
 }
 
-
 /*
 impl<T: Eq> Eq for Located<T> {
 
@@ -146,7 +138,6 @@ impl<T: Hash> Hash for Located<T> {
         self.inner.hash(state)
     }
 }
-
 
 impl<T: Clone> Clone for Located<T> {
     fn clone(&self) -> Self {
@@ -181,7 +172,6 @@ impl<T> Located<T> {
         (self.inner, self.location)
     }
 }
-
 
 impl<T> Deref for Located<T> {
     type Target = T;
@@ -222,18 +212,13 @@ pub struct Source {
 
 impl From<String> for Source {
     fn from(name: String) -> Self {
-        Self {
-            name
-        }
+        Self { name }
     }
 }
 
 impl From<&str> for Source {
     fn from(name: &str) -> Self {
-        Self {
-            name: name.into(),
-
-        }
+        Self { name: name.into() }
     }
 }
 
@@ -241,10 +226,11 @@ impl From<PackagePath> for Source {
     fn from(package: PackagePath) -> Self {
         Source {
             name: package
-                .path().iter().map(|e| {
-                (*(e.clone().into_inner())).clone()
-            })
-                .collect::<Vec<String>>().join("/")
+                .path()
+                .iter()
+                .map(|e| (*(e.clone().into_inner())).clone())
+                .collect::<Vec<String>>()
+                .join("/"),
         }
     }
 }
@@ -253,12 +239,16 @@ impl From<PackagePath> for Source {
 pub struct PolicyParser {}
 
 impl PolicyParser {
-    pub fn parse<'a, Iter, Src, S>(&self, source: Src, stream: S) -> Result<CompilationUnit, Vec<ParserError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            Src: Into<Source> + Clone,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    pub fn parse<'a, Iter, Src, S>(
+        &self,
+        source: Src,
+        stream: S,
+    ) -> Result<CompilationUnit, Vec<ParserError>>
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        Src: Into<Source> + Clone,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         Ok(compilation_unit(source).parse(stream)?)
     }
