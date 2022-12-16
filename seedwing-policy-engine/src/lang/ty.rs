@@ -52,7 +52,7 @@ impl PackagePath {
             path: segments.iter().map(|e| {
                 Located::new(
                     PackageName(String::from(*e)),
-                    0..0
+                    0..0,
                 )
             }).collect(),
         }
@@ -214,7 +214,15 @@ pub enum Type {
     Meet(Box<Located<Type>>, Box<Located<Type>>),
     Functional(Located<TypeName>, Option<Box<Located<Type>>>),
     List(Box<Located<Type>>),
+    MemberQualifier(Located<MemberQualifier>, Box<Located<Type>>),
     Nothing,
+}
+
+#[derive(Debug, Clone)]
+pub enum MemberQualifier {
+    All,
+    Any,
+    N(Located<u32>),
 }
 
 impl Type {
@@ -232,6 +240,7 @@ impl Type {
             Type::Functional(_, inner) => inner.as_ref().map_or(Vec::default(), |inner| inner.referenced_types()),
             Type::List(inner) => inner.referenced_types(),
             Type::Nothing => Vec::default(),
+            Type::MemberQualifier(_, inner) => inner.referenced_types(),
         }
     }
 
@@ -269,6 +278,9 @@ impl Type {
             Type::List(inner) => {
                 inner.qualify_types(types);
             }
+            Type::MemberQualifier(_, inner) => {
+                inner.qualify_types(types);
+            }
             Type::Nothing => {}
         }
     }
@@ -286,7 +298,8 @@ impl Debug for Type {
             Type::Object(obj) => write!(f, "{:?}", obj),
             Type::Functional(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),
             Type::List(ty) => write!(f, "[{:?}]", ty),
-            Type::Expr(expr) => write!(f, "#({:?})", expr)
+            Type::Expr(expr) => write!(f, "#({:?})", expr),
+            Type::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
         }
     }
 }
@@ -472,6 +485,42 @@ pub fn type_expr() -> impl Parser<ParserInput, Located<Type>, Error=ParserError>
     })
 }
 
+pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error=ParserError> + Clone {
+    text::int::<char, ParserError>(10)
+        .padded()
+        .map_with_span(|s: String, span| Located::new(s.parse::<u32>().unwrap(), span))
+}
+
+pub fn member_qualifier() -> impl Parser<ParserInput, Located<MemberQualifier>, Error=ParserError> + Clone {
+    just("any").padded().ignored().map_with_span(|_, span| {
+        Located::new(
+            MemberQualifier::Any,
+            span,
+        )
+    })
+        .or(
+            just("all").padded().ignored().map_with_span(|_, span| {
+                Located::new(
+                    MemberQualifier::All,
+                    span
+                )
+            })
+        )
+        .or(
+            just("n<").padded().ignored().then(simple_u32().padded()).then(just(">").padded().ignored())
+                .map_with_span(|((_, n), _), span| {
+                    Located::new(
+                        MemberQualifier::N( n ),
+                        span
+                    )
+                })
+        )
+        .then( just( "::").padded().ignored() )
+        .map(|(qualifier, _)| {
+            qualifier
+        })
+}
+
 pub fn parenthesized_expr(
     expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
@@ -610,7 +659,7 @@ pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserE
         .map_with_span(|((((fn_name, _)), ty), _), span| {
             let fn_type = Type::Functional(
                 fn_name,
-                ty.map(|ty| Box::new(ty))
+                ty.map(|ty| Box::new(ty)),
             );
 
             Located::new(
@@ -620,7 +669,27 @@ pub fn functional_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserE
         })
 }
 
+pub fn qualified_list(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    member_qualifier()
+        .then(
+            expr
+        )
+        .map_with_span(|(qualifier, ty), span| {
+            Located::new(
+                Type::MemberQualifier(qualifier, Box::new(ty)),
+                span
+            )
+        })
+}
+
 pub fn list_ty(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    qualified_list(expr.clone())
+        .or(
+            list_literal(expr.clone())
+        )
+}
+
+pub fn list_literal(expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("[")
         .padded()
         .ignored()

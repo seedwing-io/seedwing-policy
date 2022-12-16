@@ -16,7 +16,7 @@ use chumsky::{Error, Stream};
 use crate::function::{Function, FunctionError, FunctionPackage};
 use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source};
 use crate::lang::expr::Expr;
-use crate::lang::ty::{PackagePath, Type, TypeName};
+use crate::lang::ty::{MemberQualifier, PackagePath, Type, TypeName};
 use crate::value::{Value as RuntimeValue, Value};
 use crate::runtime::linker::Linker;
 
@@ -118,37 +118,52 @@ impl EvaluationResult {
 #[derive(Debug)]
 pub enum RuntimeError {
     Lock,
-    NoSuchType(String),
+    NoSuchType,
     Function(FunctionError),
 }
 
 pub struct Runtime {
     //types: Mutex<HashMap<TypeName, Arc<Located<RuntimeType>>>>,
-    types: Mutex<HashMap<TypeName, TypeHandle>>,
+    types: Mutex<HashMap<TypeName, Arc<TypeHandle>>>,
 }
 
-struct TypeHandle {
-    ty: Option<Arc<Located<RuntimeType>>>,
+#[derive(Debug)]
+pub struct TypeHandle {
+    ty: Mutex<Option<Arc<Located<RuntimeType>>>>,
 }
 
 impl TypeHandle {
     pub fn new() -> Self {
         Self {
-            ty: None
+            ty: Mutex::new(None),
         }
     }
 
-    fn with(mut self, ty: Located<RuntimeType>) -> Self {
-        self.define(ty);
+    pub fn new_with(ty: Located<RuntimeType>) -> Self {
+        Self {
+            ty: Mutex::new(Some(Arc::new(ty)))
+        }
+    }
+
+    async fn with(mut self, ty: Located<RuntimeType>) -> Self {
+        self.define(Arc::new(ty)).await;
         self
     }
 
-    fn define(&mut self, ty: Located<RuntimeType>) {
-        self.ty.replace( Arc::new( ty ) );
+    async fn define(&self, ty: Arc<Located<RuntimeType>>) {
+        self.ty.lock().await.replace(ty);
     }
 
-    fn ty(&self) -> Arc<Located<RuntimeType>> {
-        self.ty.as_ref().unwrap().clone()
+    async fn ty(&self) -> Arc<Located<RuntimeType>> {
+        self.ty.lock().await.as_ref().unwrap().clone()
+    }
+
+    async fn evaluate(&self, value: Arc<Mutex<RuntimeValue>>) -> Result<EvaluationResult, RuntimeError> {
+        if let Some(ty) = &*self.ty.lock().await {
+            ty.evaluate(value).await
+        } else {
+            Err(RuntimeError::NoSuchType)
+        }
     }
 }
 
@@ -157,12 +172,11 @@ impl Runtime {
         let mut initial_types = HashMap::new();
         initial_types.insert(
             TypeName::new("int".into()),
-            //Arc::new(Located::new(RuntimeType::Primordial(PrimordialType::Integer), 0..0)),
-            TypeHandle::new().with(
+            Arc::new(TypeHandle::new_with(
                 Located::new(
                     RuntimeType::Primordial(PrimordialType::Integer),
                     0..0)
-            ),
+            )),
         );
 
         Arc::new(Self {
@@ -170,29 +184,43 @@ impl Runtime {
         })
     }
 
-    pub async fn evaluate(&self, path: String, value: Arc<Mutex<RuntimeValue>>) -> Result<EvaluationResult, RuntimeError> {
+    pub async fn evaluate(&self, path: String, value: RuntimeValue) -> Result<EvaluationResult, RuntimeError> {
+        println!("A -- {}", path);
+        let value = Arc::new(Mutex::new(value));
+        println!("B");
         let path = TypeName::from(path);
-        let ty = self.types.lock().await[&path].ty();
+        println!("C");
+        let ty = &self.types.lock().await[&path];
+        println!("found ty: {:?}", ty);
+        let ty = ty.ty().await;
         ty.evaluate(value).await
     }
 
     async fn declare(self: &mut Arc<Self>, path: TypeName) {
         self.types.lock().await.insert(
             path,
-            TypeHandle::new(),
+            Arc::new(TypeHandle::new()),
         );
     }
 
     async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
         println!("define {:?}", path.as_type_str());
-        let converted = self.convert(ty);
+        println!("LANG {:?}", ty);
+        let converted = self.convert(ty).await;
+        println!("CONVERTED {:?}", converted);
 
+        println!("define A");
         if let Some(handle) = self.types.lock().await.get_mut(&path) {
-            handle.define( converted )
+            println!("define B");
+            if let Some(inner) = &*converted.ty.lock().await {
+                println!("define C");
+                handle.define(inner.clone()).await;
+            }
         }
+        println!("define D");
         //self.types.lock().await.insert(
-            //path,
-            //Arc::new(converted),
+        //path,
+        //Arc::new(converted),
         //);
     }
 
@@ -207,92 +235,163 @@ impl Runtime {
         ), 0..0);
 
         if let Some(handle) = self.types.lock().await.get_mut(&path) {
-            handle.define( runtime_type )
+            handle.define(Arc::new(runtime_type)).await;
         }
 
 
         //self.types.lock().await.insert(
-            //path,
-            //Arc::new(runtime_type),
+        //path,
+        //Arc::new(runtime_type),
         //);
     }
 
-    fn convert(self: &Arc<Self>, ty: &Located<Type>) -> Located<RuntimeType> {
+    fn convert<'c>(self: &'c Arc<Self>, ty: &'c Located<Type>) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => {
-                Located::new(RuntimeType::Anything, ty.location())
+                Box::pin(async move {
+                    println!("convert anything");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(RuntimeType::Anything, ty.location())
+                    ).await)
+                })
             }
             Type::Ref(inner) => {
-                Located::new(
-                    RuntimeType::Ref(self.clone(), inner.clone()),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert ref");
+                    self.types.lock().await[&(inner.clone().into_inner())].clone()
+                })
             }
             Type::Const(inner) => {
-                Located::new(
-                    RuntimeType::Const(inner.clone()),
-                    ty.location(),
+                Box::pin(
+                    async move {
+                        println!("convert const");
+                        Arc::new(TypeHandle::new().with(
+                            Located::new(
+                                RuntimeType::Const(inner.clone()),
+                                ty.location(),
+                            )).await)
+                    }
                 )
             }
             Type::Object(inner) => {
-                Located::new(
-                    RuntimeType::Object(
-                        RuntimeObjectType {
-                            fields: inner.fields().iter().map(|f| {
-                                Arc::new(Located::new(
+                Box::pin(async move {
+                    println!("convert object");
+                    let mut fields = Vec::new();
+
+                    for f in inner.fields().iter() {
+                        fields.push(
+                            Arc::new(
+                                Located::new(
                                     RuntimeField {
                                         name: f.name().clone(),
-                                        ty: Arc::new(self.convert(f.ty())),
+                                        ty: self.convert(f.ty()).await,
                                     },
                                     ty.location(),
-                                ))
-                            }).collect()
-                        }
-                    ),
-                    ty.location(),
-                )
+                                )
+                            )
+                        );
+                    }
+
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::Object(
+                                RuntimeObjectType {
+                                    fields,
+                                }
+                            ),
+                            ty.location(),
+                        )
+                    ).await)
+                })
             }
             Type::Expr(inner) => {
-                Located::new(
-                    RuntimeType::Expr(Arc::new(inner.clone())),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert expr");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::Expr(Arc::new(inner.clone())),
+                            ty.location(),
+                        )).await
+                    )
+                })
             }
             Type::Join(lhs, rhs) => {
-                Located::new(
-                    RuntimeType::Join(
-                        Arc::new(self.convert(&**lhs)),
-                        Arc::new(self.convert(&**rhs)),
-                    ),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert join");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::Join(
+                                self.convert(&**lhs).await,
+                                self.convert(&**rhs).await,
+                            ),
+                            ty.location(),
+                        )).await)
+                })
             }
             Type::Meet(lhs, rhs) => {
-                Located::new(
-                    RuntimeType::Meet(
-                        Arc::new(self.convert(&**lhs)),
-                        Arc::new(self.convert(&**rhs)),
-                    ),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert meet");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::Meet(
+                                self.convert(&**lhs).await,
+                                self.convert(&**rhs).await,
+                            ),
+                            ty.location(),
+                        )).await
+                    )
+                })
             }
             Type::Functional(fn_name, inner) => {
-                println!("lang {:?} {:?}", fn_name, inner);
-                Located::new(
-                    RuntimeType::Functional(
-                        self.clone(),
-                        fn_name.clone(),
-                        inner.as_ref().map(|e| Arc::new(self.convert(&e)))),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert functional");
+                    let fn_type = self.types.lock().await[&fn_name].clone();
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::Functional(
+                                fn_type,
+                                if let Some(inner) = inner {
+                                    Some(self.convert(inner).await)
+                                } else {
+                                    None
+                                },
+                            ),
+                            ty.location(),
+                        )).await
+                    )
+                })
             }
             Type::List(inner) => {
-                Located::new(
-                    RuntimeType::List(Box::new(self.convert(inner))),
-                    ty.location(),
-                )
+                Box::pin(async move {
+                    println!("convert list");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::List(self.convert(inner).await),
+                            ty.location(),
+                        )).await
+                    )
+                })
             }
-            Type::Nothing => Located::new(RuntimeType::Nothing, ty.location())
+            Type::MemberQualifier(qualifier, ty) => {
+                Box::pin(async move {
+                    println!("convert member qualifier");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(
+                            RuntimeType::MemberQualifier(qualifier.clone(), self.convert(&ty).await),
+                            qualifier.location(),
+                        )).await
+                    )
+                })
+            }
+            Type::Nothing => {
+                Box::pin(async move {
+                    println!("convert nothing");
+                    Arc::new(TypeHandle::new().with(
+                        Located::new(RuntimeType::Nothing, ty.location())
+                    ).await
+                    )
+                })
+            }
         }
     }
 }
@@ -300,14 +399,15 @@ impl Runtime {
 pub enum RuntimeType {
     Anything,
     Primordial(PrimordialType),
-    Ref(Arc<Runtime>, Located<TypeName>),
+    //Ref(Arc<Runtime>, Located<TypeName>),
     Const(Located<Value>),
     Object(RuntimeObjectType),
     Expr(Arc<Located<Expr>>),
-    Join(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
-    Meet(Arc<Located<RuntimeType>>, Arc<Located<RuntimeType>>),
-    Functional(Arc<Runtime>, Located<TypeName>, Option<Arc<Located<RuntimeType>>>),
-    List(Box<Located<RuntimeType>>),
+    Join(Arc<TypeHandle>, Arc<TypeHandle>),
+    Meet(Arc<TypeHandle>, Arc<TypeHandle>),
+    Functional(Arc<TypeHandle>, Option<Arc<TypeHandle>>),
+    List(Arc<TypeHandle>),
+    MemberQualifier(Located<MemberQualifier>, Arc<TypeHandle>),
     Nothing,
 }
 
@@ -316,14 +416,14 @@ impl Debug for RuntimeType {
         match self {
             RuntimeType::Anything => write!(f, "anything"),
             RuntimeType::Primordial(inner) => write!(f, "{:?}", inner),
-            RuntimeType::Ref(_, name) => write!(f, "{}", name.as_type_str()),
             RuntimeType::Const(inner) => write!(f, "{:?}", inner),
             RuntimeType::Object(inner) => write!(f, "{:?}", inner),
             RuntimeType::Expr(inner) => write!(f, "$({:?})", inner),
             RuntimeType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
             RuntimeType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
-            RuntimeType::Functional(_, name, ty) => write!(f, "{:?}({:?})", name, ty),
+            RuntimeType::Functional(fn_ty, ty) => write!(f, "{:?}({:?})", fn_ty, ty),
             RuntimeType::List(inner) => write!(f, "[{:?}]", inner),
+            RuntimeType::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             RuntimeType::Nothing => write!(f, "nothing"),
         }
     }
@@ -423,6 +523,7 @@ impl Located<RuntimeType> {
                     }
                 }
             }
+            /*
             RuntimeType::Ref(runtime, path) => {
                 return Box::pin(
                     async move {
@@ -432,6 +533,7 @@ impl Located<RuntimeType> {
                     }
                 );
             }
+             */
             RuntimeType::Const(inner) => {
                 println!("const");
                 return Box::pin(async move {
@@ -548,11 +650,11 @@ impl Located<RuntimeType> {
                     return Ok(EvaluationResult::new());
                 });
             }
-            RuntimeType::Functional(runtime, path, ty) => {
+            RuntimeType::Functional(fn_ty, ty) => {
                 return Box::pin(
                     async move {
                         println!("obtain lock on {:?}", value);
-                        let mut result = runtime.evaluate(path.as_type_str(), value.clone()).await?;
+                        let mut result = fn_ty.evaluate(value.clone()).await?;
                         println!("functional call result: {:?}", result);
                         if let Some(fn_value) = result.value() {
                             if let Some(ty) = ty {
@@ -577,6 +679,63 @@ impl Located<RuntimeType> {
                 );
             }
             RuntimeType::List(_) => {}
+            RuntimeType::MemberQualifier(qualifier, ty) => {
+                return Box::pin(async move {
+                    let mut locked_value = value.lock().await;
+                    match &**qualifier {
+                        MemberQualifier::All => {
+                            if let Some(list) = locked_value.try_get_list() {
+                                for e in list {
+                                    let result = ty.evaluate(e.clone()).await?;
+                                    if !result.matches() {
+                                        locked_value.note(self.clone(), false);
+                                        return Ok(EvaluationResult::new());
+                                    }
+                                }
+                                locked_value.note(self.clone(), true);
+                                return Ok(EvaluationResult::new().set_value(value.clone()));
+                            }
+                            locked_value.note(self.clone(), false);
+                            return Ok(EvaluationResult::new());
+                        }
+                        MemberQualifier::Any => {
+                            if let Some(list) = locked_value.try_get_list() {
+                                for e in list {
+                                    let result = ty.evaluate(e.clone()).await?;
+                                    if result.matches() {
+                                        locked_value.note(self.clone(), true);
+                                        return Ok(EvaluationResult::new().set_value(value.clone()));
+                                    }
+                                }
+                                locked_value.note(self.clone(), false);
+                                return Ok(EvaluationResult::new());
+                            }
+                            locked_value.note(self.clone(), false);
+                            return Ok(EvaluationResult::new());
+                        }
+                        MemberQualifier::N(expected_n) => {
+                            let expected_n = expected_n.clone().into_inner();
+                            let mut n = 0;
+                            if let Some(list) = locked_value.try_get_list() {
+                                for e in list {
+                                    let result = ty.evaluate(e.clone()).await?;
+                                    if result.matches() {
+                                        n += 1;
+                                        if n >= expected_n {
+                                            locked_value.note(self.clone(), true);
+                                            return Ok(EvaluationResult::new().set_value(value.clone()));
+                                        }
+                                    }
+                                }
+                                locked_value.note(self.clone(), false);
+                                return Ok(EvaluationResult::new());
+                            }
+                            locked_value.note(self.clone(), false);
+                            return Ok(EvaluationResult::new());
+                        }
+                    }
+                });
+            }
             RuntimeType::Nothing => {}
         }
 
@@ -602,7 +761,7 @@ pub struct RuntimeObjectType {
 #[derive(Debug)]
 pub struct RuntimeField {
     name: Located<String>,
-    ty: Arc<Located<RuntimeType>>,
+    ty: Arc<TypeHandle>,
 }
 
 #[cfg(test)]
@@ -645,9 +804,11 @@ mod test {
     async fn evaluate_function() {
         let src = Ephemeral::new(PackagePath::from_parts(vec!["foo", "bar"]), r#"
             type signed-thing = {
-                digest: sigstore::SHA256( {
-                    apiVersion: "0.0.1",
-                } )
+                digest: sigstore::SHA256(
+                    all::{
+                        apiVersion: "0.0.1",
+                    }
+                )
             }
         "#.into());
 
@@ -669,7 +830,7 @@ mod test {
             }
         );
 
-        let mut value = Arc::new(Mutex::new((&value).into()));
+        let mut value = (&value).into();
 
         let result = runtime.evaluate("foo::bar::signed-thing".into(), value).await;
 
@@ -706,7 +867,7 @@ mod test {
 
         println!("{:?}", good_bob);
 
-        let mut good_bob = Arc::new(Mutex::new((&good_bob).into()));
+        let mut good_bob = (&good_bob).into();
 
         let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
         println!("{:?}", result);

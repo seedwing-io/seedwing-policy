@@ -8,15 +8,22 @@ use crate::function::Function;
 use crate::lang::expr::Expr;
 use crate::lang::Located;
 use crate::lang::ty::TypeName;
-use crate::runtime::{RuntimeError, RuntimeField, RuntimeType};
+use crate::runtime::{RuntimeError, RuntimeField, RuntimeType, TypeHandle};
 
 mod json;
 
 #[derive(Debug, Clone)]
 pub enum Noted {
+    TypeHandle(Arc<TypeHandle>),
     Type(Arc<Located<RuntimeType>>),
     Field(Arc<Located<RuntimeField>>),
     Expr(Arc<Located<Expr>>),
+}
+
+impl From<Arc<TypeHandle>> for Noted {
+    fn from(inner: Arc<TypeHandle>) -> Self {
+        Self::TypeHandle(inner)
+    }
 }
 
 impl From<Arc<Located<RuntimeType>>> for Noted {
@@ -123,7 +130,9 @@ impl From<Vec<u8>> for Value {
 
 impl From<Vec<Value>> for Value {
     fn from(inner: Vec<Value>) -> Self {
-        InnerValue::List(inner).into()
+        InnerValue::List(
+            inner.iter().map(|e| Arc::new( Mutex::new( e.clone() ) ) ).collect()
+        ).into()
     }
 }
 
@@ -150,7 +159,7 @@ pub enum InnerValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(Vec<Value>),
+    List(Vec<Arc<Mutex<Value>>>),
     Octets(Vec<u8>),
 }
 
@@ -234,8 +243,8 @@ impl Value {
         }
     }
 
-    pub fn try_get_list(&mut self) -> Option<&mut Vec<Value>> {
-        if let InnerValue::List(inner) = &mut self.inner {
+    pub fn try_get_list(&self) -> Option<&Vec<Arc<Mutex<Value>>>> {
+        if let InnerValue::List(inner) = &self.inner {
             Some(inner)
         } else {
             None

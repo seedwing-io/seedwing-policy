@@ -28,7 +28,7 @@ impl From<&JsonValue> for InnerValue {
             }
             JsonValue::String(inner) => InnerValue::String(inner.clone()),
             JsonValue::Array(inner) => InnerValue::List(
-                inner.iter().map(|e| Value::from(e)).collect()
+                inner.iter().map(|e| Arc::new(Mutex::new(Value::from(e)))).collect()
             ),
             JsonValue::Object(inner) => {
                 let fields = inner.iter().map(|(k,v)|{
