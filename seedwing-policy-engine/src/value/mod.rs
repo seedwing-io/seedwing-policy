@@ -159,10 +159,7 @@ impl Value {
     }
 
     pub fn is_string(&self) -> bool {
-        match &self.inner {
-            InnerValue::String(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::String(_))
     }
 
     pub fn try_get_string(&self) -> Option<String> {
@@ -174,10 +171,7 @@ impl Value {
     }
 
     pub fn is_integer(&self) -> bool {
-        match &self.inner {
-            InnerValue::Integer(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::Integer(_))
     }
 
     pub fn try_get_integer(&self) -> Option<i64> {
@@ -189,10 +183,7 @@ impl Value {
     }
 
     pub fn is_decimal(&self) -> bool {
-        match &self.inner {
-            InnerValue::Decimal(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::Decimal(_))
     }
 
     pub fn try_get_decimal(&self) -> Option<f64> {
@@ -204,10 +195,7 @@ impl Value {
     }
 
     pub fn is_boolean(&self) -> bool {
-        match &self.inner {
-            InnerValue::Boolean(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::Boolean(_))
     }
 
     pub fn try_get_boolean(&self) -> Option<bool> {
@@ -219,10 +207,7 @@ impl Value {
     }
 
     pub fn is_list(&self) -> bool {
-        match &self.inner {
-            InnerValue::List(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::List(_))
     }
 
     pub fn try_get_list(&self) -> Option<&Vec<Arc<Mutex<Value>>>> {
@@ -234,10 +219,7 @@ impl Value {
     }
 
     pub fn is_object(&self) -> bool {
-        match &self.inner {
-            InnerValue::Object(_) => true,
-            _ => false,
-        }
+        matches!(self.inner, InnerValue::Object(_))
     }
 
     pub fn try_get_object(&self) -> Option<&Object> {

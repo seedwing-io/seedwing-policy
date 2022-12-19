@@ -62,13 +62,16 @@ impl Located<Expr> {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
-                    return if let Some(Ordering::Greater) =
+                    #[allow(clippy::let_and_return)]
+                    let result = if let Some(Ordering::Greater) =
                         lhs.lock().await.partial_cmp(&*rhs.lock().await)
                     {
                         Ok(Arc::new(Mutex::new(true.into())))
                     } else {
                         Ok(Arc::new(Mutex::new(false.into())))
                     };
+
+                    result
                 }
                 Expr::GreaterThanEqual(_, _) => todo!(),
                 Expr::Equal(_, _) => todo!(),
@@ -294,16 +297,10 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
     just("true")
         .padded()
         .map_with_span(|_, span: Span| {
-            Located::new(
-                Expr::Value(Located::new(true.into(), span.clone())),
-                span.clone(),
-            )
+            Located::new(Expr::Value(Located::new(true.into(), span.clone())), span)
         })
         .or(just("false").padded().map_with_span(|_, span: Span| {
-            Located::new(
-                Expr::Value(Located::new(false.into(), span.clone())),
-                span.clone(),
-            )
+            Located::new(Expr::Value(Located::new(false.into(), span.clone())), span)
         }))
 }
 
@@ -351,7 +348,7 @@ pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserE
 
 pub fn field_expr() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     text::ident()
-        .map_with_span(|v, span| Located::new(v, span))
+        .map_with_span(Located::new)
         .then(op(":").padded().ignored())
         .then(expr())
         .map(|((field_name, _colon), expr)| {
@@ -403,7 +400,7 @@ pub fn logical_or(
     expr: impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     logical_and(expr.clone())
-        .then(op("||").then(expr.clone()).repeated())
+        .then(op("||").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
             Located::new(Expr::LogicalOr(Arc::new(lhs), Arc::new(rhs)), span)
@@ -414,7 +411,7 @@ pub fn logical_and(
     expr: impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     relational_expr(expr.clone())
-        .then(op("&&").then(expr.clone()).repeated())
+        .then(op("&&").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
             Located::new(Expr::LogicalAnd(Arc::new(lhs), Arc::new(rhs)), span)
@@ -464,7 +461,7 @@ pub fn additive_expr(
                 .map_with_span(|_, span| Located::new(Expr::Add as fn(_, _) -> _, span))
                 .or(op("-")
                     .map_with_span(|_, span| Located::new(Expr::Subtract as fn(_, _) -> _, span)))
-                .then(multiplicative_expr(expr.clone()))
+                .then(multiplicative_expr(expr))
                 .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {

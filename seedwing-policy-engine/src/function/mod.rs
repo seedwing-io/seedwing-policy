@@ -28,6 +28,12 @@ pub struct FunctionPackage {
     fns: HashMap<String, Arc<dyn Function>>,
 }
 
+impl Default for FunctionPackage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FunctionPackage {
     pub fn new() -> Self {
         Self {

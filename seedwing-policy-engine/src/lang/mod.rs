@@ -72,7 +72,7 @@ impl Use {
         if let Some(as_name) = &self.as_name {
             as_name.clone()
         } else {
-            Located::new(self.type_path.name().clone(), self.type_path.location())
+            Located::new(self.type_path.name(), self.type_path.location())
         }
     }
 }
@@ -109,7 +109,7 @@ impl<T: Eq + PartialEq> Eq for Located<T> {}
 
 impl<T: PartialEq> PartialEq for Located<T> {
     fn eq(&self, other: &Self) -> bool {
-        (&self.inner).eq(&other.inner)
+        self.inner.eq(&other.inner)
     }
 }
 
@@ -250,7 +250,7 @@ impl PolicyParser {
         Src: Into<Source> + Clone,
         S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
-        Ok(compilation_unit(source).parse(stream)?)
+        compilation_unit(source).parse(stream)
     }
 }
 

@@ -1,4 +1,3 @@
-use actix_web::dev::{HttpServiceFactory, Service};
 use actix_web::http::Method;
 use actix_web::web::service;
 use actix_web::web::{BytesMut, Payload};
@@ -36,7 +35,7 @@ pub async fn evaluate(
         let path = req.path().strip_prefix("/").unwrap().replace("/", "::");
 
         println!("{} {:?}", path, value);
-        match runtime.evaluate(path, Arc::new(Mutex::new(value))).await {
+        match runtime.evaluate(path, value).await {
             Ok(result) => {
                 if result.matches() {
                     HttpResponse::Ok().finish()

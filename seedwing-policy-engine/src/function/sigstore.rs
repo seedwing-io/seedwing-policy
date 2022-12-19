@@ -55,7 +55,7 @@ impl Function for Sha256 {
                         }
                     }
 
-                    return Ok(transform.into());
+                    Ok(transform.into())
                 } else {
                     Err(FunctionError::Other("no signatures".into()))
                 }

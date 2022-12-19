@@ -30,7 +30,7 @@ pub struct PackagePath {
 impl From<Vec<String>> for PackagePath {
     fn from(mut segments: Vec<String>) -> Self {
         let first = segments.get(0).unwrap();
-        let is_absolute = (first == "");
+        let is_absolute = first.is_empty();
         if is_absolute {
             segments = segments[1..].to_vec()
         }
@@ -75,7 +75,7 @@ impl PackagePath {
     pub fn as_package_str(&self) -> String {
         let mut fq = String::new();
         if self.is_absolute {
-            fq.push_str("::".into());
+            fq.push_str("::");
         }
 
         fq.push_str(
@@ -99,7 +99,7 @@ impl From<Source> for PackagePath {
     fn from(src: Source) -> Self {
         let segments = src
             .name
-            .split("/")
+            .split('/')
             .map(|segment| Located::new(PackageName(segment.into()), 0..0))
             .collect();
 
@@ -275,8 +275,9 @@ impl Type {
                 rhs.qualify_types(types);
             }
             Type::Functional(_, inner) => {
-                //inner.qualify_types(types);
-                inner.as_mut().map(|inner| inner.qualify_types(types));
+                if let Some(inner) = inner.as_mut() {
+                    inner.qualify_types(types)
+                }
             }
             Type::List(inner) => {
                 inner.qualify_types(types);
@@ -310,6 +311,12 @@ impl Debug for Type {
 #[derive(Clone, Debug)]
 pub struct ObjectType {
     fields: Vec<Located<Field>>,
+}
+
+impl Default for ObjectType {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ObjectType {
@@ -397,7 +404,7 @@ pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = Parse
         .repeated()
         .collect()
         .padded()
-        .map_with_span(|v, span| Located::new(v, span))
+        .map_with_span(Located::new)
 }
 
 pub fn simple_type_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone
@@ -452,7 +459,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
             let ty = ty
                 .unwrap_or({
                     let loc = ty_name.location();
-                    ((), Located::new(Type::Nothing, loc.clone()))
+                    ((), Located::new(Type::Nothing, loc))
                 })
                 .1;
 
@@ -506,7 +513,7 @@ pub fn logical_or(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     logical_and(expr.clone())
-        .then(op("||").then(expr.clone()).repeated())
+        .then(op("||").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             println!("lhs {:?}", lhs);
             println!("rhs {:?}", rhs);
@@ -519,7 +526,7 @@ pub fn logical_and(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     ty(expr.clone())
-        .then(op("&&").then(expr.clone()).repeated())
+        .then(op("&&").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let location = lhs.span().start()..rhs.span().end();
             Located::new(Type::Meet(Box::new(lhs), Box::new(rhs)), location)
@@ -555,7 +562,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error = Pars
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
         .then(just('"').ignored())
         .padded()
-        .map_with_span(|((_, x), _), span: Span| Located::new(x.into(), span.clone()))
+        .map_with_span(|((_, x), _), span: Span| Located::new(x.into(), span))
 }
 
 pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
@@ -582,10 +589,10 @@ pub fn functional_ty(
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     type_name()
         .then(just("(").padded().ignored())
-        .then(expr.clone().or_not())
+        .then(expr.or_not())
         .then(just(")").padded().ignored())
         .map_with_span(|((((fn_name, _)), ty), _), span| {
-            let fn_type = Type::Functional(fn_name, ty.map(|ty| Box::new(ty)));
+            let fn_type = Type::Functional(fn_name, ty.map(Box::new));
 
             Located::new(fn_type, span)
         })
@@ -604,7 +611,7 @@ pub fn qualified_list(
 pub fn list_ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    qualified_list(expr.clone()).or(list_literal(expr.clone()))
+    qualified_list(expr.clone()).or(list_literal(expr))
 }
 
 pub fn list_literal(
@@ -625,7 +632,7 @@ pub fn ty(
         .or(list_ty(expr.clone()))
         .or(functional_ty(expr.clone()))
         .or(const_type())
-        .or(object_type(expr.clone()))
+        .or(object_type(expr))
         .or(type_ref())
 }
 
@@ -660,7 +667,7 @@ pub fn object_type(
 }
 
 pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
-    text::ident().map_with_span(|name, span| Located::new(name, span))
+    text::ident().map_with_span(Located::new)
 }
 
 pub fn field_definition(

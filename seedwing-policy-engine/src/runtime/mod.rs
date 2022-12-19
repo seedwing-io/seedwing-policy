@@ -32,6 +32,7 @@ impl From<ParserError> for BuildError {
     }
 }
 
+#[derive(Default)]
 pub struct Builder {
     units: Vec<CompilationUnit>,
     packages: HashMap<PackagePath, FunctionPackage>,
@@ -85,7 +86,7 @@ impl Builder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct EvaluationResult {
     value: Option<Arc<Mutex<Value>>>,
 }
@@ -121,7 +122,7 @@ pub struct Runtime {
     types: Mutex<HashMap<TypeName, Arc<TypeHandle>>>,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct TypeHandle {
     ty: Mutex<Option<Arc<Located<RuntimeType>>>>,
 }
@@ -334,7 +335,7 @@ impl Runtime {
             }),
             Type::Functional(fn_name, inner) => Box::pin(async move {
                 println!("convert functional");
-                let fn_type = self.types.lock().await[&fn_name].clone();
+                let fn_type = self.types.lock().await[fn_name].clone();
                 Arc::new(
                     TypeHandle::new()
                         .with(Located::new(
@@ -367,10 +368,7 @@ impl Runtime {
                 Arc::new(
                     TypeHandle::new()
                         .with(Located::new(
-                            RuntimeType::MemberQualifier(
-                                qualifier.clone(),
-                                self.convert(&ty).await,
-                            ),
+                            RuntimeType::MemberQualifier(qualifier.clone(), self.convert(ty).await),
                             qualifier.location(),
                         ))
                         .await,
@@ -426,14 +424,9 @@ impl Located<RuntimeType> {
         self: &'v Arc<Self>,
         value: Arc<Mutex<RuntimeValue>>,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
-        println!("eval self {:?}", self);
-        println!("vs");
-        println!("obj {:?}", value);
-        println!("");
-
         match &***self {
             RuntimeType::Anything => {
-                return Box::pin(ready(Ok(EvaluationResult::new().set_value(value.clone()))));
+                return Box::pin(ready(Ok(EvaluationResult::new().set_value(value))));
             }
             RuntimeType::Primordial(inner) => {
                 println!("primordial");
@@ -504,10 +497,10 @@ impl Located<RuntimeType> {
                                 let transform = Arc::new(Mutex::new(transform));
                                 locked_value.transform(name.clone(), transform.clone());
                                 println!("fn call -> {:?}", transform);
-                                return Ok(EvaluationResult::new().set_value(transform));
+                                Ok(EvaluationResult::new().set_value(transform))
                             } else {
                                 println!("fn call failed?");
-                                return Ok(EvaluationResult::new());
+                                Ok(EvaluationResult::new())
                             }
                             //Ok(EvaluationResult::new())
                         });
@@ -569,19 +562,19 @@ impl Located<RuntimeType> {
                                     locked_value.note(e.clone(), false);
                                 }
                                 locked_value.note(self.clone(), false);
-                                return Ok(EvaluationResult::new());
+                                Ok(EvaluationResult::new())
                             } else {
                                 println!("match obj");
                                 locked_value.note(self.clone(), true);
-                                return Ok(EvaluationResult::new().set_value(value.clone()));
+                                Ok(EvaluationResult::new().set_value(value.clone()))
                             }
                         } else {
                             locked_value.note(self.clone(), false);
-                            return Ok(EvaluationResult::new());
+                            Ok(EvaluationResult::new())
                         }
                     } else {
                         locked_value.note(self.clone(), false);
-                        return Ok(EvaluationResult::new());
+                        Ok(EvaluationResult::new())
                     }
                 });
             }
@@ -592,10 +585,10 @@ impl Located<RuntimeType> {
                     let locked_result = result.lock().await;
                     if let Some(true) = locked_result.try_get_boolean() {
                         locked_value.note(self.clone(), true);
-                        return Ok(EvaluationResult::new().set_value(value.clone()));
+                        Ok(EvaluationResult::new().set_value(value.clone()))
                     } else {
                         locked_value.note(self.clone(), false);
-                        return Ok(EvaluationResult::new());
+                        Ok(EvaluationResult::new())
                     }
                 });
             }
@@ -617,7 +610,7 @@ impl Located<RuntimeType> {
                         return Ok(EvaluationResult::new().set_value(value.clone()));
                     }
 
-                    return Ok(EvaluationResult::new());
+                    Ok(EvaluationResult::new())
                 });
             }
             RuntimeType::Meet(lhs, rhs) => {
@@ -638,7 +631,7 @@ impl Located<RuntimeType> {
                         return Ok(EvaluationResult::new().set_value(value.clone()));
                     }
 
-                    return Ok(EvaluationResult::new());
+                    Ok(EvaluationResult::new())
                 });
             }
             RuntimeType::Functional(fn_ty, ty) => {
@@ -663,7 +656,7 @@ impl Located<RuntimeType> {
                         }
                     } else {
                         println!("failed fncall");
-                        return Ok(EvaluationResult::new());
+                        Ok(EvaluationResult::new())
                     }
                 });
             }
@@ -685,7 +678,7 @@ impl Located<RuntimeType> {
                                 return Ok(EvaluationResult::new().set_value(value.clone()));
                             }
                             locked_value.note(self.clone(), false);
-                            return Ok(EvaluationResult::new());
+                            Ok(EvaluationResult::new())
                         }
                         MemberQualifier::Any => {
                             if let Some(list) = locked_value.try_get_list() {
@@ -700,7 +693,7 @@ impl Located<RuntimeType> {
                                 return Ok(EvaluationResult::new());
                             }
                             locked_value.note(self.clone(), false);
-                            return Ok(EvaluationResult::new());
+                            Ok(EvaluationResult::new())
                         }
                         MemberQualifier::N(expected_n) => {
                             let expected_n = expected_n.clone().into_inner();
@@ -718,11 +711,9 @@ impl Located<RuntimeType> {
                                         }
                                     }
                                 }
-                                locked_value.note(self.clone(), false);
-                                return Ok(EvaluationResult::new());
                             }
                             locked_value.note(self.clone(), false);
-                            return Ok(EvaluationResult::new());
+                            Ok(EvaluationResult::new())
                         }
                     }
                 });

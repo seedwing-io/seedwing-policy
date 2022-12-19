@@ -27,12 +27,12 @@ impl Linker {
             let mut visible_types = unit
                 .uses()
                 .iter()
-                .map(|e| (e.as_name().clone().into_inner(), Some(e.type_name())))
+                .map(|e| (e.as_name().into_inner(), Some(e.type_name())))
                 .chain(unit.types().iter().map(|e| {
                     (
                         e.name().into_inner(),
                         Some(Located::new(
-                            TypeName::new(e.name().clone().into_inner()),
+                            TypeName::new(e.name().into_inner()),
                             e.location(),
                         )),
                     )
@@ -56,10 +56,8 @@ impl Linker {
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
-                    if !ty.is_qualified() {
-                        if !visible_types.contains_key(&ty.name()) {
-                            todo!("unknown type referenced {:?}", ty)
-                        }
+                    if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
+                        todo!("unknown type referenced {:?}", ty)
                     }
                 }
             }
@@ -100,7 +98,7 @@ impl Linker {
             let unit_types = unit
                 .types()
                 .iter()
-                .map(|e| unit_path.type_name(e.name().clone().into_inner()))
+                .map(|e| unit_path.type_name(e.name().into_inner()))
                 .collect::<Vec<TypeName>>();
 
             world.extend_from_slice(&unit_types);
@@ -130,10 +128,7 @@ impl Linker {
 
             for (path, _) in unit.types().iter().map(|e| {
                 (
-                    Located::new(
-                        unit_path.type_name(e.name().clone().into_inner()),
-                        e.location(),
-                    ),
+                    Located::new(unit_path.type_name(e.name().into_inner()), e.location()),
                     e.ty(),
                 )
             }) {
@@ -153,10 +148,7 @@ impl Linker {
 
             for (path, ty) in unit.types().iter().map(|e| {
                 (
-                    Located::new(
-                        unit_path.type_name(e.name().clone().into_inner()),
-                        e.location(),
-                    ),
+                    Located::new(unit_path.type_name(e.name().into_inner()), e.location()),
                     e.ty(),
                 )
             }) {

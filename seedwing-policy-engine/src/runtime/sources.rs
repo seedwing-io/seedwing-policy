@@ -20,7 +20,7 @@ impl Ephemeral {
     }
 
     pub fn iter(self) -> impl Iterator<Item = (Source, String)> {
-        once((self.source.clone(), self.content.clone()))
+        once((self.source.clone(), self.content))
     }
 }
 
@@ -46,7 +46,7 @@ impl Directory {
                     let path = e.path();
                     if let Ok(path) = path.strip_prefix::<&Path>(&self.dir) {
                         let mut src = String::new();
-                        for part in path.parent() {
+                        if let Some(part) = path.parent() {
                             src.push_str(&*part.to_string_lossy());
                             src.push('/');
                         }
