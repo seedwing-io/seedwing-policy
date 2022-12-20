@@ -37,14 +37,11 @@ pub enum Expr {
     LogicalOr(Arc<Located<Expr>>, Arc<Located<Expr>>),
 }
 
-pub type ExprFuture = Pin<Box<dyn Future<Output = Result<Arc<Mutex<RuntimeValue>>, RuntimeError>> + 'static>>;
+pub type ExprFuture =
+    Pin<Box<dyn Future<Output = Result<Arc<Mutex<RuntimeValue>>, RuntimeError>> + 'static>>;
 
 impl Located<Expr> {
-    pub fn evaluate(
-        self: &Arc<Self>,
-        value: Arc<Mutex<RuntimeValue>>,
-    ) -> ExprFuture
-    {
+    pub fn evaluate(self: &Arc<Self>, value: Arc<Mutex<RuntimeValue>>) -> ExprFuture {
         let this = self.clone();
 
         Box::pin(async move {

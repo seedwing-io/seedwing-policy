@@ -1,3 +1,4 @@
+use crate::value::{Object, Value};
 use std::str::from_utf8;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::asn1_rs::Any;
@@ -6,7 +7,6 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::{GeneralName, X509Extension};
 use x509_parser::prelude::{ParsedExtension, SubjectAlternativeName};
 use x509_parser::x509::{AttributeTypeAndValue, RelativeDistinguishedName, X509Name};
-use crate::value::{Object, Value};
 
 impl From<&X509Certificate<'_>> for Value {
     fn from(cert: &X509Certificate) -> Self {
@@ -66,9 +66,12 @@ impl From<&AttributeTypeAndValue<'_>> for Value {
 
 impl From<&Oid<'_>> for Value {
     fn from(oid: &Oid<'_>) -> Self {
-        let stringy = oid.as_bytes().iter().map(|e| {
-            format!("{}", e)
-        }).collect::<Vec<String>>().join(".");
+        let stringy = oid
+            .as_bytes()
+            .iter()
+            .map(|e| format!("{}", e))
+            .collect::<Vec<String>>()
+            .join(".");
 
         stringy.into()
     }
@@ -153,7 +156,7 @@ impl TryFrom<&ParsedExtension<'_>> for Value {
             //ParsedExtension::InvalidityDate(_) => {}
             //ParsedExtension::SCT(_) => {}
             //ParsedExtension::Unparsed => {}
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

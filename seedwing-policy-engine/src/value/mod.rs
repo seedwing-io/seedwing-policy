@@ -7,7 +7,7 @@ use async_mutex::Mutex;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::future::{Future, ready};
+use std::future::{ready, Future};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -114,7 +114,7 @@ impl PartialOrd for Value {
 
 impl From<&str> for Value {
     fn from(inner: &str) -> Self {
-        InnerValue::String( inner.to_string() ).into()
+        InnerValue::String(inner.to_string()).into()
     }
 }
 
@@ -174,7 +174,7 @@ impl From<Vec<Value>> for Value {
                 .map(|e| Arc::new(Mutex::new(e.clone())))
                 .collect(),
         )
-            .into()
+        .into()
     }
 }
 
@@ -208,35 +208,37 @@ pub enum InnerValue {
 }
 
 impl InnerValue {
-    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output=()>+ 'p>> {
+    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
         match self {
             InnerValue::Null => Box::pin(ready(printer.write("<null>"))),
-            InnerValue::String(inner) => Box::pin(ready(printer.write(format!("\"{}\"", inner).as_str()))),
-            InnerValue::Integer(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
-            InnerValue::Decimal(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
-            InnerValue::Boolean(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
-            InnerValue::Object(inner) => Box::pin(async move { inner.display(printer).await } ),
-            InnerValue::List(inner) => {
-                Box::pin(
-                    async move {
-                        printer.write("[ ");
-                        for item in inner {
-                            item.lock().await.inner.display(printer).await;
-                            printer.write( ", ");
-                        }
-                        printer.write(" ]");
-                    }
-                )
+            InnerValue::String(inner) => {
+                Box::pin(ready(printer.write(format!("\"{}\"", inner).as_str())))
             }
+            InnerValue::Integer(inner) => {
+                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+            }
+            InnerValue::Decimal(inner) => {
+                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+            }
+            InnerValue::Boolean(inner) => {
+                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+            }
+            InnerValue::Object(inner) => Box::pin(async move { inner.display(printer).await }),
+            InnerValue::List(inner) => Box::pin(async move {
+                printer.write("[ ");
+                for item in inner {
+                    item.lock().await.inner.display(printer).await;
+                    printer.write(", ");
+                }
+                printer.write(" ]");
+            }),
             InnerValue::Octets(inner) => {
-                Box::pin(
-                    async move {
-                        // todo write in columns of bytes like a byte inspector
-                        for byte in inner {
-                            printer.write(format!("{:0x}", byte).as_str())
-                        }
+                Box::pin(async move {
+                    // todo write in columns of bytes like a byte inspector
+                    for byte in inner {
+                        printer.write(format!("{:0x}", byte).as_str())
                     }
-                )
+                })
             }
         }
     }
@@ -354,7 +356,7 @@ pub struct Object {
 impl Object {
     pub fn new() -> Self {
         Self {
-            fields: Default::default()
+            fields: Default::default(),
         }
     }
 
@@ -363,9 +365,9 @@ impl Object {
         printer.indent += 1;
         for (name, value) in &self.fields {
             printer.write_with_indent(name.as_str());
-            printer.write( ": ");
+            printer.write(": ");
             value.lock().await.inner.display(printer).await;
-            printer.write("," );
+            printer.write(",");
         }
         printer.indent -= 1;
         printer.write_with_indent("}");
