@@ -1,4 +1,4 @@
-use crate::function::{Function, FunctionError, FunctionPackage};
+use crate::core::{Function, FunctionError};
 use crate::value::Value;
 use async_mutex::Mutex;
 use sigstore::rekor::apis::configuration::Configuration;
@@ -11,10 +11,16 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
+use crate::lang::ty::PackagePath;
+use crate::package::Package;
 
-pub fn package() -> FunctionPackage {
-    let mut pkg = FunctionPackage::new();
-    pkg.register("SHA256".into(), Sha256);
+pub fn package() -> Package {
+    let mut pkg = Package::new(
+        PackagePath::from_parts( vec![
+            "sigstore",
+        ])
+    );
+    pkg.register_function("SHA256".into(), Sha256);
     pkg
 }
 

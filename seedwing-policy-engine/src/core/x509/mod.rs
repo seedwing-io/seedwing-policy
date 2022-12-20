@@ -4,14 +4,20 @@ use std::str::from_utf8;
 use ariadne::Cache;
 use x509_parser::pem::Pem;
 use x509_parser::x509::X509Version;
-use crate::function::{Function, FunctionError, FunctionPackage};
+use crate::core::{Function, FunctionError};
+use crate::lang::ty::PackagePath;
+use crate::package::Package;
 use crate::value::Value;
 
 pub mod convert;
 
-pub fn package() -> FunctionPackage {
-    let mut pkg = FunctionPackage::new();
-    pkg.register("PEM".into(), PEM);
+pub fn package() -> Package {
+    let mut pkg = Package::new(
+        PackagePath::from_parts( vec![
+            "x509"
+        ])
+    );
+    pkg.register_function("PEM".into(), PEM);
     pkg
 }
 

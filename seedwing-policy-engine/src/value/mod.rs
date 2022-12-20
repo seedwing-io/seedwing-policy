@@ -1,4 +1,4 @@
-use crate::function::Function;
+use crate::core::Function;
 use crate::lang::expr::Expr;
 use crate::lang::ty::TypeName;
 use crate::lang::Located;

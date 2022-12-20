@@ -1,20 +1,20 @@
-use crate::function::FunctionPackage;
 use crate::lang::ty::{PackagePath, Type, TypeName};
 use crate::lang::{CompilationUnit, Located};
 use crate::runtime::{BuildError, Runtime, RuntimeType};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
+use crate::package::Package;
 
 pub struct Linker {
     units: Vec<CompilationUnit>,
-    packages: HashMap<PackagePath, FunctionPackage>,
+    packages: HashMap<PackagePath, Package>,
 }
 
 impl Linker {
     pub fn new(
         units: Vec<CompilationUnit>,
-        packages: HashMap<PackagePath, FunctionPackage>,
+        packages: HashMap<PackagePath, Package>,
     ) -> Self {
         Self { units, packages }
     }

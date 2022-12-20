@@ -1,7 +1,7 @@
 pub mod linker;
 pub mod sources;
 
-use crate::function::{Function, FunctionError, FunctionPackage};
+use crate::core::{Function, FunctionError};
 use crate::lang::expr::Expr;
 use crate::lang::ty::{MemberQualifier, PackagePath, Type, TypeName};
 use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source};
@@ -20,6 +20,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::ready;
 use ariadne::Cache;
+use crate::package::Package;
 
 #[derive(Debug)]
 pub enum BuildError {
@@ -36,15 +37,26 @@ impl From<ParserError> for BuildError {
 #[derive(Default)]
 pub struct Builder {
     units: Vec<CompilationUnit>,
-    packages: HashMap<PackagePath, FunctionPackage>,
+    packages: HashMap<PackagePath, Package>,
 }
 
 impl Builder {
     pub fn new() -> Self {
-        Self {
+        let mut builder = Self {
             units: Default::default(),
             packages: Default::default(),
-        }
+        };
+        builder.add_package(
+            crate::core::sigstore::package(),
+        );
+        builder.add_package(
+            crate::core::x509::package(),
+        );
+        builder.add_package(
+            crate::core::base64::package(),
+        );
+
+        builder
     }
 
     pub fn build<'a, Iter, S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
@@ -78,8 +90,8 @@ impl Builder {
         self.units.push(unit)
     }
 
-    pub fn add_function_package(&mut self, path: PackagePath, package: FunctionPackage) {
-        self.packages.insert(path, package);
+    pub fn add_package(&mut self, package: Package) {
+        self.packages.insert(package.path(), package);
     }
 
     pub async fn link(self) -> Result<Arc<Runtime>, Vec<BuildError>> {
@@ -464,7 +476,7 @@ impl Located<RuntimeType> {
                                 println!("function {:?} succeed", name);
                                 Ok(EvaluationResult::new().set_value(transform))
                             } else {
-                                println!("function {:?} fail", name);
+                                println!("core {:?} fail", name);
                                 Ok(EvaluationResult::new())
                             }
                         });
@@ -760,18 +772,7 @@ mod test {
 
         */
         let mut builder = Builder::new();
-        builder.add_function_package(
-            PackagePath::from_parts(vec!["sigstore"]),
-            crate::function::sigstore::package(),
-        );
-        builder.add_function_package(
-            PackagePath::from_parts(vec!["x509"]),
-            crate::function::x509::package(),
-        );
-        builder.add_function_package(
-            PackagePath::from_parts(vec!["base64"]),
-            crate::function::base64::package(),
-        );
+
         let result = builder.build(src.iter());
         println!("{:?}", result);
         let runtime = builder.link().await.unwrap();

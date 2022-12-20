@@ -1,4 +1,4 @@
-use crate::function::{Function, FunctionError, FunctionPackage};
+use crate::core::{Function, FunctionError};
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::borrow::Borrow;
@@ -9,10 +9,16 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
+use crate::lang::ty::PackagePath;
+use crate::package::Package;
 
-pub fn package() -> FunctionPackage {
-    let mut pkg = FunctionPackage::new();
-    pkg.register("Base64".into(), Base64);
+pub fn package() -> Package {
+    let mut pkg = Package::new(
+        PackagePath::from_parts( vec![
+            "base64",
+        ])
+    );
+    pkg.register_function("Base64".into(), Base64);
     pkg
 }
 
