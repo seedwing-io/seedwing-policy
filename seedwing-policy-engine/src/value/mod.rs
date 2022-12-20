@@ -7,10 +7,44 @@ use async_mutex::Mutex;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::future::{Future, ready};
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
 mod json;
+
+struct Printer {
+    indent: u8,
+    content: String,
+}
+
+impl Printer {
+    fn new() -> Self {
+        Self {
+            indent: 0,
+            content: String::new(),
+        }
+    }
+
+    fn write(&mut self, value: &str) {
+        self.content.push_str(value);
+    }
+
+    fn write_with_indent(&mut self, value: &str) {
+        self.content.push('\n');
+        self.content.push_str(self.indent().as_str());
+        self.content.push_str(value);
+    }
+
+    fn indent(&self) -> String {
+        let mut spacing = String::new();
+        for _ in 0..(self.indent * 2) {
+            spacing.push(' ');
+        }
+        spacing
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Noted {
@@ -78,6 +112,24 @@ impl PartialOrd for Value {
     }
 }
 
+impl From<&str> for Value {
+    fn from(inner: &str) -> Self {
+        InnerValue::String( inner.to_string() ).into()
+    }
+}
+
+impl From<u8> for Value {
+    fn from(inner: u8) -> Self {
+        InnerValue::Integer(inner as _).into()
+    }
+}
+
+impl From<u32> for Value {
+    fn from(inner: u32) -> Self {
+        InnerValue::Integer(inner as _).into()
+    }
+}
+
 impl From<i64> for Value {
     fn from(inner: i64) -> Self {
         InnerValue::Integer(inner).into()
@@ -108,6 +160,12 @@ impl From<Vec<u8>> for Value {
     }
 }
 
+impl From<&[u8]> for Value {
+    fn from(inner: &[u8]) -> Self {
+        inner.to_vec().into()
+    }
+}
+
 impl From<Vec<Value>> for Value {
     fn from(inner: Vec<Value>) -> Self {
         InnerValue::List(
@@ -116,11 +174,15 @@ impl From<Vec<Value>> for Value {
                 .map(|e| Arc::new(Mutex::new(e.clone())))
                 .collect(),
         )
-        .into()
+            .into()
     }
 }
 
-impl Value {}
+impl From<Object> for Value {
+    fn from(inner: Object) -> Self {
+        InnerValue::Object(inner).into()
+    }
+}
 
 impl From<InnerValue> for Value {
     fn from(inner: InnerValue) -> Self {
@@ -143,6 +205,41 @@ pub enum InnerValue {
     Object(Object),
     List(Vec<Arc<Mutex<Value>>>),
     Octets(Vec<u8>),
+}
+
+impl InnerValue {
+    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output=()>+ 'p>> {
+        match self {
+            InnerValue::Null => Box::pin(ready(printer.write("<null>"))),
+            InnerValue::String(inner) => Box::pin(ready(printer.write(format!("\"{}\"", inner).as_str()))),
+            InnerValue::Integer(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
+            InnerValue::Decimal(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
+            InnerValue::Boolean(inner) => Box::pin(ready(printer.write(format!("{}", inner).as_str()))),
+            InnerValue::Object(inner) => Box::pin(async move { inner.display(printer).await } ),
+            InnerValue::List(inner) => {
+                Box::pin(
+                    async move {
+                        printer.write("[ ");
+                        for item in inner {
+                            item.lock().await.inner.display(printer).await;
+                            printer.write( ", ");
+                        }
+                        printer.write(" ]");
+                    }
+                )
+            }
+            InnerValue::Octets(inner) => {
+                Box::pin(
+                    async move {
+                        // todo write in columns of bytes like a byte inspector
+                        for byte in inner {
+                            printer.write(format!("{:0x}", byte).as_str())
+                        }
+                    }
+                )
+            }
+        }
+    }
 }
 
 impl Value {
@@ -229,6 +326,24 @@ impl Value {
             None
         }
     }
+
+    pub fn is_octets(&self) -> bool {
+        matches!(self.inner, InnerValue::Octets(_))
+    }
+
+    pub fn try_get_octets(&self) -> Option<&Vec<u8>> {
+        if let InnerValue::Octets(inner) = &self.inner {
+            Some(inner)
+        } else {
+            None
+        }
+    }
+
+    pub async fn display(&self) -> String {
+        let mut printer = Printer::new();
+        self.inner.display(&mut printer).await;
+        printer.content
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -237,7 +352,30 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn new() -> Self {
+        Self {
+            fields: Default::default()
+        }
+    }
+
+    async fn display(&self, printer: &mut Printer) {
+        printer.write("{");
+        printer.indent += 1;
+        for (name, value) in &self.fields {
+            printer.write_with_indent(name.as_str());
+            printer.write( ": ");
+            value.lock().await.inner.display(printer).await;
+            printer.write("," );
+        }
+        printer.indent -= 1;
+        printer.write_with_indent("}");
+    }
+
     pub fn get(&self, name: String) -> Option<Arc<Mutex<Value>>> {
         self.fields.get(&name).cloned()
+    }
+
+    pub fn set(&mut self, name: String, value: Value) {
+        self.fields.insert(name, Arc::new(Mutex::new(value)));
     }
 }

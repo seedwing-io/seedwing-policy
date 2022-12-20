@@ -14,6 +14,7 @@ async-mutex = "1.4.0"
 
 # functions
 sigstore = "0.6.0"
+x509-parser = "0.14.0"
 base64 = "0.20.0"
 
 [dev-dependencies]

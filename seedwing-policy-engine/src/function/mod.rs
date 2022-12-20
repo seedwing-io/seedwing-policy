@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 pub mod base64;
 pub mod sigstore;
+pub mod x509;
 
 #[derive(Debug)]
 pub enum FunctionError {
