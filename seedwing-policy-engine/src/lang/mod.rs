@@ -114,26 +114,6 @@ impl<T: PartialEq> PartialEq for Located<T> {
     }
 }
 
-/*
-impl<T: Eq> Eq for Located<T> {
-
-}
-
- */
-
-/*
-impl<T: PartialEq> PartialEq<Self> for Located<T> {
-    fn eq(&self, other: &Self) -> bool {
-        ////self.inner.eq( &other.inner )
-        PartialEq::eq( &self.inner, &other.inner )
-    }
-}
-
-impl<T: Eq + PartialEq<T>> Eq for Located<T> {
-
-}
- */
-
 impl<T: Hash> Hash for Located<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.inner.hash(state)
