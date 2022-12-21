@@ -54,11 +54,11 @@ impl Builder {
     }
 
     pub fn build<'a, Iter, S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-    where
-        Self: Sized,
-        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
-        SrcIter: Iterator<Item = (Source, S)>,
+        where
+            Self: Sized,
+            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+            SrcIter: Iterator<Item=(Source, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -184,7 +184,7 @@ impl TypeHandle {
     async fn evaluate(
         &self,
         value: Arc<Mutex<RuntimeValue>>,
-        bindings: &Context,
+        bindings: &Bindings,
     ) -> Result<EvaluationResult, RuntimeError> {
         if let Some(ty) = &*self.ty.lock().await {
             ty.evaluate(value, bindings).await
@@ -214,7 +214,7 @@ impl Runtime {
         &self,
         path: String,
         value: RuntimeValue,
-        bindings: &Context,
+        bindings: &Bindings,
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Arc::new(Mutex::new(value));
         let path = TypeName::from(path);
@@ -261,7 +261,7 @@ impl Runtime {
     fn convert<'c>(
         self: &'c Arc<Self>,
         ty: &'c Located<Type>,
-    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => Box::pin(async move {
                 Arc::new(
@@ -353,18 +353,13 @@ impl Runtime {
                         .await,
                 )
             }),
-            Type::Functional(fn_name, inner) => Box::pin(async move {
-                let fn_type = self.types.lock().await[fn_name].clone();
+            Type::Refinement(primary, refinement) => Box::pin(async move {
                 Arc::new(
                     TypeHandle::new()
                         .with(Located::new(
-                            RuntimeType::Functional(
-                                fn_type,
-                                if let Some(inner) = inner {
-                                    Some(self.convert(inner).await)
-                                } else {
-                                    None
-                                },
+                            RuntimeType::Refinement(
+                                self.convert(&**primary).await,
+                                self.convert(&**refinement).await,
                             ),
                             ty.location(),
                         ))
@@ -412,7 +407,7 @@ pub enum RuntimeType {
     Expr(Arc<Located<Expr>>),
     Join(Arc<TypeHandle>, Arc<TypeHandle>),
     Meet(Arc<TypeHandle>, Arc<TypeHandle>),
-    Functional(Arc<TypeHandle>, Option<Arc<TypeHandle>>),
+    Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
     List(Arc<TypeHandle>),
     MemberQualifier(Located<MemberQualifier>, Arc<TypeHandle>),
     Nothing,
@@ -428,7 +423,7 @@ impl Debug for RuntimeType {
             RuntimeType::Expr(inner) => write!(f, "$({:?})", inner),
             RuntimeType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
             RuntimeType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
-            RuntimeType::Functional(fn_ty, ty) => write!(f, "{:?}({:?})", fn_ty, ty),
+            RuntimeType::Refinement(primary, refinement) => write!(f, "{:?}({:?})", primary, refinement),
             RuntimeType::List(inner) => write!(f, "[{:?}]", inner),
             RuntimeType::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             RuntimeType::Argument(name) => write!(f, "{:?}", name),
@@ -438,11 +433,11 @@ impl Debug for RuntimeType {
 }
 
 #[derive(Default)]
-pub struct Context {
+pub struct Bindings {
     bindings: HashMap<String, Arc<Mutex<RuntimeType>>>,
 }
 
-impl Context {
+impl Bindings {
     pub fn new() -> Self {
         Self {
             bindings: Default::default(),
@@ -454,8 +449,8 @@ impl Located<RuntimeType> {
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<Mutex<RuntimeValue>>,
-        bindings: &'v Context,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+        bindings: &'v Bindings,
+    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
             RuntimeType::Anything => {
                 return Box::pin(ready(Ok(EvaluationResult::new().set_value(value))));
@@ -635,19 +630,15 @@ impl Located<RuntimeType> {
                     Ok(EvaluationResult::new())
                 });
             }
-            RuntimeType::Functional(fn_ty, ty) => {
+            RuntimeType::Refinement(primary, refinement) => {
                 return Box::pin(async move {
-                    let mut result = fn_ty.evaluate(value.clone(), bindings).await?;
-                    if let Some(fn_value) = result.value() {
-                        if let Some(ty) = ty {
-                            let result = ty.evaluate(fn_value.clone(), bindings).await?;
-                            if result.value().is_some() {
-                                Ok(EvaluationResult::new().set_value(value.clone()))
-                            } else {
-                                Ok(EvaluationResult::new())
-                            }
-                        } else {
+                    let mut result = primary.evaluate(value.clone(), bindings).await?;
+                    if let Some(primary_value) = result.value() {
+                        let result = refinement.evaluate(primary_value.clone(), bindings).await?;
+                        if result.value().is_some() {
                             Ok(EvaluationResult::new().set_value(value.clone()))
+                        } else {
+                            Ok(EvaluationResult::new())
                         }
                     } else {
                         Ok(EvaluationResult::new())
@@ -782,6 +773,7 @@ mod test {
         let src = Ephemeral::new(
             PackagePath::from_parts(vec!["foo", "bar"]),
             r#"
+            # is this okay?
             type signed-thing = {
                 digest: sigstore::SHA256(
                     n<1>::{
@@ -794,6 +786,7 @@ mod test {
                                             version: 2,
                                             extensions: n<1>::{
                                                 subjectAlternativeName: n<1>::{
+                                                    #rfc822: "bob@mcwhirter.org",
                                                     rfc822: "bob@mcwhirter.org",
                                                 }
                                             }
@@ -806,7 +799,7 @@ mod test {
                 )
             }
         "#
-            .into(),
+                .into(),
         );
 
         /*
@@ -854,7 +847,7 @@ mod test {
         type folks = bob || jim
 
         "#
-            .into(),
+                .into(),
         );
 
         let mut builder = Builder::new();
