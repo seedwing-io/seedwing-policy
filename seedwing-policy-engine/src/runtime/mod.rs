@@ -54,11 +54,11 @@ impl Builder {
     }
 
     pub fn build<'a, Iter, S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
-            SrcIter: Iterator<Item=(Source, S)>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+        SrcIter: Iterator<Item = (Source, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -261,7 +261,7 @@ impl Runtime {
     fn convert<'c>(
         self: &'c Arc<Self>,
         ty: &'c Located<Type>,
-    ) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => Box::pin(async move {
                 Arc::new(
@@ -423,7 +423,9 @@ impl Debug for RuntimeType {
             RuntimeType::Expr(inner) => write!(f, "$({:?})", inner),
             RuntimeType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
             RuntimeType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
-            RuntimeType::Refinement(primary, refinement) => write!(f, "{:?}({:?})", primary, refinement),
+            RuntimeType::Refinement(primary, refinement) => {
+                write!(f, "{:?}({:?})", primary, refinement)
+            }
             RuntimeType::List(inner) => write!(f, "[{:?}]", inner),
             RuntimeType::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             RuntimeType::Argument(name) => write!(f, "{:?}", name),
@@ -450,7 +452,7 @@ impl Located<RuntimeType> {
         self: &'v Arc<Self>,
         value: Arc<Mutex<RuntimeValue>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
             RuntimeType::Anything => {
                 return Box::pin(ready(Ok(EvaluationResult::new().set_value(value))));
@@ -799,7 +801,7 @@ mod test {
                 )
             }
         "#
-                .into(),
+            .into(),
         );
 
         /*
@@ -847,7 +849,7 @@ mod test {
         type folks = bob || jim
 
         "#
-                .into(),
+            .into(),
         );
 
         let mut builder = Builder::new();

@@ -225,35 +225,28 @@ impl PolicyParser {
         source: Src,
         stream: S,
     ) -> Result<CompilationUnit, Vec<ParserError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            Src: Into<Source> + Clone,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        Src: Into<Source> + Clone,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let tokens = lexer().parse(stream)?;
         //compilation_unit(source).parse(stream)
-        compilation_unit(source).parse(
-            Stream::from_iter(tokens.len()..tokens.len()+1, tokens.iter().cloned())
-        )
+        compilation_unit(source).parse(Stream::from_iter(
+            tokens.len()..tokens.len() + 1,
+            tokens.iter().cloned(),
+        ))
     }
 }
 
-pub fn lexer() -> impl Parser<ParserInput, Vec<(ParserInput, Span)>, Error=ParserError> + Clone {
-    let comment =
-        just('#')
-            .then(
-                none_of('#')
-            )
-            .then(
-                take_until(just('\n'))
-            );
+pub fn lexer() -> impl Parser<ParserInput, Vec<(ParserInput, Span)>, Error = ParserError> + Clone {
+    let comment = just('#').then(none_of('#')).then(take_until(just('\n')));
 
     any()
-        .padded_by( comment.repeated())
-        .map_with_span(|l, span| {
-            (l, span)
-        }).repeated()
+        .padded_by(comment.repeated())
+        .map_with_span(|l, span| (l, span))
+        .repeated()
 }
 
 /*
