@@ -4,7 +4,7 @@ use actix_web::web::{BytesMut, Payload};
 use actix_web::{post, web, Handler, HttpMessage, HttpRequest, HttpResponse, Responder};
 use async_mutex::Mutex;
 use futures_util::stream::StreamExt;
-use seedwing_policy_engine::runtime::{EvaluationResult, Runtime, RuntimeError};
+use seedwing_policy_engine::runtime::{EvaluationResult, Runtime, RuntimeError, Bindings};
 use seedwing_policy_engine::value;
 use seedwing_policy_engine::value::Value;
 use serde_json::json;
@@ -34,8 +34,9 @@ pub async fn evaluate(
         let mut value = Value::from(result);
         let path = req.path().strip_prefix("/").unwrap().replace("/", "::");
 
+        let bindings = Bindings::new();
         println!("{} {:?}", path, value);
-        match runtime.evaluate(path, value).await {
+        match runtime.evaluate(path, value, &bindings).await {
             Ok(result) => {
                 if result.matches() {
                     HttpResponse::Ok().finish()
