@@ -81,7 +81,6 @@ impl Linker {
                     .map(|e| package_path.type_name(e.clone()))
                     .collect::<Vec<TypeName>>(),
             );
-
         }
 
         for unit in &self.units {

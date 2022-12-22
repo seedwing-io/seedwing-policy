@@ -25,7 +25,7 @@ impl Function for PEM {
     fn call<'v>(
         &'v self,
         input: &'v Value,
-    ) -> Pin<Box<dyn Future<Output=Result<Value, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             let mut bytes = Vec::new();
 
@@ -39,14 +39,12 @@ impl Function for PEM {
 
             let mut certs: Vec<Value> = Vec::new();
 
-            for pem in Pem::iter_from_buffer(&bytes) {
-                if let Ok(pem) = pem {
-                    if pem.label == "PUBLIC" {
-                        //println!("public key? {:?}", pem);
-                    } else if let Ok(x509) = pem.parse_x509() {
-                        let converted: Value = (&x509).into();
-                        certs.push(converted);
-                    }
+            for pem in Pem::iter_from_buffer(&bytes).flatten() {
+                if pem.label == "PUBLIC" {
+                    //println!("public key? {:?}", pem);
+                } else if let Ok(x509) = pem.parse_x509() {
+                    let converted: Value = (&x509).into();
+                    certs.push(converted);
                 }
             }
 

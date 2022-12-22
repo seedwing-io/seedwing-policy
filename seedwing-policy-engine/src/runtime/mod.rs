@@ -54,11 +54,11 @@ impl Builder {
     }
 
     pub fn build<'a, Iter, S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
-            SrcIter: Iterator<Item=(Source, S)>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+        SrcIter: Iterator<Item = (Source, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -121,7 +121,6 @@ pub type EvaluationResult = Option<Arc<Mutex<Value>>>;
 //pub struct EvaluationResult {
 //value: Option<Arc<Mutex<Value>>>,
 //}
-
 
 /*
 impl EvaluationResult {
@@ -242,10 +241,10 @@ impl Runtime {
     }
 
     async fn declare(self: &mut Arc<Self>, path: TypeName, parameters: Vec<Located<String>>) {
-        self.types
-            .lock()
-            .await
-            .insert(path, Arc::new(TypeHandle::new().with_parameters(parameters)));
+        self.types.lock().await.insert(
+            path,
+            Arc::new(TypeHandle::new().with_parameters(parameters)),
+        );
     }
 
     async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
@@ -276,7 +275,7 @@ impl Runtime {
     fn convert<'c>(
         self: &'c Arc<Self>,
         ty: &'c Located<Type>,
-    ) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => Box::pin(async move {
                 Arc::new(
@@ -285,41 +284,34 @@ impl Runtime {
                         .await,
                 )
             }),
-            Type::Ref(inner, arguments) => {
-                Box::pin(
-                    async move {
-                        let primary_type = self.types.lock().await[&(inner.clone().into_inner())].clone();
+            Type::Ref(inner, arguments) => Box::pin(async move {
+                let primary_type = self.types.lock().await[&(inner.clone().into_inner())].clone();
 
-                        if arguments.is_empty() {
-                            primary_type
-                        } else {
-                            let parameter_names = primary_type.parameters();
+                if arguments.is_empty() {
+                    primary_type
+                } else {
+                    let parameter_names = primary_type.parameters();
 
-                            if parameter_names.len() != arguments.len() {
-                                todo!("argument mismatch")
-                            }
-
-                            let mut bindings = Bindings::new();
-
-                            for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
-                                bindings.bind(
-                                    name.clone().into_inner(),
-                                    self.convert(arg).await,
-                                )
-                            }
-
-                            Arc::new(
-                                TypeHandle::new()
-                                    .with(Located::new(RuntimeType::Bound(
-                                        primary_type,
-                                        bindings,
-                                    ), ty.location()))
-                                    .await
-                            )
-                        }
+                    if parameter_names.len() != arguments.len() {
+                        todo!("argument mismatch")
                     }
-                )
-            }
+
+                    let mut bindings = Bindings::new();
+
+                    for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
+                        bindings.bind(name.clone().into_inner(), self.convert(arg).await)
+                    }
+
+                    Arc::new(
+                        TypeHandle::new()
+                            .with(Located::new(
+                                RuntimeType::Bound(primary_type, bindings),
+                                ty.location(),
+                            ))
+                            .await,
+                    )
+                }
+            }),
             Type::Parameter(name) => Box::pin(async move {
                 Arc::new(
                     TypeHandle::new()
@@ -506,19 +498,12 @@ impl Located<RuntimeType> {
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
-            RuntimeType::Anything => {
-                Box::pin(ready(Ok(Some(
-                    value.clone()
-                ))))
-            }
+            RuntimeType::Anything => Box::pin(ready(Ok(Some(value)))),
             RuntimeType::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(&name.clone().into_inner()) {
-                    let result = bound.evaluate(
-                        value.clone(),
-                        bindings,
-                    ).await?;
+                    let result = bound.evaluate(value.clone(), bindings).await?;
                     let mut locked_value = value.lock().await;
                     if result.is_some() {
                         locked_value.note(self.clone(), true);
@@ -534,251 +519,226 @@ impl Located<RuntimeType> {
                 }
             }),
             RuntimeType::Primordial(inner) => match inner {
-                PrimordialType::Integer => {
-                    Box::pin(async move {
-                        let mut locked_value = value.lock().await;
-                        if locked_value.is_integer() {
-                            locked_value.note(self.clone(), true);
-                            Ok(Some(value.clone()))
-                        } else {
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    })
-                }
-                PrimordialType::Decimal => {
-                    Box::pin(async move {
-                        let mut locked_value = value.lock().await;
-                        if locked_value.is_decimal() {
-                            locked_value.note(self.clone(), true);
-                            Ok(Some(value.clone()))
-                        } else {
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    })
-                }
-                PrimordialType::Boolean => {
-                    Box::pin(async move {
-                        let mut locked_value = value.lock().await;
+                PrimordialType::Integer => Box::pin(async move {
+                    let mut locked_value = value.lock().await;
+                    if locked_value.is_integer() {
+                        locked_value.note(self.clone(), true);
+                        Ok(Some(value.clone()))
+                    } else {
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                }),
+                PrimordialType::Decimal => Box::pin(async move {
+                    let mut locked_value = value.lock().await;
+                    if locked_value.is_decimal() {
+                        locked_value.note(self.clone(), true);
+                        Ok(Some(value.clone()))
+                    } else {
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                }),
+                PrimordialType::Boolean => Box::pin(async move {
+                    let mut locked_value = value.lock().await;
 
-                        if locked_value.is_boolean() {
-                            locked_value.note(self.clone(), true);
-                            Ok(Some(value.clone()))
-                        } else {
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    })
-                }
-                PrimordialType::String => {
-                    Box::pin(async move {
-                        let mut locked_value = value.lock().await;
-                        if locked_value.is_string() {
-                            locked_value.note(self.clone(), true);
-                            Ok(Some(value.clone()))
-                        } else {
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    })
-                }
-                PrimordialType::Function(name, func) => {
-                    Box::pin(async move {
-                        let mut locked_value = value.lock().await;
-                        let mut result = func.call(&*locked_value).await;
-                        if let Ok(transform) = result {
-                            let transform = Arc::new(Mutex::new(transform));
-                            locked_value.transform(name.clone(), transform.clone());
-                            Ok(Some(transform))
-                        } else {
-                            Ok(None)
-                        }
-                    })
-                }
+                    if locked_value.is_boolean() {
+                        locked_value.note(self.clone(), true);
+                        Ok(Some(value.clone()))
+                    } else {
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                }),
+                PrimordialType::String => Box::pin(async move {
+                    let mut locked_value = value.lock().await;
+                    if locked_value.is_string() {
+                        locked_value.note(self.clone(), true);
+                        Ok(Some(value.clone()))
+                    } else {
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                }),
+                PrimordialType::Function(name, func) => Box::pin(async move {
+                    let mut locked_value = value.lock().await;
+                    let mut result = func.call(&*locked_value).await;
+                    if let Ok(transform) = result {
+                        let transform = Arc::new(Mutex::new(transform));
+                        locked_value.transform(name.clone(), transform.clone());
+                        Ok(Some(transform))
+                    } else {
+                        Ok(None)
+                    }
+                }),
             },
-            RuntimeType::Const(inner) => {
-                Box::pin(async move {
-                    let mut locked_value = value.lock().await;
-                    if (**inner).eq(&*locked_value) {
-                        locked_value.note(self.clone(), true);
-                        Ok(Some(value.clone()))
-                    } else {
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                })
-            }
-            RuntimeType::Object(inner) => {
-                Box::pin(async move {
-                    let mut locked_value = value.lock().await;
-                    if locked_value.is_object() {
-                        let mut obj = locked_value.try_get_object();
-                        let mut mismatch = vec![];
-                        if let Some(obj) = obj {
-                            for field in &inner.fields {
-                                if let Some(field_value) = obj.get(field.name.clone().into_inner())
-                                {
-                                    let result = field.ty.evaluate(field_value, bindings).await?;
-                                    if result.is_none() {
-                                        locked_value.note(self.clone(), false);
-                                        return Ok(None);
-                                    }
-                                } else {
-                                    mismatch.push(field);
-                                    break;
-                                }
-                            }
-                            if !mismatch.is_empty() {
-                                for e in mismatch {
-                                    locked_value.note(e.clone(), false);
-                                }
-                                locked_value.note(self.clone(), false);
-                                Ok(None)
-                            } else {
-                                locked_value.note(self.clone(), true);
-                                Ok(Some(value.clone()))
-                            }
-                        } else {
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    } else {
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                })
-            }
-            RuntimeType::Expr(expr) => {
-                Box::pin(async move {
-                    let result = expr.evaluate(value.clone()).await?;
-                    let mut locked_value = value.lock().await;
-                    let locked_result = result.lock().await;
-                    if let Some(true) = locked_result.try_get_boolean() {
-                        locked_value.note(self.clone(), true);
-                        Ok(Some(value.clone()))
-                    } else {
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                })
-            }
-            RuntimeType::Join(lhs, rhs) => {
-                Box::pin(async move {
-                    let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
-                    let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
-
-                    let mut locked_value = value.lock().await;
-                    if lhs_result.is_some() {
-                        locked_value.note(lhs.clone(), true);
-                    }
-
-                    if rhs_result.is_some() {
-                        locked_value.note(rhs.clone(), true);
-                    }
-
-                    if rhs_result.is_some() || lhs_result.is_some() {
-                        return Ok(Some(value.clone()))
-                    }
-
+            RuntimeType::Const(inner) => Box::pin(async move {
+                let mut locked_value = value.lock().await;
+                if (**inner).eq(&*locked_value) {
+                    locked_value.note(self.clone(), true);
+                    Ok(Some(value.clone()))
+                } else {
+                    locked_value.note(self.clone(), false);
                     Ok(None)
-                })
-            }
-            RuntimeType::Meet(lhs, rhs) => {
-                Box::pin(async move {
-                    let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
-                    let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
-
-                    let mut locked_value = value.lock().await;
-                    if lhs_result.is_some() {
-                        locked_value.note(lhs.clone(), true);
-                    }
-
-                    if rhs_result.is_some() {
-                        locked_value.note(rhs.clone(), true);
-                    }
-
-                    if rhs_result.is_some() && lhs_result.is_some() {
-                        return Ok(Some(value.clone()))
-                    }
-
-                    Ok(None)
-                })
-            }
-            RuntimeType::Refinement(primary, refinement) => {
-                Box::pin(async move {
-                    let mut result = primary.evaluate(value.clone(), bindings).await?;
-                    if let Some(primary_value) = result {
-                        let result = refinement.evaluate(primary_value.clone(), bindings).await?;
-                        if result.is_some() {
-                            Ok(Some(value.clone()))
-                        } else {
-                            Ok(None)
-                        }
-                    } else {
-                        Ok(None)
-                    }
-                })
-            }
-            RuntimeType::List(_) => todo!(),
-            RuntimeType::MemberQualifier(qualifier, ty) => {
-                Box::pin(async move {
-                    let mut locked_value = value.lock().await;
-                    match &**qualifier {
-                        MemberQualifier::All => {
-                            if let Some(list) = locked_value.try_get_list() {
-                                for e in list {
-                                    let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if result.is_none() {
-                                        locked_value.note(self.clone(), false);
-                                        return Ok(None);
-                                    }
-                                }
-                                locked_value.note(self.clone(), true);
-                                return Ok(Some(value.clone()));
-                            }
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                        MemberQualifier::Any => {
-                            if let Some(list) = locked_value.try_get_list() {
-                                for e in list {
-                                    let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if result.is_some() {
-                                        locked_value.note(self.clone(), true);
-                                        return Ok(Some(value.clone()))
-                                    }
-                                }
-                                locked_value.note(self.clone(), false);
-                                return Ok(None)
-                            }
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                        MemberQualifier::N(expected_n) => {
-                            let expected_n = expected_n.clone().into_inner();
-                            let mut n = 0;
-                            if let Some(list) = locked_value.try_get_list() {
-                                for e in list {
-                                    let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if result.is_some() {
-                                        n += 1;
-                                        if n >= expected_n {
-                                            locked_value.note(self.clone(), true);
-                                            return Ok( Some(value.clone()));
-                                        }
-                                    }
-                                }
-                            }
-                            locked_value.note(self.clone(), false);
-                            Ok(None)
-                        }
-                    }
-                })
-            }
-            RuntimeType::Bound(primary, bindings) => Box::pin(async move {
-                primary.evaluate(value, &bindings).await
+                }
             }),
+            RuntimeType::Object(inner) => Box::pin(async move {
+                let mut locked_value = value.lock().await;
+                if locked_value.is_object() {
+                    let mut obj = locked_value.try_get_object();
+                    let mut mismatch = vec![];
+                    if let Some(obj) = obj {
+                        for field in &inner.fields {
+                            if let Some(field_value) = obj.get(field.name.clone().into_inner()) {
+                                let result = field.ty.evaluate(field_value, bindings).await?;
+                                if result.is_none() {
+                                    locked_value.note(self.clone(), false);
+                                    return Ok(None);
+                                }
+                            } else {
+                                mismatch.push(field);
+                                break;
+                            }
+                        }
+                        if !mismatch.is_empty() {
+                            for e in mismatch {
+                                locked_value.note(e.clone(), false);
+                            }
+                            locked_value.note(self.clone(), false);
+                            Ok(None)
+                        } else {
+                            locked_value.note(self.clone(), true);
+                            Ok(Some(value.clone()))
+                        }
+                    } else {
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                } else {
+                    locked_value.note(self.clone(), false);
+                    Ok(None)
+                }
+            }),
+            RuntimeType::Expr(expr) => Box::pin(async move {
+                let result = expr.evaluate(value.clone()).await?;
+                let mut locked_value = value.lock().await;
+                let locked_result = result.lock().await;
+                if let Some(true) = locked_result.try_get_boolean() {
+                    locked_value.note(self.clone(), true);
+                    Ok(Some(value.clone()))
+                } else {
+                    locked_value.note(self.clone(), false);
+                    Ok(None)
+                }
+            }),
+            RuntimeType::Join(lhs, rhs) => Box::pin(async move {
+                let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
+                let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
+
+                let mut locked_value = value.lock().await;
+                if lhs_result.is_some() {
+                    locked_value.note(lhs.clone(), true);
+                }
+
+                if rhs_result.is_some() {
+                    locked_value.note(rhs.clone(), true);
+                }
+
+                if rhs_result.is_some() || lhs_result.is_some() {
+                    return Ok(Some(value.clone()));
+                }
+
+                Ok(None)
+            }),
+            RuntimeType::Meet(lhs, rhs) => Box::pin(async move {
+                let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
+                let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
+
+                let mut locked_value = value.lock().await;
+                if lhs_result.is_some() {
+                    locked_value.note(lhs.clone(), true);
+                }
+
+                if rhs_result.is_some() {
+                    locked_value.note(rhs.clone(), true);
+                }
+
+                if rhs_result.is_some() && lhs_result.is_some() {
+                    return Ok(Some(value.clone()));
+                }
+
+                Ok(None)
+            }),
+            RuntimeType::Refinement(primary, refinement) => Box::pin(async move {
+                let mut result = primary.evaluate(value.clone(), bindings).await?;
+                if let Some(primary_value) = result {
+                    let result = refinement.evaluate(primary_value.clone(), bindings).await?;
+                    if result.is_some() {
+                        Ok(Some(value.clone()))
+                    } else {
+                        Ok(None)
+                    }
+                } else {
+                    Ok(None)
+                }
+            }),
+            RuntimeType::List(_) => todo!(),
+            RuntimeType::MemberQualifier(qualifier, ty) => Box::pin(async move {
+                let mut locked_value = value.lock().await;
+                match &**qualifier {
+                    MemberQualifier::All => {
+                        if let Some(list) = locked_value.try_get_list() {
+                            for e in list {
+                                let result = ty.evaluate(e.clone(), bindings).await?;
+                                if result.is_none() {
+                                    locked_value.note(self.clone(), false);
+                                    return Ok(None);
+                                }
+                            }
+                            locked_value.note(self.clone(), true);
+                            return Ok(Some(value.clone()));
+                        }
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                    MemberQualifier::Any => {
+                        if let Some(list) = locked_value.try_get_list() {
+                            for e in list {
+                                let result = ty.evaluate(e.clone(), bindings).await?;
+                                if result.is_some() {
+                                    locked_value.note(self.clone(), true);
+                                    return Ok(Some(value.clone()));
+                                }
+                            }
+                            locked_value.note(self.clone(), false);
+                            return Ok(None);
+                        }
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                    MemberQualifier::N(expected_n) => {
+                        let expected_n = expected_n.clone().into_inner();
+                        let mut n = 0;
+                        if let Some(list) = locked_value.try_get_list() {
+                            for e in list {
+                                let result = ty.evaluate(e.clone(), bindings).await?;
+                                if result.is_some() {
+                                    n += 1;
+                                    if n >= expected_n {
+                                        locked_value.note(self.clone(), true);
+                                        return Ok(Some(value.clone()));
+                                    }
+                                }
+                            }
+                        }
+                        locked_value.note(self.clone(), false);
+                        Ok(None)
+                    }
+                }
+            }),
+            RuntimeType::Bound(primary, bindings) => {
+                Box::pin(async move { primary.evaluate(value, bindings).await })
+            }
             RuntimeType::Nothing => Box::pin(ready(Ok(None))),
         }
     }
@@ -872,7 +832,7 @@ mod test {
                 )
             }
         "#
-                .into(),
+            .into(),
         );
 
         /*
@@ -917,7 +877,7 @@ mod test {
         type folks = jim || bob
 
         "#
-                .into(),
+            .into(),
         );
 
         let mut builder = Builder::new();
@@ -935,9 +895,7 @@ mod test {
 
         let mut good_bob = (&good_bob).into();
 
-        let result = runtime
-            .evaluate("foo::bar::folks".into(), good_bob)
-            .await;
+        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
         println!("{:?}", result);
 
         println!("{:?}", result.unwrap());
@@ -958,7 +916,7 @@ mod test {
         type folks = jim || bob
 
         "#
-                .into(),
+            .into(),
         );
 
         let mut builder = Builder::new();
@@ -974,9 +932,7 @@ mod test {
 
         let mut good_bob = good_bob.into();
 
-        let result = runtime
-            .evaluate("foo::bar::folks".into(), good_bob)
-            .await;
+        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
         println!("{:?}", result);
 
         println!("{:?}", result.unwrap());
@@ -1000,7 +956,7 @@ mod test {
         type folks = bob || jim
 
         "#
-                .into(),
+            .into(),
         );
 
         let mut builder = Builder::new();
@@ -1018,9 +974,7 @@ mod test {
 
         let mut good_bob = good_bob.into();
 
-        let result = runtime
-            .evaluate("foo::bar::folks".into(), good_bob)
-            .await;
+        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
         println!("{:?}", result);
 
         println!("{:?}", result.unwrap());

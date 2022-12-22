@@ -1,7 +1,7 @@
-use std::borrow::Borrow;
 use crate::value::{InnerValue, Object, Value};
 use async_mutex::Mutex;
 use serde_json::{Number, Value as JsonValue};
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -20,8 +20,7 @@ impl From<JsonValue> for Value {
     }
 }
 
-
-impl<T:Borrow<JsonValue>> From<T> for InnerValue {
+impl<T: Borrow<JsonValue>> From<T> for InnerValue {
     fn from(value: T) -> Self {
         match value.borrow() {
             JsonValue::Null => InnerValue::Null,

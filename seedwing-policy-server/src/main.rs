@@ -1,17 +1,13 @@
 mod policy;
 
-use actix_web::{web, App, Handler, HttpMessage, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use env_logger::Builder;
 use log::LevelFilter;
 use std::env;
-use std::future::{poll_fn, Future};
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::{Context, Poll};
 
 use crate::policy::evaluate;
 use seedwing_policy_engine::runtime::sources::Directory;
-use seedwing_policy_engine::runtime::{Builder as PolicyBuilder, Runtime};
+use seedwing_policy_engine::runtime::Builder as PolicyBuilder;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
