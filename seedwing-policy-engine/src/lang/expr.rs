@@ -1,5 +1,5 @@
 use crate::lang::ty::Type;
-use crate::lang::{FieldName, Located, Location, ParserError, ParserInput, Span};
+use crate::lang::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::{RuntimeError, RuntimeType};
 use crate::value::{Value as RuntimeValue, Value};
 use async_mutex::Mutex;
@@ -295,10 +295,10 @@ pub fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clo
 pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     just("true")
         .padded()
-        .map_with_span(|_, span: Span| {
+        .map_with_span(|_, span: SourceSpan| {
             Located::new(Expr::Value(Located::new(true.into(), span.clone())), span)
         })
-        .or(just("false").padded().map_with_span(|_, span: Span| {
+        .or(just("false").padded().map_with_span(|_, span: SourceSpan| {
             Located::new(Expr::Value(Located::new(false.into(), span.clone())), span)
         }))
 }
@@ -334,13 +334,13 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
         .then(just('"').ignored())
         .padded()
-        .map_with_span(|((_, x), _), span: Span| {
+        .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(Expr::Value(Located::new(x.into(), span.clone())), span)
         })
 }
 
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
-    just("self").padded().map_with_span(|v, span: Span| {
+    just("self").padded().map_with_span(|v, span: SourceSpan| {
         Located::new(Expr::SelfLiteral(Location::from(span.clone())), span)
     })
 }

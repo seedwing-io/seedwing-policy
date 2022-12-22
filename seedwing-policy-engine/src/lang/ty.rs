@@ -2,7 +2,7 @@ use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
 use crate::lang::expr::{expr, Expr};
 use crate::lang::{
-    CompilationUnit, Located, Location, ParserError, ParserInput, Source, Span, Use,
+    CompilationUnit, Located, Location, ParserError, ParserInput, SourceLocation, SourceSpan, Use,
 };
 use crate::value::Value;
 use chumsky::prelude::*;
@@ -109,8 +109,8 @@ impl PackagePath {
     }
 }
 
-impl From<Source> for PackagePath {
-    fn from(src: Source) -> Self {
+impl From<SourceLocation> for PackagePath {
+    fn from(src: SourceLocation) -> Self {
         let segments = src
             .name
             .split('/')
@@ -637,7 +637,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error = Pars
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
         .then(just('"').ignored())
         .padded()
-        .map_with_span(|((_, x), _), span: Span| Located::new(x.into(), span))
+        .map_with_span(|((_, x), _), span: SourceSpan| Located::new(x.into(), span))
 }
 
 pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
@@ -796,7 +796,7 @@ pub fn field_definition(
     ty: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Field>, Error = ParserError> + Clone {
     field_name()
-        .then(just(":").padded().ignored())
+        .then(just(":").labelled("colon").padded().ignored())
         .then(ty)
         .map(|((name, _), ty)| {
             let loc = name.span().start()..ty.span().end();
@@ -804,9 +804,12 @@ pub fn field_definition(
         })
 }
 
-pub fn compilation_unit<S: Into<Source> + Clone>(
+pub fn compilation_unit<S>(
     source: S,
-) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone {
+) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone
+where
+    S: Into<SourceLocation> + Clone,
+{
     use_statement()
         .padded()
         .repeated()

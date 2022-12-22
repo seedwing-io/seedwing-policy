@@ -6,19 +6,24 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub struct Linker {
-    units: Vec<CompilationUnit>,
-    packages: HashMap<PackagePath, Package>,
+pub struct Linker<'b> {
+    units: &'b mut Vec<CompilationUnit>,
+    packages: &'b mut HashMap<PackagePath, Package>,
 }
 
-impl Linker {
-    pub fn new(units: Vec<CompilationUnit>, packages: HashMap<PackagePath, Package>) -> Self {
+impl<'b> Linker<'b> {
+    pub fn new(
+        units: &'b mut Vec<CompilationUnit>,
+        packages: &'b mut HashMap<PackagePath, Package>,
+    ) -> Self {
         Self { units, packages }
     }
 
     pub async fn link(mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
-        for mut unit in &mut self.units {
+        let mut errors = Vec::new();
+
+        for mut unit in self.units.iter_mut() {
             let unit_path = PackagePath::from(unit.source());
 
             let mut visible_types = unit
@@ -53,7 +58,11 @@ impl Linker {
 
                 for ty in &referenced_types {
                     if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
-                        todo!("unknown type referenced {:?}", ty)
+                        errors.push(BuildError::TypeNotFound(
+                            unit.source().clone(),
+                            ty.location().span(),
+                            ty.clone().as_type_str(),
+                        ))
                     }
                 }
             }
@@ -71,7 +80,7 @@ impl Linker {
 
         //world.push("int".into());
 
-        for (path, package) in &self.packages {
+        for (path, package) in self.packages.iter() {
             let package_path = path;
 
             world.extend_from_slice(
@@ -83,7 +92,7 @@ impl Linker {
             );
         }
 
-        for unit in &self.units {
+        for unit in self.units.iter() {
             let unit_path = PackagePath::from(unit.source());
 
             let unit_types = unit
@@ -95,14 +104,22 @@ impl Linker {
             world.extend_from_slice(&unit_types);
         }
 
-        for unit in &self.units {
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        for unit in self.units.iter() {
             for defn in unit.types() {
                 // these should be fully-qualified now
                 let referenced = defn.referenced_types();
 
                 for each in referenced {
                     if !world.contains(&each.clone().into_inner()) {
-                        todo!("failed to inter-unit link for {:?}", each)
+                        errors.push(BuildError::TypeNotFound(
+                            unit.source().clone(),
+                            each.location().span(),
+                            each.clone().as_type_str(),
+                        ))
                     }
                 }
             }
@@ -110,7 +127,7 @@ impl Linker {
 
         let mut runtime = Runtime::new();
 
-        for unit in &self.units {
+        for unit in self.units.iter() {
             let unit_path = PackagePath::from(unit.source());
 
             for ty in unit.types() {
@@ -119,7 +136,7 @@ impl Linker {
             }
         }
 
-        for (path, package) in &self.packages {
+        for (path, package) in self.packages.iter() {
             for (fn_name, _) in package.functions() {
                 let path = path.type_name(fn_name);
                 // todo: support parameters on functions.
@@ -127,7 +144,11 @@ impl Linker {
             }
         }
 
-        for unit in &self.units {
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        for unit in self.units.iter() {
             let unit_path = PackagePath::from(unit.source());
 
             for (path, ty) in unit.types().iter().map(|e| {
@@ -140,13 +161,17 @@ impl Linker {
             }
         }
 
-        for (path, package) in &self.packages {
+        for (path, package) in self.packages.iter() {
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
                 runtime.define_function(path, func).await;
             }
         }
 
-        Ok(runtime)
+        if errors.is_empty() {
+            Ok(runtime)
+        } else {
+            Err(errors)
+        }
     }
 }

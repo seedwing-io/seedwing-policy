@@ -4,8 +4,11 @@ pub mod sources;
 use crate::core::{Function, FunctionError};
 use crate::lang::expr::Expr;
 use crate::lang::ty::{MemberQualifier, PackagePath, Type, TypeName};
-use crate::lang::{CompilationUnit, Located, ParserError, ParserInput, PolicyParser, Source};
+use crate::lang::{
+    CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
+};
 use crate::package::Package;
+use crate::runtime::cache::SourceCache;
 use crate::runtime::linker::Linker;
 use crate::value::Value;
 use ariadne::Cache;
@@ -22,15 +25,33 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::ready;
 
+pub mod cache;
+
 #[derive(Clone, Debug)]
 pub enum BuildError {
-    TypeNotFound,
-    Parser(ParserError),
+    TypeNotFound(SourceLocation, SourceSpan, String),
+    Parser(SourceLocation, ParserError),
 }
 
-impl From<ParserError> for BuildError {
-    fn from(inner: ParserError) -> Self {
-        Self::Parser(inner)
+impl BuildError {
+    pub fn source_location(&self) -> SourceLocation {
+        match self {
+            BuildError::TypeNotFound(loc, _, _) => loc.clone(),
+            BuildError::Parser(loc, _) => loc.clone(),
+        }
+    }
+
+    pub fn span(&self) -> SourceSpan {
+        match self {
+            BuildError::TypeNotFound(_, span, _) => span.clone(),
+            BuildError::Parser(_, err) => err.span(),
+        }
+    }
+}
+
+impl From<(SourceLocation, ParserError)> for BuildError {
+    fn from(inner: (SourceLocation, ParserError)) -> Self {
+        Self::Parser(inner.0, inner.1)
     }
 }
 
@@ -38,6 +59,7 @@ impl From<ParserError> for BuildError {
 pub struct Builder {
     units: Vec<CompilationUnit>,
     packages: HashMap<PackagePath, Package>,
+    source_cache: SourceCache,
 }
 
 impl Builder {
@@ -45,6 +67,7 @@ impl Builder {
         let mut builder = Self {
             units: Default::default(),
             packages: Default::default(),
+            source_cache: Default::default(),
         };
         builder.add_package(crate::core::sigstore::package());
         builder.add_package(crate::core::x509::package());
@@ -53,47 +76,33 @@ impl Builder {
         builder
     }
 
-    pub fn build<'a, Iter, S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
+    pub fn source_cache(&self) -> &SourceCache {
+        &self.source_cache
+    }
+
+    pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
     where
         Self: Sized,
-        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
-        SrcIter: Iterator<Item = (Source, S)>,
+        S: Into<String>,
+        SrcIter: Iterator<Item = (SourceLocation, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
-            let unit = PolicyParser::default().parse(source, stream);
+            log::info!("loading policies from {}", source);
+
+            let input = stream.into();
+
+            self.source_cache
+                .add(source.clone(), input.clone().into());
+            let unit = PolicyParser::default().parse(source.clone(), input);
             match unit {
                 Ok(unit) => self.add_compilation_unit(unit),
                 Err(err) => {
                     for e in err {
-                        errors.push(e.into())
+                        errors.push((source.clone(), e).into())
                     }
                 }
             }
-        }
-
-        let mut core_units = Vec::new();
-
-        for pkg in self.packages.values() {
-            for (source, stream) in pkg.source_iter() {
-                log::info!("loading {}", source);
-                let unit = PolicyParser::default().parse(source, stream);
-                match unit {
-                    Ok(unit) => {
-                        core_units.push(unit);
-                    }
-                    Err(err) => {
-                        for e in err {
-                            errors.push(e.into())
-                        }
-                    }
-                }
-            }
-        }
-
-        for unit in core_units {
-            self.add_compilation_unit(unit);
         }
 
         if errors.is_empty() {
@@ -111,8 +120,39 @@ impl Builder {
         self.packages.insert(package.path(), package);
     }
 
-    pub async fn link(self) -> Result<Arc<Runtime>, Vec<BuildError>> {
-        Linker::new(self.units, self.packages).link().await
+    pub async fn link(&mut self) -> Result<Arc<Runtime>, Vec<BuildError>> {
+        let mut core_units = Vec::new();
+
+        let mut errors = Vec::new();
+
+        for pkg in self.packages.values() {
+            for (source, stream) in pkg.source_iter() {
+                log::info!("loading {}", source);
+                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+                match unit {
+                    Ok(unit) => {
+                        core_units.push(unit);
+                    }
+                    Err(err) => {
+                        for e in err {
+                            errors.push((source.clone(), e).into())
+                        }
+                    }
+                }
+            }
+        }
+
+        for unit in core_units {
+            self.add_compilation_unit(unit);
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Linker::new(&mut self.units, &mut self.packages)
+            .link()
+            .await
     }
 }
 

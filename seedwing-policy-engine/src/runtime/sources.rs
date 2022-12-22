@@ -1,5 +1,5 @@
 use crate::lang::ty::PackagePath;
-use crate::lang::Source;
+use crate::lang::SourceLocation;
 use std::fs::File;
 use std::io::Read;
 use std::iter::{once, Once};
@@ -7,7 +7,7 @@ use std::path::{Iter, Path, PathBuf};
 use walkdir::WalkDir;
 
 pub struct Ephemeral {
-    source: Source,
+    source: SourceLocation,
     content: String,
 }
 
@@ -19,7 +19,7 @@ impl Ephemeral {
         }
     }
 
-    pub fn iter(self) -> impl Iterator<Item = (Source, String)> {
+    pub fn iter(self) -> impl Iterator<Item = (SourceLocation, String)> {
         once((self.source.clone(), self.content))
     }
 }
@@ -34,7 +34,7 @@ impl Directory {
         Self { dir }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Source, String)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {
         WalkDir::new(&self.dir)
             .into_iter()
             .filter_map(|entry| entry.ok())

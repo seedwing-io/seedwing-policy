@@ -1,6 +1,6 @@
 use crate::core::Function;
 use crate::lang::ty::PackagePath;
-use crate::lang::Source;
+use crate::lang::SourceLocation;
 use crate::runtime::sources::Ephemeral;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ impl Package {
         self.sources.push(PackageSource { name, content })
     }
 
-    pub fn source_iter(&self) -> impl Iterator<Item = (Source, String)> + '_ {
+    pub fn source_iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {
         self.sources.iter().map(|src| {
             let mut source = self.path.as_package_str();
             source.push_str("::");

@@ -11,17 +11,17 @@ use std::ops::{Deref, DerefMut};
 pub mod expr;
 pub mod ty;
 
-pub type Span = std::ops::Range<usize>;
+pub type SourceSpan = std::ops::Range<usize>;
 
 #[derive(Debug)]
 pub struct CompilationUnit {
-    source: Source,
+    source: SourceLocation,
     uses: Vec<Located<Use>>,
     types: Vec<Located<TypeDefn>>,
 }
 
 impl CompilationUnit {
-    pub fn new(source: Source) -> Self {
+    pub fn new(source: SourceLocation) -> Self {
         Self {
             source,
             uses: Default::default(),
@@ -29,7 +29,7 @@ impl CompilationUnit {
         }
     }
 
-    pub fn source(&self) -> Source {
+    pub fn source(&self) -> SourceLocation {
         self.source.clone()
     }
 
@@ -80,17 +80,17 @@ impl Use {
 
 #[derive(Clone, Debug)]
 pub struct Location {
-    span: Span,
+    span: SourceSpan,
 }
 
 impl Location {
-    pub fn span(&self) -> Span {
+    pub fn span(&self) -> SourceSpan {
         self.span.clone()
     }
 }
 
-impl From<Span> for Location {
-    fn from(span: Span) -> Self {
+impl From<SourceSpan> for Location {
+    fn from(span: SourceSpan) -> Self {
         Self { span }
     }
 }
@@ -141,7 +141,7 @@ impl<T> Located<T> {
         self.location.clone()
     }
 
-    pub fn span(&self) -> Span {
+    pub fn span(&self) -> SourceSpan {
         self.location.span.clone()
     }
 
@@ -187,31 +187,37 @@ impl FieldName {
 }
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Debug, Clone)]
-pub struct Source {
+pub struct SourceLocation {
     name: String,
 }
 
-impl Display for Source {
+impl From<SourceLocation> for String {
+    fn from(loc: SourceLocation) -> Self {
+        loc.name
+    }
+}
+
+impl Display for SourceLocation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
 }
 
-impl From<String> for Source {
+impl From<String> for SourceLocation {
     fn from(name: String) -> Self {
         Self { name }
     }
 }
 
-impl From<&str> for Source {
+impl From<&str> for SourceLocation {
     fn from(name: &str) -> Self {
         Self { name: name.into() }
     }
 }
 
-impl From<PackagePath> for Source {
+impl From<PackagePath> for SourceLocation {
     fn from(package: PackagePath) -> Self {
-        Source {
+        SourceLocation {
             name: package
                 .path()
                 .iter()
@@ -234,7 +240,7 @@ impl PolicyParser {
     where
         Self: Sized,
         Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-        Src: Into<Source> + Clone,
+        Src: Into<SourceLocation> + Clone,
         S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let tokens = lexer().parse(stream)?;
@@ -246,7 +252,8 @@ impl PolicyParser {
     }
 }
 
-pub fn lexer() -> impl Parser<ParserInput, Vec<(ParserInput, Span)>, Error = ParserError> + Clone {
+pub fn lexer(
+) -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error = ParserError> + Clone {
     let comment = just('#').then(none_of('#')).then(take_until(just('\n')));
 
     any()

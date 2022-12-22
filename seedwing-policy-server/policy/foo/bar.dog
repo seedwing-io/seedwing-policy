@@ -1,5 +1,7 @@
 
+
 type baz = {
   foo: int
 }
+
 
