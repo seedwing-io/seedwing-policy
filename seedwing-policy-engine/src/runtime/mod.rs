@@ -115,11 +115,15 @@ impl Builder {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct EvaluationResult {
-    value: Option<Arc<Mutex<Value>>>,
-}
+pub type EvaluationResult = Option<Arc<Mutex<Value>>>;
 
+//#[derive(Default, Debug)]
+//pub struct EvaluationResult {
+//value: Option<Arc<Mutex<Value>>>,
+//}
+
+
+/*
 impl EvaluationResult {
     pub fn new() -> Self {
         Self { value: None }
@@ -138,6 +142,8 @@ impl EvaluationResult {
         self.value.is_some()
     }
 }
+
+ */
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -298,7 +304,7 @@ impl Runtime {
                             for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
                                 bindings.bind(
                                     name.clone().into_inner(),
-                                    self.convert(arg).await
+                                    self.convert(arg).await,
                                 )
                             }
 
@@ -306,7 +312,7 @@ impl Runtime {
                                 TypeHandle::new()
                                     .with(Located::new(RuntimeType::Bound(
                                         primary_type,
-                                        bindings
+                                        bindings,
                                     ), ty.location()))
                                     .await
                             )
@@ -503,26 +509,28 @@ impl Located<RuntimeType> {
     ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
             RuntimeType::Anything => {
-                Box::pin(ready(Ok(EvaluationResult::new().set_value(value))))
+                Box::pin(ready(Ok(Some(
+                    value.clone()
+                ))))
             }
             RuntimeType::Argument(name) => Box::pin(async move {
-                if let Some(bound) = bindings.get( &name.clone().into_inner() ) {
+                if let Some(bound) = bindings.get(&name.clone().into_inner()) {
                     let result = bound.evaluate(
                         value.clone(),
-                        bindings
+                        bindings,
                     ).await?;
                     let mut locked_value = value.lock().await;
-                    if result.matches() {
+                    if result.is_some() {
                         locked_value.note(self.clone(), true);
-                        Ok(EvaluationResult::new().set_value(value.clone()))
+                        Ok(Some(value.clone()))
                     } else {
                         locked_value.note(self.clone(), false);
-                        Ok(EvaluationResult::new())
+                        Ok(None)
                     }
                 } else {
                     let mut locked_value = value.lock().await;
                     locked_value.note(self.clone(), false);
-                    Ok(EvaluationResult::new())
+                    Ok(None)
                 }
             }),
             RuntimeType::Primordial(inner) => match inner {
@@ -531,10 +539,10 @@ impl Located<RuntimeType> {
                         let mut locked_value = value.lock().await;
                         if locked_value.is_integer() {
                             locked_value.note(self.clone(), true);
-                            Ok(EvaluationResult::new().set_value(value.clone()))
+                            Ok(Some(value.clone()))
                         } else {
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     })
                 }
@@ -543,10 +551,10 @@ impl Located<RuntimeType> {
                         let mut locked_value = value.lock().await;
                         if locked_value.is_decimal() {
                             locked_value.note(self.clone(), true);
-                            Ok(EvaluationResult::new().set_value(value.clone()))
+                            Ok(Some(value.clone()))
                         } else {
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     })
                 }
@@ -556,10 +564,10 @@ impl Located<RuntimeType> {
 
                         if locked_value.is_boolean() {
                             locked_value.note(self.clone(), true);
-                            Ok(EvaluationResult::new().set_value(value.clone()))
+                            Ok(Some(value.clone()))
                         } else {
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     })
                 }
@@ -568,10 +576,10 @@ impl Located<RuntimeType> {
                         let mut locked_value = value.lock().await;
                         if locked_value.is_string() {
                             locked_value.note(self.clone(), true);
-                            Ok(EvaluationResult::new().set_value(value.clone()))
+                            Ok(Some(value.clone()))
                         } else {
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     })
                 }
@@ -582,9 +590,9 @@ impl Located<RuntimeType> {
                         if let Ok(transform) = result {
                             let transform = Arc::new(Mutex::new(transform));
                             locked_value.transform(name.clone(), transform.clone());
-                            Ok(EvaluationResult::new().set_value(transform))
+                            Ok(Some(transform))
                         } else {
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     })
                 }
@@ -594,10 +602,10 @@ impl Located<RuntimeType> {
                     let mut locked_value = value.lock().await;
                     if (**inner).eq(&*locked_value) {
                         locked_value.note(self.clone(), true);
-                        Ok(EvaluationResult::new().set_value(value.clone()))
+                        Ok(Some(value.clone()))
                     } else {
                         locked_value.note(self.clone(), false);
-                        Ok(EvaluationResult::new())
+                        Ok(None)
                     }
                 })
             }
@@ -612,9 +620,9 @@ impl Located<RuntimeType> {
                                 if let Some(field_value) = obj.get(field.name.clone().into_inner())
                                 {
                                     let result = field.ty.evaluate(field_value, bindings).await?;
-                                    if result.value().is_none() {
+                                    if result.is_none() {
                                         locked_value.note(self.clone(), false);
-                                        return Ok(EvaluationResult::new());
+                                        return Ok(None);
                                     }
                                 } else {
                                     mismatch.push(field);
@@ -626,18 +634,18 @@ impl Located<RuntimeType> {
                                     locked_value.note(e.clone(), false);
                                 }
                                 locked_value.note(self.clone(), false);
-                                Ok(EvaluationResult::new())
+                                Ok(None)
                             } else {
                                 locked_value.note(self.clone(), true);
-                                Ok(EvaluationResult::new().set_value(value.clone()))
+                                Ok(Some(value.clone()))
                             }
                         } else {
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     } else {
                         locked_value.note(self.clone(), false);
-                        Ok(EvaluationResult::new())
+                        Ok(None)
                     }
                 })
             }
@@ -648,10 +656,10 @@ impl Located<RuntimeType> {
                     let locked_result = result.lock().await;
                     if let Some(true) = locked_result.try_get_boolean() {
                         locked_value.note(self.clone(), true);
-                        Ok(EvaluationResult::new().set_value(value.clone()))
+                        Ok(Some(value.clone()))
                     } else {
                         locked_value.note(self.clone(), false);
-                        Ok(EvaluationResult::new())
+                        Ok(None)
                     }
                 })
             }
@@ -661,19 +669,19 @@ impl Located<RuntimeType> {
                     let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
                     let mut locked_value = value.lock().await;
-                    if lhs_result.value().is_some() {
+                    if lhs_result.is_some() {
                         locked_value.note(lhs.clone(), true);
                     }
 
-                    if rhs_result.value().is_some() {
+                    if rhs_result.is_some() {
                         locked_value.note(rhs.clone(), true);
                     }
 
-                    if rhs_result.value().is_some() || lhs_result.value().is_some() {
-                        return Ok(EvaluationResult::new().set_value(value.clone()));
+                    if rhs_result.is_some() || lhs_result.is_some() {
+                        return Ok(Some(value.clone()))
                     }
 
-                    Ok(EvaluationResult::new())
+                    Ok(None)
                 })
             }
             RuntimeType::Meet(lhs, rhs) => {
@@ -682,33 +690,33 @@ impl Located<RuntimeType> {
                     let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
                     let mut locked_value = value.lock().await;
-                    if lhs_result.value().is_some() {
+                    if lhs_result.is_some() {
                         locked_value.note(lhs.clone(), true);
                     }
 
-                    if rhs_result.value().is_some() {
+                    if rhs_result.is_some() {
                         locked_value.note(rhs.clone(), true);
                     }
 
-                    if rhs_result.value().is_some() && lhs_result.value().is_some() {
-                        return Ok(EvaluationResult::new().set_value(value.clone()));
+                    if rhs_result.is_some() && lhs_result.is_some() {
+                        return Ok(Some(value.clone()))
                     }
 
-                    Ok(EvaluationResult::new())
+                    Ok(None)
                 })
             }
             RuntimeType::Refinement(primary, refinement) => {
                 Box::pin(async move {
                     let mut result = primary.evaluate(value.clone(), bindings).await?;
-                    if let Some(primary_value) = result.value() {
+                    if let Some(primary_value) = result {
                         let result = refinement.evaluate(primary_value.clone(), bindings).await?;
-                        if result.value().is_some() {
-                            Ok(EvaluationResult::new().set_value(value.clone()))
+                        if result.is_some() {
+                            Ok(Some(value.clone()))
                         } else {
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     } else {
-                        Ok(EvaluationResult::new())
+                        Ok(None)
                     }
                 })
             }
@@ -721,31 +729,31 @@ impl Located<RuntimeType> {
                             if let Some(list) = locked_value.try_get_list() {
                                 for e in list {
                                     let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if !result.matches() {
+                                    if result.is_none() {
                                         locked_value.note(self.clone(), false);
-                                        return Ok(EvaluationResult::new());
+                                        return Ok(None);
                                     }
                                 }
                                 locked_value.note(self.clone(), true);
-                                return Ok(EvaluationResult::new().set_value(value.clone()));
+                                return Ok(Some(value.clone()));
                             }
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                         MemberQualifier::Any => {
                             if let Some(list) = locked_value.try_get_list() {
                                 for e in list {
                                     let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if result.matches() {
+                                    if result.is_some() {
                                         locked_value.note(self.clone(), true);
-                                        return Ok(EvaluationResult::new().set_value(value.clone()));
+                                        return Ok(Some(value.clone()))
                                     }
                                 }
                                 locked_value.note(self.clone(), false);
-                                return Ok(EvaluationResult::new());
+                                return Ok(None)
                             }
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                         MemberQualifier::N(expected_n) => {
                             let expected_n = expected_n.clone().into_inner();
@@ -753,19 +761,17 @@ impl Located<RuntimeType> {
                             if let Some(list) = locked_value.try_get_list() {
                                 for e in list {
                                     let result = ty.evaluate(e.clone(), bindings).await?;
-                                    if result.matches() {
+                                    if result.is_some() {
                                         n += 1;
                                         if n >= expected_n {
                                             locked_value.note(self.clone(), true);
-                                            return Ok(
-                                                EvaluationResult::new().set_value(value.clone())
-                                            );
+                                            return Ok( Some(value.clone()));
                                         }
                                     }
                                 }
                             }
                             locked_value.note(self.clone(), false);
-                            Ok(EvaluationResult::new())
+                            Ok(None)
                         }
                     }
                 })
@@ -773,7 +779,7 @@ impl Located<RuntimeType> {
             RuntimeType::Bound(primary, bindings) => Box::pin(async move {
                 primary.evaluate(value, &bindings).await
             }),
-            RuntimeType::Nothing => Box::pin(ready(Ok(EvaluationResult::new()))),
+            RuntimeType::Nothing => Box::pin(ready(Ok(None))),
         }
     }
 }
@@ -934,7 +940,7 @@ mod test {
             .await;
         println!("{:?}", result);
 
-        println!("{:?}", result.unwrap().value());
+        println!("{:?}", result.unwrap());
     }
 
     #[actix_rt::test]
@@ -973,7 +979,7 @@ mod test {
             .await;
         println!("{:?}", result);
 
-        println!("{:?}", result.unwrap().value());
+        println!("{:?}", result.unwrap());
     }
 
     #[actix_rt::test]
@@ -1017,6 +1023,6 @@ mod test {
             .await;
         println!("{:?}", result);
 
-        println!("{:?}", result.unwrap().value());
+        println!("{:?}", result.unwrap());
     }
 }
