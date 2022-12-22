@@ -12,10 +12,10 @@ pub struct Ephemeral {
 }
 
 impl Ephemeral {
-    pub fn new(package: PackagePath, content: String) -> Self {
+    pub fn new<P: Into<PackagePath>, C: Into<String>>(package: P, content: C) -> Self {
         Self {
-            source: package.into(),
-            content,
+            source: package.into().into(),
+            content: content.into(),
         }
     }
 

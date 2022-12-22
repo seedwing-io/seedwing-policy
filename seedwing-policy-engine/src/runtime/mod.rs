@@ -227,13 +227,13 @@ impl Runtime {
         })
     }
 
-    pub async fn evaluate(
+    pub async fn evaluate<P: Into<String>, V: Into<Value>>(
         &self,
-        path: String,
-        value: Value,
+        path: P,
+        value: V,
     ) -> Result<EvaluationResult, RuntimeError> {
-        let value = Arc::new(Mutex::new(value));
-        let path = TypeName::from(path);
+        let value = Arc::new(Mutex::new(value.into()));
+        let path = TypeName::from(path.into());
         let ty = &self.types.lock().await[&path];
         let ty = ty.ty().await;
         let bindings = Bindings::default();
@@ -773,41 +773,38 @@ mod test {
     use std::env;
     use std::iter::once;
 
-    #[test]
-    fn ephemeral_sources() {
-        let src = Ephemeral::new(
-            PackagePath::from_parts(vec!["foo", "bar"]),
-            "type bob".into(),
-        );
+    #[actix_rt::test]
+    async fn ephemeral_sources() {
+        let src = Ephemeral::new("foo::bar", "type bob");
 
         let mut builder = Builder::new();
 
         let result = builder.build(src.iter());
 
-        let result = builder.link();
+        let result = builder.link().await;
+
+        assert!(matches!(result, Ok(_)));
     }
 
-    #[test]
-    fn link_test_data() {
+    #[actix_rt::test]
+    async fn link_test_data() {
         let src = Directory::new(env::current_dir().unwrap().join("test-data"));
 
         let mut builder = Builder::new();
 
         let result = builder.build(src.iter());
 
-        println!("build {:?}", result);
+        let result = builder.link().await;
 
-        let result = builder.link();
-
-        //println!("link {:?}", result);
+        assert!(matches!(result, Ok(_)));
     }
 
     #[actix_rt::test]
     async fn evaluate_function() {
         let src = Ephemeral::new(
-            PackagePath::from_parts(vec!["foo", "bar"]),
+            "foo::bar",
             r#"
-            # is this okay?
+            # Single-line comment, yay
             type signed-thing = {
                 digest: sigstore::SHA256(
                     n<1>::{
@@ -831,20 +828,12 @@ mod test {
                     }
                 )
             }
-        "#
-            .into(),
+        "#,
         );
 
-        /*
-               digest: sigstore::SHA256( {
-                   apiVersion: "0.0.1",
-               } ),
-
-        */
         let mut builder = Builder::new();
 
         let result = builder.build(src.iter());
-        println!("{:?}", result);
         let runtime = builder.link().await.unwrap();
 
         let value = json!(
@@ -853,19 +842,15 @@ mod test {
             }
         );
 
-        let mut value = (&value).into();
+        let result = runtime.evaluate("foo::bar::signed-thing", value).await;
 
-        let result = runtime
-            .evaluate("foo::bar::signed-thing".into(), value)
-            .await;
-
-        println!("{:?}", result);
+        assert!(matches!(result, Ok(Some(_)),))
     }
 
     #[actix_rt::test]
     async fn evaluate_parameterized_literals() {
         let src = Ephemeral::new(
-            PackagePath::from_parts(vec!["foo", "bar"]),
+            "foo::bar",
             r#"
         type named<name> = {
             name: name
@@ -876,8 +861,7 @@ mod test {
 
         type folks = jim || bob
 
-        "#
-            .into(),
+        "#,
         );
 
         let mut builder = Builder::new();
@@ -891,57 +875,63 @@ mod test {
             }
         );
 
-        println!("{:?}", good_bob);
-
-        let mut good_bob = (&good_bob).into();
-
-        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
-        println!("{:?}", result);
-
-        println!("{:?}", result.unwrap());
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Bob",
+                            "age": 52,
+                        }
+                    )
+                )
+                .await,
+            Ok(Some(_))
+        ));
     }
 
     #[actix_rt::test]
     async fn evaluate_parameterized_types() {
         let src = Ephemeral::new(
-            PackagePath::from_parts(vec!["foo", "bar"]),
+            "foo::bar",
             r#"
-        type named<name> = {
-            name: name
-        }
+                type named<name> = {
+                    name: name
+                }
 
-        type jim = named<int>
-        type bob = named<"Bob">
+                type jim = named<int>
+                type bob = named<"Bob">
 
-        type folks = jim || bob
+                type folks = jim || bob
 
-        "#
-            .into(),
+                "#,
         );
 
         let mut builder = Builder::new();
         let result = builder.build(src.iter());
         let runtime = builder.link().await.unwrap();
 
-        let good_bob = json!(
-            {
-                "name": "Bob",
-                "age": 52,
-            }
-        );
-
-        let mut good_bob = good_bob.into();
-
-        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
-        println!("{:?}", result);
-
-        println!("{:?}", result.unwrap());
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Bob",
+                            "age": 52,
+                        }
+                    )
+                )
+                .await,
+            Ok(Some(_))
+        ));
     }
 
     #[actix_rt::test]
     async fn evaluate_matches() {
         let src = Ephemeral::new(
-            PackagePath::from_parts(vec!["foo", "bar"]),
+            "foo::bar",
             r#"
         type bob = {
             name: "Bob",
@@ -955,28 +945,71 @@ mod test {
 
         type folks = bob || jim
 
-        "#
-            .into(),
+        "#,
         );
 
         let mut builder = Builder::new();
         let result = builder.build(src.iter());
         let runtime = builder.link().await.unwrap();
 
-        let good_bob = json!(
-            {
-                "name": "Bob",
-                "age": 52,
-            }
-        );
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Bob",
+                            "age": 49,
+                        }
+                    )
+                )
+                .await,
+            Ok(Some(_))
+        ));
 
-        println!("{:?}", good_bob);
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Jim",
+                            "age": 49,
+                        }
+                    )
+                )
+                .await,
+            Ok(None)
+        ));
 
-        let mut good_bob = good_bob.into();
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Bob",
+                            "age": 42,
+                        }
+                    )
+                )
+                .await,
+            Ok(None)
+        ));
 
-        let result = runtime.evaluate("foo::bar::folks".into(), good_bob).await;
-        println!("{:?}", result);
-
-        println!("{:?}", result.unwrap());
+        assert!(matches!(
+            runtime
+                .evaluate(
+                    "foo::bar::folks",
+                    json!(
+                        {
+                            "name": "Jim",
+                            "age": 53,
+                        }
+                    )
+                )
+                .await,
+            Ok(Some(_))
+        ));
     }
 }

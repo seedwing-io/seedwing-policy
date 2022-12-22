@@ -12,8 +12,6 @@ impl From<&X509Certificate<'_>> for Value {
     fn from(cert: &X509Certificate) -> Self {
         let mut obj = Object::new();
 
-        println!("CERT");
-        println!("{:?}", cert);
         obj.set("version".into(), cert.version.0.into());
         obj.set("issuer".into(), (&cert.issuer).into());
         obj.set("extensions".into(), cert.extensions().into());
@@ -50,9 +48,6 @@ impl From<&AttributeTypeAndValue<'_>> for Value {
     fn from(attr: &AttributeTypeAndValue<'_>) -> Self {
         let mut obj = Object::new();
 
-        println!("----------------");
-        println!("TACO {:?}", attr);
-        println!("----------------");
         obj.set("oid".into(), attr.attr_type().into());
         if let Ok(data) = from_utf8(attr.attr_value().data) {
             obj.set("value".into(), data.into())
@@ -127,7 +122,6 @@ impl TryFrom<&ParsedExtension<'_>> for Value {
     type Error = ();
 
     fn try_from(ext: &ParsedExtension<'_>) -> Result<Self, Self::Error> {
-        println!("YOEXT {:?}", ext);
         match ext {
             //ParsedExtension::UnsupportedExtension { .. } => {}
             //ParsedExtension::ParseError { .. } => {}

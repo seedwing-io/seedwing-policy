@@ -28,6 +28,20 @@ pub struct PackagePath {
     path: Vec<Located<PackageName>>,
 }
 
+impl From<&str> for PackagePath {
+    fn from(segments: &str) -> Self {
+        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
+        segments.into()
+    }
+}
+
+impl From<String> for PackagePath {
+    fn from(segments: String) -> Self {
+        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
+        segments.into()
+    }
+}
+
 impl From<Vec<String>> for PackagePath {
     fn from(mut segments: Vec<String>) -> Self {
         let first = segments.get(0).unwrap();
