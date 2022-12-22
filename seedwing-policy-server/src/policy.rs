@@ -4,7 +4,7 @@ use actix_web::web::{BytesMut, Payload};
 use actix_web::{post, web, Handler, HttpMessage, HttpRequest, HttpResponse, Responder};
 use async_mutex::Mutex;
 use futures_util::stream::StreamExt;
-use seedwing_policy_engine::runtime::{EvaluationResult, Runtime, RuntimeError};
+use seedwing_policy_engine::runtime::{Bindings, EvaluationResult, Runtime, RuntimeError};
 use seedwing_policy_engine::value;
 use seedwing_policy_engine::value::Value;
 use serde_json::json;

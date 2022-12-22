@@ -8,6 +8,7 @@ use crate::value::Value;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Formatter};
+use std::iter::once;
 use std::ops::Deref;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -65,7 +66,6 @@ impl PackagePath {
     }
 
     pub fn type_name(&self, name: String) -> TypeName {
-        println!("TN {:?} -> {}", self.path, name);
         TypeName {
             package: Some(self.clone()),
             name,
@@ -118,7 +118,6 @@ pub struct TypeName {
 
 impl TypeName {
     pub fn new(name: String) -> Self {
-        println!("TN {}", name);
         Self {
             package: None,
             name,
@@ -149,7 +148,6 @@ impl TypeName {
 impl From<String> for TypeName {
     fn from(path: String) -> Self {
         let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
-        println!("segments {:?}", segments);
         if segments.is_empty() {
             Self::new("".into())
         } else {
@@ -201,12 +199,16 @@ impl TypeDefn {
     pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types);
     }
+
+    pub(crate) fn parameters(&self) -> Vec<Located<String>> {
+        self.parameters.clone()
+    }
 }
 
 #[derive(Clone)]
 pub enum Type {
     Anything,
-    Ref(Located<TypeName>),
+    Ref(Located<TypeName>, Vec<Located<Type>>),
     Parameter(Located<String>),
     Const(Located<Value>),
     Object(ObjectType),
@@ -230,7 +232,11 @@ impl Type {
     pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         match self {
             Type::Anything => Vec::default(),
-            Type::Ref(inner) => vec![inner.clone()],
+            Type::Ref(inner, arguuments) => once(inner.clone()).chain(
+                arguuments.iter().map(|e| e.referenced_types())
+                    .flatten()
+            )
+                .collect(),
             Type::Const(_) => Vec::default(),
             Type::Object(inner) => inner.referenced_types(),
             Type::Expr(_) => Vec::default(),
@@ -262,13 +268,15 @@ impl Type {
     pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         match self {
             Type::Anything => {}
-            Type::Ref(ref mut name) => {
+            Type::Ref(ref mut name, arguments) => {
                 if !name.is_qualified() {
                     // it's a simple single-word name, needs qualifying, perhaps.
                     if let Some(Some(qualified)) = types.get(&name.name()) {
-                        println!("replace {:?} with {:?}", name, qualified);
                         *name = qualified.clone();
                     }
+                }
+                for arg in arguments {
+                    arg.qualify_types(types);
                 }
             }
             Type::Const(_) => {}
@@ -304,7 +312,7 @@ impl Debug for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Type::Anything => write!(f, "Anything"),
-            Type::Ref(r) => write!(f, "{:?}", r),
+            Type::Ref(r, args) => write!(f, "{:?}<{:?}>", r, args),
             Type::Const(value) => write!(f, "{:?}", value),
             Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
             Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
@@ -386,11 +394,11 @@ impl Field {
     }
 }
 
-fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {
+fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
     just(op).padded()
 }
 
-pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
+pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserError> + Clone {
     just("use")
         .padded()
         .ignored()
@@ -402,7 +410,7 @@ pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserE
         })
 }
 
-pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
+pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
     just("as")
         .padded()
         .ignored()
@@ -410,7 +418,7 @@ pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error = ParserEr
         .map(|(_, v)| v)
 }
 
-pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
+pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
     filter(|c: &char| (c.is_alphanumeric()) || *c == '@' || *c == '_' || *c == '-')
         .repeated()
         .collect()
@@ -418,12 +426,12 @@ pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = Parse
         .map_with_span(Located::new)
 }
 
-pub fn simple_type_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone
+pub fn simple_type_name() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone
 {
     path_segment()
 }
 
-pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = ParserError> + Clone {
+pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error=ParserError> + Clone {
     just("::")
         .padded()
         .ignored()
@@ -459,14 +467,13 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
         })
 }
 
-pub fn type_parameters(
-) -> impl Parser<ParserInput, Vec<Located<String>>, Error = ParserError> + Clone {
+pub fn type_parameters() -> impl Parser<ParserInput, Vec<Located<String>>, Error=ParserError> + Clone {
     just("<")
         .padded()
         .ignored()
         .then(
             text::ident()
-                .map_with_span(|name: String, span| Located::new(name, span))
+                .map_with_span(Located::new)
                 .separated_by(just(",").padded())
                 .allow_trailing(),
         )
@@ -474,7 +481,7 @@ pub fn type_parameters(
         .map(|((_, names), _)| names)
 }
 
-pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = ParserError> + Clone
+pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error=ParserError> + Clone
 {
     just("type")
         .padded()
@@ -483,7 +490,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
         .then(type_parameters().or_not())
         .then(just("=").padded().ignored())
         .then_with(|(((_, ty_name), params), _)| {
-            let params = params.unwrap_or(Default::default());
+            let params = params.unwrap_or_default();
             let visible_parameters = params.iter().cloned().map(|e| e.into_inner()).collect();
             type_expr(visible_parameters)
                 .or_not()
@@ -502,20 +509,19 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
 
 pub fn type_expr(
     visible_parameters: Vec<String>,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     recursive(|expr| {
         parenthesized_expr(expr.clone()).or(logical_or(expr, visible_parameters.clone()))
     })
 }
 
-pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error = ParserError> + Clone {
+pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error=ParserError> + Clone {
     text::int::<char, ParserError>(10)
         .padded()
         .map_with_span(|s: String, span| Located::new(s.parse::<u32>().unwrap(), span))
 }
 
-pub fn member_qualifier(
-) -> impl Parser<ParserInput, Located<MemberQualifier>, Error = ParserError> + Clone {
+pub fn member_qualifier() -> impl Parser<ParserInput, Located<MemberQualifier>, Error=ParserError> + Clone {
     just("any")
         .padded()
         .ignored()
@@ -535,8 +541,8 @@ pub fn member_qualifier(
 }
 
 pub fn parenthesized_expr(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("(")
         .padded()
         .ignored()
@@ -546,24 +552,22 @@ pub fn parenthesized_expr(
 }
 
 pub fn logical_or(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
     visible_parameters: Vec<String>,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    logical_and(expr.clone(), visible_parameters.clone())
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    logical_and(expr.clone(), visible_parameters)
         .then(op("||").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
-            println!("lhs {:?}", lhs);
-            println!("rhs {:?}", rhs);
             let location = lhs.span().start()..rhs.span().end();
             Located::new(Type::Join(Box::new(lhs), Box::new(rhs)), location)
         })
 }
 
 pub fn logical_and(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
     visible_parameters: Vec<String>,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    ty(expr.clone(), visible_parameters.clone())
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    ty(expr.clone(), visible_parameters)
         .then(op("&&").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let location = lhs.span().start()..rhs.span().end();
@@ -571,13 +575,13 @@ pub fn logical_and(
         })
 }
 
-pub fn integer_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
+pub fn integer_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
     text::int::<char, ParserError>(10)
         .padded()
         .map_with_span(|s: String, span| Located::new(s.parse::<i64>().unwrap().into(), span))
 }
 
-pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
+pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
     text::int(10)
         .then(just('.').then(text::int(10)))
         .padded()
@@ -594,7 +598,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error = Par
         )
 }
 
-pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
+pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error=ParserError> + Clone {
     just('"')
         .ignored()
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
@@ -603,14 +607,14 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error = Pars
         .map_with_span(|((_, x), _), span: Span| Located::new(x.into(), span))
 }
 
-pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("anything")
         .padded()
         .ignored()
         .map_with_span(|_, span| Located::new(Type::Anything, span))
 }
 
-pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     decimal_literal()
         .or(integer_literal())
         .or(string_literal())
@@ -620,7 +624,7 @@ pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error = ParserErr
         })
 }
 
-pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("$(")
         .padded()
         .ignored()
@@ -630,15 +634,14 @@ pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error = ParserError>
 }
 
 pub fn refinement(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("(")
         .padded()
         .ignored()
         .then(expr.or_not())
         .then(just(")").padded().ignored())
         .map_with_span(|((_, ty), _), span| {
-            //let fn_type = Type::Refinement(fn_name, ty.map(Box::new));
             if let Some(ty) = ty {
                 let loc = ty.location();
                 Located::new(ty.into_inner(), loc)
@@ -649,8 +652,8 @@ pub fn refinement(
 }
 
 pub fn qualified_list(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     member_qualifier()
         .then(expr)
         .map_with_span(|(qualifier, ty), span| {
@@ -659,14 +662,14 @@ pub fn qualified_list(
 }
 
 pub fn list_ty(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     qualified_list(expr.clone()).or(list_literal(expr))
 }
 
 pub fn list_literal(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("[")
         .padded()
         .ignored()
@@ -676,16 +679,16 @@ pub fn list_literal(
 }
 
 pub fn ty(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
     visible_parameters: Vec<String>,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     expr_ty()
         .or(anything_literal())
         .or(list_ty(expr.clone()))
         .or(const_type())
         .or(object_type(expr.clone()))
-        .or(type_ref(visible_parameters))
-        .then(refinement(expr.clone()).or_not())
+        .or(type_ref(expr.clone(), visible_parameters))
+        .then(refinement(expr).or_not())
         .map_with_span(|(ty, refinement), span| {
             if let Some(refinement) = refinement {
                 Located::new(Type::Refinement(Box::new(ty), Box::new(refinement)), span)
@@ -695,22 +698,44 @@ pub fn ty(
         })
 }
 
+pub fn type_arguments(
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Vec<Located<Type>>, Error=ParserError> + Clone {
+    just("<")
+        .padded()
+        .ignored()
+        .then(
+            expr.clone().separated_by(just(",").padded().ignored())
+        )
+        .then(just(">").padded().ignored())
+        .map(|((_, arguments), _)| {
+            arguments
+        })
+}
+
 pub fn type_ref(
+    expr: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
     visisble_parameters: Vec<String>,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    type_name().map_with_span(move |name, span| {
-        let loc = name.location();
-        if visisble_parameters.contains(&name.name) {
-            Located::new(Type::Parameter(Located::new(name.name.clone(), span)), loc)
-        } else {
-            Located::new(Type::Ref(Located::new(name.into_inner(), loc.clone())), loc)
-        }
-    })
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
+    type_name()
+        .then(type_arguments(expr.clone()).or_not())
+        .map_with_span(move |(name, arguments), span| {
+            let loc = name.location();
+            let arguments = arguments.unwrap_or_default();
+            if visisble_parameters.contains(&name.name) {
+                if !arguments.is_empty() {
+                    todo!("arguments to parameter references not currently allowed")
+                }
+                Located::new(Type::Parameter(Located::new(name.name.clone(), span)), loc)
+            } else {
+                Located::new(Type::Ref(Located::new(name.into_inner(), loc.clone()), arguments), loc)
+            }
+        })
 }
 
 pub fn object_type(
-    ty: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone {
     just("{")
         .padded()
         .map_with_span(|_, span| span)
@@ -731,13 +756,13 @@ pub fn object_type(
         })
 }
 
-pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
+pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
     text::ident().map_with_span(Located::new)
 }
 
 pub fn field_definition(
-    ty: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Field>, Error = ParserError> + Clone {
+    ty: impl Parser<ParserInput, Located<Type>, Error=ParserError> + Clone,
+) -> impl Parser<ParserInput, Located<Field>, Error=ParserError> + Clone {
     field_name()
         .then(just(":").padded().ignored())
         .then(ty)
@@ -749,7 +774,7 @@ pub fn field_definition(
 
 pub fn compilation_unit<S: Into<Source> + Clone>(
     source: S,
-) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone {
+) -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone {
     use_statement()
         .padded()
         .repeated()

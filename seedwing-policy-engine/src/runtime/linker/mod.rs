@@ -49,7 +49,6 @@ impl Linker {
             }
 
             for defn in unit.types() {
-                println!("defn {:?}", defn);
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
@@ -58,8 +57,6 @@ impl Linker {
                     }
                 }
             }
-
-            println!("qualify with {:?}", visible_types);
 
             for defn in unit.types_mut() {
                 defn.qualify_types(&visible_types)
@@ -85,12 +82,10 @@ impl Linker {
                     .collect::<Vec<TypeName>>(),
             );
 
-            println!("{:?}", world);
         }
 
         for unit in &self.units {
             let unit_path = PackagePath::from(unit.source());
-            println!("@@@@ {:?}", unit_path);
 
             let unit_types = unit
                 .types()
@@ -101,7 +96,6 @@ impl Linker {
             world.extend_from_slice(&unit_types);
         }
 
-        println!("world {:?}", world);
         for unit in &self.units {
             for defn in unit.types() {
                 // these should be fully-qualified now
@@ -109,34 +103,28 @@ impl Linker {
 
                 for each in referenced {
                     if !world.contains(&each.clone().into_inner()) {
-                        println!("{:?}", world);
                         todo!("failed to inter-unit link for {:?}", each)
                     }
                 }
             }
         }
 
-        //println!("{:?}", world);
-
         let mut runtime = Runtime::new();
 
         for unit in &self.units {
             let unit_path = PackagePath::from(unit.source());
 
-            for (path, _) in unit.types().iter().map(|e| {
-                (
-                    Located::new(unit_path.type_name(e.name().into_inner()), e.location()),
-                    e.ty(),
-                )
-            }) {
-                runtime.declare(path.into_inner()).await;
+            for ty in unit.types() {
+                let name = unit_path.type_name(ty.name().into_inner());
+                runtime.declare(name, ty.parameters()).await;
             }
         }
 
         for (path, package) in &self.packages {
             for (fn_name, _) in package.functions() {
                 let path = path.type_name(fn_name);
-                runtime.declare(path).await;
+                // todo: support parameters on functions.
+                runtime.declare(path, Default::default()).await;
             }
         }
 

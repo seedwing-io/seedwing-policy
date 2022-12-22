@@ -174,7 +174,7 @@ impl From<Vec<Value>> for Value {
                 .map(|e| Arc::new(Mutex::new(e.clone())))
                 .collect(),
         )
-        .into()
+            .into()
     }
 }
 
@@ -208,22 +208,34 @@ pub enum InnerValue {
 }
 
 impl InnerValue {
-    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
+    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output=()> + 'p>> {
         match self {
-            InnerValue::Null => Box::pin(ready(printer.write("<null>"))),
+            InnerValue::Null => Box::pin(async move {
+                printer.write("<null>");
+            }),
             InnerValue::String(inner) => {
-                Box::pin(ready(printer.write(format!("\"{}\"", inner).as_str())))
+                Box::pin(async move {
+                    printer.write(format!("\"{}\"", inner).as_str())
+                })
             }
             InnerValue::Integer(inner) => {
-                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+                Box::pin(async move {
+                    printer.write(format!("{}", inner).as_str())
+                })
             }
             InnerValue::Decimal(inner) => {
-                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+                Box::pin(async move {
+                    printer.write(format!("{}", inner).as_str())
+                })
             }
             InnerValue::Boolean(inner) => {
-                Box::pin(ready(printer.write(format!("{}", inner).as_str())))
+                Box::pin(async move {
+                    printer.write(format!("{}", inner).as_str())
+                })
             }
-            InnerValue::Object(inner) => Box::pin(async move { inner.display(printer).await }),
+            InnerValue::Object(inner) => Box::pin(async move {
+                inner.display(printer).await
+            }),
             InnerValue::List(inner) => Box::pin(async move {
                 printer.write("[ ");
                 for item in inner {
@@ -348,10 +360,11 @@ impl Value {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Object {
     fields: HashMap<String, Arc<Mutex<Value>>>,
 }
+
 
 impl Object {
     pub fn new() -> Self {
