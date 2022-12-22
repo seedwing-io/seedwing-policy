@@ -7,7 +7,7 @@ use crate::lang::{
 use crate::value::Value;
 use chumsky::prelude::*;
 use chumsky::Parser;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::once;
 use std::ops::Deref;
 
@@ -128,6 +128,12 @@ impl From<Source> for PackagePath {
 pub struct TypeName {
     package: Option<PackagePath>,
     name: String,
+}
+
+impl Display for TypeName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_type_str())
+    }
 }
 
 impl TypeName {

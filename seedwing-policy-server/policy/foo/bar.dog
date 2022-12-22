@@ -2,3 +2,4 @@
 type baz = {
   foo: int
 }
+

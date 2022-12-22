@@ -3,7 +3,7 @@ use crate::lang::ty::{compilation_unit, PackagePath, Type, TypeDefn, TypeName};
 use crate::runtime::BuildError;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -189,6 +189,12 @@ impl FieldName {
 #[derive(Hash, PartialEq, Eq, PartialOrd, Debug, Clone)]
 pub struct Source {
     name: String,
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl From<String> for Source {

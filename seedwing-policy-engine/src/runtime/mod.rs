@@ -22,7 +22,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::ready;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum BuildError {
     TypeNotFound,
     Parser(ParserError),
@@ -77,6 +77,7 @@ impl Builder {
 
         for pkg in self.packages.values() {
             for (source, stream) in pkg.source_iter() {
+                log::info!("loading {}", source);
                 let unit = PolicyParser::default().parse(source, stream);
                 match unit {
                     Ok(unit) => {
@@ -222,6 +223,30 @@ impl Runtime {
             ))),
         );
 
+        initial_types.insert(
+            TypeName::new("string".into()),
+            Arc::new(TypeHandle::new_with(Located::new(
+                RuntimeType::Primordial(PrimordialType::String),
+                0..0,
+            ))),
+        );
+
+        initial_types.insert(
+            TypeName::new("boolean".into()),
+            Arc::new(TypeHandle::new_with(Located::new(
+                RuntimeType::Primordial(PrimordialType::Boolean),
+                0..0,
+            ))),
+        );
+
+        initial_types.insert(
+            TypeName::new("decimal".into()),
+            Arc::new(TypeHandle::new_with(Located::new(
+                RuntimeType::Primordial(PrimordialType::Decimal),
+                0..0,
+            ))),
+        );
+
         Arc::new(Self {
             types: Mutex::new(initial_types),
         })
@@ -248,6 +273,7 @@ impl Runtime {
     }
 
     async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
+        log::info!("define type {}", path);
         let converted = self.convert(ty).await;
         if let Some(handle) = self.types.lock().await.get_mut(&path) {
             if let Some(inner) = &*converted.ty.lock().await {
@@ -257,6 +283,7 @@ impl Runtime {
     }
 
     async fn define_function(self: &mut Arc<Self>, path: TypeName, func: Arc<dyn Function>) {
+        log::info!("define function {}", path);
         let runtime_type = Located::new(
             RuntimeType::Primordial(PrimordialType::Function(path.clone(), func.clone())),
             0..0,
