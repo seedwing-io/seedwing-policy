@@ -1,7 +1,17 @@
 
-
-type baz = {
+type foo = {
   foo: int
 }
+
+type bar = {
+  bar: int
+}
+
+type baz = {
+  baz: int
+}
+
+type quux = foo || bar || baz
+
 
 

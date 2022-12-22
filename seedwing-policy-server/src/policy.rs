@@ -2,7 +2,7 @@ use actix_web::http::Method;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use futures_util::stream::StreamExt;
-use seedwing_policy_engine::runtime::Runtime;
+use seedwing_policy_engine::runtime::{Component, Runtime};
 use seedwing_policy_engine::value::Value;
 use std::sync::Arc;
 
@@ -55,7 +55,15 @@ async fn evaluate(
     }
 }
 
-async fn display(_runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResponse {
-    let _path = req.path().strip_prefix('/').unwrap().replace('/', "::");
-    HttpResponse::Ok().body("one day this will work")
+async fn display(runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResponse {
+    let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
+
+    if let Some(component) = runtime.get(path).await {
+        match component {
+            Component::Package(_) => HttpResponse::NotFound().finish(),
+            Component::Type(ty) => HttpResponse::Ok().body(ty.ty().await.to_html().await),
+        }
+    } else {
+        HttpResponse::NotFound().finish()
+    }
 }

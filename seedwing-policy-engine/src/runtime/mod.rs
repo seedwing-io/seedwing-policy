@@ -29,7 +29,7 @@ pub mod cache;
 
 pub enum Component {
     Package(PackageHandle),
-    Type(TypeHandle),
+    Type(Arc<TypeHandle>),
 }
 
 #[derive(Clone, Debug)]
@@ -241,7 +241,7 @@ impl TypeHandle {
         self.ty.lock().await.replace(ty);
     }
 
-    async fn ty(&self) -> Arc<Located<RuntimeType>> {
+    pub async fn ty(&self) -> Arc<Located<RuntimeType>> {
         self.ty.lock().await.as_ref().unwrap().clone()
     }
 
@@ -296,6 +296,16 @@ impl Runtime {
         Arc::new(Self {
             types: Mutex::new(initial_types),
         })
+    }
+
+    pub async fn get<P: Into<String>>(&self, path: P) -> Option<Component> {
+        let path = TypeName::from(path.into());
+        if let Some(ty) = self.types.lock().await.get(&path) {
+            Some(Component::Type(ty.clone()))
+        } else {
+            // check to see if there's a package handle we could create.
+            None
+        }
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<Value>>(
@@ -567,6 +577,48 @@ impl Bindings {
 }
 
 impl Located<RuntimeType> {
+    pub fn to_html(&self) -> Pin<Box<dyn Future<Output = String> + '_>> {
+        match &**self {
+            RuntimeType::Anything => Box::pin(async move { "<b>anything</b>".into() }),
+            RuntimeType::Primordial(primordial) => Box::pin(async move {
+                match primordial {
+                    PrimordialType::Integer => "<b>integer</b>".into(),
+                    PrimordialType::Decimal => "<b>decimal</b>".into(),
+                    PrimordialType::Boolean => "<b>boolean</b>".into(),
+                    PrimordialType::String => "<b>string</b>".into(),
+                    PrimordialType::Function(name, _) => {
+                        format!("<b>{}(...)</b>", name)
+                    }
+                }
+            }),
+            RuntimeType::Bound(_, _) => Box::pin(async move { "bound".into() }),
+            RuntimeType::Argument(_) => Box::pin(async move { "argument".into() }),
+            RuntimeType::Const(_) => Box::pin(async move { "const".into() }),
+            RuntimeType::Object(inner) => Box::pin(async move { inner.to_html().await }),
+            RuntimeType::Expr(_) => Box::pin(async move { "expr".into() }),
+            RuntimeType::Join(lhs, rhs) => Box::pin(async move {
+                format!(
+                    "{} || {}",
+                    lhs.ty().await.to_html().await,
+                    rhs.ty().await.to_html().await
+                )
+            }),
+            RuntimeType::Meet(lhs, rhs) => Box::pin(async move {
+                format!(
+                    "{} && {}",
+                    lhs.ty().await.to_html().await,
+                    rhs.ty().await.to_html().await
+                )
+            }),
+            RuntimeType::Refinement(_, _) => Box::pin(async move { "refinement".into() }),
+            RuntimeType::List(_) => Box::pin(async move { "list".into() }),
+            RuntimeType::MemberQualifier(_, _) => {
+                Box::pin(async move { "qualified-member".into() })
+            }
+            RuntimeType::Nothing => Box::pin(async move { "<b>nothing</b>".into() }),
+        }
+    }
+
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
@@ -829,6 +881,28 @@ pub enum PrimordialType {
 #[derive(Debug)]
 pub struct RuntimeObjectType {
     fields: Vec<Arc<Located<RuntimeField>>>,
+}
+
+impl RuntimeObjectType {
+    pub async fn to_html(&self) -> String {
+        let mut html = String::new();
+        html.push_str("<div>{");
+        for f in &self.fields {
+            html.push_str("<div style='padding-left: 1em'>");
+            html.push_str(
+                format!(
+                    "{}: {},",
+                    f.name.clone().into_inner(),
+                    f.ty.ty().await.to_html().await
+                )
+                .as_str(),
+            );
+            html.push_str("</div>");
+        }
+        html.push_str("}</div>");
+
+        html
+    }
 }
 
 #[derive(Debug)]
