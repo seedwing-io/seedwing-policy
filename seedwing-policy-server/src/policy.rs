@@ -6,15 +6,27 @@ use seedwing_policy_engine::runtime::Runtime;
 use seedwing_policy_engine::value::Value;
 use std::sync::Arc;
 
-pub async fn evaluate(
+pub async fn policy(
+    runtime: web::Data<Arc<Runtime>>,
+    req: HttpRequest,
+    body: Payload,
+) -> impl Responder {
+    if req.method() == Method::POST {
+        return evaluate(runtime, req, body).await;
+    }
+
+    if req.method() == Method::GET {
+        return display(runtime, req).await;
+    }
+
+    HttpResponse::NotAcceptable().finish()
+}
+
+async fn evaluate(
     runtime: web::Data<Arc<Runtime>>,
     req: HttpRequest,
     mut body: Payload,
-) -> impl Responder {
-    if req.method() != Method::POST {
-        return HttpResponse::NotAcceptable().finish();
-    }
-
+) -> HttpResponse {
     let mut content = BytesMut::new();
     while let Some(Ok(bit)) = body.next().await {
         content.extend_from_slice(&bit);
@@ -41,4 +53,9 @@ pub async fn evaluate(
     } else {
         HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
     }
+}
+
+async fn display(_runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResponse {
+    let _path = req.path().strip_prefix('/').unwrap().replace('/', "::");
+    HttpResponse::Ok().body("one day this will work")
 }

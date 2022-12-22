@@ -27,6 +27,11 @@ use std::task::ready;
 
 pub mod cache;
 
+pub enum Component {
+    Package(PackageHandle),
+    Type(TypeHandle),
+}
+
 #[derive(Clone, Debug)]
 pub enum BuildError {
     TypeNotFound(SourceLocation, SourceSpan, String),
@@ -92,8 +97,7 @@ impl Builder {
 
             let input = stream.into();
 
-            self.source_cache
-                .add(source.clone(), input.clone().into());
+            self.source_cache.add(source.clone(), input.clone().into());
             let unit = PolicyParser::default().parse(source.clone(), input);
             match unit {
                 Ok(unit) => self.add_compilation_unit(unit),
@@ -195,6 +199,8 @@ pub enum RuntimeError {
 pub struct Runtime {
     types: Mutex<HashMap<TypeName, Arc<TypeHandle>>>,
 }
+
+pub struct PackageHandle {}
 
 #[derive(Default, Debug)]
 pub struct TypeHandle {

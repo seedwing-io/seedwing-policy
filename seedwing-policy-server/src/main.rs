@@ -6,9 +6,10 @@ use clap::parser::ValuesRef;
 use env_logger::Builder;
 use log::LevelFilter;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
+use std::path::PathBuf;
 use std::process::exit;
 
-use crate::policy::evaluate;
+use crate::policy::policy;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::Builder as PolicyBuilder;
 
@@ -33,7 +34,12 @@ async fn main() -> std::io::Result<()> {
     let mut builder = PolicyBuilder::new();
     let directories: ValuesRef<String> = matches.get_many("dir").unwrap();
     for dir in directories {
-        let src = Directory::new(dir.into());
+        let dir: PathBuf = dir.into();
+        if !dir.exists() {
+            log::error!("Unable to open directory: {}", dir.to_string_lossy());
+            exit(-3);
+        }
+        let src = Directory::new(dir);
         //log::info!("loading policies from {}", dir);
         if let Err(result) = builder.build(src.iter()) {
             errors.extend_from_slice(&*result);
@@ -52,7 +58,7 @@ async fn main() -> std::io::Result<()> {
             let server = HttpServer::new(move || {
                 App::new()
                     .app_data(web::Data::new(runtime.clone()))
-                    .default_service(web::to(evaluate))
+                    .default_service(web::to(policy))
             });
 
             log::info!("starting up at http://{}:{}/", bind, port);
