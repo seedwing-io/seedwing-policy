@@ -28,7 +28,7 @@ use std::task::ready;
 pub mod cache;
 
 pub enum Component {
-    Package(PackageHandle),
+    Module(ModuleHandle),
     Type(Arc<TypeHandle>),
 }
 
@@ -86,10 +86,10 @@ impl Builder {
     }
 
     pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-    where
-        Self: Sized,
-        S: Into<String>,
-        SrcIter: Iterator<Item = (SourceLocation, S)>,
+        where
+            Self: Sized,
+            S: Into<String>,
+            SrcIter: Iterator<Item=(SourceLocation, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -200,7 +200,63 @@ pub struct Runtime {
     types: Mutex<HashMap<TypeName, Arc<TypeHandle>>>,
 }
 
-pub struct PackageHandle {}
+#[derive(Debug)]
+pub struct ModuleHandle {
+    modules: Vec<String>,
+    types: Vec<String>,
+}
+
+impl ModuleHandle {
+    fn new() -> Self {
+        Self {
+            modules: vec![],
+            types: vec![],
+        }
+    }
+
+    fn sort(mut self) -> Self {
+        self.modules.sort();
+        self.types.sort();
+        self
+    }
+
+    fn is_empty(&self) -> bool {
+        self.modules.is_empty() && self.types.is_empty()
+    }
+
+    pub async fn to_html(&self) -> String {
+        let mut html = String::new();
+
+        html.push_str("<div>");
+        if !self.modules.is_empty() {
+            html.push_str("<h1>modules</h1>");
+
+            html.push_str("<ul>");
+            for module in &self.modules {
+                html.push_str("<li>");
+                html.push_str(format!("<a href='{}/'>{}</a>", module, module).as_str());
+                html.push_str("</li>");
+            }
+            html.push_str("</ul>");
+        }
+
+        if !self.types.is_empty() {
+            html.push_str("<h1>types</h1>");
+            html.push_str("<ul>");
+            for ty in &self.types {
+                html.push_str("<li>");
+                html.push_str(format!("<a href='{}'>{}</a>", ty, ty).as_str());
+                html.push_str("</li>");
+            }
+            html.push_str("</ul>");
+        }
+
+        html.push_str("</div>");
+
+        html
+    }
+}
+
 
 #[derive(Default, Debug)]
 pub struct TypeHandle {
@@ -301,10 +357,33 @@ impl Runtime {
     pub async fn get<P: Into<String>>(&self, path: P) -> Option<Component> {
         let path = TypeName::from(path.into());
         if let Some(ty) = self.types.lock().await.get(&path) {
-            Some(Component::Type(ty.clone()))
-        } else {
-            // check to see if there's a package handle we could create.
+            return Some(Component::Type(ty.clone()));
+        }
+
+        let mut module_handle = ModuleHandle::new();
+        let types = self.types.lock().await;
+        let path = path.as_type_str();
+        for (name, ty) in types.iter() {
+            let name = name.as_type_str();
+            if let Some(relative_name) = name.strip_prefix(&path) {
+                let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
+                let parts: Vec<&str> = relative_name.split("::").collect();
+                if parts.len() == 1 {
+                    module_handle.types.push(
+                        parts[0].into()
+                    );
+                } else if !module_handle.modules.contains(&parts[0].into()) {
+                    module_handle.modules.push(
+                        parts[0].into(),
+                    )
+                }
+            }
+        }
+
+        if module_handle.is_empty() {
             None
+        } else {
+            Some(Component::Module(module_handle.sort()))
         }
     }
 
@@ -358,7 +437,7 @@ impl Runtime {
     fn convert<'c>(
         self: &'c Arc<Self>,
         ty: &'c Located<Type>,
-    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => Box::pin(async move {
                 Arc::new(
@@ -577,7 +656,7 @@ impl Bindings {
 }
 
 impl Located<RuntimeType> {
-    pub fn to_html(&self) -> Pin<Box<dyn Future<Output = String> + '_>> {
+    pub fn to_html(&self) -> Pin<Box<dyn Future<Output=String> + '_>> {
         match &**self {
             RuntimeType::Anything => Box::pin(async move { "<b>anything</b>".into() }),
             RuntimeType::Primordial(primordial) => Box::pin(async move {
@@ -623,7 +702,7 @@ impl Located<RuntimeType> {
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
             RuntimeType::Anything => Box::pin(ready(Ok(Some(value)))),
             RuntimeType::Argument(name) => Box::pin(async move {
@@ -895,7 +974,7 @@ impl RuntimeObjectType {
                     f.name.clone().into_inner(),
                     f.ty.ty().await.to_html().await
                 )
-                .as_str(),
+                    .as_str(),
             );
             html.push_str("</div>");
         }

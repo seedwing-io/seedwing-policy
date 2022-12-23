@@ -39,7 +39,6 @@ async fn evaluate(
         let value = Value::from(result);
         let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
-        println!("{} {:?}", path, value);
         match runtime.evaluate(path, value).await {
             Ok(result) => {
                 if result.is_some() {
@@ -58,11 +57,31 @@ async fn evaluate(
 async fn display(runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResponse {
     let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
-    if let Some(component) = runtime.get(path).await {
+    if let Some(component) = runtime.get(path.clone()).await {
+        let mut html = String::new();
+
+        html.push_str("<html>");
+        html.push_str("<head>");
+        html.push_str(format!("<title>Seedwing Policy {}</title>", path).as_str());
+        html.push_str("</head>");
+        html.push_str("<body style='font-family: sans-serif'>");
+        html.push_str(format!("<h1>Seedwing Policy {}</h1>", path).as_str());
         match component {
-            Component::Package(_) => HttpResponse::NotFound().finish(),
-            Component::Type(ty) => HttpResponse::Ok().body(ty.ty().await.to_html().await),
+            Component::Module(pkg) => {
+                html.push_str(
+                    pkg.to_html().await.as_str()
+                )
+            }
+            Component::Type(ty) => {
+                html.push_str(
+                    ty.ty().await.to_html().await.as_str()
+                );
+            }
         }
+
+        html.push_str("</body>");
+        html.push_str("</html>");
+        HttpResponse::Ok().body(html)
     } else {
         HttpResponse::NotFound().finish()
     }
