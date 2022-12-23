@@ -32,7 +32,7 @@ This document and the entire project will probably use correct terms incorrectly
 Or maybe it'll just make up new words.
 As in _Slingblade_ though, _the dots are where I say they are_.
 This language is called `Dogma` because the words and terms mean exactly what I intend them to mean.
-If you would like to _kindly_ reeducate me, I'd gladly accept input.
+If you would like to _kindly_ educate me, I'd gladly accept input.
 
 Let's dive in, shall we?
 
@@ -171,7 +171,7 @@ The three statements above just alias the names of `bob`, `jim`, and `dejan`, to
 
 .Seedwing Policy Server
 ****
-If you're using the `seedwing-policy-server` to serve your types, and this was created in a file called `email.dogma` at the root of your policy directory, you have also created 3 URL endpoints:
+If you're using the `seedwing-policy-server` to serve your types, and this was created in a file called `email.dog` at the root of your policy directory, you have also created 3 URL endpoints:
 
 * `/email/bob`
 * `/email/jim`
