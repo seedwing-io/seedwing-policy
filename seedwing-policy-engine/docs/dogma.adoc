@@ -1,0 +1,487 @@
+= The Dogma Policy Language
+
+== Introduction
+
+Software supply-chain security is an important topic currently, involving a lot of moving parts, many of which are still being sorted out.
+In addition to providing SBOMs, attestations, and other information _about_ the artifacts you consume and produce, we need a way to reason over that information.
+After we reason about the information, we make _decisions_ about that information:
+
+* does this thing belong in my build?
+* is this thing compatible with my licensing model?
+* does this thing I build make the SRE team feel warm and fuzzy about operating it?
+
+Anywhere a human has to review, audit and evaluate is exactly the source of _human errors_.
+Let's automate these decisions with a *policy engine*.
+Because ultimately, human errors are systems errors which allowed humans to go awry.
+
+Policy engines are not new.
+Several exist, from Kyverno, to Open Policy Agent, to Cuelang.
+
+Why not create another?
+
+For SSCS (how the hip kids refer to Software Supply-Chain Security), generally-speaking we to give some information to a policy engine, and get back a decision.
+Did we comply? Did we violate?
+
+We can shuffle that information to the policy-engine via JSON, YAML, TOML or whatever other way you might want to communicate it.
+
+=== Caveats
+
+The `Seedwing Policy Engine` was created by a university drop-out.
+I'm not well-schooled in the computer sciences.
+This document and the entire project will probably use correct terms incorrectly, or incorrect terms incorrectly.
+Or maybe it'll just make up new words.
+As in _Slingblade_ though, _the dots are where I say they are_.
+This language is called `Dogma` because the words and terms mean exactly what I intend them to mean.
+If you would like to _kindly_ reeducate me, I'd gladly accept input.
+
+Let's dive in, shall we?
+
+=== What if everything was a type?
+
+There exists this humourous list of the supposed core idioms of a given language.
+
+image::https://pbs.twimg.com/media/CkLRpGZUoAALo1Y?format=jpg&name=900x900['What if everything was an X']
+
+For `dogma`, the idiom is *what if everything was a type*?
+When I say "type", I do mean, kinda, the same type of types that regular typed programming languages have.
+But instead of declaring "this thing is of that type", `dogma` takes the appropriate that types are _emergent_ properties of things.
+
+"Hey, that's duck typing!" you might say.
+Sure, maybe it is.
+
+But perhaps a difference it that duck typing tends to only worry if something can quack.
+It doesn't actually go further and say "...therefore it is indeed a duck".
+Duck typing just assumes something is duck-enough to be used in duckful ways.
+
+The `dogma` language ascribes types to things when it notices they fulfill the needs of the type.
+And a thing can have multiple types.
+The engine will gladly accept a duck-rabbit as a type of duck and a type of rabbit.
+
+image::https://duckrabbitbrewery.com/wp-content/uploads/2019/04/duck-rabbit-brewery-logo.png[duck rabbit]
+
+=== Is `42` a type? Is `"Bob"` a type?
+
+Generally, we have previously been taught that things are instances of a type.
+
+`"Bob"` is an instance of a _string_.
+
+`42` is instance of an _integer_.
+
+Yes, that's true.
+
+But...
+
+"Bob" is also a type.
+It's a type of string whose contents are exactly `"Bob"`
+
+`42` is also a type.
+It's a type of integer whose value is exactly `42`.
+
+Because _everything is a type_.
+
+So we can forget about values.
+Kinda.
+
+=== "What about super-classes and sub-classes?" you may ask
+
+Super-classes and sub-classes are simply a conspiracy by Big Language to sell you more classes.
+
+They aren't real.
+
+image::https://www.cbs42.com/wp-content/uploads/sites/81/2022/06/IMG_0292-e1654268615798.jpg?strip=1[birds aren't real]
+
+In other languages, class hierarchies are simply an easy way to denote multiple types coming together to be viewed as a common subset.
+
+We don't need that.
+And we don't need to be restricted to strict type hierarchies.
+
+Instead, we can define a "super-type" as a type that simply could be two or more other types.
+Those other types could be completely unrelated.
+Or marginally related.
+
+For instance, we could define our own "super-type" that includes _all integers_, the string `bob` and the decimal value of exactly `42.2`.
+
+Of course, that's not going to be super useful, necessarily.
+But what if we're thinking about defining a type for a `version_number`.
+Maybe that's a string-y thing or an integer-y thing.
+It's definitely not a boolean.
+It's probably not a decimal.
+
+Another, probably more useful exactly, would be defining a type of email addresses on your SRE team.
+That useful type might be called `deployment_approvers` and be a type that includes `"bob@yourcorp.com"`, `"jim@yourcorp.com"` and `"dejan@yourcorp.com"`.
+It's not just any string.
+Only those three strings belong to that type.
+Now we're getting somewhere.
+
+=== How do I do work if everything is just a type?
+
+Functions!
+
+Functions are also types.
+They are types that consume one type, and produce another.
+
+For example, there could be a `base64` function that consumes a string, which must be un-base64able, and produces an un-base64'd string.
+
+As with the mathematical definition of functions, if we ignore time, they should be idempotent.
+
+A given string will always de-base64 to the same content.
+
+== Reference
+
+Enough background, let's walk through the (work-in-progress) reference of the (work-in-progress) language.
+
+=== Type Definitions
+
+The primary (and really only) statement of the `dogma` language is the _type definition_.
+
+A type is defined by the word `type` followed by a name.
+The name may include upper- and lower-case letters, hyphens, underscores, and even optionally start with an `@` if you're feeling frisky.
+
+Here's examples of types:
+
+```
+type bob
+
+type jim
+
+type dejan
+```
+
+Notice, no semicolons.
+We don't need them.
+
+Above we've defined three named types, which by default are just aliases to the `nothing` type, which matches absolutely nothing.
+
+Not super useful.
+
+If you want to provide a non-`nothing` definition, append an equal sign and then define your type in the `dogma` language.
+
+Let's define those three types to be stringy things matching each person's email address.
+
+```
+type bob = "bob@yourcorp.com"
+
+type jim = "jim@yourcorp.com"
+
+type dejan = "dejan@yourcorp.com"
+```
+
+As noted above, all "values" are actually just types.
+The three statements above just alias the names of `bob`, `jim`, and `dejan`, to the associated stringy types with the specified contents.
+
+.Seedwing Policy Server
+****
+If you're using the `seedwing-policy-server` to serve your types, and this was created in a file called `email.dogma` at the root of your policy directory, you have also created 3 URL endpoints:
+
+* `/email/bob`
+* `/email/jim`
+* `/email/dejan`
+
+You can `POST` some JSON to those endpoints, and determine if the JSON you posted conforms the type you queried.
+
+If you `POST` `"bob@yourcorp.com"` to `/email/bob`, the response will be a `200 OK`.
+`POST` the same data to `/email/jim` and the response will be `406 NOT ACCEPTABLE`.
+****
+
+=== Basic types
+
+Every system needs some primordial types, the smallest atoms to build things from.
+In `dogma` the basic types are:
+
+* strings
+* integers
+* decimals
+* booleans
+* object-shaped things
+* lists
+* functions
+* expressiony things
+
+==== Strings
+
+We've already seen an example of strings.
+They are denoted by double-quotes, and currently do not support escaping quotes inside.
+It's a work in progress.
+
+==== Integers
+
+Integers are the whole numbers on the number line.
+Internally they are represented as signed 64-bit integers.
+
+==== Decimals
+Decimals are the real numbers on the number line.
+Internally they are represented as 64-bit floating-point values.
+
+==== Booleans
+Booleans are... booleans.
+They can be `true` or `false`.
+Nothing else is a boolean nor will it coerce to a boolean.
+
+==== Object-shaped things
+
+Object-shaped things are collections of types with field names associated with them.
+They are denoted using curly-bracked, and field-names specifying their own type definitions.
+
+An example:
+
+```
+type some-object = {
+    email: bob,
+}
+```
+
+Trailing commas are allowed.
+
+To even attempt to match a `some-object`, you would need to `POST` JSON similar to:
+
+```json
+{
+    "email": "bob@yourcorp.com"
+}
+```
+
+==== Lists
+
+Lists are definitely a work-in-progress and subject to change.
+
+Lists can be specified several ways, the simplest using square brackets.
+
+```
+type my-dogs = [ "Alphe", "Ada" ]
+
+type my-pets = [ my-dogs, "Mr. Squirrel" ]
+```
+
+List types can also (currently) be specified abstractly, denoting what their contents must/must-not be, using `all::()`, `any::()` or `n<..>::()`.
+
+```
+type acceptable-list-of-emails = any::( sre-approvers )
+```
+
+The above type would match any list of email addresses, as long as at least 1 member matches the `sre-approvers` type.
+
+The `all::` variant requires all members to match, where `n<..>::` takes an integer parameter denoting how many members must match the provided type.
+
+NOTE: I don't love the any/n syntax, and it's subject to change.
+
+==== Expressiony Things
+
+Sometimes you might want to perform some comparison and logic before deciding if something matches a type.
+For that, `${..}` can be used to evaluate basic expressions.
+
+For instance:
+
+```
+type allowed-to-buy-beer = {
+    age: ${self >= 21}
+}
+```
+
+The `>=` expression operator requires something numeric as input, so `age` must implicitly be an integer or a decimal.
+The value provided is exposed as `self` within the `${...}` block.
+
+Please do not confuse *expressiony types* with *type expressions* described below.
+
+=== Type Expressions
+
+==== `||` operator
+
+Okay, now that we're making progress on defining some types, let's go back to our SRE approvers.
+We can use `||` to *or* between types.
+This allows us to create "super-classes" if you want to use that terminology.
+It may also be considered a *join* if you're into type theory.
+
+```
+type sre-approvers = bob || jim || dejan
+```
+
+.Seedwing Policy Server
+****
+Now you added an endpoint of `/email/sre-approvers`.
+
+`POST` any of the three acceptable email address to that endpoint, and they will all `200 OK`.
+Any other email (or integer, or boolean, or object) will result still in a `406 NOT ACCEPTABLE`.
+****
+
+==== `&&` operator
+
+The `&&` operator is satisfied when _both_ sides are satisfied.
+This could mostly be useful when working with object-shaped things.
+
+```
+## An employee of YourCorp
+type employee = {
+    employer: "YourCorp",
+}
+
+## A manager of any company
+type manager = {
+    is_manager: true,
+}
+
+type manager_of_yourcorp = employee && manager
+```
+
+.Seedwing Policy Server
+****
+Now we begin to see how the emergent properties of this type system... emerge.
+
+If you `POST` the following JSON...
+
+```json
+{
+    "email": "bob@yourcorp.com",
+    "employer": "YourCorp",
+    "is_manager": true
+}
+```
+
+...then the system has determined that yes indeed, that object-shaped thing is both an `employee` and a `manager`.
+****
+
+==== Functions
+
+Functions allow an input to be manipulated and further constrained by types.
+Functions implicitly take the inbound value/type as their argument, and produce either a new value/type, or they fail and result in a non-match.
+
+An example may make it easier to understand.
+
+```
+type thing-with-payload = {
+    topic: string,
+    payload: Base64,
+}
+```
+
+This will accept only object-shaped things which include a `payload` field that can be successfully un-base64'd.
+Notice, we do not use parentheses to "call" the function.
+The calling of a function is implicit, and if it's successful, it produces a new type.
+
+Of course, you may then want to reason about the contents of that base64'd payload.
+To accomplish that, we use _refinements_.
+
+
+==== Refinements
+
+For all types, but mostly useful for functions, is the idea of _refinements_.
+To refine a type, you may add parentheses (which is why we don't use them to call functions).
+
+In the `Function` example, if we want to only accept base64-encoded payloads of a particular type, we could do:
+
+```
+type thing-with-payload = {
+    topic: string,
+    payload: Base64("bob@yourcorp.com")
+}
+```
+
+Voila!
+
+If the result of the base64-decoding is a string of `"bob@yourcorp.com"`, great!
+If not, computer says no.
+
+
+==== Parameterized types
+
+Sometimes you want to define a library of rough shapes, but still allow another policy author to parameterize it.
+
+When defining a type, using angle brackets you can denote one or more parameters, which can then be used within the definition as the type to match.
+
+If you're working with x509 certificates, you might want to create a shorthand to match an ASN.1 OID value.
+
+```
+type subject-alternative-name<EMAIL> = {
+    oid: "1.2.3.4.5",
+    email: EMAIL,
+}
+```
+
+
+This could subsequently be used similar to:
+
+```
+type x509attr-thing = {
+    extension: subject-alternative-name<sre-approvers>,
+}
+
+type x509attr-thing-only-bob = {
+    extension: subject-alternative-name<"bob@yourcorp.com">,
+}
+```
+
+Notice the trick here of using a type `sre-approvers` or a "value" of `"bob@yourcorp.com"`.
+Because everything, including values, are types.
+
+==== Modules
+
+Somewhat glossed over thus far is the idea of _modules_.
+Modules are defined purely based on the location of the type definitions, from the root of the policy tree.
+
+A file called `foo.dog` defines a module `foo`.
+A type 'quux' defined within that file is referenced as `foo::quux` or through the endpoint of `/foo/quux`.
+A file called `foo/bar.dog` defines a module `foo::bar`.
+A type `quux` defined within that file is reference as `foo::bar::quux` or through the endpoint of `/foo/bar/quux`.
+
+There is (currently) no visibility modifiers.
+All types are exposed as endpoints, and all types share a global namespace and can be used by all other types.
+
+To avoid having to type so much, you can `use` types from other modules, optionally renaming them.
+
+```
+use sigstore::SHA256
+use base64::Base64 as UndecodeThatIsh
+```
+
+==== Comments
+
+Comments start with `#` and continue to the end of the line.
+We anticipate adding documentation comments using `##` but have not yet.
+
+=== Example
+
+Here's the biggest example currently used as testing.
+It uses the built-in core functions for working with _Sigstore_ and _X509_.
+
+```
+type signed-thing = {
+    digest: sigstore::SHA256(
+        n<1>::{
+            apiVersion: "0.0.1",
+            spec: {
+                signature: {
+                    publicKey: {
+                        content: base64::Base64(
+                            x509::PEM( n<1>::{
+                                version: 2,
+                                extensions: n<1>::{
+                                    subjectAlternativeName: n<1>::{
+                                        rfc822: "bob@mcwhirter.org",
+                                    }
+                                }
+                            } )
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+```
+
+It expects an input similar to the following to be submitted as a `POST` to `/policy/signed-thing`:
+
+```json
+{
+    "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
+}
+```
+
+It uses the `sigstore::SHA256` function which takes the digest as an input and produces a list of Sigstore Rekor entries.
+It ensures the `apiVersion` matches what we're expecting, then digs into the JSON path of `spec.signature.publicKey.content` which is base64-decoded.
+If that's successful, the result of the decoded base64 bits is attempted to be parsed as an X509 PEM certificate chain.
+If that works, then it further _refines_ the result of that decoding to ensure it contains at least 1 certificate that has at least 1 extension which has at least one `subjectAltnernateName` matching my personal email address.
+
+If so, and you're using the `seedwing-policy-server`, you'll get back a `200 OK`.
+If not, you'll be witnessing a `406 NOT ACCEPTABLE`.
+
+All from just shooting a single SHA256 hash at an endpoint.
