@@ -1,4 +1,4 @@
-use crate::lang::ty::PackagePath;
+use crate::lang::package::PackagePath;
 use crate::lang::SourceLocation;
 use std::fs::File;
 use std::io::Read;

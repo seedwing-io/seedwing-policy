@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
 use crate::lang::expr::{expr, Expr};
+use crate::lang::literal::{anything_literal, decimal_literal, integer_literal, string_literal};
+use crate::lang::package::{PackageName, PackagePath};
 use crate::lang::{
-    CompilationUnit, Located, Location, ParserError, ParserInput, SourceLocation, SourceSpan, Use,
+    op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
+    SourceLocation, SourceSpan, Use,
 };
 use crate::value::Value;
 use chumsky::prelude::*;
@@ -10,119 +13,6 @@ use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::once;
 use std::ops::Deref;
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct PackageName(String);
-
-impl Deref for PackageName {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct PackagePath {
-    is_absolute: bool,
-    path: Vec<Located<PackageName>>,
-}
-
-impl From<&str> for PackagePath {
-    fn from(segments: &str) -> Self {
-        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
-        segments.into()
-    }
-}
-
-impl From<String> for PackagePath {
-    fn from(segments: String) -> Self {
-        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
-        segments.into()
-    }
-}
-
-impl From<Vec<String>> for PackagePath {
-    fn from(mut segments: Vec<String>) -> Self {
-        let first = segments.get(0).unwrap();
-        let is_absolute = first.is_empty();
-        if is_absolute {
-            segments = segments[1..].to_vec()
-        }
-
-        Self {
-            is_absolute: true,
-            path: segments
-                .iter()
-                .map(|e| Located::new(PackageName(e.clone()), 0..0))
-                .collect(),
-        }
-    }
-}
-
-impl PackagePath {
-    pub fn from_parts(segments: Vec<&str>) -> Self {
-        Self {
-            is_absolute: true,
-            path: segments
-                .iter()
-                .map(|e| Located::new(PackageName(String::from(*e)), 0..0))
-                .collect(),
-        }
-    }
-
-    pub fn is_absolute(&self) -> bool {
-        self.is_absolute
-    }
-
-    pub fn is_qualified(&self) -> bool {
-        self.path.len() > 1
-    }
-
-    pub fn type_name(&self, name: String) -> TypeName {
-        TypeName {
-            package: Some(self.clone()),
-            name,
-        }
-    }
-
-    pub fn as_package_str(&self) -> String {
-        let mut fq = String::new();
-        //if self.is_absolute {
-        //fq.push_str("::");
-        //}
-
-        fq.push_str(
-            &self
-                .path
-                .iter()
-                .map(|e| e.inner.0.clone())
-                .collect::<Vec<String>>()
-                .join("::"),
-        );
-
-        fq
-    }
-
-    pub fn path(&self) -> &Vec<Located<PackageName>> {
-        &self.path
-    }
-}
-
-impl From<SourceLocation> for PackagePath {
-    fn from(src: SourceLocation) -> Self {
-        let name = src.name.replace('/', "::");
-        let segments = name
-            .split("::")
-            .map(|segment| Located::new(PackageName(segment.into()), 0..0))
-            .collect();
-
-        Self {
-            is_absolute: true,
-            path: segments,
-        }
-    }
-}
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct TypeName {
@@ -137,11 +27,8 @@ impl Display for TypeName {
 }
 
 impl TypeName {
-    pub fn new(name: String) -> Self {
-        Self {
-            package: None,
-            name,
-        }
+    pub fn new(package: Option<PackagePath>, name: String) -> Self {
+        Self { package, name }
     }
 
     pub fn name(&self) -> String {
@@ -169,7 +56,7 @@ impl From<String> for TypeName {
     fn from(path: String) -> Self {
         let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
         if segments.is_empty() {
-            Self::new("".into())
+            Self::new(None, "".into())
         } else {
             let tail = segments.pop().unwrap();
             if segments.is_empty() {
@@ -412,30 +299,6 @@ impl Field {
     }
 }
 
-fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {
-    just(op).padded()
-}
-
-pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
-    just("use")
-        .padded()
-        .ignored()
-        .then(type_name())
-        .then(as_clause().or_not())
-        // .then( just(";").padded().ignored() )
-        .map_with_span(|(((_, type_path), as_clause)), span| {
-            Located::new(Use::new(type_path, as_clause), span)
-        })
-}
-
-pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
-    just("as")
-        .padded()
-        .ignored()
-        .then(simple_type_name())
-        .map(|(_, v)| v)
-}
-
 pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
     filter(|c: &char| (c.is_alphanumeric()) || *c == '@' || *c == '_' || *c == '-')
         .repeated()
@@ -466,13 +329,14 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
             let package = if segments.is_empty() {
                 None
             } else {
-                Some(PackagePath {
-                    is_absolute: true,
-                    path: segments
+                Some(PackagePath::from(
+                    segments
                         .iter()
-                        .map(|e| Located::new(PackageName(e.clone().into_inner()), e.location()))
-                        .collect(),
-                })
+                        .map(|e| {
+                            Located::new(PackageName::new(e.clone().into_inner()), e.location())
+                        })
+                        .collect::<Vec<Located<PackageName>>>(),
+                ))
             };
 
             Located::new(
@@ -606,45 +470,6 @@ pub fn logical_and(
             let location = lhs.span().start()..rhs.span().end();
             Located::new(Type::Meet(Box::new(lhs), Box::new(rhs)), location)
         })
-}
-
-pub fn integer_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
-    text::int::<char, ParserError>(10)
-        .padded()
-        .map_with_span(|s: String, span| Located::new(s.parse::<i64>().unwrap().into(), span))
-}
-
-pub fn decimal_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
-    text::int(10)
-        .then(just('.').then(text::int(10)))
-        .padded()
-        .map_with_span(
-            |(integral, (_dot, decimal)): (String, (char, String)), span| {
-                Located::new(
-                    format!("{}.{}", integral, decimal)
-                        .parse::<f64>()
-                        .unwrap()
-                        .into(),
-                    span,
-                )
-            },
-        )
-}
-
-pub fn string_literal() -> impl Parser<ParserInput, Located<Value>, Error = ParserError> + Clone {
-    just('"')
-        .ignored()
-        .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
-        .then(just('"').ignored())
-        .padded()
-        .map_with_span(|((_, x), _), span: SourceSpan| Located::new(x.into(), span))
-}
-
-pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    just("anything")
-        .padded()
-        .ignored()
-        .map_with_span(|_, span| Located::new(Type::Anything, span))
 }
 
 pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
@@ -804,35 +629,10 @@ pub fn field_definition(
         })
 }
 
-pub fn compilation_unit<S>(
-    source: S,
-) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone
-where
-    S: Into<SourceLocation> + Clone,
-{
-    use_statement()
-        .padded()
-        .repeated()
-        .then(type_definition().padded().repeated())
-        .then_ignore(end())
-        .map(move |(use_statements, types)| {
-            let mut unit = CompilationUnit::new(source.clone().into());
-
-            for e in use_statements {
-                unit.add_use(e)
-            }
-
-            for e in types {
-                unit.add_type(e)
-            }
-
-            unit
-        })
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::lang::compilation_unit;
 
     #[test]
     fn parse_ty_name() {

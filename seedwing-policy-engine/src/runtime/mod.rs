@@ -3,7 +3,8 @@ pub mod sources;
 
 use crate::core::{Function, FunctionError};
 use crate::lang::expr::Expr;
-use crate::lang::ty::{MemberQualifier, PackagePath, Type, TypeName};
+use crate::lang::package::PackagePath;
+use crate::lang::ty::{MemberQualifier, Type, TypeName};
 use crate::lang::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
 };
@@ -317,7 +318,7 @@ impl Runtime {
     pub(crate) fn new() -> Arc<Self> {
         let mut initial_types = HashMap::new();
         initial_types.insert(
-            TypeName::new("int".into()),
+            TypeName::new(None, "int".into()),
             Arc::new(TypeHandle::new_with(Located::new(
                 RuntimeType::Primordial(PrimordialType::Integer),
                 0..0,
@@ -325,7 +326,7 @@ impl Runtime {
         );
 
         initial_types.insert(
-            TypeName::new("string".into()),
+            TypeName::new(None, "string".into()),
             Arc::new(TypeHandle::new_with(Located::new(
                 RuntimeType::Primordial(PrimordialType::String),
                 0..0,
@@ -333,7 +334,7 @@ impl Runtime {
         );
 
         initial_types.insert(
-            TypeName::new("boolean".into()),
+            TypeName::new(None, "boolean".into()),
             Arc::new(TypeHandle::new_with(Located::new(
                 RuntimeType::Primordial(PrimordialType::Boolean),
                 0..0,
@@ -341,7 +342,7 @@ impl Runtime {
         );
 
         initial_types.insert(
-            TypeName::new("decimal".into()),
+            TypeName::new(None, "decimal".into()),
             Arc::new(TypeHandle::new_with(Located::new(
                 RuntimeType::Primordial(PrimordialType::Decimal),
                 0..0,

@@ -1,5 +1,5 @@
 use crate::core::Function;
-use crate::lang::ty::PackagePath;
+use crate::lang::package::PackagePath;
 use crate::lang::SourceLocation;
 use crate::runtime::sources::Ephemeral;
 use std::collections::HashMap;

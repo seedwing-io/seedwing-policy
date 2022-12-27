@@ -1,4 +1,5 @@
-use crate::lang::ty::{PackagePath, Type, TypeName};
+use crate::lang::package::PackagePath;
+use crate::lang::ty::{Type, TypeName};
 use crate::lang::{CompilationUnit, Located};
 use crate::package::Package;
 use crate::runtime::{BuildError, Runtime, RuntimeType};
@@ -34,7 +35,7 @@ impl<'b> Linker<'b> {
                     (
                         e.name().into_inner(),
                         Some(Located::new(
-                            TypeName::new(e.name().into_inner()),
+                            TypeName::new(None, e.name().into_inner()),
                             e.location(),
                         )),
                     )
@@ -76,7 +77,7 @@ impl<'b> Linker<'b> {
 
         let mut world = Vec::new();
 
-        world.push(TypeName::new("int".into()));
+        world.push(TypeName::new(None, "int".into()));
 
         //world.push("int".into());
 

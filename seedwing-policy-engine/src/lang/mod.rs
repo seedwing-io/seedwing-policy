@@ -1,5 +1,6 @@
 //use crate::lang::expr::expr;
-use crate::lang::ty::{compilation_unit, PackagePath, Type, TypeDefn, TypeName};
+use crate::lang::package::PackagePath;
+use crate::lang::ty::{simple_type_name, type_definition, type_name, Type, TypeDefn, TypeName};
 use crate::runtime::BuildError;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
@@ -9,6 +10,8 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 pub mod expr;
+pub mod literal;
+pub mod package;
 pub mod ty;
 
 pub type SourceSpan = std::ops::Range<usize>;
@@ -260,6 +263,56 @@ pub fn lexer(
         .padded_by(comment.repeated())
         .map_with_span(|l, span| (l, span))
         .repeated()
+}
+
+fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {
+    just(op).padded()
+}
+
+pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
+    just("use")
+        .padded()
+        .ignored()
+        .then(type_name())
+        .then(as_clause().or_not())
+        // .then( just(";").padded().ignored() )
+        .map_with_span(|(((_, type_path), as_clause)), span| {
+            Located::new(Use::new(type_path, as_clause), span)
+        })
+}
+
+pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
+    just("as")
+        .padded()
+        .ignored()
+        .then(simple_type_name())
+        .map(|(_, v)| v)
+}
+
+pub fn compilation_unit<S>(
+    source: S,
+) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone
+where
+    S: Into<SourceLocation> + Clone,
+{
+    use_statement()
+        .padded()
+        .repeated()
+        .then(type_definition().padded().repeated())
+        .then_ignore(end())
+        .map(move |(use_statements, types)| {
+            let mut unit = CompilationUnit::new(source.clone().into());
+
+            for e in use_statements {
+                unit.add_use(e)
+            }
+
+            for e in types {
+                unit.add_type(e)
+            }
+
+            unit
+        })
 }
 
 /*

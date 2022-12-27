@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionError};
-use crate::lang::ty::PackagePath;
+use crate::lang::package::PackagePath;
 use crate::package::Package;
 use crate::runtime::Bindings;
 use crate::value::Value;
