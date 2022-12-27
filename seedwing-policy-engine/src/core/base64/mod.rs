@@ -1,6 +1,7 @@
 use crate::core::{Function, FunctionError};
 use crate::lang::ty::PackagePath;
 use crate::package::Package;
+use crate::runtime::Bindings;
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::borrow::Borrow;
@@ -25,6 +26,7 @@ impl Function for Base64 {
     fn call<'v>(
         &'v self,
         input: &'v Value,
+        bindings: &Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             if let Some(inner) = input.try_get_string() {

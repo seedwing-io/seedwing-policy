@@ -1,4 +1,5 @@
 use crate::runtime::RuntimeType::Primordial;
+use crate::runtime::{Bindings, RuntimeType};
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::cell::RefCell;
@@ -19,8 +20,13 @@ pub enum FunctionError {
 }
 
 pub trait Function: Sync + Send + Debug {
+    fn parameters(&self) -> Vec<String> {
+        Default::default()
+    }
+
     fn call<'v>(
         &'v self,
         input: &'v Value,
+        bindings: &Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>>;
 }

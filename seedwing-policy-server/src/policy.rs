@@ -67,15 +67,9 @@ async fn display(runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResp
         html.push_str("<body style='font-family: sans-serif'>");
         html.push_str(format!("<h1>Seedwing Policy {}</h1>", path).as_str());
         match component {
-            Component::Module(pkg) => {
-                html.push_str(
-                    pkg.to_html().await.as_str()
-                )
-            }
+            Component::Module(pkg) => html.push_str(pkg.to_html().await.as_str()),
             Component::Type(ty) => {
-                html.push_str(
-                    ty.ty().await.to_html().await.as_str()
-                );
+                html.push_str(ty.ty().await.to_html().await.as_str());
             }
         }
 

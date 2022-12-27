@@ -137,10 +137,18 @@ impl<'b> Linker<'b> {
         }
 
         for (path, package) in self.packages.iter() {
-            for (fn_name, _) in package.functions() {
+            for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
-                // todo: support parameters on functions.
-                runtime.declare(path, Default::default()).await;
+                runtime
+                    .declare(
+                        path,
+                        func.parameters()
+                            .iter()
+                            .cloned()
+                            .map(|p| Located::new(p, 0..0))
+                            .collect(),
+                    )
+                    .await;
             }
         }
 

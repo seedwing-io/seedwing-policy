@@ -1,6 +1,7 @@
 use crate::core::{Function, FunctionError};
 use crate::lang::ty::PackagePath;
 use crate::package::Package;
+use crate::runtime::Bindings;
 use crate::value::Value;
 use ariadne::Cache;
 use std::future::Future;
@@ -25,6 +26,7 @@ impl Function for PEM {
     fn call<'v>(
         &'v self,
         input: &'v Value,
+        bindings: &Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             let mut bytes = Vec::new();

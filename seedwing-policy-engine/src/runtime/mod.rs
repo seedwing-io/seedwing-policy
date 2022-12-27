@@ -86,10 +86,10 @@ impl Builder {
     }
 
     pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-        where
-            Self: Sized,
-            S: Into<String>,
-            SrcIter: Iterator<Item=(SourceLocation, S)>,
+    where
+        Self: Sized,
+        S: Into<String>,
+        SrcIter: Iterator<Item = (SourceLocation, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -257,7 +257,6 @@ impl ModuleHandle {
     }
 }
 
-
 #[derive(Default, Debug)]
 pub struct TypeHandle {
     ty: Mutex<Option<Arc<Located<RuntimeType>>>>,
@@ -369,13 +368,9 @@ impl Runtime {
                 let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
                 let parts: Vec<&str> = relative_name.split("::").collect();
                 if parts.len() == 1 {
-                    module_handle.types.push(
-                        parts[0].into()
-                    );
+                    module_handle.types.push(parts[0].into());
                 } else if !module_handle.modules.contains(&parts[0].into()) {
-                    module_handle.modules.push(
-                        parts[0].into(),
-                    )
+                    module_handle.modules.push(parts[0].into())
                 }
             }
         }
@@ -437,7 +432,7 @@ impl Runtime {
     fn convert<'c>(
         self: &'c Arc<Self>,
         ty: &'c Located<Type>,
-    ) -> Pin<Box<dyn Future<Output=Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
         match &**ty {
             Type::Anything => Box::pin(async move {
                 Arc::new(
@@ -656,7 +651,7 @@ impl Bindings {
 }
 
 impl Located<RuntimeType> {
-    pub fn to_html(&self) -> Pin<Box<dyn Future<Output=String> + '_>> {
+    pub fn to_html(&self) -> Pin<Box<dyn Future<Output = String> + '_>> {
         match &**self {
             RuntimeType::Anything => Box::pin(async move { "<b>anything</b>".into() }),
             RuntimeType::Primordial(primordial) => Box::pin(async move {
@@ -702,7 +697,7 @@ impl Located<RuntimeType> {
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
             RuntimeType::Anything => Box::pin(ready(Ok(Some(value)))),
             RuntimeType::Argument(name) => Box::pin(async move {
@@ -766,7 +761,7 @@ impl Located<RuntimeType> {
                 }),
                 PrimordialType::Function(name, func) => Box::pin(async move {
                     let mut locked_value = value.lock().await;
-                    let mut result = func.call(&*locked_value).await;
+                    let mut result = func.call(&*locked_value, bindings).await;
                     if let Ok(transform) = result {
                         let transform = Arc::new(Mutex::new(transform));
                         locked_value.transform(name.clone(), transform.clone());
@@ -974,7 +969,7 @@ impl RuntimeObjectType {
                     f.name.clone().into_inner(),
                     f.ty.ty().await.to_html().await
                 )
-                    .as_str(),
+                .as_str(),
             );
             html.push_str("</div>");
         }
