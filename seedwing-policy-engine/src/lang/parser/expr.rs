@@ -41,6 +41,7 @@ pub type ExprFuture =
     Pin<Box<dyn Future<Output = Result<Arc<Mutex<RuntimeValue>>, RuntimeError>> + 'static>>;
 
 impl Located<Expr> {
+    #[allow(clippy::let_and_return)]
     pub fn evaluate(self: &Arc<Self>, value: Arc<Mutex<RuntimeValue>>) -> ExprFuture {
         let this = self.clone();
 
@@ -61,7 +62,6 @@ impl Located<Expr> {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
-                    #[allow(clippy::let_and_return)]
                     let result = if let Some(Ordering::Greater) =
                         lhs.lock().await.partial_cmp(&*rhs.lock().await)
                     {
@@ -72,7 +72,20 @@ impl Located<Expr> {
 
                     result
                 }
-                Expr::GreaterThanEqual(_, _) => todo!(),
+                Expr::GreaterThanEqual(lhs, rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Greater | Ordering::Equal) =
+                        lhs.lock().await.partial_cmp(&*rhs.lock().await)
+                    {
+                        Ok(Arc::new(Mutex::new(true.into())))
+                    } else {
+                        Ok(Arc::new(Mutex::new(false.into())))
+                    };
+
+                    result
+                }
                 Expr::Equal(_, _) => todo!(),
                 Expr::NotEqual(_, _) => todo!(),
                 Expr::Not(_) => todo!(),

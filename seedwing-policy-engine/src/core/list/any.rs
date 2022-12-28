@@ -198,4 +198,26 @@ mod test {
 
         assert!(matches!(result, Ok(None),))
     }
+
+    #[actix_rt::test]
+    async fn call_nonmatching_empty() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            type test-any = list::Any<42>
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+
+        let runtime = builder.link().await.unwrap();
+
+        let value = json!([]);
+
+        let result = runtime.evaluate("test::test-any", value).await;
+
+        assert!(matches!(result, Ok(None),))
+    }
 }
