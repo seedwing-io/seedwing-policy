@@ -11,11 +11,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 pub mod base64;
+pub mod list;
 pub mod sigstore;
 pub mod x509;
 
 #[derive(Debug)]
 pub enum FunctionError {
+    InvalidInput,
     Other(String),
 }
 
@@ -27,6 +29,6 @@ pub trait Function: Sync + Send + Debug {
     fn call<'v>(
         &'v self,
         input: &'v Value,
-        bindings: &Bindings,
+        bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>>;
 }

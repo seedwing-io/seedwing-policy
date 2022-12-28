@@ -26,7 +26,7 @@ impl Function for PEM {
     fn call<'v>(
         &'v self,
         input: &'v Value,
-        bindings: &Bindings,
+        bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             let mut bytes = Vec::new();

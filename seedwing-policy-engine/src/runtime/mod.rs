@@ -32,6 +32,70 @@ use std::task::ready;
 
 pub mod cache;
 
+#[derive(Default, Debug)]
+pub struct TypeHandle {
+    name: Option<TypeName>,
+    ty: Mutex<Option<Arc<Located<lir::Type>>>>,
+    parameters: Vec<Located<String>>,
+}
+
+impl TypeHandle {
+    pub fn new(name: Option<TypeName>) -> Self {
+        Self {
+            name,
+            ty: Mutex::new(None),
+            parameters: vec![],
+        }
+    }
+
+    pub fn new_with(name: Option<TypeName>, ty: Located<lir::Type>) -> Self {
+        Self {
+            name,
+            ty: Mutex::new(Some(Arc::new(ty))),
+            parameters: vec![],
+        }
+    }
+
+    pub async fn with(mut self, ty: Located<lir::Type>) -> Self {
+        self.define(Arc::new(ty)).await;
+        self
+    }
+
+    pub fn with_parameters(mut self, parameters: Vec<Located<String>>) -> Self {
+        self.parameters = parameters;
+        self
+    }
+
+    pub fn parameters(&self) -> Vec<Located<String>> {
+        self.parameters.clone()
+    }
+
+    pub async fn define(&self, ty: Arc<Located<lir::Type>>) {
+        self.ty.lock().await.replace(ty);
+    }
+
+    pub async fn define_from(&self, ty: Arc<TypeHandle>) {
+        let inbound = ty.ty.lock().await.as_ref().cloned().unwrap();
+        self.ty.lock().await.replace(inbound);
+    }
+
+    pub async fn ty(&self) -> Arc<Located<lir::Type>> {
+        self.ty.lock().await.as_ref().unwrap().clone()
+    }
+
+    pub async fn evaluate(
+        &self,
+        value: Arc<Mutex<Value>>,
+        bindings: &Bindings,
+    ) -> Result<EvaluationResult, RuntimeError> {
+        if let Some(ty) = &*self.ty.lock().await {
+            ty.evaluate(value, bindings).await
+        } else {
+            Err(RuntimeError::InvalidState)
+        }
+    }
+}
+
 pub enum Component {
     Module(ModuleHandle),
     Type(Arc<TypeHandle>),
@@ -79,6 +143,7 @@ impl Builder {
             packages: Default::default(),
             source_cache: Default::default(),
         };
+        builder.add_package(crate::core::list::package());
         builder.add_package(crate::core::sigstore::package());
         builder.add_package(crate::core::x509::package());
         builder.add_package(crate::core::base64::package());
@@ -197,7 +262,8 @@ impl EvaluationResult {
 #[derive(Debug)]
 pub enum RuntimeError {
     Lock,
-    NoSuchType,
+    InvalidState,
+    NoSuchType(TypeName),
     Function(FunctionError),
 }
 
@@ -325,10 +391,15 @@ impl Runtime {
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Arc::new(Mutex::new(value.into()));
         let path = TypeName::from(path.into());
-        let ty = &self.types.lock().await[&path];
-        let ty = ty.ty().await;
-        let bindings = Bindings::default();
-        ty.evaluate(value, &bindings).await
+        let locked_types = &self.types.lock().await;
+        let ty = locked_types.get(&path);
+        if let Some(ty) = ty {
+            let ty = ty.ty().await;
+            let bindings = Bindings::default();
+            ty.evaluate(value, &bindings).await
+        } else {
+            Err(RuntimeError::NoSuchType(path))
+        }
     }
 
     async fn declare(self: &mut Arc<Self>, path: TypeName, parameters: Vec<Located<String>>) {
@@ -1072,71 +1143,5 @@ mod test {
                 .await,
             Ok(Some(_))
         ));
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct TypeHandle {
-    name: Option<TypeName>,
-    ty: Mutex<Option<Arc<Located<lir::Type>>>>,
-    parameters: Vec<Located<String>>,
-}
-
-impl TypeHandle {
-    pub fn new(name: Option<TypeName>) -> Self {
-        Self {
-            name,
-            ty: Mutex::new(None),
-            parameters: vec![],
-        }
-    }
-
-    pub fn new_with(name: Option<TypeName>, ty: Located<lir::Type>) -> Self {
-        Self {
-            name,
-            ty: Mutex::new(Some(Arc::new(ty))),
-            parameters: vec![],
-        }
-    }
-
-    pub async fn with(mut self, ty: Located<lir::Type>) -> Self {
-        self.define(Arc::new(ty)).await;
-        self
-    }
-
-    pub fn with_parameters(mut self, parameters: Vec<Located<String>>) -> Self {
-        self.parameters = parameters;
-        self
-    }
-
-    pub fn parameters(&self) -> Vec<Located<String>> {
-        self.parameters.clone()
-    }
-
-    pub async fn define(&self, ty: Arc<Located<lir::Type>>) {
-        self.ty.lock().await.replace(ty);
-    }
-
-    pub async fn define_from(&self, ty: Arc<TypeHandle>) {
-        let inbound = ty.ty.lock().await.as_ref().cloned().unwrap();
-        self.ty.lock().await.replace(inbound);
-        println!("DEFINED {:?}", self);
-    }
-
-    pub async fn ty(&self) -> Arc<Located<lir::Type>> {
-        println!("GET {:?}", self);
-        self.ty.lock().await.as_ref().unwrap().clone()
-    }
-
-    pub async fn evaluate(
-        &self,
-        value: Arc<Mutex<Value>>,
-        bindings: &Bindings,
-    ) -> Result<EvaluationResult, RuntimeError> {
-        if let Some(ty) = &*self.ty.lock().await {
-            ty.evaluate(value, bindings).await
-        } else {
-            Err(RuntimeError::NoSuchType)
-        }
     }
 }
