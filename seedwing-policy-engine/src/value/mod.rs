@@ -1,8 +1,9 @@
 use crate::core::Function;
+use crate::lang::lir::{Field, Type};
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::TypeName;
-use crate::runtime::{RuntimeError, RuntimeField, RuntimeType, TypeHandle};
+use crate::runtime::{RuntimeError, TypeHandle};
 use async_mutex::Mutex;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -49,8 +50,8 @@ impl Printer {
 #[derive(Debug, Clone)]
 pub enum Noted {
     TypeHandle(Arc<TypeHandle>),
-    Type(Arc<Located<RuntimeType>>),
-    Field(Arc<Located<RuntimeField>>),
+    Type(Arc<Located<Type>>),
+    Field(Arc<Located<Field>>),
     Expr(Arc<Located<Expr>>),
 }
 
@@ -60,14 +61,14 @@ impl From<Arc<TypeHandle>> for Noted {
     }
 }
 
-impl From<Arc<Located<RuntimeType>>> for Noted {
-    fn from(inner: Arc<Located<RuntimeType>>) -> Self {
+impl From<Arc<Located<Type>>> for Noted {
+    fn from(inner: Arc<Located<Type>>) -> Self {
         Self::Type(inner)
     }
 }
 
-impl From<Arc<Located<RuntimeField>>> for Noted {
-    fn from(inner: Arc<Located<RuntimeField>>) -> Self {
+impl From<Arc<Located<Field>>> for Noted {
+    fn from(inner: Arc<Located<Field>>) -> Self {
         Self::Field(inner)
     }
 }

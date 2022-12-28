@@ -2,7 +2,10 @@ pub mod linker;
 pub mod sources;
 
 use crate::core::{Function, FunctionError};
-use crate::lang::hir::{MemberQualifier, Type};
+use crate::lang::hir;
+use crate::lang::hir::MemberQualifier;
+use crate::lang::lir;
+use crate::lang::lir::{Field, ObjectType, PrimordialType};
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
@@ -259,96 +262,27 @@ impl ModuleHandle {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct TypeHandle {
-    ty: Mutex<Option<Arc<Located<RuntimeType>>>>,
-    parameters: Vec<Located<String>>,
-}
-
-impl TypeHandle {
-    pub fn new() -> Self {
-        Self {
-            ty: Mutex::new(None),
-            parameters: vec![],
-        }
-    }
-
-    pub fn new_with(ty: Located<RuntimeType>) -> Self {
-        Self {
-            ty: Mutex::new(Some(Arc::new(ty))),
-            parameters: vec![],
-        }
-    }
-
-    async fn with(mut self, ty: Located<RuntimeType>) -> Self {
-        self.define(Arc::new(ty)).await;
-        self
-    }
-
-    fn with_parameters(mut self, parameters: Vec<Located<String>>) -> Self {
-        self.parameters = parameters;
-        self
-    }
-
-    fn parameters(&self) -> Vec<Located<String>> {
-        self.parameters.clone()
-    }
-
-    async fn define(&self, ty: Arc<Located<RuntimeType>>) {
-        self.ty.lock().await.replace(ty);
-    }
-
-    pub async fn ty(&self) -> Arc<Located<RuntimeType>> {
-        self.ty.lock().await.as_ref().unwrap().clone()
-    }
-
-    async fn evaluate(
-        &self,
-        value: Arc<Mutex<Value>>,
-        bindings: &Bindings,
-    ) -> Result<EvaluationResult, RuntimeError> {
-        if let Some(ty) = &*self.ty.lock().await {
-            ty.evaluate(value, bindings).await
-        } else {
-            Err(RuntimeError::NoSuchType)
-        }
-    }
+macro_rules! primordial_type {
+    ($obj: expr, $name: literal, $primordial: expr) => {
+        let name = TypeName::new(None, $name.into());
+        $obj.insert(
+            name.clone(),
+            Arc::new(TypeHandle::new_with(
+                Some(name),
+                Located::new(lir::Type::Primordial($primordial), 0..0),
+            )),
+        );
+    };
 }
 
 impl Runtime {
     pub(crate) fn new() -> Arc<Self> {
         let mut initial_types = HashMap::new();
-        initial_types.insert(
-            TypeName::new(None, "int".into()),
-            Arc::new(TypeHandle::new_with(Located::new(
-                RuntimeType::Primordial(PrimordialType::Integer),
-                0..0,
-            ))),
-        );
 
-        initial_types.insert(
-            TypeName::new(None, "string".into()),
-            Arc::new(TypeHandle::new_with(Located::new(
-                RuntimeType::Primordial(PrimordialType::String),
-                0..0,
-            ))),
-        );
-
-        initial_types.insert(
-            TypeName::new(None, "boolean".into()),
-            Arc::new(TypeHandle::new_with(Located::new(
-                RuntimeType::Primordial(PrimordialType::Boolean),
-                0..0,
-            ))),
-        );
-
-        initial_types.insert(
-            TypeName::new(None, "decimal".into()),
-            Arc::new(TypeHandle::new_with(Located::new(
-                RuntimeType::Primordial(PrimordialType::Decimal),
-                0..0,
-            ))),
-        );
+        primordial_type!(initial_types, "int", PrimordialType::Integer);
+        primordial_type!(initial_types, "string", PrimordialType::String);
+        primordial_type!(initial_types, "boolean", PrimordialType::Boolean);
+        primordial_type!(initial_types, "decimal", PrimordialType::Decimal);
 
         Arc::new(Self {
             types: Mutex::new(initial_types),
@@ -399,25 +333,23 @@ impl Runtime {
 
     async fn declare(self: &mut Arc<Self>, path: TypeName, parameters: Vec<Located<String>>) {
         self.types.lock().await.insert(
-            path,
-            Arc::new(TypeHandle::new().with_parameters(parameters)),
+            path.clone(),
+            Arc::new(TypeHandle::new(Some(path.clone())).with_parameters(parameters)),
         );
     }
 
-    async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<Type>) {
+    async fn define(self: &mut Arc<Self>, path: TypeName, ty: &Located<hir::Type>) {
         log::info!("define type {}", path);
         let converted = self.convert(ty).await;
         if let Some(handle) = self.types.lock().await.get_mut(&path) {
-            if let Some(inner) = &*converted.ty.lock().await {
-                handle.define(inner.clone()).await;
-            }
+            handle.define_from(converted).await;
         }
     }
 
     async fn define_function(self: &mut Arc<Self>, path: TypeName, func: Arc<dyn Function>) {
         log::info!("define function {}", path);
         let runtime_type = Located::new(
-            RuntimeType::Primordial(PrimordialType::Function(path.clone(), func.clone())),
+            lir::Type::Primordial(PrimordialType::Function(path.clone(), func.clone())),
             0..0,
         );
 
@@ -433,17 +365,17 @@ impl Runtime {
 
     fn convert<'c>(
         self: &'c Arc<Self>,
-        ty: &'c Located<Type>,
+        ty: &'c Located<hir::Type>,
     ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
         match &**ty {
-            Type::Anything => Box::pin(async move {
+            hir::Type::Anything => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
-                        .with(Located::new(RuntimeType::Anything, ty.location()))
+                    TypeHandle::new(None)
+                        .with(Located::new(lir::Type::Anything, ty.location()))
                         .await,
                 )
             }),
-            Type::Ref(inner, arguments) => Box::pin(async move {
+            hir::Type::Ref(inner, arguments) => Box::pin(async move {
                 let primary_type = self.types.lock().await[&(inner.clone().into_inner())].clone();
 
                 if arguments.is_empty() {
@@ -462,98 +394,86 @@ impl Runtime {
                     }
 
                     Arc::new(
-                        TypeHandle::new()
+                        TypeHandle::new(None)
                             .with(Located::new(
-                                RuntimeType::Bound(primary_type, bindings),
+                                lir::Type::Bound(primary_type, bindings),
                                 ty.location(),
                             ))
                             .await,
                     )
                 }
             }),
-            Type::Parameter(name) => Box::pin(async move {
+            hir::Type::Parameter(name) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Argument(name.clone()),
+                            lir::Type::Argument(name.clone()),
                             name.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Const(inner) => Box::pin(async move {
+            hir::Type::Const(inner) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
-                        .with(Located::new(
-                            RuntimeType::Const(inner.clone()),
-                            ty.location(),
-                        ))
+                    TypeHandle::new(None)
+                        .with(Located::new(lir::Type::Const(inner.clone()), ty.location()))
                         .await,
                 )
             }),
-            Type::Object(inner) => Box::pin(async move {
+            hir::Type::Object(inner) => Box::pin(async move {
                 let mut fields = Vec::new();
 
                 for f in inner.fields().iter() {
                     fields.push(Arc::new(Located::new(
-                        RuntimeField {
-                            name: f.name().clone(),
-                            ty: self.convert(f.ty()).await,
-                        },
+                        Field::new(f.name().clone(), self.convert(f.ty()).await),
                         ty.location(),
                     )));
                 }
 
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Object(RuntimeObjectType { fields }),
+                            lir::Type::Object(ObjectType::new(fields)),
                             ty.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Expr(inner) => Box::pin(async move {
+            hir::Type::Expr(inner) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Expr(Arc::new(inner.clone())),
+                            lir::Type::Expr(Arc::new(inner.clone())),
                             ty.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Join(lhs, rhs) => Box::pin(async move {
+            hir::Type::Join(lhs, rhs) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Join(
-                                self.convert(&**lhs).await,
-                                self.convert(&**rhs).await,
-                            ),
+                            lir::Type::Join(self.convert(&**lhs).await, self.convert(&**rhs).await),
                             ty.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Meet(lhs, rhs) => Box::pin(async move {
+            hir::Type::Meet(lhs, rhs) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Meet(
-                                self.convert(&**lhs).await,
-                                self.convert(&**rhs).await,
-                            ),
+                            lir::Type::Meet(self.convert(&**lhs).await, self.convert(&**rhs).await),
                             ty.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Refinement(primary, refinement) => Box::pin(async move {
+            hir::Type::Refinement(primary, refinement) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::Refinement(
+                            lir::Type::Refinement(
                                 self.convert(&**primary).await,
                                 self.convert(&**refinement).await,
                             ),
@@ -562,71 +482,33 @@ impl Runtime {
                         .await,
                 )
             }),
-            Type::List(inner) => Box::pin(async move {
+            hir::Type::List(inner) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::List(self.convert(inner).await),
+                            lir::Type::List(self.convert(inner).await),
                             ty.location(),
                         ))
                         .await,
                 )
             }),
-            Type::MemberQualifier(qualifier, ty) => Box::pin(async move {
+            hir::Type::MemberQualifier(qualifier, ty) => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
+                    TypeHandle::new(None)
                         .with(Located::new(
-                            RuntimeType::MemberQualifier(qualifier.clone(), self.convert(ty).await),
+                            lir::Type::MemberQualifier(qualifier.clone(), self.convert(ty).await),
                             qualifier.location(),
                         ))
                         .await,
                 )
             }),
-            Type::Nothing => Box::pin(async move {
+            hir::Type::Nothing => Box::pin(async move {
                 Arc::new(
-                    TypeHandle::new()
-                        .with(Located::new(RuntimeType::Nothing, ty.location()))
+                    TypeHandle::new(None)
+                        .with(Located::new(lir::Type::Nothing, ty.location()))
                         .await,
                 )
             }),
-        }
-    }
-}
-
-pub enum RuntimeType {
-    Anything,
-    Primordial(PrimordialType),
-    Bound(Arc<TypeHandle>, Bindings),
-    Argument(Located<String>),
-    Const(Located<Value>),
-    Object(RuntimeObjectType),
-    Expr(Arc<Located<Expr>>),
-    Join(Arc<TypeHandle>, Arc<TypeHandle>),
-    Meet(Arc<TypeHandle>, Arc<TypeHandle>),
-    Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
-    List(Arc<TypeHandle>),
-    MemberQualifier(Located<MemberQualifier>, Arc<TypeHandle>),
-    Nothing,
-}
-
-impl Debug for RuntimeType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RuntimeType::Anything => write!(f, "anything"),
-            RuntimeType::Primordial(inner) => write!(f, "{:?}", inner),
-            RuntimeType::Const(inner) => write!(f, "{:?}", inner),
-            RuntimeType::Object(inner) => write!(f, "{:?}", inner),
-            RuntimeType::Expr(inner) => write!(f, "$({:?})", inner),
-            RuntimeType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
-            RuntimeType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
-            RuntimeType::Refinement(primary, refinement) => {
-                write!(f, "{:?}({:?})", primary, refinement)
-            }
-            RuntimeType::List(inner) => write!(f, "[{:?}]", inner),
-            RuntimeType::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
-            RuntimeType::Argument(name) => write!(f, "{:?}", name),
-            RuntimeType::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
-            RuntimeType::Nothing => write!(f, "nothing"),
         }
     }
 }
@@ -652,11 +534,11 @@ impl Bindings {
     }
 }
 
-impl Located<RuntimeType> {
+impl Located<lir::Type> {
     pub fn to_html(&self) -> Pin<Box<dyn Future<Output = String> + '_>> {
         match &**self {
-            RuntimeType::Anything => Box::pin(async move { "<b>anything</b>".into() }),
-            RuntimeType::Primordial(primordial) => Box::pin(async move {
+            lir::Type::Anything => Box::pin(async move { "<b>anything</b>".into() }),
+            lir::Type::Primordial(primordial) => Box::pin(async move {
                 match primordial {
                     PrimordialType::Integer => "<b>integer</b>".into(),
                     PrimordialType::Decimal => "<b>decimal</b>".into(),
@@ -667,31 +549,29 @@ impl Located<RuntimeType> {
                     }
                 }
             }),
-            RuntimeType::Bound(_, _) => Box::pin(async move { "bound".into() }),
-            RuntimeType::Argument(_) => Box::pin(async move { "argument".into() }),
-            RuntimeType::Const(_) => Box::pin(async move { "const".into() }),
-            RuntimeType::Object(inner) => Box::pin(async move { inner.to_html().await }),
-            RuntimeType::Expr(_) => Box::pin(async move { "expr".into() }),
-            RuntimeType::Join(lhs, rhs) => Box::pin(async move {
+            lir::Type::Bound(_, _) => Box::pin(async move { "bound".into() }),
+            lir::Type::Argument(_) => Box::pin(async move { "argument".into() }),
+            lir::Type::Const(_) => Box::pin(async move { "const".into() }),
+            lir::Type::Object(inner) => Box::pin(async move { inner.to_html().await }),
+            lir::Type::Expr(_) => Box::pin(async move { "expr".into() }),
+            lir::Type::Join(lhs, rhs) => Box::pin(async move {
                 format!(
                     "{} || {}",
                     lhs.ty().await.to_html().await,
                     rhs.ty().await.to_html().await
                 )
             }),
-            RuntimeType::Meet(lhs, rhs) => Box::pin(async move {
+            lir::Type::Meet(lhs, rhs) => Box::pin(async move {
                 format!(
                     "{} && {}",
                     lhs.ty().await.to_html().await,
                     rhs.ty().await.to_html().await
                 )
             }),
-            RuntimeType::Refinement(_, _) => Box::pin(async move { "refinement".into() }),
-            RuntimeType::List(_) => Box::pin(async move { "list".into() }),
-            RuntimeType::MemberQualifier(_, _) => {
-                Box::pin(async move { "qualified-member".into() })
-            }
-            RuntimeType::Nothing => Box::pin(async move { "<b>nothing</b>".into() }),
+            lir::Type::Refinement(_, _) => Box::pin(async move { "refinement".into() }),
+            lir::Type::List(_) => Box::pin(async move { "list".into() }),
+            lir::Type::MemberQualifier(_, _) => Box::pin(async move { "qualified-member".into() }),
+            lir::Type::Nothing => Box::pin(async move { "<b>nothing</b>".into() }),
         }
     }
 
@@ -701,8 +581,8 @@ impl Located<RuntimeType> {
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &***self {
-            RuntimeType::Anything => Box::pin(ready(Ok(Some(value)))),
-            RuntimeType::Argument(name) => Box::pin(async move {
+            lir::Type::Anything => Box::pin(ready(Ok(Some(value)))),
+            lir::Type::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(&name.clone().into_inner()) {
                     let result = bound.evaluate(value.clone(), bindings).await?;
                     let mut locked_value = value.lock().await;
@@ -719,7 +599,7 @@ impl Located<RuntimeType> {
                     Ok(None)
                 }
             }),
-            RuntimeType::Primordial(inner) => match inner {
+            lir::Type::Primordial(inner) => match inner {
                 PrimordialType::Integer => Box::pin(async move {
                     let mut locked_value = value.lock().await;
                     if locked_value.is_integer() {
@@ -773,7 +653,7 @@ impl Located<RuntimeType> {
                     }
                 }),
             },
-            RuntimeType::Const(inner) => Box::pin(async move {
+            lir::Type::Const(inner) => Box::pin(async move {
                 let mut locked_value = value.lock().await;
                 if (**inner).eq(&*locked_value) {
                     locked_value.note(self.clone(), true);
@@ -783,15 +663,15 @@ impl Located<RuntimeType> {
                     Ok(None)
                 }
             }),
-            RuntimeType::Object(inner) => Box::pin(async move {
+            lir::Type::Object(inner) => Box::pin(async move {
                 let mut locked_value = value.lock().await;
                 if locked_value.is_object() {
                     let mut obj = locked_value.try_get_object();
                     let mut mismatch = vec![];
                     if let Some(obj) = obj {
-                        for field in &inner.fields {
-                            if let Some(field_value) = obj.get(field.name.clone().into_inner()) {
-                                let result = field.ty.evaluate(field_value, bindings).await?;
+                        for field in inner.fields() {
+                            if let Some(field_value) = obj.get(field.name().clone().into_inner()) {
+                                let result = field.ty().evaluate(field_value, bindings).await?;
                                 if result.is_none() {
                                     locked_value.note(self.clone(), false);
                                     return Ok(None);
@@ -820,7 +700,7 @@ impl Located<RuntimeType> {
                     Ok(None)
                 }
             }),
-            RuntimeType::Expr(expr) => Box::pin(async move {
+            lir::Type::Expr(expr) => Box::pin(async move {
                 let result = expr.evaluate(value.clone()).await?;
                 let mut locked_value = value.lock().await;
                 let locked_result = result.lock().await;
@@ -832,7 +712,7 @@ impl Located<RuntimeType> {
                     Ok(None)
                 }
             }),
-            RuntimeType::Join(lhs, rhs) => Box::pin(async move {
+            lir::Type::Join(lhs, rhs) => Box::pin(async move {
                 let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
                 let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
@@ -851,7 +731,7 @@ impl Located<RuntimeType> {
 
                 Ok(None)
             }),
-            RuntimeType::Meet(lhs, rhs) => Box::pin(async move {
+            lir::Type::Meet(lhs, rhs) => Box::pin(async move {
                 let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
                 let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
@@ -870,7 +750,7 @@ impl Located<RuntimeType> {
 
                 Ok(None)
             }),
-            RuntimeType::Refinement(primary, refinement) => Box::pin(async move {
+            lir::Type::Refinement(primary, refinement) => Box::pin(async move {
                 let mut result = primary.evaluate(value.clone(), bindings).await?;
                 if let Some(primary_value) = result {
                     let result = refinement.evaluate(primary_value.clone(), bindings).await?;
@@ -883,8 +763,8 @@ impl Located<RuntimeType> {
                     Ok(None)
                 }
             }),
-            RuntimeType::List(_) => todo!(),
-            RuntimeType::MemberQualifier(qualifier, ty) => Box::pin(async move {
+            lir::Type::List(_) => todo!(),
+            lir::Type::MemberQualifier(qualifier, ty) => Box::pin(async move {
                 let mut locked_value = value.lock().await;
                 match &**qualifier {
                     MemberQualifier::All => {
@@ -937,54 +817,12 @@ impl Located<RuntimeType> {
                     }
                 }
             }),
-            RuntimeType::Bound(primary, bindings) => {
+            lir::Type::Bound(primary, bindings) => {
                 Box::pin(async move { primary.evaluate(value, bindings).await })
             }
-            RuntimeType::Nothing => Box::pin(ready(Ok(None))),
+            lir::Type::Nothing => Box::pin(ready(Ok(None))),
         }
     }
-}
-
-#[derive(Debug)]
-pub enum PrimordialType {
-    Integer,
-    Decimal,
-    Boolean,
-    String,
-    Function(TypeName, Arc<dyn Function>),
-}
-
-#[derive(Debug)]
-pub struct RuntimeObjectType {
-    fields: Vec<Arc<Located<RuntimeField>>>,
-}
-
-impl RuntimeObjectType {
-    pub async fn to_html(&self) -> String {
-        let mut html = String::new();
-        html.push_str("<div>{");
-        for f in &self.fields {
-            html.push_str("<div style='padding-left: 1em'>");
-            html.push_str(
-                format!(
-                    "{}: {},",
-                    f.name.clone().into_inner(),
-                    f.ty.ty().await.to_html().await
-                )
-                .as_str(),
-            );
-            html.push_str("</div>");
-        }
-        html.push_str("}</div>");
-
-        html
-    }
-}
-
-#[derive(Debug)]
-pub struct RuntimeField {
-    name: Located<String>,
-    ty: Arc<TypeHandle>,
 }
 
 #[cfg(test)]
@@ -1234,5 +1072,71 @@ mod test {
                 .await,
             Ok(Some(_))
         ));
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct TypeHandle {
+    name: Option<TypeName>,
+    ty: Mutex<Option<Arc<Located<lir::Type>>>>,
+    parameters: Vec<Located<String>>,
+}
+
+impl TypeHandle {
+    pub fn new(name: Option<TypeName>) -> Self {
+        Self {
+            name,
+            ty: Mutex::new(None),
+            parameters: vec![],
+        }
+    }
+
+    pub fn new_with(name: Option<TypeName>, ty: Located<lir::Type>) -> Self {
+        Self {
+            name,
+            ty: Mutex::new(Some(Arc::new(ty))),
+            parameters: vec![],
+        }
+    }
+
+    pub async fn with(mut self, ty: Located<lir::Type>) -> Self {
+        self.define(Arc::new(ty)).await;
+        self
+    }
+
+    pub fn with_parameters(mut self, parameters: Vec<Located<String>>) -> Self {
+        self.parameters = parameters;
+        self
+    }
+
+    pub fn parameters(&self) -> Vec<Located<String>> {
+        self.parameters.clone()
+    }
+
+    pub async fn define(&self, ty: Arc<Located<lir::Type>>) {
+        self.ty.lock().await.replace(ty);
+    }
+
+    pub async fn define_from(&self, ty: Arc<TypeHandle>) {
+        let inbound = ty.ty.lock().await.as_ref().cloned().unwrap();
+        self.ty.lock().await.replace(inbound);
+        println!("DEFINED {:?}", self);
+    }
+
+    pub async fn ty(&self) -> Arc<Located<lir::Type>> {
+        println!("GET {:?}", self);
+        self.ty.lock().await.as_ref().unwrap().clone()
+    }
+
+    pub async fn evaluate(
+        &self,
+        value: Arc<Mutex<Value>>,
+        bindings: &Bindings,
+    ) -> Result<EvaluationResult, RuntimeError> {
+        if let Some(ty) = &*self.ty.lock().await {
+            ty.evaluate(value, bindings).await
+        } else {
+            Err(RuntimeError::NoSuchType)
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::lang::hir::Type;
 use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
-use crate::runtime::{RuntimeError, RuntimeType};
+use crate::runtime::RuntimeError;
 use crate::value::{Value as RuntimeValue, Value};
 use async_mutex::Mutex;
 use chumsky::prelude::*;

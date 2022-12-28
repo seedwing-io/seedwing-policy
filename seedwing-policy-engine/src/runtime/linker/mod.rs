@@ -3,7 +3,7 @@ use crate::lang::parser::{CompilationUnit, Located};
 use crate::lang::PackagePath;
 use crate::lang::TypeName;
 use crate::package::Package;
-use crate::runtime::{BuildError, Runtime, RuntimeType};
+use crate::runtime::{BuildError, Runtime};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;

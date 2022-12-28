@@ -1,5 +1,5 @@
-use crate::runtime::RuntimeType::Primordial;
-use crate::runtime::{Bindings, RuntimeType};
+use crate::lang::hir::Type;
+use crate::runtime::Bindings;
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::cell::RefCell;
