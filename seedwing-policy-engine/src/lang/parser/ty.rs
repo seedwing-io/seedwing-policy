@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::expr::{expr, Expr};
-use crate::lang::literal::{anything_literal, decimal_literal, integer_literal, string_literal};
 use crate::lang::package::{PackageName, PackagePath};
-use crate::lang::{
+use crate::lang::parser::expr::{expr, Expr};
+use crate::lang::parser::literal::{
+    anything_literal, decimal_literal, integer_literal, string_literal,
+};
+use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
     SourceLocation, SourceSpan, Use,
 };
@@ -632,7 +634,7 @@ pub fn field_definition(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lang::compilation_unit;
+    use crate::lang::parser::compilation_unit;
 
     #[test]
     fn parse_ty_name() {

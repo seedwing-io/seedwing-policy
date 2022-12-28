@@ -1,4 +1,4 @@
-use crate::lang::SourceLocation;
+use crate::lang::parser::SourceLocation;
 use ariadne::{Cache, Source};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};

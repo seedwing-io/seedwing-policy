@@ -1,5 +1,5 @@
-use crate::lang::ty::TypeName;
-use crate::lang::{Located, SourceLocation};
+use crate::lang::parser::ty::TypeName;
+use crate::lang::parser::{Located, SourceLocation};
 use std::ops::Deref;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -96,7 +96,7 @@ impl PackagePath {
             &self
                 .path
                 .iter()
-                .map(|e| e.inner.0.clone())
+                .map(|e| e.inner().0)
                 .collect::<Vec<String>>()
                 .join("::"),
         );
@@ -111,7 +111,7 @@ impl PackagePath {
 
 impl From<SourceLocation> for PackagePath {
     fn from(src: SourceLocation) -> Self {
-        let name = src.name.replace('/', "::");
+        let name = src.name().replace('/', "::");
         let segments = name
             .split("::")
             .map(|segment| Located::new(PackageName(segment.into()), 0..0))

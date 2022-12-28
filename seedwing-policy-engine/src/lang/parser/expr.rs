@@ -1,5 +1,5 @@
-use crate::lang::ty::Type;
-use crate::lang::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
+use crate::lang::parser::ty::Type;
+use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::{RuntimeError, RuntimeType};
 use crate::value::{Value as RuntimeValue, Value};
 use async_mutex::Mutex;

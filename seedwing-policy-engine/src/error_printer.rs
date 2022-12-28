@@ -1,4 +1,4 @@
-use crate::lang::{ParserError, SourceLocation, SourceSpan};
+use crate::lang::parser::{ParserError, SourceLocation, SourceSpan};
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
 use ariadne::{Cache, Label, Report, ReportKind, Source};

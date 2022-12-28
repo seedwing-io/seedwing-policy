@@ -1,7 +1,7 @@
 use crate::core::Function;
-use crate::lang::expr::Expr;
-use crate::lang::ty::TypeName;
-use crate::lang::Located;
+use crate::lang::parser::expr::Expr;
+use crate::lang::parser::ty::TypeName;
+use crate::lang::parser::Located;
 use crate::runtime::{RuntimeError, RuntimeField, RuntimeType, TypeHandle};
 use async_mutex::Mutex;
 use std::cell::RefCell;

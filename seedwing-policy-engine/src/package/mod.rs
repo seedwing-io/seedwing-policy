@@ -1,6 +1,6 @@
 use crate::core::Function;
 use crate::lang::package::PackagePath;
-use crate::lang::SourceLocation;
+use crate::lang::parser::SourceLocation;
 use crate::runtime::sources::Ephemeral;
 use std::collections::HashMap;
 use std::sync::Arc;

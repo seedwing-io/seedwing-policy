@@ -1,5 +1,5 @@
 use crate::lang::package::PackagePath;
-use crate::lang::SourceLocation;
+use crate::lang::parser::SourceLocation;
 use std::fs::File;
 use std::io::Read;
 use std::iter::{once, Once};

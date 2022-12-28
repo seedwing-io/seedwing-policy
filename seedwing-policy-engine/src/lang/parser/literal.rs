@@ -1,5 +1,5 @@
-use crate::lang::ty::Type;
-use crate::lang::{Located, ParserError, ParserInput, SourceSpan};
+use crate::lang::parser::ty::Type;
+use crate::lang::parser::{Located, ParserError, ParserInput, SourceSpan};
 use crate::value::Value;
 use chumsky::primitive::{filter, just};
 use chumsky::text::TextParser;
