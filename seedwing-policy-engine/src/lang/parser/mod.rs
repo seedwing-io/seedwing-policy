@@ -1,8 +1,8 @@
 //use crate::lang::expr::expr;
-use crate::lang::package::PackagePath;
-use crate::lang::parser::ty::{
-    simple_type_name, type_definition, type_name, Type, TypeDefn, TypeName,
-};
+use crate::lang::hir::{Type, TypeDefn};
+use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
+use crate::lang::PackagePath;
+use crate::lang::TypeName;
 use crate::runtime::BuildError;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};

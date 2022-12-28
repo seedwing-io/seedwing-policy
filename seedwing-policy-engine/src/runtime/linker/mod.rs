@@ -1,6 +1,7 @@
-use crate::lang::package::PackagePath;
-use crate::lang::parser::ty::{Type, TypeName};
+use crate::lang::hir::Type;
 use crate::lang::parser::{CompilationUnit, Located};
+use crate::lang::PackagePath;
+use crate::lang::TypeName;
 use crate::package::Package;
 use crate::runtime::{BuildError, Runtime, RuntimeType};
 use std::collections::{HashMap, HashSet};

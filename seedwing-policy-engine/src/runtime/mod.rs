@@ -2,12 +2,13 @@ pub mod linker;
 pub mod sources;
 
 use crate::core::{Function, FunctionError};
-use crate::lang::package::PackagePath;
+use crate::lang::hir::{MemberQualifier, Type};
 use crate::lang::parser::expr::Expr;
-use crate::lang::parser::ty::{MemberQualifier, Type, TypeName};
 use crate::lang::parser::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
 };
+use crate::lang::PackagePath;
+use crate::lang::TypeName;
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::linker::Linker;

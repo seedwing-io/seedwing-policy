@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::package::{PackageName, PackagePath};
+use crate::lang::hir::{Field, MemberQualifier, ObjectType, Type, TypeDefn};
 use crate::lang::parser::expr::{expr, Expr};
 use crate::lang::parser::literal::{
     anything_literal, decimal_literal, integer_literal, string_literal,
@@ -9,297 +9,13 @@ use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
     SourceLocation, SourceSpan, Use,
 };
+use crate::lang::{PackageName, PackagePath, TypeName};
 use crate::value::Value;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::once;
 use std::ops::Deref;
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct TypeName {
-    package: Option<PackagePath>,
-    name: String,
-}
-
-impl Display for TypeName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_type_str())
-    }
-}
-
-impl TypeName {
-    pub fn new(package: Option<PackagePath>, name: String) -> Self {
-        Self { package, name }
-    }
-
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn is_qualified(&self) -> bool {
-        self.package.is_some()
-    }
-
-    pub fn as_type_str(&self) -> String {
-        let mut fq = String::new();
-        if let Some(package) = &self.package {
-            fq.push_str(&package.as_package_str());
-            fq.push_str("::");
-        }
-
-        fq.push_str(&self.name);
-
-        fq
-    }
-}
-
-impl From<String> for TypeName {
-    fn from(path: String) -> Self {
-        let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
-        if segments.is_empty() {
-            Self::new(None, "".into())
-        } else {
-            let tail = segments.pop().unwrap();
-            if segments.is_empty() {
-                Self {
-                    package: None,
-                    name: tail,
-                }
-            } else {
-                let package = Some(segments.into());
-                Self {
-                    package,
-                    name: tail,
-                }
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeDefn {
-    name: Located<String>,
-    ty: Located<Type>,
-    parameters: Vec<Located<String>>,
-}
-
-impl TypeDefn {
-    pub fn new(name: Located<String>, ty: Located<Type>, parameters: Vec<Located<String>>) -> Self {
-        Self {
-            name,
-            ty,
-            parameters,
-        }
-    }
-
-    pub fn name(&self) -> Located<String> {
-        self.name.clone()
-    }
-
-    pub fn ty(&self) -> &Located<Type> {
-        &self.ty
-    }
-
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
-        self.ty.referenced_types()
-    }
-
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
-        self.ty.qualify_types(types);
-    }
-
-    pub(crate) fn parameters(&self) -> Vec<Located<String>> {
-        self.parameters.clone()
-    }
-}
-
-#[derive(Clone)]
-pub enum Type {
-    Anything,
-    Ref(Located<TypeName>, Vec<Located<Type>>),
-    Parameter(Located<String>),
-    Const(Located<Value>),
-    Object(ObjectType),
-    Expr(Located<Expr>),
-    Join(Box<Located<Type>>, Box<Located<Type>>),
-    Meet(Box<Located<Type>>, Box<Located<Type>>),
-    Refinement(Box<Located<Type>>, Box<Located<Type>>),
-    List(Box<Located<Type>>),
-    MemberQualifier(Located<MemberQualifier>, Box<Located<Type>>),
-    Nothing,
-}
-
-#[derive(Debug, Clone)]
-pub enum MemberQualifier {
-    All,
-    Any,
-    N(Located<u32>),
-}
-
-impl Type {
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
-        match self {
-            Type::Anything => Vec::default(),
-            Type::Ref(inner, arguuments) => once(inner.clone())
-                .chain(arguuments.iter().flat_map(|e| e.referenced_types()))
-                .collect(),
-            Type::Const(_) => Vec::default(),
-            Type::Object(inner) => inner.referenced_types(),
-            Type::Expr(_) => Vec::default(),
-            Type::Join(lhs, rhs) => lhs
-                .referenced_types()
-                .iter()
-                .chain(rhs.referenced_types().iter())
-                .cloned()
-                .collect(),
-            Type::Meet(lhs, rhs) => lhs
-                .referenced_types()
-                .iter()
-                .chain(rhs.referenced_types().iter())
-                .cloned()
-                .collect(),
-            Type::Refinement(primary, refinement) => primary
-                .referenced_types()
-                .iter()
-                .chain(refinement.referenced_types().iter())
-                .cloned()
-                .collect(),
-            Type::List(inner) => inner.referenced_types(),
-            Type::Nothing => Vec::default(),
-            Type::MemberQualifier(_, inner) => inner.referenced_types(),
-            Type::Parameter(_) => Vec::default(),
-        }
-    }
-
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
-        match self {
-            Type::Anything => {}
-            Type::Ref(ref mut name, arguments) => {
-                if !name.is_qualified() {
-                    // it's a simple single-word name, needs qualifying, perhaps.
-                    if let Some(Some(qualified)) = types.get(&name.name()) {
-                        *name = qualified.clone();
-                    }
-                }
-                for arg in arguments {
-                    arg.qualify_types(types);
-                }
-            }
-            Type::Const(_) => {}
-            Type::Object(inner) => {
-                inner.qualify_types(types);
-            }
-            Type::Expr(_) => {}
-            Type::Join(lhs, rhs) => {
-                lhs.qualify_types(types);
-                rhs.qualify_types(types);
-            }
-            Type::Meet(lhs, rhs) => {
-                lhs.qualify_types(types);
-                rhs.qualify_types(types);
-            }
-            Type::Refinement(primary, refinement) => {
-                primary.qualify_types(types);
-                refinement.qualify_types(types);
-            }
-            Type::List(inner) => {
-                inner.qualify_types(types);
-            }
-            Type::MemberQualifier(_, inner) => {
-                inner.qualify_types(types);
-            }
-            Type::Nothing => {}
-            Type::Parameter(_) => {}
-        }
-    }
-}
-
-impl Debug for Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Type::Anything => write!(f, "Anything"),
-            Type::Ref(r, args) => write!(f, "{:?}<{:?}>", r, args),
-            Type::Const(value) => write!(f, "{:?}", value),
-            Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
-            Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
-            Type::Nothing => write!(f, "Nothing"),
-            Type::Object(obj) => write!(f, "{:?}", obj),
-            Type::Refinement(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),
-            Type::List(ty) => write!(f, "[{:?}]", ty),
-            Type::Expr(expr) => write!(f, "#({:?})", expr),
-            Type::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
-            Type::Parameter(name) => write!(f, "{:?}", name),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjectType {
-    fields: Vec<Located<Field>>,
-}
-
-impl Default for ObjectType {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ObjectType {
-    pub fn new() -> Self {
-        Self { fields: vec![] }
-    }
-
-    pub fn add_field(&mut self, field: Located<Field>) -> &Self {
-        self.fields.push(field);
-        self
-    }
-
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
-        self.fields
-            .iter()
-            .flat_map(|e| e.referenced_types())
-            .collect()
-    }
-
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
-        for field in &mut self.fields {
-            field.qualify_types(types);
-        }
-    }
-
-    pub fn fields(&self) -> &Vec<Located<Field>> {
-        &self.fields
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Field {
-    name: Located<String>,
-    ty: Located<Type>,
-}
-
-impl Field {
-    pub fn new(name: Located<String>, ty: Located<Type>) -> Self {
-        Self { name, ty }
-    }
-
-    pub fn name(&self) -> &Located<String> {
-        &self.name
-    }
-
-    pub fn ty(&self) -> &Located<Type> {
-        &self.ty
-    }
-
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
-        self.ty.referenced_types()
-    }
-
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
-        self.ty.qualify_types(types)
-    }
-}
 
 pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
     filter(|c: &char| (c.is_alphanumeric()) || *c == '@' || *c == '_' || *c == '-')
@@ -647,7 +363,7 @@ mod test {
     fn parse_ty_defn() {
         let ty = type_definition().parse("type bob").unwrap().into_inner();
 
-        assert_eq!(&*ty.name.into_inner(), "bob");
+        assert_eq!(&*ty.name().inner(), "bob");
     }
 
     /*
@@ -687,11 +403,11 @@ mod test {
 
         if let Type::Object(ty) = ty {
             assert!(matches!(
-                ty.fields.iter().find(|e| *e.name == "foo"),
+                ty.fields().iter().find(|e| e.name().inner() == "foo"),
                 Some(_)
             ));
             assert!(matches!(
-                ty.fields.iter().find(|e| *e.name == "bar"),
+                ty.fields().iter().find(|e| e.name().inner() == "bar"),
                 Some(_)
             ));
         }
