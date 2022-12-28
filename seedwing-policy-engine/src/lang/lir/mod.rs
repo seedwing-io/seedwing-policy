@@ -97,7 +97,7 @@ impl ObjectType {
             html.push_str(
                 format!(
                     "{}: {},",
-                    f.name().clone().into_inner(),
+                    f.name().inner(),
                     f.ty().ty().await.to_html().await
                 )
                 .as_str(),

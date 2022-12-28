@@ -1,3 +1,4 @@
+use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionError};
 use crate::runtime::{Bindings, EvaluationResult};
 use crate::value::Value;
@@ -11,7 +12,7 @@ pub struct Some;
 
 impl Function for Some {
     fn parameters(&self) -> Vec<String> {
-        vec!["count".into(), "pattern".into()]
+        vec![COUNT.into(), PATTERN.into()]
     }
 
     fn call<'v>(
@@ -21,8 +22,8 @@ impl Function for Some {
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             if let Option::Some(list) = input.try_get_list() {
-                let expected_count = bindings.get(&"count".into()).unwrap();
-                let pattern = bindings.get(&"pattern".into()).unwrap();
+                let expected_count = bindings.get(COUNT).unwrap();
+                let pattern = bindings.get(PATTERN).unwrap();
 
                 let mut count: u32 = 0;
 

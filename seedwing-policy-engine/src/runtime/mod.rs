@@ -447,7 +447,7 @@ impl Runtime {
                 )
             }),
             hir::Type::Ref(inner, arguments) => Box::pin(async move {
-                let primary_type = self.types.lock().await[&(inner.clone().into_inner())].clone();
+                let primary_type = self.types.lock().await[&(inner.inner())].clone();
 
                 if arguments.is_empty() {
                     primary_type
@@ -461,7 +461,7 @@ impl Runtime {
                     let mut bindings = Bindings::new();
 
                     for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
-                        bindings.bind(name.clone().into_inner(), self.convert(arg).await)
+                        bindings.bind(name.inner(), self.convert(arg).await)
                     }
 
                     Arc::new(
@@ -600,8 +600,8 @@ impl Bindings {
         self.bindings.insert(name, ty);
     }
 
-    pub fn get(&self, name: &String) -> Option<Arc<TypeHandle>> {
-        self.bindings.get(name).cloned()
+    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<TypeHandle>> {
+        self.bindings.get(&name.into()).cloned()
     }
 }
 
@@ -654,7 +654,7 @@ impl Located<lir::Type> {
         match &***self {
             lir::Type::Anything => Box::pin(ready(Ok(Some(value)))),
             lir::Type::Argument(name) => Box::pin(async move {
-                if let Some(bound) = bindings.get(&name.clone().into_inner()) {
+                if let Some(bound) = bindings.get(&name.inner()) {
                     let result = bound.evaluate(value.clone(), bindings).await?;
                     let mut locked_value = value.lock().await;
                     if result.is_some() {
@@ -741,7 +741,7 @@ impl Located<lir::Type> {
                     let mut mismatch = vec![];
                     if let Some(obj) = obj {
                         for field in inner.fields() {
-                            if let Some(field_value) = obj.get(field.name().clone().into_inner()) {
+                            if let Some(field_value) = obj.get(field.name().inner()) {
                                 let result = field.ty().evaluate(field_value, bindings).await?;
                                 if result.is_none() {
                                     locked_value.note(self.clone(), false);
@@ -869,7 +869,7 @@ impl Located<lir::Type> {
                         Ok(None)
                     }
                     MemberQualifier::N(expected_n) => {
-                        let expected_n = expected_n.clone().into_inner();
+                        let expected_n = expected_n.inner();
                         let mut n = 0;
                         if let Some(list) = locked_value.try_get_list() {
                             for e in list {

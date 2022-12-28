@@ -47,7 +47,7 @@ impl Located<Expr> {
         Box::pin(async move {
             match &**this {
                 Expr::SelfLiteral(_) => Ok(value.clone()),
-                Expr::Value(ref inner) => Ok(Arc::new(Mutex::new(inner.clone().into_inner()))),
+                Expr::Value(ref inner) => Ok(Arc::new(Mutex::new(inner.inner()))),
                 Expr::Accessor(_, _) => todo!(),
                 Expr::Field(_, _) => todo!(),
                 Expr::Function(_, _) => todo!(),
@@ -500,7 +500,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         assert!(matches!(ty, Expr::SelfLiteral(_)));
     }
@@ -514,7 +514,7 @@ mod test {
             "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         println!("{:?}", ty);
     }
@@ -550,7 +550,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         /*
         assert!(matches!( ty,

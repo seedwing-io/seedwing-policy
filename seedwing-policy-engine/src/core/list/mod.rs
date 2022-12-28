@@ -11,6 +11,9 @@ pub mod any;
 pub mod none;
 pub mod some;
 
+const COUNT: &str = "count";
+const PATTERN: &str = "pattern";
+
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["list"]));
     pkg.register_function("Any".into(), any::Any);

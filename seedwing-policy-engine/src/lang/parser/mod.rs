@@ -155,9 +155,11 @@ impl<T> Located<T> {
         self.location.span.clone()
     }
 
+    /*
     pub fn into_inner(self) -> T {
         self.inner
     }
+     */
 
     pub fn split(self) -> (T, Location) {
         (self.inner, self.location)
@@ -237,7 +239,7 @@ impl From<PackagePath> for SourceLocation {
             name: package
                 .path()
                 .iter()
-                .map(|e| (*(e.clone().into_inner())).clone())
+                .map(|e| e.inner().0)
                 .collect::<Vec<String>>()
                 .join("/"),
         }

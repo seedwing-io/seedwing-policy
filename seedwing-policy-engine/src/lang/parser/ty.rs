@@ -50,9 +50,7 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
                 Some(PackagePath::from(
                     segments
                         .iter()
-                        .map(|e| {
-                            Located::new(PackageName::new(e.clone().into_inner()), e.location())
-                        })
+                        .map(|e| Located::new(PackageName::new(e.inner()), e.location()))
                         .collect::<Vec<Located<PackageName>>>(),
                 ))
             };
@@ -60,7 +58,7 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
             Located::new(
                 TypeName {
                     package,
-                    name: tail.into_inner(),
+                    name: tail.inner(),
                 },
                 span,
             )
@@ -90,7 +88,7 @@ pub fn inner_type_definition(
         .ignored()
         .then({
             let visible_parameters: Vec<String> = match params {
-                Some(params) => params.iter().cloned().map(|e| e.into_inner()).collect(),
+                Some(params) => params.iter().map(|e| e.inner()).collect(),
                 None => Vec::new(),
             };
             type_expr(visible_parameters)
@@ -220,7 +218,7 @@ pub fn refinement(
         .map_with_span(|((_, ty), _), span| {
             if let Some(ty) = ty {
                 let loc = ty.location();
-                Located::new(ty.into_inner(), loc)
+                Located::new(ty.inner(), loc)
             } else {
                 Located::new(Type::Anything, span)
             }
@@ -301,7 +299,7 @@ pub fn type_ref(
                 Located::new(Type::Parameter(Located::new(name.name.clone(), span)), loc)
             } else {
                 Located::new(
-                    Type::Ref(Located::new(name.into_inner(), loc.clone()), arguments),
+                    Type::Ref(Located::new(name.inner(), loc.clone()), arguments),
                     loc,
                 )
             }
@@ -354,14 +352,14 @@ mod test {
 
     #[test]
     fn parse_ty_name() {
-        let name = type_name().parse("bob").unwrap().into_inner();
+        let name = type_name().parse("bob").unwrap().inner();
 
         assert_eq!(name.name(), "bob");
     }
 
     #[test]
     fn parse_ty_defn() {
-        let ty = type_definition().parse("type bob").unwrap().into_inner();
+        let ty = type_definition().parse("type bob").unwrap().inner();
 
         assert_eq!(&*ty.name().inner(), "bob");
     }
@@ -395,7 +393,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         println!("{:?}", ty);
 
@@ -429,7 +427,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         println!("{:?}", ty);
     }
@@ -446,7 +444,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         println!("{:?}", ty);
     }
@@ -463,7 +461,7 @@ mod test {
         "#,
             )
             .unwrap()
-            .into_inner();
+            .inner();
 
         println!("{:?}", ty);
     }

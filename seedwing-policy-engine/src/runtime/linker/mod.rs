@@ -31,12 +31,12 @@ impl<'b> Linker<'b> {
             let mut visible_types = unit
                 .uses()
                 .iter()
-                .map(|e| (e.as_name().into_inner(), Some(e.type_name())))
+                .map(|e| (e.as_name().inner(), Some(e.type_name())))
                 .chain(unit.types().iter().map(|e| {
                     (
-                        e.name().into_inner(),
+                        e.name().inner(),
                         Some(Located::new(
-                            TypeName::new(None, e.name().into_inner()),
+                            TypeName::new(None, e.name().inner()),
                             e.location(),
                         )),
                     )
@@ -47,9 +47,9 @@ impl<'b> Linker<'b> {
 
             for defn in unit.types() {
                 visible_types.insert(
-                    defn.name().clone().into_inner(),
+                    defn.name().inner(),
                     Some(Located::new(
-                        unit_path.type_name(defn.name().clone().into_inner()),
+                        unit_path.type_name(defn.name().inner()),
                         defn.location(),
                     )),
                 );
@@ -100,7 +100,7 @@ impl<'b> Linker<'b> {
             let unit_types = unit
                 .types()
                 .iter()
-                .map(|e| unit_path.type_name(e.name().into_inner()))
+                .map(|e| unit_path.type_name(e.name().inner()))
                 .collect::<Vec<TypeName>>();
 
             world.extend_from_slice(&unit_types);
@@ -116,7 +116,7 @@ impl<'b> Linker<'b> {
                 let referenced = defn.referenced_types();
 
                 for each in referenced {
-                    if !world.contains(&each.clone().into_inner()) {
+                    if !world.contains(&each.clone().inner()) {
                         errors.push(BuildError::TypeNotFound(
                             unit.source().clone(),
                             each.location().span(),
@@ -133,7 +133,7 @@ impl<'b> Linker<'b> {
             let unit_path = PackagePath::from(unit.source());
 
             for ty in unit.types() {
-                let name = unit_path.type_name(ty.name().into_inner());
+                let name = unit_path.type_name(ty.name().inner());
                 runtime.declare(name, ty.parameters()).await;
             }
         }
@@ -163,11 +163,11 @@ impl<'b> Linker<'b> {
 
             for (path, ty) in unit.types().iter().map(|e| {
                 (
-                    Located::new(unit_path.type_name(e.name().into_inner()), e.location()),
+                    Located::new(unit_path.type_name(e.name().inner()), e.location()),
                     e.ty(),
                 )
             }) {
-                runtime.define(path.into_inner(), ty).await;
+                runtime.define(path.inner(), ty).await;
             }
         }
 

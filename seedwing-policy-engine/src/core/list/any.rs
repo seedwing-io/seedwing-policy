@@ -1,3 +1,4 @@
+use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionError};
 use crate::runtime::Bindings;
 use crate::value::Value;
@@ -9,7 +10,7 @@ pub struct Any;
 
 impl Function for Any {
     fn parameters(&self) -> Vec<String> {
-        vec!["pattern".into()]
+        vec![PATTERN.into()]
     }
 
     fn call<'v>(
@@ -19,7 +20,7 @@ impl Function for Any {
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             if let Some(list) = input.try_get_list() {
-                let pattern = bindings.get(&"pattern".into()).unwrap();
+                let pattern = bindings.get(PATTERN).unwrap();
                 for item in list {
                     let result = pattern.evaluate(item.clone(), &Default::default()).await;
 
