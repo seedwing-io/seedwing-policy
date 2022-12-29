@@ -46,7 +46,7 @@ impl Function for Sha256 {
                         if let Ok(entry) = entry {
                             let body = base64::decode(entry.body);
                             if let Ok(body) = body {
-                                println!("BODY \n\n{}\n\n", from_utf8(&*body).unwrap());
+                                //println!("BODY \n\n{}\n\n", from_utf8(&*body).unwrap());
                                 let body: Result<serde_json::Value, _> =
                                     serde_json::from_slice(&*body);
                                 if let Ok(body) = body {

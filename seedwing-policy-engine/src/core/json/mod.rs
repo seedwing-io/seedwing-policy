@@ -61,13 +61,10 @@ mod test {
         );
 
         let mut builder = Builder::new();
-        println!("A");
 
         let result = builder.build(src.iter());
-        println!("B");
 
         let runtime = builder.finish().await.unwrap();
-        println!("C");
 
         let value = json!(
             {

@@ -31,7 +31,6 @@ impl Builder {
 
     pub async fn finish(&mut self) -> Result<lir::World, Vec<BuildError>> {
         let mir = self.hir.lower().await?;
-        println!("MIR {:?}", mir);
         mir.lower().await
     }
 

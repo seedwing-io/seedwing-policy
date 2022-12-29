@@ -455,7 +455,6 @@ impl World {
     }
 
     pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
-        println!("add {:?}", path);
         let ty = handle.ty().await;
         self.types.insert(path, convert(&ty).await);
     }

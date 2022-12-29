@@ -65,18 +65,3 @@ impl Directory {
             })
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::runtime::sources::Directory;
-    use std::env;
-
-    #[test]
-    fn dir_walking() {
-        let dir = Directory::new(env::current_dir().unwrap().join("test-data"));
-
-        for e in dir.iter() {
-            println!("--> {:?}", e);
-        }
-    }
-}

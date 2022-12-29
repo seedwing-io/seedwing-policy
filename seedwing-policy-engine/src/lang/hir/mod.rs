@@ -258,7 +258,6 @@ impl World {
             packages: Default::default(),
             source_cache: Default::default(),
         };
-        println!("new HIR world");
         world.add_package(crate::core::list::package());
         world.add_package(crate::core::sigstore::package());
         world.add_package(crate::core::x509::package());
@@ -308,7 +307,6 @@ impl World {
     }
 
     pub fn add_package(&mut self, package: Package) {
-        println!("add package {:?}", package.path());
         self.packages.insert(package.path(), package);
     }
 
@@ -342,8 +340,6 @@ impl World {
             return Err(errors);
         }
 
-        println!("about to lower");
-
         Lowerer::new(&mut self.units, &mut self.packages)
             .lower()
             .await
@@ -360,7 +356,6 @@ impl<'b> Lowerer<'b> {
         units: &'b mut Vec<CompilationUnit>,
         packages: &'b mut HashMap<PackagePath, Package>,
     ) -> Self {
-        println!("LOWERING WITH {:?}", packages.len());
         Self { units, packages }
     }
 
@@ -402,14 +397,11 @@ impl<'b> Lowerer<'b> {
                 );
             }
 
-            println!("visible {:?}", visible_types);
-
             for defn in unit.types() {
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
                     if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
-                        println!("type not found:: {:?}", ty);
                         errors.push(BuildError::TypeNotFound(
                             unit.source().clone(),
                             ty.location().span(),
@@ -434,8 +426,6 @@ impl<'b> Lowerer<'b> {
 
         for (path, package) in self.packages.iter() {
             let package_path = path;
-
-            println!("package {:?}", package_path);
 
             known_world.extend_from_slice(
                 &package
@@ -469,7 +459,6 @@ impl<'b> Lowerer<'b> {
 
                 for each in referenced {
                     if !known_world.contains(&each.clone().inner()) {
-                        println!("another type not found {:?}", each);
                         errors.push(BuildError::TypeNotFound(
                             unit.source().clone(),
                             each.location().span(),
