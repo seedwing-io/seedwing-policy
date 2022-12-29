@@ -69,6 +69,7 @@ pub enum Type {
 pub enum MemberQualifier {
     All,
     Any,
+    None,
     N(Located<u32>),
 }
 

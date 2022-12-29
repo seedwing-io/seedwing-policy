@@ -139,6 +139,10 @@ pub fn member_qualifier(
         .padded()
         .ignored()
         .map_with_span(|_, span| Located::new(MemberQualifier::Any, span))
+        .or(just("none")
+            .padded()
+            .ignored()
+            .map_with_span(|_, span| Located::new(MemberQualifier::None, span)))
         .or(just("all")
             .padded()
             .ignored()
@@ -242,6 +246,13 @@ pub fn qualified_list(
                 MemberQualifier::Any => Located::new(
                     Type::Ref(
                         Located::new(String::from("list::Any").into(), span.clone()),
+                        vec![ty],
+                    ),
+                    span,
+                ),
+                MemberQualifier::None => Located::new(
+                    Type::Ref(
+                        Located::new(String::from("list::None").into(), span.clone()),
                         vec![ty],
                     ),
                     span,
