@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionError};
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::runtime::{Bindings, EvaluationResult};
+use crate::runtime::EvaluationResult;
 use crate::value::Value;
 use std::future::Future;
 use std::pin::Pin;

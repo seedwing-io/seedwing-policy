@@ -1,6 +1,6 @@
 use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionError};
-use crate::runtime::Bindings;
+use crate::lang::lir::Bindings;
 use crate::value::Value;
 use std::future::Future;
 use std::pin::Pin;
@@ -41,8 +41,8 @@ impl Function for All {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
-    use crate::runtime::Builder;
     use serde_json::json;
 
     #[actix_rt::test]
@@ -58,7 +58,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([42, 42, 42, 42, 42]);
 
@@ -80,7 +80,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([43, 42, 49, 51, 42]);
 
@@ -102,7 +102,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([41, 42, 42, 42, 42]);
 
@@ -124,7 +124,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, 2, 3]);
 
@@ -146,7 +146,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([]);
 

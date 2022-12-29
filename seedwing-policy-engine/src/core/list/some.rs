@@ -1,6 +1,7 @@
 use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionError};
-use crate::runtime::{Bindings, EvaluationResult};
+use crate::lang::lir::Bindings;
+use crate::runtime::EvaluationResult;
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::future::Future;
@@ -60,8 +61,8 @@ impl Function for Some {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
-    use crate::runtime::Builder;
     use serde_json::json;
 
     #[actix_rt::test]
@@ -77,7 +78,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, 2, 3, 4, 5, 42, 99, 42]);
 
@@ -99,7 +100,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, 2, 3, 4, 5, 42, 99, 1024]);
 
@@ -121,7 +122,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, 2, 3, 4, 5, 99, 4, 2]);
 
@@ -143,7 +144,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, 2, 3, 4, 5, 105, 99, 4, 2]);
 
@@ -165,7 +166,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, "taco", true, 42, 2, 3, 4, 5, 42, 99, "Bob", 99.1]);
 
@@ -187,7 +188,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, "taco", true, 2, 3, 4, 5, 42, 99, "Bob", 99.1, 105]);
 
@@ -209,7 +210,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([1, "taco", true, 2, 3, 42, 4, 5, 99, "Bob", 99.1]);
 
@@ -231,7 +232,7 @@ mod test {
 
         let result = builder.build(src.iter());
 
-        let runtime = builder.link().await.unwrap();
+        let runtime = builder.finish().await.unwrap();
 
         let value = json!([]);
 

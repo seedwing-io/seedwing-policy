@@ -1,8 +1,11 @@
 use crate::core::Function;
+use crate::lang::mir;
 use crate::lang::parser::expr::Expr;
-use crate::lang::parser::Located;
-use crate::lang::TypeName;
-use crate::runtime::{Bindings, EvaluationResult, RuntimeError, TypeHandle};
+use crate::lang::parser::{CompilationUnit, Located, PolicyParser, SourceLocation};
+use crate::lang::{PackagePath, TypeName};
+use crate::package::Package;
+use crate::runtime::cache::SourceCache;
+use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::collections::HashMap;
@@ -233,5 +236,303 @@ impl Field {
 
     pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types)
+    }
+}
+
+pub struct World {
+    units: Vec<CompilationUnit>,
+    packages: HashMap<PackagePath, Package>,
+    source_cache: SourceCache,
+}
+
+impl Default for World {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl World {
+    pub fn new() -> Self {
+        let mut world = Self {
+            units: Default::default(),
+            packages: Default::default(),
+            source_cache: Default::default(),
+        };
+        println!("new HIR world");
+        world.add_package(crate::core::list::package());
+        world.add_package(crate::core::sigstore::package());
+        world.add_package(crate::core::x509::package());
+        world.add_package(crate::core::base64::package());
+        world.add_package(crate::core::json::package());
+
+        world
+    }
+
+    pub fn source_cache(&self) -> &SourceCache {
+        &self.source_cache
+    }
+
+    pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
+    where
+        Self: Sized,
+        S: Into<String>,
+        SrcIter: Iterator<Item = (SourceLocation, S)>,
+    {
+        let mut errors = Vec::new();
+        for (source, stream) in sources {
+            log::info!("loading policies from {}", source);
+
+            let input = stream.into();
+
+            self.source_cache.add(source.clone(), input.clone().into());
+            let unit = PolicyParser::default().parse(source.clone(), input);
+            match unit {
+                Ok(unit) => self.add_compilation_unit(unit),
+                Err(err) => {
+                    for e in err {
+                        errors.push((source.clone(), e).into())
+                    }
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    fn add_compilation_unit(&mut self, unit: CompilationUnit) {
+        self.units.push(unit)
+    }
+
+    pub fn add_package(&mut self, package: Package) {
+        println!("add package {:?}", package.path());
+        self.packages.insert(package.path(), package);
+    }
+
+    pub async fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
+        let mut core_units = Vec::new();
+
+        let mut errors = Vec::new();
+
+        for pkg in self.packages.values() {
+            for (source, stream) in pkg.source_iter() {
+                log::info!("loading {}", source);
+                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+                match unit {
+                    Ok(unit) => {
+                        core_units.push(unit);
+                    }
+                    Err(err) => {
+                        for e in err {
+                            errors.push((source.clone(), e).into())
+                        }
+                    }
+                }
+            }
+        }
+
+        for unit in core_units {
+            self.add_compilation_unit(unit);
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        println!("about to lower");
+
+        Lowerer::new(&mut self.units, &mut self.packages)
+            .lower()
+            .await
+    }
+}
+
+struct Lowerer<'b> {
+    units: &'b mut Vec<CompilationUnit>,
+    packages: &'b mut HashMap<PackagePath, Package>,
+}
+
+impl<'b> Lowerer<'b> {
+    pub fn new(
+        units: &'b mut Vec<CompilationUnit>,
+        packages: &'b mut HashMap<PackagePath, Package>,
+    ) -> Self {
+        println!("LOWERING WITH {:?}", packages.len());
+        Self { units, packages }
+    }
+
+    pub async fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+        // First, perform internal per-unit linkage and type qualification
+        let mut world = mir::World::new();
+        let mut errors = Vec::new();
+
+        for mut unit in self.units.iter_mut() {
+            let unit_path = PackagePath::from(unit.source());
+
+            let mut visible_types = unit
+                .uses()
+                .iter()
+                .map(|e| (e.as_name().inner(), Some(e.type_name())))
+                .chain(unit.types().iter().map(|e| {
+                    (
+                        e.name().inner(),
+                        Some(Located::new(
+                            TypeName::new(None, e.name().inner()),
+                            e.location(),
+                        )),
+                    )
+                }))
+                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+
+            //visible_types.insert("int".into(), None);
+            for primordial in world.known_world() {
+                visible_types.insert(primordial.name(), None);
+            }
+
+            for defn in unit.types() {
+                visible_types.insert(
+                    defn.name().inner(),
+                    Some(Located::new(
+                        unit_path.type_name(defn.name().inner()),
+                        defn.location(),
+                    )),
+                );
+            }
+
+            println!("visible {:?}", visible_types);
+
+            for defn in unit.types() {
+                let referenced_types = defn.referenced_types();
+
+                for ty in &referenced_types {
+                    if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
+                        println!("type not found:: {:?}", ty);
+                        errors.push(BuildError::TypeNotFound(
+                            unit.source().clone(),
+                            ty.location().span(),
+                            ty.clone().as_type_str(),
+                        ))
+                    }
+                }
+            }
+
+            for defn in unit.types_mut() {
+                defn.qualify_types(&visible_types)
+            }
+        }
+
+        // next, perform inter-unit linking.
+
+        let mut known_world = world.known_world();
+
+        //world.push(TypeName::new(None, "int".into()));
+
+        //world.push("int".into());
+
+        for (path, package) in self.packages.iter() {
+            let package_path = path;
+
+            println!("package {:?}", package_path);
+
+            known_world.extend_from_slice(
+                &package
+                    .function_names()
+                    .iter()
+                    .map(|e| package_path.type_name(e.clone()))
+                    .collect::<Vec<TypeName>>(),
+            );
+        }
+
+        for unit in self.units.iter() {
+            let unit_path = PackagePath::from(unit.source());
+
+            let unit_types = unit
+                .types()
+                .iter()
+                .map(|e| unit_path.type_name(e.name().inner()))
+                .collect::<Vec<TypeName>>();
+
+            known_world.extend_from_slice(&unit_types);
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        for unit in self.units.iter() {
+            for defn in unit.types() {
+                // these should be fully-qualified now
+                let referenced = defn.referenced_types();
+
+                for each in referenced {
+                    if !known_world.contains(&each.clone().inner()) {
+                        println!("another type not found {:?}", each);
+                        errors.push(BuildError::TypeNotFound(
+                            unit.source().clone(),
+                            each.location().span(),
+                            each.clone().as_type_str(),
+                        ))
+                    }
+                }
+            }
+        }
+
+        for unit in self.units.iter() {
+            let unit_path = PackagePath::from(unit.source());
+
+            for ty in unit.types() {
+                let name = unit_path.type_name(ty.name().inner());
+                world.declare(name, ty.parameters()).await;
+            }
+        }
+
+        for (path, package) in self.packages.iter() {
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                world
+                    .declare(
+                        path,
+                        func.parameters()
+                            .iter()
+                            .cloned()
+                            .map(|p| Located::new(p, 0..0))
+                            .collect(),
+                    )
+                    .await;
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        for (path, package) in self.packages.iter() {
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                world.define_function(path, func).await;
+            }
+        }
+
+        for unit in self.units.iter() {
+            let unit_path = PackagePath::from(unit.source());
+
+            for (path, ty) in unit.types().iter().map(|e| {
+                (
+                    Located::new(unit_path.type_name(e.name().inner()), e.location()),
+                    e.ty(),
+                )
+            }) {
+                world.define(path.inner(), ty).await;
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(world)
+        } else {
+            Err(errors)
+        }
     }
 }

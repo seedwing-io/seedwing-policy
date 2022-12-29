@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionError};
+use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::runtime::Bindings;
 use crate::value::Value;
 use async_mutex::Mutex;
 use sigstore::rekor::apis::configuration::Configuration;
@@ -46,6 +46,7 @@ impl Function for Sha256 {
                         if let Ok(entry) = entry {
                             let body = base64::decode(entry.body);
                             if let Ok(body) = body {
+                                println!("BODY \n\n{}\n\n", from_utf8(&*body).unwrap());
                                 let body: Result<serde_json::Value, _> =
                                     serde_json::from_slice(&*body);
                                 if let Ok(body) = body {

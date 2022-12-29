@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use std::process::exit;
 
 use crate::policy::policy;
+use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::sources::Directory;
-use seedwing_policy_engine::runtime::Builder as PolicyBuilder;
 
 use crate::cli::cli;
 
@@ -51,13 +51,13 @@ async fn main() -> std::io::Result<()> {
         exit(-1)
     }
 
-    let result = builder.link().await;
+    let result = builder.finish().await;
 
     match result {
-        Ok(runtime) => {
+        Ok(world) => {
             let server = HttpServer::new(move || {
                 App::new()
-                    .app_data(web::Data::new(runtime.clone()))
+                    .app_data(web::Data::new(world.clone()))
                     .default_service(web::to(policy))
             });
 

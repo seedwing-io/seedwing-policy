@@ -1,9 +1,13 @@
+use crate::core::Function;
 use crate::lang::parser::{Located, SourceLocation};
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use std::sync::Arc;
 
+pub mod builder;
 pub mod hir;
 pub mod lir;
+pub mod mir;
 pub mod parser;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -187,4 +191,13 @@ impl From<SourceLocation> for PackagePath {
             path: segments,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum PrimordialType {
+    Integer,
+    Decimal,
+    Boolean,
+    String,
+    Function(TypeName, Arc<dyn Function>),
 }

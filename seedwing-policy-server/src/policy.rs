@@ -2,12 +2,12 @@ use actix_web::http::Method;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use futures_util::stream::StreamExt;
-use seedwing_policy_engine::runtime::{Component, Runtime};
+use seedwing_policy_engine::lang::lir::World;
 use seedwing_policy_engine::value::Value;
 use std::sync::Arc;
 
 pub async fn policy(
-    runtime: web::Data<Arc<Runtime>>,
+    runtime: web::Data<Arc<World>>,
     req: HttpRequest,
     body: Payload,
 ) -> impl Responder {
@@ -15,15 +15,17 @@ pub async fn policy(
         return evaluate(runtime, req, body).await;
     }
 
+    /*
     if req.method() == Method::GET {
         return display(runtime, req).await;
     }
+     */
 
     HttpResponse::NotAcceptable().finish()
 }
 
 async fn evaluate(
-    runtime: web::Data<Arc<Runtime>>,
+    runtime: web::Data<Arc<World>>,
     req: HttpRequest,
     mut body: Payload,
 ) -> HttpResponse {
@@ -54,7 +56,8 @@ async fn evaluate(
     }
 }
 
-async fn display(runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResponse {
+/*
+async fn display(runtime: web::Data<Arc<World>>, req: HttpRequest) -> HttpResponse {
     let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
     if let Some(component) = runtime.get(path.clone()).await {
@@ -80,3 +83,4 @@ async fn display(runtime: web::Data<Arc<Runtime>>, req: HttpRequest) -> HttpResp
         HttpResponse::NotFound().finish()
     }
 }
+ */

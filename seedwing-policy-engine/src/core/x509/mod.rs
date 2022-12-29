@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionError};
+use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::runtime::Bindings;
 use crate::value::Value;
 use ariadne::Cache;
 use std::future::Future;

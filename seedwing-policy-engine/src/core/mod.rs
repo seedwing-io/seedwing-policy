@@ -1,5 +1,5 @@
 use crate::lang::hir::Type;
-use crate::runtime::Bindings;
+use crate::lang::lir::Bindings;
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::cell::RefCell;
@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 pub mod base64;
+pub mod json;
 pub mod list;
 pub mod sigstore;
 pub mod x509;
