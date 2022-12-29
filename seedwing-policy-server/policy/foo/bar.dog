@@ -1,14 +1,14 @@
 
 type foo = {
-  foo: int
+  foo: integer
 }
 
 type bar = {
-  bar: int
+  bar: integer
 }
 
 type baz = {
-  baz: int
+  baz: integer
 }
 
 type quux = foo || bar || baz

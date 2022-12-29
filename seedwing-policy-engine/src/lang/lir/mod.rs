@@ -7,6 +7,7 @@ use crate::lang::{lir, mir, PrimordialType, TypeName};
 use crate::runtime::{EvaluationResult, RuntimeError};
 use crate::value::Value;
 use async_mutex::Mutex;
+use serde::Serialize;
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -14,6 +15,7 @@ use std::future::{ready, Future};
 use std::pin::Pin;
 use std::sync::Arc;
 
+#[derive(Serialize)]
 pub enum Type {
     Anything,
     Primordial(PrimordialType),
@@ -30,61 +32,6 @@ pub enum Type {
 }
 
 impl Type {
-    /*
-    pub fn to_html(&self) -> Pin<Box<dyn Future<Output = String> + '_>> {
-        match &**self {
-            lir::Type::Anything => Box::pin(async move { "<b>anything</b>".into() }),
-            lir::Type::Primordial(primordial) => Box::pin(async move {
-                match primordial {
-                    PrimordialType::Integer => "<b>integer</b>".into(),
-                    PrimordialType::Decimal => "<b>decimal</b>".into(),
-                    PrimordialType::Boolean => "<b>boolean</b>".into(),
-                    PrimordialType::String => "<b>string</b>".into(),
-                    PrimordialType::Function(name, _) => {
-                        format!("<b>{}(...)</b>", name)
-                    }
-                }
-            }),
-            lir::Type::Bound(_, _) => Box::pin(async move { "bound".into() }),
-            lir::Type::Argument(_) => Box::pin(async move { "argument".into() }),
-            lir::Type::Const(_) => Box::pin(async move { "const".into() }),
-            lir::Type::Object(inner) => Box::pin(async move {
-                inner.to_html().await
-            }),
-            lir::Type::Expr(_) => Box::pin(async move { "expr".into() }),
-            lir::Type::Join(lhs, rhs) => Box::pin(async move {
-                format!(
-                    "{} || {}",
-                    lhs.ty().await.to_html().await,
-                    rhs.ty().await.to_html().await
-                )
-            }),
-            lir::Type::Meet(lhs, rhs) => Box::pin(async move {
-                format!(
-                    "{} && {}",
-                    lhs.ty().await.to_html().await,
-                    rhs.ty().await.to_html().await
-                )
-            }),
-            lir::Type::Refinement(_, _) => Box::pin(async move { "refinement".into() }),
-            lir::Type::List(_) => Box::pin(async move { "list".into() }),
-            lir::Type::MemberQualifier(_, _) => Box::pin(async move { "qualified-member".into() }),
-            lir::Type::Nothing => Box::pin(async move { "<b>nothing</b>".into() }),
-        }
-    }
-     */
-
-    /*
-    pub fn evaluate<'v>(
-        self: &'v Arc<Self>,
-        value: Arc<Mutex<Value>>,
-        bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
-        Box::pin(async move {
-            todo!()
-        })
-    }
-     */
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
@@ -282,7 +229,7 @@ impl Type {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Serialize, Default, Debug)]
 pub struct Bindings {
     bindings: HashMap<String, Arc<Type>>,
 }
@@ -324,7 +271,7 @@ impl Debug for Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct Field {
     name: String,
     ty: Arc<Type>,
@@ -344,7 +291,7 @@ impl Field {
     }
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct ObjectType {
     fields: Vec<Arc<Field>>,
 }
@@ -357,31 +304,9 @@ impl ObjectType {
     pub fn fields(&self) -> &Vec<Arc<Field>> {
         &self.fields
     }
-
-    /*
-    pub async fn to_html(&self) -> String {
-        let mut html = String::new();
-        html.push_str("<div>{");
-        for f in &self.fields {
-            html.push_str("<div style='padding-left: 1em'>");
-            html.push_str(
-                format!(
-                    "{}: {},",
-                    f.name().inner(),
-                    f.ty().ty().await.to_html().await
-                )
-                .as_str(),
-            );
-            html.push_str("</div>");
-        }
-        html.push_str("}</div>");
-
-        html
-    }
-     */
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct World {
     types: HashMap<TypeName, Arc<Type>>,
 }
@@ -418,6 +343,66 @@ impl World {
         } else {
             Err(RuntimeError::NoSuchType(path))
         }
+    }
+
+    pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
+        let name = name.into();
+        let path = TypeName::from(name);
+
+        if let Some(ty) = self.types.get(&path) {
+            return Some(Component::Type(ty.clone()));
+        }
+
+        let mut module_handle = ModuleHandle::new();
+        let path = path.as_type_str();
+        for (name, ty) in self.types.iter() {
+            let name = name.as_type_str();
+            if let Some(relative_name) = name.strip_prefix(&path) {
+                let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
+                let parts: Vec<&str> = relative_name.split("::").collect();
+                if parts.len() == 1 {
+                    module_handle.types.push(parts[0].into());
+                } else if !module_handle.modules.contains(&parts[0].into()) {
+                    module_handle.modules.push(parts[0].into())
+                }
+            }
+        }
+
+        if module_handle.is_empty() {
+            None
+        } else {
+            Some(Component::Module(module_handle.sort()))
+        }
+    }
+}
+
+pub enum Component {
+    Module(ModuleHandle),
+    Type(Arc<Type>),
+}
+
+#[derive(Serialize, Debug)]
+pub struct ModuleHandle {
+    modules: Vec<String>,
+    types: Vec<String>,
+}
+
+impl ModuleHandle {
+    fn new() -> Self {
+        Self {
+            modules: vec![],
+            types: vec![],
+        }
+    }
+
+    fn sort(mut self) -> Self {
+        self.modules.sort();
+        self.types.sort();
+        self
+    }
+
+    fn is_empty(&self) -> bool {
+        self.modules.is_empty() && self.types.is_empty()
     }
 }
 

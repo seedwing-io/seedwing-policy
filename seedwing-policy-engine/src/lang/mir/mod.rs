@@ -6,7 +6,7 @@ use crate::lang::parser::Located;
 use crate::lang::PrimordialType;
 use crate::lang::TypeName;
 use crate::lang::{hir, mir};
-use crate::runtime::{BuildError, Component, EvaluationResult, ModuleHandle, RuntimeError};
+use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
 use crate::value::Value;
 use async_mutex::Mutex;
 use std::collections::HashMap;
@@ -175,28 +175,6 @@ impl ObjectType {
     pub fn fields(&self) -> &Vec<Arc<Located<Field>>> {
         &self.fields
     }
-
-    /*
-    pub async fn to_html(&self) -> String {
-        let mut html = String::new();
-        html.push_str("<div>{");
-        for f in &self.fields {
-            html.push_str("<div style='padding-left: 1em'>");
-            html.push_str(
-                format!(
-                    "{}: {},",
-                    f.name().inner(),
-                    f.ty().ty().await.to_html().await
-                )
-                    .as_str(),
-            );
-            html.push_str("</div>");
-        }
-        html.push_str("}</div>");
-
-        html
-    }
-     */
 }
 
 macro_rules! primordial_type {
@@ -260,11 +238,6 @@ impl World {
         if let Some(handle) = self.types.get_mut(&path) {
             handle.define(Arc::new(runtime_type)).await;
         }
-
-        //self.types.lock().await.insert(
-        //path,
-        //Arc::new(runtime_type),
-        //);
     }
 
     fn convert<'c>(

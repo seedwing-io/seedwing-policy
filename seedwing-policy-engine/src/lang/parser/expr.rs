@@ -5,6 +5,7 @@ use crate::value::{Value as RuntimeValue, Value};
 use async_mutex::Mutex;
 use chumsky::prelude::*;
 use chumsky::Parser;
+use serde::Serialize;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::future::{ready, Future};
@@ -12,9 +13,9 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum Expr {
-    SelfLiteral(Location),
+    SelfLiteral(#[serde(skip)] Location),
     /* self */
     Value(Located<Value>),
     Accessor(Arc<Located<Expr>>, Located<String>),

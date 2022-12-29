@@ -1,5 +1,6 @@
 use crate::core::Function;
 use crate::lang::parser::{Located, SourceLocation};
+use serde::{Serialize, Serializer};
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -14,6 +15,15 @@ pub mod parser;
 pub struct TypeName {
     package: Option<PackagePath>,
     name: String,
+}
+
+impl Serialize for TypeName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_type_str().serialize(serializer)
+    }
 }
 
 impl Display for TypeName {
@@ -193,11 +203,11 @@ impl From<SourceLocation> for PackagePath {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum PrimordialType {
     Integer,
     Decimal,
     Boolean,
     String,
-    Function(TypeName, Arc<dyn Function>),
+    Function(TypeName, #[serde(skip)] Arc<dyn Function>),
 }

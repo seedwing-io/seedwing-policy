@@ -2,33 +2,23 @@ use actix_web::http::Method;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use futures_util::stream::StreamExt;
-use seedwing_policy_engine::lang::lir::World;
+use handlebars::Handlebars;
+use seedwing_policy_engine::lang::lir::{Component, World};
 use seedwing_policy_engine::value::Value;
-use std::sync::Arc;
 
-pub async fn policy(
-    runtime: web::Data<Arc<World>>,
-    req: HttpRequest,
-    body: Payload,
-) -> impl Responder {
+pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
     if req.method() == Method::POST {
-        return evaluate(runtime, req, body).await;
+        return evaluate(world, req, body).await;
     }
 
-    /*
     if req.method() == Method::GET {
-        return display(runtime, req).await;
+        return display(world, req).await;
     }
-     */
 
     HttpResponse::NotAcceptable().finish()
 }
 
-async fn evaluate(
-    runtime: web::Data<Arc<World>>,
-    req: HttpRequest,
-    mut body: Payload,
-) -> HttpResponse {
+async fn evaluate(world: web::Data<World>, req: HttpRequest, mut body: Payload) -> HttpResponse {
     let mut content = BytesMut::new();
     while let Some(Ok(bit)) = body.next().await {
         content.extend_from_slice(&bit);
@@ -41,7 +31,7 @@ async fn evaluate(
         let value = Value::from(result);
         let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
-        match runtime.evaluate(path, value).await {
+        match world.evaluate(path, value).await {
             Ok(result) => {
                 if result.is_some() {
                     HttpResponse::Ok().finish()
@@ -56,31 +46,41 @@ async fn evaluate(
     }
 }
 
-/*
-async fn display(runtime: web::Data<Arc<World>>, req: HttpRequest) -> HttpResponse {
+async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
     let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
-    if let Some(component) = runtime.get(path.clone()).await {
-        let mut html = String::new();
+    if let Some(component) = world.get(path.clone()) {
+        let mut renderer = Handlebars::new();
+        renderer.set_dev_mode(true);
 
-        html.push_str("<html>");
-        html.push_str("<head>");
-        html.push_str(format!("<title>Seedwing Policy {}</title>", path).as_str());
-        html.push_str("</head>");
-        html.push_str("<body style='font-family: sans-serif'>");
-        html.push_str(format!("<h1>Seedwing Policy {}</h1>", path).as_str());
-        match component {
-            Component::Module(pkg) => html.push_str(pkg.to_html().await.as_str()),
+        let result = match component {
+            Component::Module(pkg) => {
+                renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
+            }
             Component::Type(ty) => {
-                html.push_str(ty.ty().await.to_html().await.as_str());
+                renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })
+            }
+        };
+
+        match result {
+            Ok(html) => HttpResponse::Ok().body(html),
+            Err(err) => {
+                println!("{:?}", err);
+                HttpResponse::InternalServerError().finish()
             }
         }
-
-        html.push_str("</body>");
-        html.push_str("</html>");
-        HttpResponse::Ok().body(html)
     } else {
         HttpResponse::NotFound().finish()
     }
 }
- */
+
+const TYPE_HTML: &str = include_str!("ui/_type.html");
+const MODULE_HTML: &str = include_str!("ui/_module.html");
+
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct RenderContext<T: Serialize> {
+    path: String,
+    payload: T,
+}

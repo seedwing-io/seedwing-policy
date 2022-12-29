@@ -6,6 +6,7 @@ use crate::lang::TypeName;
 use crate::runtime::BuildError;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
+use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -102,6 +103,15 @@ impl From<SourceSpan> for Location {
 pub struct Located<T> {
     inner: T,
     location: Location,
+}
+
+impl<T: Serialize> Serialize for Located<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.inner.serialize(serializer)
+    }
 }
 
 impl<T: Debug> Debug for Located<T> {

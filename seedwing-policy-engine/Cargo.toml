@@ -9,6 +9,7 @@ edition = "2021"
 chumsky = "0.8.0"
 ariadne = "0.1.5"
 walkdir = "2.3.2"
+serde = { version = "1.0.152", features = [ "rc", "derive"] }
 serde_json = "1.0.89"
 async-mutex = "1.4.0"
 log = "0.4.17"

@@ -1,0 +1,34 @@
+<html>
+<head>
+  <title>Module</title>
+</head>
+<body>
+<h1>
+  Module {{path}}
+</h1>
+
+{{#with payload.modules as |modules|}}
+{{#if modules}}
+<h2>Modules</h2>
+<ul>
+  {{#each modules}}
+  <li><a href="{{this}}/">{{this}}</a></li>
+  {{/each}}
+</ul>
+{{/if}}
+{{/with}}
+
+{{#with payload.types as |types|}}
+{{#if types}}
+<h2>Types</h2>
+<ul>
+  {{#each types}}
+  <li><a href="{{this}}">{{this}}</a></li>
+  {{/each}}
+</ul>
+{{/if}}
+{{/with}}
+
+
+</body>
+</html>

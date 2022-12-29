@@ -6,6 +6,7 @@ use crate::lang::parser::Located;
 use crate::lang::{lir, TypeName};
 use crate::runtime::RuntimeError;
 use async_mutex::Mutex;
+use serde::Serialize;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -82,11 +83,15 @@ impl From<Arc<Located<Expr>>> for Noted {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Value {
+    #[serde(flatten)]
     inner: InnerValue,
+    #[serde(skip)]
     matches: Vec<Noted>,
+    #[serde(skip)]
     nonmatches: Vec<Noted>,
+    #[serde(skip)]
     transforms: HashMap<TypeName, Arc<Mutex<Value>>>,
 }
 
@@ -199,7 +204,7 @@ impl From<InnerValue> for Value {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum InnerValue {
     Null,
     String(String),
@@ -207,7 +212,7 @@ pub enum InnerValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(Vec<Arc<Mutex<Value>>>),
+    List(#[serde(skip)] Vec<Arc<Mutex<Value>>>),
     Octets(Vec<u8>),
 }
 
@@ -354,8 +359,9 @@ impl Value {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Serialize, Debug, Clone, Default)]
 pub struct Object {
+    #[serde(skip)]
     fields: HashMap<String, Arc<Mutex<Value>>>,
 }
 

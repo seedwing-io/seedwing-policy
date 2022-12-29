@@ -31,11 +31,6 @@ use std::task::ready;
 
 pub mod cache;
 
-pub enum Component {
-    Module(ModuleHandle),
-    Type(Arc<TypeHandle>),
-}
-
 #[derive(Clone, Debug)]
 pub enum BuildError {
     TypeNotFound(SourceLocation, SourceSpan, String),
@@ -99,63 +94,6 @@ pub enum RuntimeError {
     InvalidState,
     NoSuchType(TypeName),
     Function(FunctionError),
-}
-
-#[derive(Debug)]
-pub struct ModuleHandle {
-    modules: Vec<String>,
-    types: Vec<String>,
-}
-
-impl ModuleHandle {
-    fn new() -> Self {
-        Self {
-            modules: vec![],
-            types: vec![],
-        }
-    }
-
-    fn sort(mut self) -> Self {
-        self.modules.sort();
-        self.types.sort();
-        self
-    }
-
-    fn is_empty(&self) -> bool {
-        self.modules.is_empty() && self.types.is_empty()
-    }
-
-    pub async fn to_html(&self) -> String {
-        let mut html = String::new();
-
-        html.push_str("<div>");
-        if !self.modules.is_empty() {
-            html.push_str("<h1>modules</h1>");
-
-            html.push_str("<ul>");
-            for module in &self.modules {
-                html.push_str("<li>");
-                html.push_str(format!("<a href='{}/'>{}</a>", module, module).as_str());
-                html.push_str("</li>");
-            }
-            html.push_str("</ul>");
-        }
-
-        if !self.types.is_empty() {
-            html.push_str("<h1>types</h1>");
-            html.push_str("<ul>");
-            for ty in &self.types {
-                html.push_str("<li>");
-                html.push_str(format!("<a href='{}'>{}</a>", ty, ty).as_str());
-                html.push_str("</li>");
-            }
-            html.push_str("</ul>");
-        }
-
-        html.push_str("</div>");
-
-        html
-    }
 }
 
 #[cfg(test)]
