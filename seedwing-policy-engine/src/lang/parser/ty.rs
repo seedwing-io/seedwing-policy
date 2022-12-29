@@ -231,7 +231,37 @@ pub fn qualified_list(
     member_qualifier()
         .then(expr)
         .map_with_span(|(qualifier, ty), span| {
-            Located::new(Type::MemberQualifier(qualifier, Box::new(ty)), span)
+            match &*qualifier {
+                MemberQualifier::All => Located::new(
+                    Type::Ref(
+                        Located::new(String::from("list::All").into(), span.clone()),
+                        vec![ty],
+                    ),
+                    span,
+                ),
+                MemberQualifier::Any => Located::new(
+                    Type::Ref(
+                        Located::new(String::from("list::Any").into(), span.clone()),
+                        vec![ty],
+                    ),
+                    span,
+                ),
+                MemberQualifier::N(count) => {
+                    let count_loc = count.location();
+                    let count = Located::new(
+                        Type::Const(Located::new(count.inner().into(), count_loc)),
+                        span.clone(),
+                    );
+                    Located::new(
+                        Type::Ref(
+                            Located::new(String::from("list::Some").into(), span.clone()),
+                            vec![count, ty],
+                        ),
+                        span,
+                    )
+                }
+            }
+            //Located::new(Type::MemberQualifier(qualifier, Box::new(ty)), span)
         })
 }
 

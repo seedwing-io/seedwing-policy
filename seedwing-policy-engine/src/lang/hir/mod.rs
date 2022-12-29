@@ -62,12 +62,9 @@ pub enum Type {
     Meet(Box<Located<Type>>, Box<Located<Type>>),
     Refinement(Box<Located<Type>>, Box<Located<Type>>),
     List(Box<Located<Type>>),
-    // todo: replace with simple functions
-    MemberQualifier(Located<MemberQualifier>, Box<Located<Type>>),
     Nothing,
 }
 
-// todo: replace with simple functions
 #[derive(Debug, Clone)]
 pub enum MemberQualifier {
     All,
@@ -105,7 +102,6 @@ impl Type {
                 .collect(),
             Type::List(inner) => inner.referenced_types(),
             Type::Nothing => Vec::default(),
-            Type::MemberQualifier(_, inner) => inner.referenced_types(),
             Type::Parameter(_) => Vec::default(),
         }
     }
@@ -144,9 +140,6 @@ impl Type {
             Type::List(inner) => {
                 inner.qualify_types(types);
             }
-            Type::MemberQualifier(_, inner) => {
-                inner.qualify_types(types);
-            }
             Type::Nothing => {}
             Type::Parameter(_) => {}
         }
@@ -166,7 +159,6 @@ impl Debug for Type {
             Type::Refinement(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),
             Type::List(ty) => write!(f, "[{:?}]", ty),
             Type::Expr(expr) => write!(f, "#({:?})", expr),
-            Type::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             Type::Parameter(name) => write!(f, "{:?}", name),
         }
     }

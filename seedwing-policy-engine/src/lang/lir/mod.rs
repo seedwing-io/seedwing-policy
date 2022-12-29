@@ -26,7 +26,6 @@ pub enum Type {
     Meet(Arc<Type>, Arc<Type>),
     Refinement(Arc<Type>, Arc<Type>),
     List(Arc<Type>),
-    MemberQualifier(Located<MemberQualifier>, Arc<Type>),
     Nothing,
 }
 
@@ -275,59 +274,6 @@ impl Type {
                 }
             }),
             Type::List(_) => todo!(),
-            Type::MemberQualifier(qualifier, ty) => Box::pin(async move {
-                let mut locked_value = value.lock().await;
-                match &**qualifier {
-                    MemberQualifier::All => {
-                        if let Some(list) = locked_value.try_get_list() {
-                            for e in list {
-                                let result = ty.evaluate(e.clone(), bindings).await?;
-                                if result.is_none() {
-                                    locked_value.note(self.clone(), false);
-                                    return Ok(None);
-                                }
-                            }
-                            locked_value.note(self.clone(), true);
-                            return Ok(Some(value.clone()));
-                        }
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                    MemberQualifier::Any => {
-                        if let Some(list) = locked_value.try_get_list() {
-                            for e in list {
-                                let result = ty.evaluate(e.clone(), bindings).await?;
-                                if result.is_some() {
-                                    locked_value.note(self.clone(), true);
-                                    return Ok(Some(value.clone()));
-                                }
-                            }
-                            locked_value.note(self.clone(), false);
-                            return Ok(None);
-                        }
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                    MemberQualifier::N(expected_n) => {
-                        let expected_n = expected_n.inner();
-                        let mut n = 0;
-                        if let Some(list) = locked_value.try_get_list() {
-                            for e in list {
-                                let result = ty.evaluate(e.clone(), bindings).await?;
-                                if result.is_some() {
-                                    n += 1;
-                                    if n >= expected_n {
-                                        locked_value.note(self.clone(), true);
-                                        return Ok(Some(value.clone()));
-                                    }
-                                }
-                            }
-                        }
-                        locked_value.note(self.clone(), false);
-                        Ok(None)
-                    }
-                }
-            }),
             Type::Bound(primary, bindings) => {
                 Box::pin(async move { primary.evaluate(value, bindings).await })
             }
@@ -371,7 +317,6 @@ impl Debug for Type {
                 write!(f, "{:?}({:?})", primary, refinement)
             }
             Type::List(inner) => write!(f, "[{:?}]", inner),
-            Type::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             Type::Argument(name) => write!(f, "{:?}", name),
             Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
             Type::Nothing => write!(f, "nothing"),
@@ -532,10 +477,6 @@ fn convert(handle: &Arc<Located<mir::Type>>) -> Pin<Box<dyn Future<Output = Arc<
         mir::Type::List(inner) => Box::pin(async move {
             let inner = convert(&inner.ty().await).await;
             Arc::new(lir::Type::List(inner))
-        }),
-        mir::Type::MemberQualifier(qual, ty) => Box::pin(async move {
-            let ty = convert(&ty.ty().await).await;
-            Arc::new(lir::Type::MemberQualifier(qual.clone(), ty))
         }),
         mir::Type::Nothing => Box::pin(async move { Arc::new(lir::Type::Nothing) }),
     }

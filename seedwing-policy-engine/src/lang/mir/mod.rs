@@ -93,7 +93,6 @@ pub enum Type {
     Meet(Arc<TypeHandle>, Arc<TypeHandle>),
     Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
     List(Arc<TypeHandle>),
-    MemberQualifier(Located<MemberQualifier>, Arc<TypeHandle>),
     Nothing,
 }
 
@@ -111,7 +110,6 @@ impl Debug for Type {
                 write!(f, "{:?}({:?})", primary, refinement)
             }
             Type::List(inner) => write!(f, "[{:?}]", inner),
-            Type::MemberQualifier(qualifier, ty) => write!(f, "{:?}::{:?}", qualifier, ty),
             Type::Argument(name) => write!(f, "{:?}", name),
             Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
             Type::Nothing => write!(f, "nothing"),
@@ -394,16 +392,6 @@ impl World {
                         .with(Located::new(
                             mir::Type::List(self.convert(inner).await),
                             ty.location(),
-                        ))
-                        .await,
-                )
-            }),
-            hir::Type::MemberQualifier(qualifier, ty) => Box::pin(async move {
-                Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::MemberQualifier(qualifier.clone(), self.convert(ty).await),
-                            qualifier.location(),
                         ))
                         .await,
                 )
