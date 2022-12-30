@@ -1,34 +1,51 @@
-<html>
-<head>
-  <title>Module</title>
-</head>
-<body>
-<h1>
-  Module {{path}}
+{{#> layout }}
+
+<h1 class="pf-c-title pf-m-4xl">
+  {{#if path_segments}}
+    {{#each path_segments}}
+      <span>{{this}} :: </span>
+    {{/each}}
+  {{else}}
+    [Root]
+  {{/if}}
 </h1>
 
 {{#with payload.modules as |modules|}}
 {{#if modules}}
-<h2>Modules</h2>
-<ul>
-  {{#each modules}}
-  <li><a href="{{this}}/">{{this}}</a></li>
-  {{/each}}
-</ul>
+<div class="pf-c-panel">
+  <div class="pf-c-panel__header">Modules</div>
+  <hr class="pf-c-divider" />
+  <div class="pf-c-panel__main">
+    <div class="pf-c-panel__main-body">
+      <ul class="pf-c-list">
+        {{#each modules}}
+        <li><a href="{{this}}/">{{this}}</a></li>
+        {{/each}}
+      </ul>
+    </div>
+  </div>
+</div>
+<hr class="pf-c-divider" />
 {{/if}}
 {{/with}}
 
 {{#with payload.types as |types|}}
 {{#if types}}
-<h2>Types</h2>
-<ul>
-  {{#each types}}
-  <li><a href="{{this}}">{{this}}</a></li>
-  {{/each}}
-</ul>
+<div class="pf-c-panel">
+  <div class="pf-c-panel__header">Types</div>
+  <hr class="pf-c-divider" />
+  <div class="pf-c-panel__main">
+    <div class="pf-c-panel__main-body">
+      <ul class="pf-c-list">
+        {{#each types}}
+        <li><a href="{{this}}">{{this}}</a></li>
+        {{/each}}
+      </ul>
+    </div>
+  </div>
+</div>
+<hr class="pf-c-divider" />
 {{/if}}
 {{/with}}
 
-
-</body>
-</html>
+{{/layout}}

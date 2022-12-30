@@ -376,6 +376,7 @@ impl World {
     }
 }
 
+#[derive(Debug)]
 pub enum Component {
     Module(ModuleHandle),
     Type(Arc<Type>),

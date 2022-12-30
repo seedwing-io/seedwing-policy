@@ -56,6 +56,16 @@ impl TypeName {
 
         fq
     }
+
+    pub fn segments(&self) -> Vec<String> {
+        let mut segments = Vec::new();
+        if let Some(package) = &self.package {
+            segments.extend_from_slice(&*package.segments())
+        }
+
+        segments.push(self.name.clone());
+        segments
+    }
 }
 
 impl From<String> for TypeName {
@@ -112,7 +122,11 @@ impl From<&str> for PackagePath {
 }
 
 impl From<String> for PackagePath {
-    fn from(segments: String) -> Self {
+    fn from(mut segments: String) -> Self {
+        if let Some(stripped) = segments.strip_suffix("::") {
+            segments = stripped.into();
+        }
+
         let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
         segments.into()
     }
@@ -185,6 +199,10 @@ impl PackagePath {
 
     pub fn path(&self) -> &Vec<Located<PackageName>> {
         &self.path
+    }
+
+    pub fn segments(&self) -> Vec<String> {
+        self.path.iter().map(|e| e.0.clone()).collect()
     }
 }
 

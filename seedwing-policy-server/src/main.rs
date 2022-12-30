@@ -1,8 +1,8 @@
 mod cli;
 mod policy;
+mod ui;
 
 use actix_web::{web, App, HttpServer};
-use clap::parser::ValuesRef;
 use env_logger::Builder;
 use log::LevelFilter;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
@@ -14,6 +14,7 @@ use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
+use crate::ui::ui_asset;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -32,17 +33,18 @@ async fn main() -> std::io::Result<()> {
     let mut errors = Vec::new();
 
     let mut builder = PolicyBuilder::new();
-    let directories: ValuesRef<String> = matches.get_many("dir").unwrap();
-    for dir in directories {
-        let dir: PathBuf = dir.into();
-        if !dir.exists() {
-            log::error!("Unable to open directory: {}", dir.to_string_lossy());
-            exit(-3);
-        }
-        let src = Directory::new(dir);
-        //log::info!("loading policies from {}", dir);
-        if let Err(result) = builder.build(src.iter()) {
-            errors.extend_from_slice(&*result);
+    if let Some(directories) = matches.get_many::<String>("dir") {
+        for dir in directories {
+            let dir = PathBuf::from(dir);
+            if !dir.exists() {
+                log::error!("Unable to open directory: {}", dir.to_string_lossy());
+                exit(-3);
+            }
+            let src = Directory::new(dir);
+            //log::info!("loading policies from {}", dir);
+            if let Err(result) = builder.build(src.iter()) {
+                errors.extend_from_slice(&*result);
+            }
         }
     }
 
@@ -58,6 +60,7 @@ async fn main() -> std::io::Result<()> {
             let server = HttpServer::new(move || {
                 App::new()
                     .app_data(web::Data::new(world.clone()))
+                    .service(ui_asset)
                     .default_service(web::to(policy))
             });
 

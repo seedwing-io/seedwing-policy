@@ -1,10 +1,12 @@
-use actix_web::http::Method;
+use actix_web::http::{header, Method};
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::{Component, World};
+use seedwing_policy_engine::lang::PackagePath;
 use seedwing_policy_engine::value::Value;
+use serde::Serialize;
 
 pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
     if req.method() == Method::POST {
@@ -47,18 +49,46 @@ async fn evaluate(world: web::Data<World>, req: HttpRequest, mut body: Payload) 
 }
 
 async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
-    let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
+    let original_path = req.path();
+    let path = original_path.strip_prefix('/').unwrap().replace('/', "::");
 
     if let Some(component) = world.get(path.clone()) {
         let mut renderer = Handlebars::new();
-        renderer.set_dev_mode(true);
+        renderer.register_partial("layout", LAYOUT_HTML).unwrap();
+
+        renderer.register_partial("module", MODULE_HTML).unwrap();
+
+        renderer.register_partial("type", TYPE_HTML).unwrap();
 
         let result = match component {
             Component::Module(pkg) => {
-                renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
+                if !original_path.ends_with('/') {
+                    let mut response = HttpResponse::TemporaryRedirect();
+                    response.insert_header((header::LOCATION, format!("{}/", path)));
+                    return response.finish();
+                }
+                let path_segments = PackagePath::from(path.clone());
+                let path_segments = path_segments.segments();
+                renderer.render(
+                    "module",
+                    &RenderContext {
+                        path_segments,
+                        path,
+                        payload: pkg,
+                    },
+                )
+                //renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
             }
             Component::Type(ty) => {
-                renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })
+                renderer.render(
+                    "type",
+                    &RenderContext {
+                        path_segments: vec![],
+                        path,
+                        payload: ty,
+                    },
+                )
+                //renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })
             }
         };
 
@@ -74,13 +104,13 @@ async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
     }
 }
 
+const LAYOUT_HTML: &str = include_str!("ui/_layout.html");
 const TYPE_HTML: &str = include_str!("ui/_type.html");
 const MODULE_HTML: &str = include_str!("ui/_module.html");
 
-use serde::Serialize;
-
 #[derive(Serialize)]
 pub struct RenderContext<T: Serialize> {
+    path_segments: Vec<String>,
     path: String,
     payload: T,
 }
