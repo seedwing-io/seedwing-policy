@@ -9,12 +9,12 @@ use seedwing_policy_engine::error_printer::ErrorPrinter;
 use std::path::PathBuf;
 use std::process::exit;
 
-use crate::policy::policy;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
-use crate::ui::ui_asset;
+use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
+use crate::ui::{index, ui_asset};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -61,9 +61,14 @@ async fn main() -> std::io::Result<()> {
                 App::new()
                     .app_data(web::Data::new(world.clone()))
                     .service(ui_asset)
-                    .default_service(web::to(policy))
+                    .service(index)
+                    .service(display_root_no_slash)
+                    .service(display_root)
+                    .service(display_component)
+                    .service(evaluate)
+                //.default_service(web::to(policy))
+                //.route( "/policy/{path:.*}")
             });
-
             log::info!("starting up at http://{}:{}/", bind, port);
 
             server.bind((bind, port))?.run().await

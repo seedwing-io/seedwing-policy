@@ -1,6 +1,8 @@
-use actix_web::http::{header, Method};
+use crate::ui::LAYOUT_HTML;
+use actix_web::http::header;
 use actix_web::web::{BytesMut, Payload};
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post};
+use actix_web::{web, HttpRequest, HttpResponse};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::{Component, World};
@@ -8,6 +10,7 @@ use seedwing_policy_engine::lang::PackagePath;
 use seedwing_policy_engine::value::Value;
 use serde::Serialize;
 
+/*
 pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
     if req.method() == Method::POST {
         return evaluate(world, req, body).await;
@@ -19,8 +22,15 @@ pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) ->
 
     HttpResponse::NotAcceptable().finish()
 }
+ */
 
-async fn evaluate(world: web::Data<World>, req: HttpRequest, mut body: Payload) -> HttpResponse {
+#[post("/policy/{path:.*}")]
+pub async fn evaluate(
+    req: HttpRequest,
+    world: web::Data<World>,
+    path: web::Path<String>,
+    mut body: Payload,
+) -> HttpResponse {
     let mut content = BytesMut::new();
     while let Some(Ok(bit)) = body.next().await {
         content.extend_from_slice(&bit);
@@ -31,9 +41,9 @@ async fn evaluate(world: web::Data<World>, req: HttpRequest, mut body: Payload) 
 
     if let Ok(result) = &result {
         let value = Value::from(result);
-        let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
+        //let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
 
-        match world.evaluate(path, value).await {
+        match world.evaluate(&*path, value).await {
             Ok(result) => {
                 if result.is_some() {
                     HttpResponse::Ok().finish()
@@ -48,9 +58,26 @@ async fn evaluate(world: web::Data<World>, req: HttpRequest, mut body: Payload) 
     }
 }
 
-async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
-    let original_path = req.path();
-    let path = original_path.strip_prefix('/').unwrap().replace('/', "::");
+#[get("/policy")]
+pub async fn display_root_no_slash(req: HttpRequest) -> HttpResponse {
+    let mut response = HttpResponse::TemporaryRedirect();
+    response.insert_header((header::LOCATION, format!("{}/", req.path())));
+    response.finish()
+}
+
+#[get("/policy/")]
+pub async fn display_root(world: web::Data<World>) -> HttpResponse {
+    display(world, "".into()).await
+}
+
+#[get("/policy/{path:.*}")]
+pub async fn display_component(world: web::Data<World>, path: web::Path<String>) -> HttpResponse {
+    display(world, path.clone()).await
+}
+
+async fn display(world: web::Data<World>, path: String) -> HttpResponse {
+    let original_path = path;
+    let path = original_path.replace('/', "::");
 
     if let Some(component) = world.get(path.clone()) {
         let mut renderer = Handlebars::new();
@@ -62,7 +89,7 @@ async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
 
         let result = match component {
             Component::Module(pkg) => {
-                if !original_path.ends_with('/') {
+                if !original_path.is_empty() && !original_path.ends_with('/') {
                     let mut response = HttpResponse::TemporaryRedirect();
                     response.insert_header((header::LOCATION, format!("{}/", path)));
                     return response.finish();
@@ -95,7 +122,7 @@ async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
         match result {
             Ok(html) => HttpResponse::Ok().body(html),
             Err(err) => {
-                println!("{:?}", err);
+                log::error!("{:?}", err);
                 HttpResponse::InternalServerError().finish()
             }
         }
@@ -104,7 +131,6 @@ async fn display(world: web::Data<World>, req: HttpRequest) -> HttpResponse {
     }
 }
 
-const LAYOUT_HTML: &str = include_str!("ui/_layout.html");
 const TYPE_HTML: &str = include_str!("ui/_type.html");
 const MODULE_HTML: &str = include_str!("ui/_module.html");
 
