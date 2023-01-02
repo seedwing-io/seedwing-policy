@@ -37,11 +37,10 @@
 
           <form id="experiment_form">
             <textarea id="experiment_body" style="width: 100%; height: 20em"></textarea>
-            <hr/>
-            <hr/>
-            <div><button id="experiment_post">POST</button>
+            <hr class="pf-c-divider" style="padding: 1ex 0"/>
+            <div style="height: 3em"><button id="experiment_post">POST</button>
               <svg
-                  class="pf-c-spinner pf-m-md"
+                  class="pf-c-spinner pf-m-lg"
                   role="progressbar"
                   viewBox="0 0 100 100"
                   aria-label="Loading..."
@@ -62,7 +61,11 @@
 <script>
   $("#spinner").hide();
   $("#experiment_post").on("click", function(event) {
+    $("#experiment_post").hide();
     $("#spinner").show();
+    $('#experiment_status').removeClass("pf-m-gold");
+    $('#experiment_status').removeClass("pf-m-green");
+    $('#experiment_status').removeClass("pf-m-red");
     event.preventDefault();
     body = $("#experiment_body").val();
     console.log(body);
@@ -87,6 +90,7 @@
         }
     } ).always( function() {
       $("#spinner").hide();
+      $("#experiment_post").show();
     } )
   } )
 </script>
