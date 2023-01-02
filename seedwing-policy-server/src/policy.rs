@@ -6,7 +6,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::{Component, World};
-use seedwing_policy_engine::lang::PackagePath;
+use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use seedwing_policy_engine::value::Value;
 use serde::Serialize;
 
@@ -41,7 +41,7 @@ pub async fn evaluate(
 
     if let Ok(result) = &result {
         let value = Value::from(result);
-        //let path = req.path().strip_prefix('/').unwrap().replace('/', "::");
+        let path = path.replace('/', "::");
 
         match world.evaluate(&*path, value).await {
             Ok(result) => {
@@ -51,9 +51,13 @@ pub async fn evaluate(
                     HttpResponse::NotAcceptable().finish()
                 }
             }
-            Err(_err) => HttpResponse::InternalServerError().finish(),
+            Err(err) => {
+                log::error!("err {:?}", err);
+                HttpResponse::InternalServerError().finish()
+            }
         }
     } else {
+        log::error!("unable to parse");
         HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
     }
 }
@@ -66,16 +70,21 @@ pub async fn display_root_no_slash(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/policy/")]
-pub async fn display_root(world: web::Data<World>) -> HttpResponse {
-    display(world, "".into()).await
+pub async fn display_root(req: HttpRequest, world: web::Data<World>) -> HttpResponse {
+    display(req, world, "".into()).await
 }
 
 #[get("/policy/{path:.*}")]
-pub async fn display_component(world: web::Data<World>, path: web::Path<String>) -> HttpResponse {
-    display(world, path.clone()).await
+pub async fn display_component(
+    req: HttpRequest,
+    world: web::Data<World>,
+    path: web::Path<String>,
+) -> HttpResponse {
+    display(req, world, path.clone()).await
 }
 
-async fn display(world: web::Data<World>, path: String) -> HttpResponse {
+async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> HttpResponse {
+    let url_path = req.path().to_string();
     let original_path = path;
     let path = original_path.replace('/', "::");
 
@@ -100,6 +109,7 @@ async fn display(world: web::Data<World>, path: String) -> HttpResponse {
                     "module",
                     &RenderContext {
                         path_segments,
+                        url_path,
                         path,
                         payload: pkg,
                     },
@@ -107,10 +117,21 @@ async fn display(world: web::Data<World>, path: String) -> HttpResponse {
                 //renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
             }
             Component::Type(ty) => {
+                if original_path.ends_with('/') {
+                    let mut response = HttpResponse::TemporaryRedirect();
+                    response.insert_header((
+                        header::LOCATION,
+                        format!("{}/", path.strip_suffix('/').unwrap()),
+                    ));
+                    return response.finish();
+                }
+                let path_segments = TypeName::from(path.clone());
+                let path_segments = path_segments.segments();
                 renderer.render(
                     "type",
                     &RenderContext {
-                        path_segments: vec![],
+                        path_segments,
+                        url_path,
                         path,
                         payload: ty,
                     },
@@ -137,6 +158,7 @@ const MODULE_HTML: &str = include_str!("ui/_module.html");
 #[derive(Serialize)]
 pub struct RenderContext<T: Serialize> {
     path_segments: Vec<String>,
+    url_path: String,
     path: String,
     payload: T,
 }

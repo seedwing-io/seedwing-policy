@@ -30,7 +30,11 @@ impl Function for Base64 {
     ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
         Box::pin(async move {
             if let Some(inner) = input.try_get_string() {
-                if let Ok(decoded) = base64::decode(inner) {
+                let result = base64::decode(inner);
+
+                println!("RESULT {:?}", result);
+
+                if let Ok(decoded) = result {
                     Ok(decoded.into())
                 } else {
                     Err(FunctionError::Other("unable to decode base64".into()))

@@ -1,7 +1,94 @@
 {{#> layout }}
 
-<h1>
-  Type {{path}}
+
+<h1 class="pf-c-title pf-m-4xl">
+  {{#if path_segments}}
+  {{#each path_segments}}
+  <span>{{this}} :: </span>
+  {{/each}}
+  {{else}}
+  [Root]
+  {{/if}}
 </h1>
+
+<div class="pf-m-gutter pf-l-grid pf-m-all-12-col-on-sm pf-m-all-6-col-on-md">
+  <div class="pf-l-grid__item">
+    <div class="pf-c-panel">
+      <div class="pf-c-panel__header">Definition</div>
+      <hr class="pf-c-divider"/>
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__main-body">
+          <h1>{{path}}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pf-l-grid__item">
+    <div class="pf-c-panel">
+      <div class="pf-c-panel__header">Experiment</div>
+      <hr class="pf-c-divider"/>
+      <div class="pf-c-banner" id="experiment_status">
+        POST {{url_path}}
+      </div>
+      <hr class="pf-c-divider"/>
+
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__main-body">
+
+          <form id="experiment_form">
+            <textarea id="experiment_body" style="width: 100%; height: 20em"></textarea>
+            <hr/>
+            <hr/>
+            <div><button id="experiment_post">POST</button>
+              <svg
+                  class="pf-c-spinner pf-m-md"
+                  role="progressbar"
+                  viewBox="0 0 100 100"
+                  aria-label="Loading..."
+                  id="spinner"
+              >
+                <circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none" />
+              </svg>
+            </div>
+          </form>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $("#spinner").hide();
+  $("#experiment_post").on("click", function(event) {
+    $("#spinner").show();
+    event.preventDefault();
+    body = $("#experiment_body").val();
+    console.log(body);
+    $.post(
+      "{{url_path}}",
+      body,
+      function(result) {
+        $('#experiment_status').removeClass("pf-m-gold");
+        $('#experiment_status').removeClass("pf-m-red");
+        $('#experiment_status').addClass("pf-m-green");
+      }
+    ).fail( function(arg) {
+        console.log(arg);
+        if (arg.status == 406) {
+          $('#experiment_status').removeClass("pf-m-gold");
+          $('#experiment_status').removeClass("pf-m-green");
+          $('#experiment_status').addClass("pf-m-red");
+        } else {
+          $('#experiment_status').removeClass("pf-m-green");
+          $('#experiment_status').removeClass("pf-m-red");
+          $('#experiment_status').addClass("pf-m-gold");
+        }
+    } ).always( function() {
+      $("#spinner").hide();
+    } )
+  } )
+</script>
 
 {{/layout}}
