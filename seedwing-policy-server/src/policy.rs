@@ -1,3 +1,4 @@
+use crate::ui::html::Htmlifier;
 use crate::ui::LAYOUT_HTML;
 use actix_web::http::header;
 use actix_web::web::{BytesMut, Payload};
@@ -9,7 +10,6 @@ use seedwing_policy_engine::lang::lir::{Component, World};
 use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use seedwing_policy_engine::value::Value;
 use serde::Serialize;
-use std::str::from_utf8;
 
 /*
 pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
@@ -128,13 +128,15 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 }
                 let path_segments = TypeName::from(path.clone());
                 let path_segments = path_segments.segments();
+
+                let html = Htmlifier::new("/policy/".into(), &world);
                 renderer.render(
                     "type",
                     &RenderContext {
                         path_segments,
                         url_path,
                         path,
-                        payload: ty,
+                        payload: html.html_of(ty),
                     },
                 )
                 //renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })

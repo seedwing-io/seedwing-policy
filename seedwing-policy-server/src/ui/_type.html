@@ -1,5 +1,15 @@
 {{#> layout }}
 
+<style>
+  #type-definition div {
+    padding-left: 1ex;
+  }
+
+  #type-definition span {
+    padding-left: 1ex;
+    padding-right: 1ex;
+  }
+</style>
 
 <h1 class="pf-c-title pf-m-4xl">
   {{#if path_segments}}
@@ -17,8 +27,8 @@
       <div class="pf-c-panel__header">Definition</div>
       <hr class="pf-c-divider"/>
       <div class="pf-c-panel__main">
-        <div class="pf-c-panel__main-body">
-          <h1>{{path}}</h1>
+        <div class="pf-c-panel__main-body" id="type-definition">
+          <pre>{{&payload}}</pre>
         </div>
       </div>
     </div>
@@ -36,7 +46,7 @@
         <div class="pf-c-panel__main-body">
 
           <form id="experiment_form">
-            <textarea id="experiment_body" style="width: 100%; height: 20em; font-family: monospace;"></textarea>
+            <textarea id="experiment_body" style="padding: 1ex; width: 100%; height: 20em; font-family: monospace;"></textarea>
             <hr class="pf-c-divider" style="padding: 1ex 0"/>
             <div style="height: 3em"><button id="experiment_post">POST</button>
               <svg

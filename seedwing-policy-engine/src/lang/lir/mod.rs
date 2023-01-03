@@ -26,6 +26,14 @@ impl Type {
         Self { name, inner }
     }
 
+    pub fn name(&self) -> Option<TypeName> {
+        self.name.clone()
+    }
+
+    pub fn inner(&self) -> &InnerType {
+        &self.inner
+    }
+
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,

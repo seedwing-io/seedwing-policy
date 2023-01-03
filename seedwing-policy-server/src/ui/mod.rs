@@ -2,6 +2,8 @@ use actix_web::http::header;
 use actix_web::{get, web, HttpResponse};
 use handlebars::Handlebars;
 
+pub mod html;
+
 #[get("/")]
 pub async fn index() -> HttpResponse {
     let mut renderer = Handlebars::new();
