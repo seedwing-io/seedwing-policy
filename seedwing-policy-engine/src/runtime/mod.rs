@@ -137,7 +137,7 @@ mod test {
         let src = Ephemeral::new(
             "foo::bar",
             r#"
-            # Single-line comment, yay
+            // Single-line comment, yay
             type signed-thing = {
                 digest: sigstore::SHA256(
                     n<1>::{

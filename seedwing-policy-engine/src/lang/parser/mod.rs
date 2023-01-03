@@ -282,7 +282,7 @@ impl PolicyParser {
 
 pub fn lexer(
 ) -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error = ParserError> + Clone {
-    let comment = just('#').then(none_of('#')).then(take_until(just('\n')));
+    let comment = just("//").then(none_of('/')).then(take_until(just('\n')));
 
     any()
         .padded_by(comment.repeated())
