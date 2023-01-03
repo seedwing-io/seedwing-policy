@@ -10,7 +10,7 @@
   {{/if}}
 </h1>
 
-{{#with payload.modules as |modules|}}
+{{#with module.modules as |modules|}}
 {{#if modules}}
 <div class="pf-c-panel">
   <div class="pf-c-panel__header">Modules</div>
@@ -29,7 +29,7 @@
 {{/if}}
 {{/with}}
 
-{{#with payload.types as |types|}}
+{{#with module.types as |types|}}
 {{#if types}}
 <div class="pf-c-panel">
   <div class="pf-c-panel__header">Types</div>

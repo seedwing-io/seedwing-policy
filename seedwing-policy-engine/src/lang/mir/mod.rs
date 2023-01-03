@@ -18,6 +18,7 @@ use std::sync::Arc;
 #[derive(Default, Debug)]
 pub struct TypeHandle {
     name: Option<TypeName>,
+    documentation: Option<String>,
     ty: Mutex<Option<Arc<Located<Type>>>>,
     parameters: Vec<Located<String>>,
 }
@@ -26,17 +27,28 @@ impl TypeHandle {
     pub fn new(name: Option<TypeName>) -> Self {
         Self {
             name,
+            documentation: None,
             ty: Mutex::new(None),
             parameters: vec![],
         }
     }
 
+    pub fn documentation(&self) -> Option<String> {
+        self.documentation.clone()
+    }
+
     pub fn new_with(name: Option<TypeName>, ty: Located<mir::Type>) -> Self {
         Self {
             name,
+            documentation: None,
             ty: Mutex::new(Some(Arc::new(ty))),
             parameters: vec![],
         }
+    }
+
+    pub fn with_documentation(mut self, documentation: Option<String>) -> Self {
+        self.documentation = documentation;
+        self
     }
 
     pub async fn with(mut self, ty: Located<mir::Type>) -> Self {
@@ -217,10 +229,19 @@ impl World {
         self.types.keys().cloned().collect()
     }
 
-    pub(crate) async fn declare(&mut self, path: TypeName, parameters: Vec<Located<String>>) {
+    pub(crate) async fn declare(
+        &mut self,
+        path: TypeName,
+        documentation: Option<String>,
+        parameters: Vec<Located<String>>,
+    ) {
         self.types.insert(
             path.clone(),
-            Arc::new(TypeHandle::new(Some(path)).with_parameters(parameters)),
+            Arc::new(
+                TypeHandle::new(Some(path))
+                    .with_parameters(parameters)
+                    .with_documentation(documentation),
+            ),
         );
     }
 

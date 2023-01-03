@@ -18,6 +18,7 @@ pub struct TypeDefn {
     name: Located<String>,
     ty: Located<Type>,
     parameters: Vec<Located<String>>,
+    documentation: Option<String>,
 }
 
 impl TypeDefn {
@@ -26,7 +27,12 @@ impl TypeDefn {
             name,
             ty,
             parameters,
+            documentation: None,
         }
+    }
+
+    pub fn set_documentation(&mut self, doc: Option<String>) {
+        self.documentation = doc
     }
 
     pub fn name(&self) -> Located<String> {
@@ -467,7 +473,9 @@ impl<'b> Lowerer<'b> {
 
             for ty in unit.types() {
                 let name = unit_path.type_name(ty.name().inner());
-                world.declare(name, ty.parameters()).await;
+                world
+                    .declare(name, ty.documentation.clone(), ty.parameters())
+                    .await;
             }
         }
 
@@ -477,6 +485,7 @@ impl<'b> Lowerer<'b> {
                 world
                     .declare(
                         path,
+                        func.documentation(),
                         func.parameters()
                             .iter()
                             .cloned()

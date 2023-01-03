@@ -23,6 +23,10 @@ pub enum FunctionError {
 }
 
 pub trait Function: Sync + Send + Debug {
+    fn documentation(&self) -> Option<String> {
+        None
+    }
+
     fn parameters(&self) -> Vec<String> {
         Default::default()
     }

@@ -18,16 +18,25 @@ use std::sync::Arc;
 #[derive(Debug, Serialize)]
 pub struct Type {
     name: Option<TypeName>,
+    documentation: Option<String>,
     inner: InnerType,
 }
 
 impl Type {
-    fn new(name: Option<TypeName>, inner: InnerType) -> Self {
-        Self { name, inner }
+    fn new(name: Option<TypeName>, documentation: Option<String>, inner: InnerType) -> Self {
+        Self {
+            name,
+            documentation,
+            inner,
+        }
     }
 
     pub fn name(&self) -> Option<TypeName> {
         self.name.clone()
+    }
+
+    pub fn documentation(&self) -> Option<String> {
+        self.documentation.clone()
     }
 
     pub fn inner(&self) -> &InnerType {
@@ -345,7 +354,8 @@ impl World {
     pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
         let ty = handle.ty().await;
         let name = handle.name();
-        self.types.insert(path, convert(name, &ty).await);
+        let converted = convert(name, handle.documentation(), &ty).await;
+        self.types.insert(path, converted);
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<Value>>(
@@ -428,79 +438,121 @@ impl ModuleHandle {
 
 fn convert(
     name: Option<TypeName>,
+    documentation: Option<String>,
     ty: &Arc<Located<mir::Type>>,
 ) -> Pin<Box<dyn Future<Output = Arc<Type>> + '_>> {
     match &***ty {
-        mir::Type::Anything => {
-            Box::pin(async move { Arc::new(lir::Type::new(name, lir::InnerType::Anything)) })
-        }
+        mir::Type::Anything => Box::pin(async move {
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::Anything,
+            ))
+        }),
         mir::Type::Primordial(primordial) => Box::pin(async move {
             Arc::new(lir::Type::new(
                 name,
+                documentation,
                 lir::InnerType::Primordial(primordial.clone()),
             ))
         }),
         mir::Type::Bound(primary, mir_bindings) => Box::pin(async move {
-            let primary = convert(primary.name(), &primary.ty().await).await;
+            let primary =
+                convert(primary.name(), primary.documentation(), &primary.ty().await).await;
             let mut bindings = Bindings::new();
             for (key, value) in mir_bindings.iter() {
-                bindings.bind(key.clone(), convert(value.name(), &value.ty().await).await)
+                bindings.bind(
+                    key.clone(),
+                    convert(value.name(), value.documentation(), &value.ty().await).await,
+                )
             }
             Arc::new(lir::Type::new(
                 name,
+                documentation,
                 lir::InnerType::Bound(primary, bindings),
             ))
         }),
         mir::Type::Argument(name) => Box::pin(async move {
-            Arc::new(lir::Type::new(None, lir::InnerType::Argument(name.inner())))
+            Arc::new(lir::Type::new(
+                None,
+                None,
+                lir::InnerType::Argument(name.inner()),
+            ))
         }),
-        mir::Type::Const(value) => {
-            Box::pin(
-                async move { Arc::new(lir::Type::new(name, lir::InnerType::Const(value.inner()))) },
-            )
-        }
+        mir::Type::Const(value) => Box::pin(async move {
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::Const(value.inner()),
+            ))
+        }),
         mir::Type::Object(mir_object) => Box::pin(async move {
             let mut fields: Vec<Arc<Field>> = Default::default();
             for f in mir_object.fields().iter() {
                 let ty = f.ty();
                 let field = Arc::new(lir::Field {
                     name: f.name().inner(),
-                    ty: convert(ty.name(), &ty.ty().await).await,
+                    ty: convert(ty.name(), ty.documentation(), &ty.ty().await).await,
                 });
                 fields.push(field);
             }
             let object = ObjectType::new(fields);
-            Arc::new(lir::Type::new(name, lir::InnerType::Object(object)))
-        }),
-        mir::Type::Expr(expr) => {
-            Box::pin(
-                async move { Arc::new(lir::Type::new(name, lir::InnerType::Expr(expr.clone()))) },
-            )
-        }
-        mir::Type::Join(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(lhs.name(), &lhs.ty().await).await;
-            let rhs = convert(rhs.name(), &rhs.ty().await).await;
-            Arc::new(lir::Type::new(name, lir::InnerType::Join(lhs, rhs)))
-        }),
-        mir::Type::Meet(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(lhs.name(), &lhs.ty().await).await;
-            let rhs = convert(rhs.name(), &rhs.ty().await).await;
-            Arc::new(lir::Type::new(name, lir::InnerType::Meet(lhs, rhs)))
-        }),
-        mir::Type::Refinement(primary, refinement) => Box::pin(async move {
-            let primary = convert(primary.name(), &primary.ty().await).await;
-            let refinement = convert(refinement.name(), &refinement.ty().await).await;
             Arc::new(lir::Type::new(
                 name,
+                documentation,
+                lir::InnerType::Object(object),
+            ))
+        }),
+        mir::Type::Expr(expr) => Box::pin(async move {
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::Expr(expr.clone()),
+            ))
+        }),
+        mir::Type::Join(lhs, rhs) => Box::pin(async move {
+            let lhs = convert(lhs.name(), lhs.documentation(), &lhs.ty().await).await;
+            let rhs = convert(rhs.name(), rhs.documentation(), &rhs.ty().await).await;
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::Join(lhs, rhs),
+            ))
+        }),
+        mir::Type::Meet(lhs, rhs) => Box::pin(async move {
+            let lhs = convert(lhs.name(), lhs.documentation(), &lhs.ty().await).await;
+            let rhs = convert(rhs.name(), rhs.documentation(), &rhs.ty().await).await;
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::Meet(lhs, rhs),
+            ))
+        }),
+        mir::Type::Refinement(primary, refinement) => Box::pin(async move {
+            let primary =
+                convert(primary.name(), primary.documentation(), &primary.ty().await).await;
+            let refinement = convert(
+                refinement.name(),
+                refinement.documentation(),
+                &refinement.ty().await,
+            )
+            .await;
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
                 lir::InnerType::Refinement(primary, refinement),
             ))
         }),
         mir::Type::List(inner) => Box::pin(async move {
-            let inner = convert(inner.name(), &inner.ty().await).await;
-            Arc::new(lir::Type::new(name, lir::InnerType::List(inner)))
+            let inner = convert(inner.name(), inner.documentation(), &inner.ty().await).await;
+            Arc::new(lir::Type::new(
+                name,
+                documentation,
+                lir::InnerType::List(inner),
+            ))
         }),
-        mir::Type::Nothing => {
-            Box::pin(async move { Arc::new(lir::Type::new(name, lir::InnerType::Nothing)) })
-        }
+        mir::Type::Nothing => Box::pin(async move {
+            Arc::new(lir::Type::new(name, documentation, lir::InnerType::Nothing))
+        }),
     }
 }

@@ -32,6 +32,7 @@ impl<'c> ErrorPrinter<'c> {
                 }
                 BuildError::Parser(_, inner) => match inner.reason() {
                     SimpleReason::Unexpected => {
+                        println!("{:?}", inner);
                         format!("unexpected character found {}", inner.found().unwrap())
                     }
                     SimpleReason::Unclosed { span, delimiter } => {

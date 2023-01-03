@@ -1,0 +1,3 @@
+Applies Base64 decoding on a string input, resulting in a sequence of octets.
+
+

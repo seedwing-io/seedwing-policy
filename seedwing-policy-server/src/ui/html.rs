@@ -2,6 +2,7 @@ use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type};
 use seedwing_policy_engine::lang::{lir, PrimordialType, TypeName};
 use std::sync::Arc;
 
+#[allow(dead_code)]
 pub struct Htmlifier<'w> {
     root: String,
     world: &'w lir::World,

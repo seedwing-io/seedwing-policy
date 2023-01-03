@@ -17,14 +17,20 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["sigstore"]));
-    pkg.register_function("SHA256".into(), Sha256);
+    pkg.register_function("SHA256".into(), SHA256);
     pkg
 }
 
 #[derive(Debug)]
-pub struct Sha256;
+pub struct SHA256;
 
-impl Function for Sha256 {
+const DOCUMENTATION: &str = include_str!("SHA256.adoc");
+
+impl Function for SHA256 {
+    fn documentation(&self) -> Option<String> {
+        Some(DOCUMENTATION.into())
+    }
+
     fn call<'v>(
         &'v self,
         input: &'v Value,

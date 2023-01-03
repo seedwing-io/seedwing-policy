@@ -19,10 +19,16 @@ pub fn package() -> Package {
     pkg
 }
 
+const DOCUMENTATION: &str = include_str!("Base64.adoc");
+
 #[derive(Debug)]
 pub struct Base64;
 
 impl Function for Base64 {
+    fn documentation(&self) -> Option<String> {
+        Some(DOCUMENTATION.into())
+    }
+
     fn call<'v>(
         &'v self,
         input: &'v Value,

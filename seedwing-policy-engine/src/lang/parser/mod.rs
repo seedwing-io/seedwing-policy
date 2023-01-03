@@ -11,6 +11,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::str::from_utf8;
 
 pub mod expr;
 pub mod literal;
@@ -273,6 +274,7 @@ impl PolicyParser {
     {
         let tokens = lexer().parse(stream)?;
         //compilation_unit(source).parse(stream)
+        let tokens = remove_comments(&tokens);
         compilation_unit(source).parse(Stream::from_iter(
             tokens.len()..tokens.len() + 1,
             tokens.iter().cloned(),
@@ -280,14 +282,52 @@ impl PolicyParser {
     }
 }
 
+fn remove_comments(tokens: &Vec<(ParserInput, SourceSpan)>) -> Vec<(ParserInput, SourceSpan)> {
+    let mut filtered_tokens = Vec::new();
+    let len = tokens.len();
+
+    let mut i = 0;
+    loop {
+        if i >= len {
+            break;
+        }
+        if tokens[i].0 == '/' {
+            if tokens[i + 1].0 == '/' {
+                if tokens[i + 2].0 != '/' {
+                    i += 2;
+                    // consume until newline
+                    while tokens[i].0 != '\n' {
+                        i += 1;
+                    }
+                } else {
+                    filtered_tokens.push(tokens[i].clone());
+                    filtered_tokens.push(tokens[i + 1].clone());
+                    filtered_tokens.push(tokens[i + 2].clone());
+                    i += 2;
+                }
+            } else {
+                filtered_tokens.push(tokens[i].clone())
+            }
+        } else {
+            filtered_tokens.push(tokens[i].clone())
+        }
+        i += 1;
+    }
+
+    /*
+    let debug: String = filtered_tokens.iter().map(|e| {
+        e.0
+    }).collect();
+
+    println!("{}", debug);
+     */
+
+    filtered_tokens
+}
+
 pub fn lexer(
 ) -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error = ParserError> + Clone {
-    let comment = just("//").then(none_of('/')).then(take_until(just('\n')));
-
-    any()
-        .padded_by(comment.repeated())
-        .map_with_span(|l, span| (l, span))
-        .repeated()
+    any().map_with_span(|l, span| (l, span)).repeated()
 }
 
 fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {

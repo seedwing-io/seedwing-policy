@@ -6,7 +6,7 @@ use actix_web::{get, post};
 use actix_web::{web, HttpRequest, HttpResponse};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
-use seedwing_policy_engine::lang::lir::{Component, World};
+use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use seedwing_policy_engine::value::Value;
 use serde::Serialize;
@@ -91,6 +91,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
 
     if let Some(component) = world.get(path.clone()) {
         let mut renderer = Handlebars::new();
+        renderer.set_prevent_indent(true);
         renderer.register_partial("layout", LAYOUT_HTML).unwrap();
 
         renderer.register_partial("module", MODULE_HTML).unwrap();
@@ -98,7 +99,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
         renderer.register_partial("type", TYPE_HTML).unwrap();
 
         let result = match component {
-            Component::Module(pkg) => {
+            Component::Module(module) => {
                 if !original_path.is_empty() && !original_path.ends_with('/') {
                     let mut response = HttpResponse::TemporaryRedirect();
                     response.insert_header((header::LOCATION, format!("{}/", path)));
@@ -108,11 +109,11 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let path_segments = path_segments.segments();
                 renderer.render(
                     "module",
-                    &RenderContext {
+                    &ModuleRenderContext {
                         path_segments,
                         url_path,
                         path,
-                        payload: pkg,
+                        module,
                     },
                 )
                 //renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
@@ -130,13 +131,15 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let path_segments = path_segments.segments();
 
                 let html = Htmlifier::new("/policy/".into(), &world);
+
                 renderer.render(
                     "type",
-                    &RenderContext {
+                    &TypeRenderContext {
                         path_segments,
                         url_path,
                         path,
-                        payload: html.html_of(ty),
+                        documentation: ty.documentation().unwrap_or_default(),
+                        definition: html.html_of(ty),
                     },
                 )
                 //renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })
@@ -159,9 +162,18 @@ const TYPE_HTML: &str = include_str!("ui/_type.html");
 const MODULE_HTML: &str = include_str!("ui/_module.html");
 
 #[derive(Serialize)]
-pub struct RenderContext<T: Serialize> {
+pub struct ModuleRenderContext {
     path_segments: Vec<String>,
     url_path: String,
     path: String,
-    payload: T,
+    module: ModuleHandle,
+}
+
+#[derive(Serialize)]
+pub struct TypeRenderContext {
+    path_segments: Vec<String>,
+    url_path: String,
+    path: String,
+    definition: String,
+    documentation: String,
 }

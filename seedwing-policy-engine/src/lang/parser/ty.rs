@@ -96,26 +96,52 @@ pub fn inner_type_definition(
         .map(|(_, x)| x)
 }
 
+pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    just("///").then(take_until(just("\n"))).map(|v| {
+        let (_, (doc, _eol)) = v;
+        let mut line = String::new();
+        line.extend(doc);
+        line
+    })
+}
+pub fn doc_comment() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    doc_comment_line().repeated().map(|v| {
+        let mut docs = String::new();
+        for line in v {
+            docs.push_str(line.as_str());
+        }
+        docs.trim().into()
+    })
+}
+
 pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = ParserError> + Clone
 {
-    just("type")
-        .padded()
-        .ignored()
-        .then(simple_type_name())
-        .then(type_parameters().or_not())
-        .then_with(move |((_, ty_name), params)| {
-            inner_type_definition(&params)
-                .or_not()
-                .map(move |ty| (ty_name.clone(), params.clone(), ty))
-        })
-        .map(|(ty_name, params, ty)| {
-            let ty = ty.unwrap_or({
-                let loc = ty_name.location();
-                Located::new(Type::Nothing, loc)
-            });
+    doc_comment()
+        .or_not()
+        .then(
+            just("type")
+                .padded()
+                .ignored()
+                .then(simple_type_name())
+                .then(type_parameters().or_not())
+                .then_with(move |((_, ty_name), params)| {
+                    inner_type_definition(&params)
+                        .or_not()
+                        .map(move |ty| (ty_name.clone(), params.clone(), ty))
+                })
+                .map(|(ty_name, params, ty)| {
+                    let ty = ty.unwrap_or({
+                        let loc = ty_name.location();
+                        Located::new(Type::Nothing, loc)
+                    });
 
-            let loc = ty_name.span().start()..ty.span().end();
-            Located::new(TypeDefn::new(ty_name, ty, params.unwrap_or_default()), loc)
+                    let loc = ty_name.span().start()..ty.span().end();
+                    Located::new(TypeDefn::new(ty_name, ty, params.unwrap_or_default()), loc)
+                }),
+        )
+        .map(|(doc, mut defn)| {
+            defn.set_documentation(doc);
+            defn
         })
 }
 

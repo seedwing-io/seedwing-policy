@@ -22,7 +22,13 @@ pub fn package() -> Package {
 #[derive(Debug)]
 pub struct JSON;
 
+const DOCUMENTATION: &str = include_str!("JSON.adoc");
+
 impl Function for JSON {
+    fn documentation(&self) -> Option<String> {
+        Some(DOCUMENTATION.into())
+    }
+
     fn call<'v>(
         &'v self,
         input: &'v Value,

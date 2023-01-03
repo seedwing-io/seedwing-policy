@@ -3,6 +3,8 @@ type foo = {
   foo: integer
 }
 
+// comment removed.
+
 type bar = {
   bar: integer
 }
@@ -11,6 +13,9 @@ type baz = {
   baz: integer
 }
 
+
+/// It could be a foo
+/// or a bar or a baz
 type quux = foo || bar || baz
 
 
