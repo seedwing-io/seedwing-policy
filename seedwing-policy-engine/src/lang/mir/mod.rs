@@ -66,6 +66,10 @@ impl TypeHandle {
         self.ty.lock().await.as_ref().unwrap().clone()
     }
 
+    pub fn name(&self) -> Option<TypeName> {
+        self.name.clone()
+    }
+
     /*
     pub async fn evaluate(
         &self,

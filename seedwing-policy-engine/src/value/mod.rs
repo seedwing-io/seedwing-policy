@@ -1,5 +1,5 @@
 use crate::core::Function;
-use crate::lang::lir::{Field, Type};
+use crate::lang::lir::{Field, InnerType};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;

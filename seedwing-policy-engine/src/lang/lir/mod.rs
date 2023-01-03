@@ -15,31 +15,25 @@ use std::future::{ready, Future};
 use std::pin::Pin;
 use std::sync::Arc;
 
-#[derive(Serialize)]
-pub enum Type {
-    Anything,
-    Primordial(PrimordialType),
-    Bound(Arc<Type>, Bindings),
-    Argument(String),
-    Const(Value),
-    Object(ObjectType),
-    Expr(Arc<Located<Expr>>),
-    Join(Arc<Type>, Arc<Type>),
-    Meet(Arc<Type>, Arc<Type>),
-    Refinement(Arc<Type>, Arc<Type>),
-    List(Arc<Type>),
-    Nothing,
+#[derive(Debug, Serialize)]
+pub struct Type {
+    name: Option<TypeName>,
+    inner: InnerType,
 }
 
 impl Type {
+    fn new(name: Option<TypeName>, inner: InnerType) -> Self {
+        Self { name, inner }
+    }
+
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
-        match &**self {
-            Type::Anything => Box::pin(ready(Ok(Some(value)))),
-            Type::Argument(name) => Box::pin(async move {
+        match &self.inner {
+            InnerType::Anything => Box::pin(ready(Ok(Some(value)))),
+            InnerType::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
                     let result = bound.evaluate(value.clone(), bindings).await?;
                     let mut locked_value = value.lock().await;
@@ -56,7 +50,7 @@ impl Type {
                     Ok(None)
                 }
             }),
-            Type::Primordial(inner) => match inner {
+            InnerType::Primordial(inner) => match inner {
                 PrimordialType::Integer => Box::pin(async move {
                     let mut locked_value = value.lock().await;
                     if locked_value.is_integer() {
@@ -110,7 +104,7 @@ impl Type {
                     }
                 }),
             },
-            Type::Const(inner) => Box::pin(async move {
+            InnerType::Const(inner) => Box::pin(async move {
                 let mut locked_value = value.lock().await;
                 if (*inner).eq(&*locked_value) {
                     locked_value.note(self.clone(), true);
@@ -120,7 +114,7 @@ impl Type {
                     Ok(None)
                 }
             }),
-            Type::Object(inner) => Box::pin(async move {
+            InnerType::Object(inner) => Box::pin(async move {
                 let mut locked_value = value.lock().await;
                 if locked_value.is_object() {
                     let mut obj = locked_value.try_get_object();
@@ -157,7 +151,7 @@ impl Type {
                     Ok(None)
                 }
             }),
-            Type::Expr(expr) => Box::pin(async move {
+            InnerType::Expr(expr) => Box::pin(async move {
                 let result = expr.evaluate(value.clone()).await?;
                 let mut locked_value = value.lock().await;
                 let locked_result = result.lock().await;
@@ -169,7 +163,7 @@ impl Type {
                     Ok(None)
                 }
             }),
-            Type::Join(lhs, rhs) => Box::pin(async move {
+            InnerType::Join(lhs, rhs) => Box::pin(async move {
                 let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
                 let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
@@ -188,7 +182,7 @@ impl Type {
 
                 Ok(None)
             }),
-            Type::Meet(lhs, rhs) => Box::pin(async move {
+            InnerType::Meet(lhs, rhs) => Box::pin(async move {
                 let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
                 let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
 
@@ -207,7 +201,7 @@ impl Type {
 
                 Ok(None)
             }),
-            Type::Refinement(primary, refinement) => Box::pin(async move {
+            InnerType::Refinement(primary, refinement) => Box::pin(async move {
                 let mut result = primary.evaluate(value.clone(), bindings).await?;
                 if let Some(primary_value) = result {
                     let result = refinement.evaluate(primary_value.clone(), bindings).await?;
@@ -220,13 +214,29 @@ impl Type {
                     Ok(None)
                 }
             }),
-            Type::List(_) => todo!(),
-            Type::Bound(primary, bindings) => {
+            InnerType::List(_) => todo!(),
+            InnerType::Bound(primary, bindings) => {
                 Box::pin(async move { primary.evaluate(value, bindings).await })
             }
-            Type::Nothing => Box::pin(ready(Ok(None))),
+            InnerType::Nothing => Box::pin(ready(Ok(None))),
         }
     }
+}
+
+#[derive(Serialize)]
+pub enum InnerType {
+    Anything,
+    Primordial(PrimordialType),
+    Bound(Arc<Type>, Bindings),
+    Argument(String),
+    Const(Value),
+    Object(ObjectType),
+    Expr(Arc<Located<Expr>>),
+    Join(Arc<Type>, Arc<Type>),
+    Meet(Arc<Type>, Arc<Type>),
+    Refinement(Arc<Type>, Arc<Type>),
+    List(Arc<Type>),
+    Nothing,
 }
 
 #[derive(Serialize, Default, Debug)]
@@ -250,23 +260,23 @@ impl Bindings {
     }
 }
 
-impl Debug for Type {
+impl Debug for InnerType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Anything => write!(f, "anything"),
-            Type::Primordial(inner) => write!(f, "{:?}", inner),
-            Type::Const(inner) => write!(f, "{:?}", inner),
-            Type::Object(inner) => write!(f, "{:?}", inner),
-            Type::Expr(inner) => write!(f, "$({:?})", inner),
-            Type::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
-            Type::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
-            Type::Refinement(primary, refinement) => {
+            InnerType::Anything => write!(f, "anything"),
+            InnerType::Primordial(inner) => write!(f, "{:?}", inner),
+            InnerType::Const(inner) => write!(f, "{:?}", inner),
+            InnerType::Object(inner) => write!(f, "{:?}", inner),
+            InnerType::Expr(inner) => write!(f, "$({:?})", inner),
+            InnerType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
+            InnerType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
+            InnerType::Refinement(primary, refinement) => {
                 write!(f, "{:?}({:?})", primary, refinement)
             }
-            Type::List(inner) => write!(f, "[{:?}]", inner),
-            Type::Argument(name) => write!(f, "{:?}", name),
-            Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
-            Type::Nothing => write!(f, "nothing"),
+            InnerType::List(inner) => write!(f, "[{:?}]", inner),
+            InnerType::Argument(name) => write!(f, "{:?}", name),
+            InnerType::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
+            InnerType::Nothing => write!(f, "nothing"),
         }
     }
 }
@@ -326,7 +336,8 @@ impl World {
 
     pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
         let ty = handle.ty().await;
-        self.types.insert(path, convert(&ty).await);
+        let name = handle.name();
+        self.types.insert(path, convert(name, &ty).await);
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<Value>>(
@@ -407,63 +418,81 @@ impl ModuleHandle {
     }
 }
 
-fn convert(handle: &Arc<Located<mir::Type>>) -> Pin<Box<dyn Future<Output = Arc<Type>> + '_>> {
-    match &***handle {
-        mir::Type::Anything => Box::pin(async move { Arc::new(lir::Type::Anything) }),
-        mir::Type::Primordial(primordial) => {
-            Box::pin(async move { Arc::new(lir::Type::Primordial(primordial.clone())) })
+fn convert(
+    name: Option<TypeName>,
+    ty: &Arc<Located<mir::Type>>,
+) -> Pin<Box<dyn Future<Output = Arc<Type>> + '_>> {
+    match &***ty {
+        mir::Type::Anything => {
+            Box::pin(async move { Arc::new(lir::Type::new(name, lir::InnerType::Anything)) })
         }
+        mir::Type::Primordial(primordial) => Box::pin(async move {
+            Arc::new(lir::Type::new(
+                name,
+                lir::InnerType::Primordial(primordial.clone()),
+            ))
+        }),
         mir::Type::Bound(primary, mir_bindings) => Box::pin(async move {
-            let primary = convert(&primary.ty().await).await;
+            let primary = convert(primary.name(), &primary.ty().await).await;
             let mut bindings = Bindings::new();
             for (key, value) in mir_bindings.iter() {
-                bindings.bind(key.clone(), convert(&value.ty().await).await)
+                bindings.bind(key.clone(), convert(value.name(), &value.ty().await).await)
             }
-            Arc::new(lir::Type::Bound(primary, bindings))
+            Arc::new(lir::Type::new(
+                name,
+                lir::InnerType::Bound(primary, bindings),
+            ))
         }),
-        mir::Type::Argument(name) => {
-            Box::pin(async move { Arc::new(lir::Type::Argument(name.inner())) })
-        }
+        mir::Type::Argument(name) => Box::pin(async move {
+            Arc::new(lir::Type::new(None, lir::InnerType::Argument(name.inner())))
+        }),
         mir::Type::Const(value) => {
-            Box::pin(async move { Arc::new(lir::Type::Const(value.inner())) })
+            Box::pin(
+                async move { Arc::new(lir::Type::new(name, lir::InnerType::Const(value.inner()))) },
+            )
         }
         mir::Type::Object(mir_object) => Box::pin(async move {
             let mut fields: Vec<Arc<Field>> = Default::default();
             for f in mir_object.fields().iter() {
+                let ty = f.ty();
                 let field = Arc::new(lir::Field {
                     name: f.name().inner(),
-                    ty: convert(&f.ty().ty().await).await,
+                    ty: convert(ty.name(), &ty.ty().await).await,
                 });
                 fields.push(field);
             }
             let object = ObjectType::new(fields);
-            Arc::new(lir::Type::Object(object))
+            Arc::new(lir::Type::new(name, lir::InnerType::Object(object)))
         }),
         mir::Type::Expr(expr) => {
-            Box::pin(async move {
-                // todo remove located
-                Arc::new(lir::Type::Expr(expr.clone()))
-            })
+            Box::pin(
+                async move { Arc::new(lir::Type::new(name, lir::InnerType::Expr(expr.clone()))) },
+            )
         }
         mir::Type::Join(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(&lhs.ty().await).await;
-            let rhs = convert(&rhs.ty().await).await;
-            Arc::new(lir::Type::Join(lhs, rhs))
+            let lhs = convert(lhs.name(), &lhs.ty().await).await;
+            let rhs = convert(rhs.name(), &rhs.ty().await).await;
+            Arc::new(lir::Type::new(name, lir::InnerType::Join(lhs, rhs)))
         }),
         mir::Type::Meet(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(&lhs.ty().await).await;
-            let rhs = convert(&rhs.ty().await).await;
-            Arc::new(lir::Type::Meet(lhs, rhs))
+            let lhs = convert(lhs.name(), &lhs.ty().await).await;
+            let rhs = convert(rhs.name(), &rhs.ty().await).await;
+            Arc::new(lir::Type::new(name, lir::InnerType::Meet(lhs, rhs)))
         }),
         mir::Type::Refinement(primary, refinement) => Box::pin(async move {
-            let primary = convert(&primary.ty().await).await;
-            let refinement = convert(&refinement.ty().await).await;
-            Arc::new(lir::Type::Refinement(primary, refinement))
+            let primary = convert(primary.name(), &primary.ty().await).await;
+            let refinement = convert(refinement.name(), &refinement.ty().await).await;
+            Arc::new(lir::Type::new(
+                name,
+                lir::InnerType::Refinement(primary, refinement),
+            ))
         }),
         mir::Type::List(inner) => Box::pin(async move {
-            let inner = convert(&inner.ty().await).await;
-            Arc::new(lir::Type::List(inner))
+            let inner = convert(inner.name(), &inner.ty().await).await;
+            Arc::new(lir::Type::new(name, lir::InnerType::List(inner)))
         }),
-        mir::Type::Nothing => Box::pin(async move { Arc::new(lir::Type::Nothing) }),
+        mir::Type::Nothing => {
+            Box::pin(async move { Arc::new(lir::Type::new(name, lir::InnerType::Nothing)) })
+        }
     }
 }
