@@ -9,6 +9,7 @@ use seedwing_policy_engine::lang::lir::{Component, World};
 use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use seedwing_policy_engine::value::Value;
 use serde::Serialize;
+use std::str::from_utf8;
 
 /*
 pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
@@ -57,7 +58,7 @@ pub async fn evaluate(
             }
         }
     } else {
-        log::error!("unable to parse");
+        log::error!("unable to parse [{:?}]", result);
         HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
     }
 }
