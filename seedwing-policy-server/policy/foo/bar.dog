@@ -20,3 +20,35 @@ type quux = foo || bar || baz
 
 
 
+/// Something signed by bob.
+///
+/// Example input
+/// 
+/// ```
+/// {
+///   "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
+/// }
+/// ```
+type signed-thing = {
+    digest: sigstore::SHA256(
+        n<1>::{
+            apiVersion: "0.0.1",
+            spec: {
+                signature: {
+                    publicKey: {
+                        content: base64::Base64(
+                            x509::PEM( n<1>::{
+                                version: 2,
+                                extensions: n<1>::{
+                                    subjectAlternativeName: n<1>::{
+                                        rfc822: "bob@mcwhirter.org",
+                                    }
+                                }
+                            } )
+                        )
+                    }
+                }
+            }
+        }
+    )
+}

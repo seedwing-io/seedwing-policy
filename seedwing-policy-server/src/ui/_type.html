@@ -12,12 +12,15 @@
         referrerpolicy="no-referrer"></script>
 
 <style>
+  #type-definition {
+    font-size: 1em;
+  }
   #type-definition pre {
     margin-top: 1em;
   }
 
   #type-definition div {
-    padding-left: 1ex;
+    padding-left: 1em;
   }
 
   #type-definition span {
@@ -49,12 +52,14 @@
   <div class="pf-l-grid__item">
     <div class="pf-c-panel">
       <div class="pf-c-panel__main">
-        <div class="pf-c-panel__main-body" id="type-definition">
+        <div class="pf-c-panel__main-body">
           <div id="documentation">
-{{documentation}}
+{{&documentation}}
           </div>
           <hr class="pf-c-divider"/>
-          <pre>{{&definition}}</pre>
+          <div id="type-definition">
+            <pre>{{&definition}}</pre>
+          </div>
         </div>
       </div>
     </div>

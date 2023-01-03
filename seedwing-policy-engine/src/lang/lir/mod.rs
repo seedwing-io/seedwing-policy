@@ -275,6 +275,10 @@ impl Bindings {
     pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<Type>> {
         self.bindings.get(&name.into()).cloned()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
+        self.bindings.iter()
+    }
 }
 
 impl Debug for InnerType {

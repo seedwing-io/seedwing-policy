@@ -1,5 +1,6 @@
 use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type};
 use seedwing_policy_engine::lang::{lir, PrimordialType, TypeName};
+use seedwing_policy_engine::value::{InnerValue, Value};
 use std::sync::Arc;
 
 #[allow(dead_code)]
@@ -67,15 +68,44 @@ impl<'w> Htmlifier<'w> {
                     html.push_str("</span>");
                 }
             },
-            InnerType::Bound(_, _) => {
-                todo!()
+            InnerType::Bound(ty, bindings) => {
+                html.push_str("<span>");
+                self.html_of_ty(html, ty.clone());
+                html.push_str("&lt;<div>");
+                for (name, bound) in bindings.iter() {
+                    html.push_str(name.as_str());
+                    html.push('=');
+                    self.html_of_ty(html, bound.clone());
+                    html.push(',');
+                }
+                html.push_str("</div>&gt;");
+                html.push_str("</span>");
             }
             InnerType::Argument(_) => {
                 todo!()
             }
-            InnerType::Const(_) => {
-                todo!()
-            }
+            InnerType::Const(val) => match val.inner() {
+                InnerValue::Null => {
+                    html.push_str("null");
+                }
+                InnerValue::String(val) => {
+                    html.push('"');
+                    html.push_str(val.as_str());
+                    html.push('"');
+                }
+                InnerValue::Integer(val) => html.push_str(format!("{}", val).as_str()),
+                InnerValue::Decimal(val) => html.push_str(format!("{}", val).as_str()),
+                InnerValue::Boolean(val) => html.push_str(format!("{}", val).as_str()),
+                InnerValue::Object(val) => {
+                    todo!()
+                }
+                InnerValue::List(val) => {
+                    todo!()
+                }
+                InnerValue::Octets(val) => {
+                    todo!()
+                }
+            },
             InnerType::Object(object) => {
                 self.html_of_object(html, object);
             }
@@ -92,8 +122,15 @@ impl<'w> Htmlifier<'w> {
             InnerType::Meet(_, _) => {
                 todo!()
             }
-            InnerType::Refinement(_, _) => {
-                todo!()
+            InnerType::Refinement(primary, refinement) => {
+                html.push_str("<span>");
+                self.html_of_ty(html, primary.clone());
+                html.push('(');
+                html.push_str("<div>");
+                self.html_of_ty(html, refinement.clone());
+                html.push_str("</div>");
+                html.push(')');
+                html.push_str("</span>");
             }
             InnerType::List(_) => {
                 todo!()

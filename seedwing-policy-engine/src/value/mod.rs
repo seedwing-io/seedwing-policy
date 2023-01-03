@@ -268,6 +268,10 @@ impl Value {
         self.transforms.insert(name, value);
     }
 
+    pub fn inner(&self) -> &InnerValue {
+        &self.inner
+    }
+
     pub fn is_string(&self) -> bool {
         matches!(self.inner, InnerValue::String(_))
     }

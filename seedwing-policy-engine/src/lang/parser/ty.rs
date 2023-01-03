@@ -104,13 +104,16 @@ pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserErro
         line
     })
 }
+
 pub fn doc_comment() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
     doc_comment_line().repeated().map(|v| {
         let mut docs = String::new();
         for line in v {
-            docs.push_str(line.as_str());
+            docs.push_str(line.trim_start());
+            docs.push('\n');
         }
-        docs.trim().into()
+        let docs = docs.trim().into();
+        docs
     })
 }
 
