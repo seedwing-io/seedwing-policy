@@ -84,7 +84,7 @@ impl Use {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Location {
     span: SourceSpan,
 }

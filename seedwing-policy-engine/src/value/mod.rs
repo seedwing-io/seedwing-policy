@@ -7,10 +7,12 @@ use crate::lang::{lir, TypeName};
 use crate::runtime::RuntimeError;
 use async_mutex::Mutex;
 use serde::Serialize;
+use std::any::Any;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::future::{ready, Future};
+use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -50,34 +52,50 @@ impl Printer {
 }
 
 #[derive(Debug, Clone)]
-pub enum Noted {
+pub enum Rationale {
     //TypeHandle(Arc<>),
     Type(Arc<lir::Type>),
     Field(Arc<lir::Field>),
     Expr(Arc<Located<Expr>>),
 }
 
-/*
-impl From<Arc<TypeHandle>> for Noted {
-    fn from(inner: Arc<TypeHandle>) -> Self {
-        Self::TypeHandle(inner)
+impl Rationale {
+    fn id(&self) -> u64 {
+        match self {
+            Rationale::Type(t) => t.id,
+            Rationale::Field(f) => f.id,
+            Rationale::Expr(e) => e.id,
+        }
     }
 }
- */
 
-impl From<Arc<lir::Type>> for Noted {
+impl Hash for Rationale {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id().hash(state)
+    }
+}
+
+impl PartialEq<Self> for Rationale {
+    fn eq(&self, other: &Self) -> bool {
+        self.id().eq(&other.id())
+    }
+}
+
+impl Eq for Rationale {}
+
+impl From<Arc<lir::Type>> for Rationale {
     fn from(inner: Arc<lir::Type>) -> Self {
         Self::Type(inner)
     }
 }
 
-impl From<Arc<lir::Field>> for Noted {
+impl From<Arc<lir::Field>> for Rationale {
     fn from(inner: Arc<lir::Field>) -> Self {
         Self::Field(inner)
     }
 }
 
-impl From<Arc<Located<Expr>>> for Noted {
+impl From<Arc<Located<Expr>>> for Rationale {
     fn from(inner: Arc<Located<Expr>>) -> Self {
         Self::Expr(inner)
     }
@@ -88,11 +106,7 @@ pub struct Value {
     #[serde(flatten)]
     inner: InnerValue,
     #[serde(skip)]
-    matches: Vec<Noted>,
-    #[serde(skip)]
-    nonmatches: Vec<Noted>,
-    #[serde(skip)]
-    transforms: HashMap<TypeName, Arc<Mutex<Value>>>,
+    rational: HashMap<Rationale, Option<Arc<Mutex<Value>>>>,
 }
 
 impl PartialEq<Self> for Value {
@@ -197,9 +211,7 @@ impl From<InnerValue> for Value {
     fn from(inner: InnerValue) -> Self {
         Self {
             inner,
-            matches: vec![],
-            nonmatches: vec![],
-            transforms: Default::default(),
+            rational: Default::default(),
         }
     }
 }
@@ -256,6 +268,15 @@ impl InnerValue {
 }
 
 impl Value {
+    pub(crate) fn rationale<N: Into<Rationale>>(
+        &mut self,
+        rationale: N,
+        value: Option<Arc<Mutex<Value>>>,
+    ) -> Option<Arc<Mutex<Value>>> {
+        self.rational.insert(rationale.into(), value.clone());
+        value
+    }
+    /*
     pub(crate) fn note<N: Into<Noted>>(&mut self, noted: N, matches: bool) {
         if matches {
             self.matches.push(noted.into());
@@ -267,6 +288,7 @@ impl Value {
     pub(crate) fn transform(&mut self, name: TypeName, value: Arc<Mutex<Value>>) {
         self.transforms.insert(name, value);
     }
+     */
 
     pub fn inner(&self) -> &InnerValue {
         &self.inner
