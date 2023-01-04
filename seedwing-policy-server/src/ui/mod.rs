@@ -3,6 +3,7 @@ use actix_web::{get, web, HttpResponse};
 use handlebars::Handlebars;
 
 pub mod html;
+pub mod rationale;
 
 #[get("/")]
 pub async fn index() -> HttpResponse {

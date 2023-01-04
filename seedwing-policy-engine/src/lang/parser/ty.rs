@@ -14,6 +14,7 @@ use crate::value::Value;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
+use std::iter;
 use std::iter::once;
 use std::ops::Deref;
 
@@ -108,8 +109,22 @@ pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserErro
 pub fn doc_comment() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
     doc_comment_line().repeated().map(|v| {
         let mut docs = String::new();
+        let mut prefix = None;
         for line in v {
-            docs.push_str(line.trim_start());
+            if prefix.is_none() {
+                let len_before_trim = line.len();
+                let line = line.trim_start();
+                let len_after_trim = line.len();
+                let prefix_len = len_before_trim - len_after_trim;
+                prefix.replace((" ").repeat(prefix_len));
+            }
+
+            if let Some(line) = line.strip_prefix(prefix.as_ref().unwrap()) {
+                docs.push_str(line.trim_start());
+            } else {
+                docs.push_str(line.trim_start());
+            }
+
             docs.push('\n');
         }
         let docs = docs.trim().into();

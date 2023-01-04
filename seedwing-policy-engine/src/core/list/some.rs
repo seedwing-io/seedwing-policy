@@ -2,7 +2,7 @@ use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::runtime::EvaluationResult;
-use crate::value::Value;
+use crate::value::{RationaleResult, Value};
 use async_mutex::Mutex;
 use std::future::Future;
 use std::pin::Pin;
@@ -18,33 +18,42 @@ impl Function for Some {
 
     fn call<'v>(
         &'v self,
-        input: &'v Value,
+        input: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            if let Option::Some(list) = input.try_get_list() {
+            let mut locked_input = input.lock().await;
+            if let Option::Some(list) = locked_input.try_get_list() {
                 let expected_count = bindings.get(COUNT).unwrap();
                 let pattern = bindings.get(PATTERN).unwrap();
 
                 let mut count: u32 = 0;
 
                 for item in list {
-                    let result = pattern.evaluate(item.clone(), &Default::default()).await;
+                    let result = pattern
+                        .clone()
+                        .evaluate(item.clone(), &Default::default())
+                        .await;
 
-                    match result {
-                        Ok(Option::Some(_)) => {
-                            count += 1;
+                    if let Ok(result) = result {
+                        match result {
+                            RationaleResult::Same(_) | RationaleResult::Transform(_) => {
+                                count += 1;
+                            }
+                            RationaleResult::None => continue,
                         }
-                        Ok(Option::None) => continue,
-                        _ => return Err(FunctionError::InvalidInput),
+                    } else {
+                        return Err(FunctionError::InvalidInput);
                     }
 
                     match expected_count
                         .evaluate(Arc::new(Mutex::new(count.into())), &Default::default())
                         .await
                     {
-                        Ok(Option::Some(_)) => return Ok(input.clone()),
-                        Ok(Option::None) => {
+                        Ok(RationaleResult::Same(_) | RationaleResult::Transform(_)) => {
+                            return Ok(RationaleResult::Same(input.clone()))
+                        }
+                        Ok(RationaleResult::None) => {
                             continue;
                         }
                         Err(_) => return Err(FunctionError::InvalidInput),

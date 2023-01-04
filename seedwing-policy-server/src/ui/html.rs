@@ -1,6 +1,6 @@
 use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type};
 use seedwing_policy_engine::lang::{lir, PrimordialType, TypeName};
-use seedwing_policy_engine::value::{InnerValue, Value};
+use seedwing_policy_engine::value::InnerValue;
 use std::sync::Arc;
 
 #[allow(dead_code)]
@@ -71,14 +71,16 @@ impl<'w> Htmlifier<'w> {
             InnerType::Bound(ty, bindings) => {
                 html.push_str("<span>");
                 self.html_of_ty(html, ty.clone());
-                html.push_str("&lt;<div>");
-                for (name, bound) in bindings.iter() {
+                html.push_str("&lt;");
+                for (i, (name, bound)) in bindings.iter().enumerate() {
                     html.push_str(name.as_str());
                     html.push('=');
                     self.html_of_ty(html, bound.clone());
-                    html.push(',');
+                    if i + 1 < bindings.len() {
+                        html.push_str(", ");
+                    }
                 }
-                html.push_str("</div>&gt;");
+                html.push_str("&gt;");
                 html.push_str("</span>");
             }
             InnerType::Argument(_) => {
@@ -96,13 +98,13 @@ impl<'w> Htmlifier<'w> {
                 InnerValue::Integer(val) => html.push_str(format!("{}", val).as_str()),
                 InnerValue::Decimal(val) => html.push_str(format!("{}", val).as_str()),
                 InnerValue::Boolean(val) => html.push_str(format!("{}", val).as_str()),
-                InnerValue::Object(val) => {
+                InnerValue::Object(_val) => {
                     todo!()
                 }
-                InnerValue::List(val) => {
+                InnerValue::List(_val) => {
                     todo!()
                 }
-                InnerValue::Octets(val) => {
+                InnerValue::Octets(_val) => {
                     todo!()
                 }
             },
@@ -115,7 +117,7 @@ impl<'w> Htmlifier<'w> {
             InnerType::Join(lhs, rhs) => {
                 html.push_str("<span>");
                 self.html_of_ty(html, lhs.clone());
-                html.push_str("||");
+                html.push_str(" || ");
                 self.html_of_ty(html, rhs.clone());
                 html.push_str("</span>");
             }
@@ -126,9 +128,7 @@ impl<'w> Htmlifier<'w> {
                 html.push_str("<span>");
                 self.html_of_ty(html, primary.clone());
                 html.push('(');
-                html.push_str("<div>");
                 self.html_of_ty(html, refinement.clone());
-                html.push_str("</div>");
                 html.push(')');
                 html.push_str("</span>");
             }
@@ -146,18 +146,16 @@ impl<'w> Htmlifier<'w> {
     }
 
     fn html_of_object(&self, html: &mut String, object: &ObjectType) {
-        html.push_str("<div>");
+        html.push_str("<span>");
         html.push('{');
         for f in object.fields() {
             html.push_str("<div>");
-            html.push_str("<span>");
             html.push_str(f.name().as_str());
             html.push(':');
             self.html_of_ty(html, f.ty());
-            html.push_str("</span>");
             html.push_str("</div>");
         }
         html.push('}');
-        html.push_str("</div>");
+        html.push_str("</span>");
     }
 }

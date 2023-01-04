@@ -2,7 +2,7 @@ use crate::core::{json, Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::Value;
+use crate::value::{RationaleResult, Value};
 use async_mutex::Mutex;
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -31,15 +31,18 @@ impl Function for JSON {
 
     fn call<'v>(
         &'v self,
-        input: &'v Value,
+        input: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
+            let input = input.lock().await;
             if let Some(inner) = input.try_get_string() {
                 let json_value: Result<serde_json::Value, _> =
                     serde_json::from_slice(inner.as_bytes());
                 if let Ok(json_value) = json_value {
-                    Ok(json_value.into())
+                    Ok(RationaleResult::Transform(Arc::new(Mutex::new(
+                        json_value.into(),
+                    ))))
                 } else {
                     Err(FunctionError::Other("unable to decode as json".into()))
                 }

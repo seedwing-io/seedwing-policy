@@ -1,11 +1,5 @@
 {{#> layout }}
 
-<!--
-<script src="https://cdnjs.cloudflare.com/ajax/libs/opal/0.3.43/opal.min.js"
-        integrity="sha512-9a3OXc+h9NWrH48hvs7w7ZiHLDCCT4kZH5ETzUBUp6WPH3HGm4ynSC5znBXf7iOlGTJYNkLrYd9cpFnk1iessw=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
-        -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/asciidoctor.js"
         integrity="sha512-04RTC/SU4Iti5IOWoDmtHEYGF5d3W/XfFlh1FIn4wtJDWdNqO93Vuw1LmgjRpME6exV2SwmI53iGjXQibp3Fjg=="
         crossorigin="anonymous"
@@ -20,7 +14,8 @@
   }
 
   #type-definition div {
-    padding-left: 1em;
+    margin-left: 1em;
+    border-left: 1px dotted #ccc;
   }
 
   #type-definition span {
@@ -93,6 +88,15 @@
             </div>
           </form>
 
+          <div class="pf-c-panel" id="rationale">
+            <div class="pf-c-panel__header">Rationale</div>
+            <div class="pf-c-panel__main">
+              <div class="pf-c-panel__main-body" id="rationale_body">
+                Rationale goes here.
+              </div>
+            </div>
+          </div>
+
 
         </div>
       </div>
@@ -100,18 +104,19 @@
   </div>
 </div>
 
+
+
 <script>
   $(document).ready( function() {
 
     var adoc = Asciidoctor();
     var documentation = $("#documentation").text();
-    //console.log( documentation );
     var converted = adoc.convert( documentation, { "safe": "safe" }  );
-    //console.log( converted );
     $("#documentation").html(converted);
 
     $("#documentation ul").addClass("pf-c-list");
 
+    $("#rationale").hide();
     $("#spinner").hide();
     $("#experiment_post").on("click", function(event) {
       $("#experiment_post").hide();
@@ -119,6 +124,7 @@
       $('#experiment_status').removeClass("pf-m-gold");
       $('#experiment_status').removeClass("pf-m-green");
       $('#experiment_status').removeClass("pf-m-red");
+      $('#rationale_body').html("");
       event.preventDefault();
       body = $("#experiment_body").val();
       console.log(body);
@@ -126,6 +132,8 @@
         "{{url_path}}",
         body,
         function(result) {
+          $('#rationale_body').html(result);
+          $("#rationale").show();
           $('#experiment_status').removeClass("pf-m-gold");
           $('#experiment_status').removeClass("pf-m-red");
           $('#experiment_status').addClass("pf-m-green");
@@ -141,7 +149,7 @@
             $('#experiment_status').removeClass("pf-m-red");
             $('#experiment_status').addClass("pf-m-gold");
           }
-      } ).always( function() {
+      } ).always( function(arg) {
         $("#spinner").hide();
         $("#experiment_post").show();
       } )

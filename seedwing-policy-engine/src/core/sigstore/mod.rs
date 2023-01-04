@@ -2,7 +2,7 @@ use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::Value;
+use crate::value::{RationaleResult, Value};
 use async_mutex::Mutex;
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
@@ -33,10 +33,11 @@ impl Function for SHA256 {
 
     fn call<'v>(
         &'v self,
-        input: &'v Value,
+        input: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
+            let input = input.lock().await;
             if let Some(digest) = input.try_get_string() {
                 let configuration = Configuration::default();
                 let query = SearchIndex {
@@ -63,7 +64,9 @@ impl Function for SHA256 {
                         }
                     }
 
-                    Ok(transform.into())
+                    Ok(RationaleResult::Transform(Arc::new(Mutex::new(
+                        transform.into(),
+                    ))))
                 } else {
                     Err(FunctionError::Other("no signatures".into()))
                 }

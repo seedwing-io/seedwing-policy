@@ -1,4 +1,5 @@
 use crate::ui::html::Htmlifier;
+use crate::ui::rationale::Rationalizer;
 use crate::ui::LAYOUT_HTML;
 use actix_web::http::header;
 use actix_web::web::{BytesMut, Payload};
@@ -37,7 +38,7 @@ pub async fn evaluate(
         content.extend_from_slice(&bit);
     }
 
-    // todo: accomodate non-JSON
+    // todo: accomodate non-JSON using content-type headers.
     let result: Result<serde_json::Value, _> = serde_json::from_slice(&*content);
 
     if let Ok(result) = &result {
@@ -46,10 +47,13 @@ pub async fn evaluate(
 
         match world.evaluate(&*path, value).await {
             Ok(result) => {
+                let rationale = Rationalizer::new(result.clone());
+                let rationale = rationale.rationale().await;
+
                 if result.is_some() {
-                    HttpResponse::Ok().finish()
+                    HttpResponse::Ok().body(rationale)
                 } else {
-                    HttpResponse::NotAcceptable().finish()
+                    HttpResponse::NotAcceptable().body(rationale)
                 }
             }
             Err(err) => {

@@ -11,6 +11,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter, Pointer};
 use std::future::{ready, Future};
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
@@ -60,11 +61,19 @@ pub enum Rationale {
 }
 
 impl Rationale {
-    fn id(&self) -> u64 {
+    pub fn id(&self) -> u64 {
         match self {
             Rationale::Type(t) => t.id,
             Rationale::Field(f) => f.id,
             Rationale::Expr(e) => e.id,
+        }
+    }
+
+    pub fn description(&self) -> Option<String> {
+        match self {
+            Rationale::Type(t) => t.name().map(|inner| inner.as_type_str()),
+            Rationale::Field(f) => Some(f.name()),
+            Rationale::Expr(_) => Some("expression".into()),
         }
     }
 }
@@ -101,12 +110,51 @@ impl From<Arc<Located<Expr>>> for Rationale {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum RationaleResult {
+    None,
+    Same(Arc<Mutex<Value>>),
+    Transform(Arc<Mutex<Value>>),
+}
+
+impl Display for RationaleResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RationaleResult::None => {
+                write!(f, "None")
+            }
+            RationaleResult::Same(_) => {
+                write!(f, "Same")
+            }
+            RationaleResult::Transform(_) => {
+                write!(f, "Transform")
+            }
+        }
+    }
+}
+
+impl RationaleResult {
+    pub fn is_some(&self) -> bool {
+        !matches!(self, RationaleResult::None)
+    }
+
+    pub fn is_none(&self) -> bool {
+        !self.is_some()
+    }
+}
+
 #[derive(Serialize, Debug, Clone)]
 pub struct Value {
     #[serde(flatten)]
     inner: InnerValue,
     #[serde(skip)]
-    rational: HashMap<Rationale, Option<Arc<Mutex<Value>>>>,
+    rational: HashMap<Rationale, RationaleResult>,
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
 }
 
 impl PartialEq<Self> for Value {
@@ -228,6 +276,21 @@ pub enum InnerValue {
     Octets(Vec<u8>),
 }
 
+impl Display for InnerValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InnerValue::Null => write!(f, "<null>"),
+            InnerValue::String(val) => write!(f, "{}", val),
+            InnerValue::Integer(val) => write!(f, "{}", val),
+            InnerValue::Decimal(val) => write!(f, "{}", val),
+            InnerValue::Boolean(val) => write!(f, "{}", val),
+            InnerValue::Object(val) => Display::fmt(val, f),
+            InnerValue::List(val) => write!(f, "[ <<things>> ]"),
+            InnerValue::Octets(val) => write!(f, "[ <<octets>> ]"),
+        }
+    }
+}
+
 impl InnerValue {
     fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
         match self {
@@ -271,24 +334,15 @@ impl Value {
     pub(crate) fn rationale<N: Into<Rationale>>(
         &mut self,
         rationale: N,
-        value: Option<Arc<Mutex<Value>>>,
-    ) -> Option<Arc<Mutex<Value>>> {
-        self.rational.insert(rationale.into(), value.clone());
-        value
-    }
-    /*
-    pub(crate) fn note<N: Into<Noted>>(&mut self, noted: N, matches: bool) {
-        if matches {
-            self.matches.push(noted.into());
-        } else {
-            self.nonmatches.push(noted.into());
-        }
+        result: RationaleResult,
+    ) -> RationaleResult {
+        self.rational.insert(rationale.into(), result.clone());
+        result
     }
 
-    pub(crate) fn transform(&mut self, name: TypeName, value: Arc<Mutex<Value>>) {
-        self.transforms.insert(name, value);
+    pub fn get_rationale(&self) -> &HashMap<Rationale, RationaleResult> {
+        &self.rational
     }
-     */
 
     pub fn inner(&self) -> &InnerValue {
         &self.inner
@@ -391,6 +445,16 @@ pub struct Object {
     fields: HashMap<String, Arc<Mutex<Value>>>,
 }
 
+impl Display for Object {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for (name, value) in &self.fields {
+            write!(f, "{}: <<value>>", name)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Object {
     pub fn new() -> Self {
         Self {
@@ -417,5 +481,9 @@ impl Object {
 
     pub fn set(&mut self, name: String, value: Value) {
         self.fields.insert(name, Arc::new(Mutex::new(value)));
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Mutex<Value>>)> {
+        self.fields.iter()
     }
 }

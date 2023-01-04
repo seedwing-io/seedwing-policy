@@ -1,9 +1,11 @@
 use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
-use crate::value::Value;
+use crate::value::{RationaleResult, Value};
+use async_mutex::Mutex;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct All;
@@ -15,22 +17,23 @@ impl Function for All {
 
     fn call<'v>(
         &'v self,
-        input: &'v Value,
+        input: Arc<Mutex<Value>>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<Value, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            if let Some(list) = input.try_get_list() {
+            let locked_input = input.lock().await;
+            if let Some(list) = locked_input.try_get_list() {
                 let pattern = bindings.get(PATTERN).unwrap();
                 for item in list {
                     let result = pattern.evaluate(item.clone(), &Default::default()).await;
 
                     match result {
-                        Ok(Option::None) => return Err(FunctionError::InvalidInput),
+                        Ok(RationaleResult::None) => return Err(FunctionError::InvalidInput),
                         Err(_) => return Err(FunctionError::InvalidInput),
-                        Ok(Option::Some(_)) => continue,
+                        Ok(RationaleResult::Same(_) | RationaleResult::Transform(_)) => continue,
                     }
                 }
-                Ok(input.clone())
+                Ok(RationaleResult::Same(input.clone()))
             } else {
                 Err(FunctionError::InvalidInput)
             }
