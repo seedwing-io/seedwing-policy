@@ -7,6 +7,7 @@ use crate::lang::{lir, TypeName};
 use crate::runtime::RuntimeError;
 use async_mutex::Mutex;
 use serde::Serialize;
+use serde_json::{json, Map, Number};
 use std::any::Any;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -292,6 +293,30 @@ impl Display for InnerValue {
 }
 
 impl InnerValue {
+    fn as_json<'p>(&'p self) -> Pin<Box<dyn Future<Output = serde_json::Value> + 'p>> {
+        match self {
+            InnerValue::Null => Box::pin(async move { serde_json::Value::Null }),
+            InnerValue::String(val) => {
+                Box::pin(async move { serde_json::Value::String(val.clone()) })
+            }
+            InnerValue::Integer(val) => {
+                Box::pin(async move { serde_json::Value::Number(Number::from(*val)) })
+            }
+            InnerValue::Decimal(val) => Box::pin(async move { json!(val) }),
+            InnerValue::Boolean(val) => Box::pin(async move { serde_json::Value::Bool(*val) }),
+            InnerValue::Object(val) => Box::pin(async move { val.as_json().await }),
+            InnerValue::List(val) => Box::pin(async move {
+                let mut inner = Vec::new();
+                for each in val {
+                    inner.push(each.lock().await.as_json().await)
+                }
+                serde_json::Value::Array(inner)
+            }),
+            InnerValue::Octets(val) => {
+                Box::pin(async move { serde_json::Value::String("octets".into()) })
+            }
+        }
+    }
     fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
         match self {
             InnerValue::Null => Box::pin(async move {
@@ -437,6 +462,10 @@ impl Value {
         self.inner.display(&mut printer).await;
         printer.content
     }
+
+    pub async fn as_json(&self) -> serde_json::Value {
+        self.inner.as_json().await
+    }
 }
 
 #[derive(Serialize, Debug, Clone, Default)]
@@ -448,7 +477,7 @@ pub struct Object {
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (name, value) in &self.fields {
-            write!(f, "{}: <<value>>", name)?;
+            writeln!(f, "{}: <<value>>", name)?;
         }
 
         Ok(())
@@ -460,6 +489,15 @@ impl Object {
         Self {
             fields: Default::default(),
         }
+    }
+
+    async fn as_json(&self) -> serde_json::Value {
+        let mut inner = Map::new();
+        for (name, value) in &self.fields {
+            inner.insert(name.clone(), value.lock().await.as_json().await);
+        }
+
+        serde_json::Value::Object(inner)
     }
 
     async fn display(&self, printer: &mut Printer) {

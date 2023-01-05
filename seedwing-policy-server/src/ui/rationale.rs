@@ -1,4 +1,4 @@
-use seedwing_policy_engine::value::{RationaleResult, Value};
+use seedwing_policy_engine::value::{Rationale, RationaleResult, Value};
 use std::future::Future;
 use std::pin::Pin;
 
@@ -13,7 +13,7 @@ impl Rationalizer {
 
     pub async fn rationale(&self) -> String {
         let mut html = String::new();
-        html.push_str("<pre>");
+        html.push_str("<div>");
         match &self.value {
             RationaleResult::None => {
                 html.push_str("failed");
@@ -28,7 +28,7 @@ impl Rationalizer {
             }
         }
 
-        html.push_str("<pre>");
+        html.push_str("<div>");
         html
     }
 
@@ -38,25 +38,68 @@ impl Rationalizer {
     ) -> Pin<Box<dyn Future<Output = ()> + 'h>> {
         Box::pin(async move {
             let mut rationale = value.get_rationale().clone();
+            if rationale.is_empty() {
+                return;
+            }
+            html.push_str("<div>");
+            let value_json = value.as_json().await;
+            let value_json = serde_json::to_string_pretty(&value_json).unwrap();
+            let value_json = value_json.replace('<', "&lt;");
+            let value_json = value_json.replace('>', "&gt;");
+            html.push_str("<pre class='input-value'>");
+            html.push_str(value_json.as_str());
+            html.push_str("</pre>");
             rationale.reverse();
             for (k, v) in rationale {
                 match v {
                     RationaleResult::None => {
                         if let Some(description) = k.description() {
+                            html.push_str("<div class='entry no-match'>");
                             html.push_str(format!("did not match {}\n", description).as_str());
+                            html.push_str("</div>");
                         }
                     }
                     RationaleResult::Same(_) => {
                         if let Some(description) = k.description() {
-                            html.push_str(format!("matched {}\n", description).as_str());
+                            html.push_str("<div class='entry match'>");
+                            html.push_str(
+                                format!("<b><code>{}</code> matched</b>", description).as_str(),
+                            );
+                            html.push_str("</div>");
                         }
                     }
                     RationaleResult::Transform(transform) => {
                         if let Some(description) = k.description() {
-                            html.push_str(
-                                format!("matched {} producing a value\n", description).as_str(),
-                            );
+                            html.push_str("<div class='entry match transform'>");
+                            match k {
+                                Rationale::Type(_) => {
+                                    html.push_str(
+                                        format!(
+                                            "<b><code>{}</code> produced a value</b>\n",
+                                            description
+                                        )
+                                        .as_str(),
+                                    );
+                                }
+                                Rationale::Field(f) => {
+                                    if let Some(name) = f.ty().name() {
+                                        html.push_str(
+                                            format!("<b>field <code>{}</code> produced a value via {}</b>\n", description, name).as_str(),
+                                        );
+                                    } else {
+                                        html.push_str(
+                                            format!(
+                                                "<b>field <code>{}</code> produced a value</b>\n",
+                                                description
+                                            )
+                                            .as_str(),
+                                        );
+                                    }
+                                }
+                                Rationale::Expr(_) => {}
+                            }
                             Self::rationale_inner(html, &*transform.lock().await).await;
+                            html.push_str("</div>")
                         }
                     }
                 }
@@ -71,6 +114,7 @@ impl Rationalizer {
                     Self::rationale_inner(html, &*v.lock().await).await;
                 }
             }
+            html.push_str("</div>");
         })
     }
 }
