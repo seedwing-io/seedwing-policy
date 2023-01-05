@@ -83,8 +83,8 @@ impl<'w> Htmlifier<'w> {
                 html.push_str("&gt;");
                 html.push_str("</span>");
             }
-            InnerType::Argument(_) => {
-                todo!()
+            InnerType::Argument(arg) => {
+                html.push_str(arg.as_str());
             }
             InnerType::Const(val) => match val.inner() {
                 InnerValue::Null => {
@@ -151,7 +151,7 @@ impl<'w> Htmlifier<'w> {
         for f in object.fields() {
             html.push_str("<div>");
             html.push_str(f.name().as_str());
-            html.push(':');
+            html.push_str(": ");
             self.html_of_ty(html, f.ty());
             html.push_str("</div>");
         }

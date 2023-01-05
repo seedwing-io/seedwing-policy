@@ -1,3 +1,14 @@
 
 
-type subject-alternate-name<email>
+
+/// Matches OID of 85.4.3, common name.
+type common<pattern> = {
+  oid: "85.4.3",
+  value: pattern,
+}
+
+/// Matches OID of 85.4.10, organization name.
+type organization<pattern> = {
+  oid: "85.4.10",
+  value: pattern,
+}
