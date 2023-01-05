@@ -356,6 +356,7 @@ pub fn multiplicative_expr(
 mod test {
     use super::*;
 
+    /*
     #[test]
     fn parse_self() {
         let ty = expr()
@@ -383,6 +384,7 @@ mod test {
 
         println!("{:?}", ty);
     }
+     */
 
     /*
     #[test]

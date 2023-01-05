@@ -67,7 +67,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-all", value).await;
 
-        assert!(matches!(result, Ok(Some(_)),))
+        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 
     #[actix_rt::test]
@@ -89,7 +89,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-all", value).await;
 
-        assert!(matches!(result, Ok(Some(_)),))
+        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 
     #[actix_rt::test]
@@ -111,7 +111,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-all", value).await;
 
-        assert!(matches!(result, Ok(None),))
+        assert!(matches!(result, Ok(RationaleResult::None),))
     }
 
     #[actix_rt::test]
@@ -133,7 +133,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-all", value).await;
 
-        assert!(matches!(result, Ok(None),))
+        assert!(matches!(result, Ok(RationaleResult::None),))
     }
 
     #[actix_rt::test]
@@ -155,6 +155,6 @@ mod test {
 
         let result = runtime.evaluate("test::test-all", value).await;
 
-        assert!(matches!(result, Ok(Some(_)),))
+        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 }

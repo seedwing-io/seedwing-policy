@@ -148,7 +148,7 @@ pub struct Value {
     #[serde(flatten)]
     inner: InnerValue,
     #[serde(skip)]
-    rational: HashMap<Rationale, RationaleResult>,
+    rational: Vec<(Rationale, RationaleResult)>,
 }
 
 impl Display for Value {
@@ -336,11 +336,11 @@ impl Value {
         rationale: N,
         result: RationaleResult,
     ) -> RationaleResult {
-        self.rational.insert(rationale.into(), result.clone());
+        self.rational.push((rationale.into(), result.clone()));
         result
     }
 
-    pub fn get_rationale(&self) -> &HashMap<Rationale, RationaleResult> {
+    pub fn get_rationale(&self) -> &Vec<(Rationale, RationaleResult)> {
         &self.rational
     }
 

@@ -101,6 +101,7 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::{Directory, Ephemeral};
+    use crate::value::RationaleResult;
     use serde_json::json;
     use std::default::Default;
     use std::env;
@@ -177,7 +178,7 @@ mod test {
 
         let result = runtime.evaluate("foo::bar::signed-thing", value).await;
 
-        assert!(matches!(result, Ok(Some(_)),))
+        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 
     #[actix_rt::test]
@@ -220,7 +221,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(Some(_))
+            Ok(RationaleResult::Same(_))
         ));
     }
 
@@ -257,7 +258,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(Some(_))
+            Ok(RationaleResult::Same(_))
         ));
     }
 
@@ -297,7 +298,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(Some(_))
+            Ok(RationaleResult::Same(_))
         ));
 
         assert!(matches!(
@@ -312,7 +313,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(None)
+            Ok(RationaleResult::None)
         ));
 
         assert!(matches!(
@@ -327,7 +328,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(None)
+            Ok(RationaleResult::None)
         ));
 
         assert!(matches!(
@@ -342,7 +343,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(Some(_))
+            Ok(RationaleResult::Same(_))
         ));
     }
 }

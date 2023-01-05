@@ -43,6 +43,7 @@ impl Builder {
 mod test {
     use super::*;
     use crate::runtime::sources::Ephemeral;
+    use crate::value::RationaleResult;
     use serde_json::json;
 
     #[actix_rt::test]
@@ -78,7 +79,7 @@ mod test {
                     )
                 )
                 .await,
-            Ok(Some(_))
+            Ok(RationaleResult::Same(_))
         ));
     }
 }
