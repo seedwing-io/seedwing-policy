@@ -49,7 +49,7 @@ But instead of declaring "this thing is of that type", `dogma` takes the appropr
 "Hey, that's duck typing!" you might say.
 Sure, maybe it is.
 
-But perhaps a difference it that duck typing tends to only worry if something can quack.
+But perhaps a difference is that duck typing tends to only worry if something can quack.
 It doesn't actually go further and say "...therefore it is indeed a duck".
 Duck typing just assumes something is duck-enough to be used in duckful ways.
 
@@ -434,7 +434,7 @@ use base64::Base64 as UndecodeThatIsh
 
 ==== Comments
 
-Comments start with `#` and continue to the end of the line.
+Comments start with `\#` and continue to the end of the line.
 We anticipate adding documentation comments using `##` but have not yet.
 
 === Example
