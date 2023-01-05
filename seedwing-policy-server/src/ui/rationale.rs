@@ -37,7 +37,9 @@ impl Rationalizer {
         value: &'h Value,
     ) -> Pin<Box<dyn Future<Output = ()> + 'h>> {
         Box::pin(async move {
-            for (k, v) in value.get_rationale() {
+            let mut rationale = value.get_rationale().clone();
+            rationale.reverse();
+            for (k, v) in rationale {
                 match v {
                     RationaleResult::None => {
                         if let Some(description) = k.description() {
