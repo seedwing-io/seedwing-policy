@@ -37,7 +37,7 @@ impl Rationalizer {
         value: &'h Value,
     ) -> Pin<Box<dyn Future<Output = ()> + 'h>> {
         Box::pin(async move {
-            let mut rationale = value.get_rationale().clone();
+            let rationale = value.get_rationale();
             if rationale.is_empty() {
                 return;
             }
@@ -49,8 +49,8 @@ impl Rationalizer {
             html.push_str("<pre class='input-value'>");
             html.push_str(value_json.as_str());
             html.push_str("</pre>");
-            rationale.reverse();
-            for (k, v) in rationale {
+
+            for (k, v) in rationale.iter().rev() {
                 match v {
                     RationaleResult::None => {
                         if let Some(description) = k.description() {
