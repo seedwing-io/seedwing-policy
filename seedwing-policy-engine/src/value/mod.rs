@@ -5,11 +5,11 @@ use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::{lir, TypeName};
 use crate::runtime::RuntimeError;
-use async_mutex::Mutex;
 use serde::Serialize;
 use serde_json::{json, Map, Number};
 use std::any::Any;
-use std::cell::RefCell;
+use std::borrow::Borrow;
+use std::cell::{Ref, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter, Pointer};
@@ -114,8 +114,8 @@ impl From<Arc<Located<Expr>>> for Rationale {
 #[derive(Debug, Clone)]
 pub enum RationaleResult {
     None,
-    Same(Arc<Mutex<Value>>),
-    Transform(Arc<Mutex<Value>>),
+    Same(Rc<InputValue>),
+    Transform(Rc<InputValue>),
 }
 
 impl Display for RationaleResult {
@@ -145,20 +145,20 @@ impl RationaleResult {
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct Value {
+pub struct InputValue {
     #[serde(flatten)]
-    inner: InnerValue,
+    pub(crate) inner: InnerValue,
     #[serde(skip)]
-    rational: Vec<(Rationale, RationaleResult)>,
+    rational: RefCell<Vec<(Rationale, RationaleResult)>>,
 }
 
-impl Display for Value {
+impl Display for InputValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
 
-impl PartialEq<Self> for Value {
+impl PartialEq<Self> for InputValue {
     fn eq(&self, other: &Self) -> bool {
         match (&self.inner, &other.inner) {
             (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs == rhs,
@@ -170,7 +170,7 @@ impl PartialEq<Self> for Value {
     }
 }
 
-impl PartialOrd for Value {
+impl PartialOrd for InputValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (&self.inner, &other.inner) {
             (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs.partial_cmp(rhs),
@@ -184,79 +184,73 @@ impl PartialOrd for Value {
     }
 }
 
-impl From<&str> for Value {
+impl From<&str> for InputValue {
     fn from(inner: &str) -> Self {
         InnerValue::String(inner.to_string()).into()
     }
 }
 
-impl From<u8> for Value {
+impl From<u8> for InputValue {
     fn from(inner: u8) -> Self {
         InnerValue::Integer(inner as _).into()
     }
 }
 
-impl From<u32> for Value {
+impl From<u32> for InputValue {
     fn from(inner: u32) -> Self {
         InnerValue::Integer(inner as _).into()
     }
 }
 
-impl From<i64> for Value {
+impl From<i64> for InputValue {
     fn from(inner: i64) -> Self {
         InnerValue::Integer(inner).into()
     }
 }
 
-impl From<f64> for Value {
+impl From<f64> for InputValue {
     fn from(inner: f64) -> Self {
         InnerValue::Decimal(inner).into()
     }
 }
 
-impl From<bool> for Value {
+impl From<bool> for InputValue {
     fn from(inner: bool) -> Self {
         InnerValue::Boolean(inner).into()
     }
 }
 
-impl From<String> for Value {
+impl From<String> for InputValue {
     fn from(inner: String) -> Self {
         InnerValue::String(inner).into()
     }
 }
 
-impl From<Vec<u8>> for Value {
+impl From<Vec<u8>> for InputValue {
     fn from(inner: Vec<u8>) -> Self {
         InnerValue::Octets(inner).into()
     }
 }
 
-impl From<&[u8]> for Value {
+impl From<&[u8]> for InputValue {
     fn from(inner: &[u8]) -> Self {
         inner.to_vec().into()
     }
 }
 
-impl From<Vec<Value>> for Value {
-    fn from(inner: Vec<Value>) -> Self {
-        InnerValue::List(
-            inner
-                .iter()
-                .map(|e| Arc::new(Mutex::new(e.clone())))
-                .collect(),
-        )
-        .into()
+impl From<Vec<InputValue>> for InputValue {
+    fn from(inner: Vec<InputValue>) -> Self {
+        InnerValue::List(inner.iter().map(|e| Rc::new(e.clone())).collect()).into()
     }
 }
 
-impl From<Object> for Value {
+impl From<Object> for InputValue {
     fn from(inner: Object) -> Self {
         InnerValue::Object(inner).into()
     }
 }
 
-impl From<InnerValue> for Value {
+impl From<InnerValue> for InputValue {
     fn from(inner: InnerValue) -> Self {
         Self {
             inner,
@@ -273,7 +267,7 @@ pub enum InnerValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(#[serde(skip)] Vec<Arc<Mutex<Value>>>),
+    List(#[serde(skip)] Vec<Rc<InputValue>>),
     Octets(Vec<u8>),
 }
 
@@ -293,28 +287,22 @@ impl Display for InnerValue {
 }
 
 impl InnerValue {
-    fn as_json<'p>(&'p self) -> Pin<Box<dyn Future<Output = serde_json::Value> + 'p>> {
+    fn as_json(&self) -> serde_json::Value {
         match self {
-            InnerValue::Null => Box::pin(async move { serde_json::Value::Null }),
-            InnerValue::String(val) => {
-                Box::pin(async move { serde_json::Value::String(val.clone()) })
-            }
-            InnerValue::Integer(val) => {
-                Box::pin(async move { serde_json::Value::Number(Number::from(*val)) })
-            }
-            InnerValue::Decimal(val) => Box::pin(async move { json!(val) }),
-            InnerValue::Boolean(val) => Box::pin(async move { serde_json::Value::Bool(*val) }),
-            InnerValue::Object(val) => Box::pin(async move { val.as_json().await }),
-            InnerValue::List(val) => Box::pin(async move {
+            InnerValue::Null => serde_json::Value::Null,
+            InnerValue::String(val) => serde_json::Value::String(val.clone()),
+            InnerValue::Integer(val) => serde_json::Value::Number(Number::from(*val)),
+            InnerValue::Decimal(val) => json!(val),
+            InnerValue::Boolean(val) => serde_json::Value::Bool(*val),
+            InnerValue::Object(val) => val.as_json(),
+            InnerValue::List(val) => {
                 let mut inner = Vec::new();
                 for each in val {
-                    inner.push(each.lock().await.as_json().await)
+                    inner.push((**each).borrow().as_json())
                 }
                 serde_json::Value::Array(inner)
-            }),
-            InnerValue::Octets(val) => {
-                Box::pin(async move { serde_json::Value::String("octets".into()) })
             }
+            InnerValue::Octets(val) => serde_json::Value::String("octets".into()),
         }
     }
     fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
@@ -338,7 +326,7 @@ impl InnerValue {
             InnerValue::List(inner) => Box::pin(async move {
                 printer.write("[ ");
                 for item in inner {
-                    item.lock().await.inner.display(printer).await;
+                    (**item).borrow().inner.display(printer).await;
                     printer.write(", ");
                 }
                 printer.write(" ]");
@@ -355,18 +343,34 @@ impl InnerValue {
     }
 }
 
-impl Value {
+impl InputValue {
+    pub fn new(inner: InnerValue) -> Self {
+        Self {
+            inner,
+            rational: RefCell::new(vec![]),
+        }
+    }
+
+    pub fn null() -> Self {
+        Self {
+            inner: InnerValue::Null,
+            rational: RefCell::new(vec![]),
+        }
+    }
+
     pub(crate) fn rationale<N: Into<Rationale>>(
-        &mut self,
+        &self,
         rationale: N,
         result: RationaleResult,
     ) -> RationaleResult {
-        self.rational.push((rationale.into(), result.clone()));
+        self.rational
+            .borrow_mut()
+            .push((rationale.into(), result.clone()));
         result
     }
 
-    pub fn get_rationale(&self) -> &Vec<(Rationale, RationaleResult)> {
-        &self.rational
+    pub fn get_rationale(&self) -> Ref<Vec<(Rationale, RationaleResult)>> {
+        self.rational.borrow()
     }
 
     pub fn inner(&self) -> &InnerValue {
@@ -425,7 +429,7 @@ impl Value {
         matches!(self.inner, InnerValue::List(_))
     }
 
-    pub fn try_get_list(&self) -> Option<&Vec<Arc<Mutex<Value>>>> {
+    pub fn try_get_list(&self) -> Option<&Vec<Rc<InputValue>>> {
         if let InnerValue::List(inner) = &self.inner {
             Some(inner)
         } else {
@@ -463,15 +467,15 @@ impl Value {
         printer.content
     }
 
-    pub async fn as_json(&self) -> serde_json::Value {
-        self.inner.as_json().await
+    pub fn as_json(&self) -> serde_json::Value {
+        self.inner.as_json()
     }
 }
 
 #[derive(Serialize, Debug, Clone, Default)]
 pub struct Object {
     #[serde(skip)]
-    fields: HashMap<String, Arc<Mutex<Value>>>,
+    fields: HashMap<String, Rc<InputValue>>,
 }
 
 impl Display for Object {
@@ -491,10 +495,10 @@ impl Object {
         }
     }
 
-    async fn as_json(&self) -> serde_json::Value {
+    fn as_json(&self) -> serde_json::Value {
         let mut inner = Map::new();
         for (name, value) in &self.fields {
-            inner.insert(name.clone(), value.lock().await.as_json().await);
+            inner.insert(name.clone(), (**value).borrow().as_json());
         }
 
         serde_json::Value::Object(inner)
@@ -506,22 +510,22 @@ impl Object {
         for (name, value) in &self.fields {
             printer.write_with_indent(name.as_str());
             printer.write(": ");
-            value.lock().await.inner.display(printer).await;
+            (**value).borrow().inner.display(printer).await;
             printer.write(",");
         }
         printer.indent -= 1;
         printer.write_with_indent("}");
     }
 
-    pub fn get(&self, name: String) -> Option<Arc<Mutex<Value>>> {
+    pub fn get(&self, name: String) -> Option<Rc<InputValue>> {
         self.fields.get(&name).cloned()
     }
 
-    pub fn set(&mut self, name: String, value: Value) {
-        self.fields.insert(name, Arc::new(Mutex::new(value)));
+    pub fn set(&mut self, name: String, value: InputValue) {
+        self.fields.insert(name, Rc::new(value));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Mutex<Value>>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<InputValue>)> {
         self.fields.iter()
     }
 }

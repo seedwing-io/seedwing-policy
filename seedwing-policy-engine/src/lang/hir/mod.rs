@@ -1,4 +1,5 @@
 use crate::core::Function;
+use crate::lang::lir::ValueType;
 use crate::lang::mir;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{CompilationUnit, Located, PolicyParser, SourceLocation};
@@ -6,8 +7,7 @@ use crate::lang::{PackagePath, TypeName};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
-use crate::value::Value;
-use async_mutex::Mutex;
+use crate::value::InputValue;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
@@ -61,7 +61,7 @@ pub enum Type {
     Anything,
     Ref(Located<TypeName>, Vec<Located<Type>>),
     Parameter(Located<String>),
-    Const(Located<Value>),
+    Const(Located<ValueType>),
     Object(ObjectType),
     Expr(Located<Expr>),
     Join(Box<Located<Type>>, Box<Located<Type>>),

@@ -2,8 +2,7 @@ use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{RationaleResult, Value};
-use async_mutex::Mutex;
+use crate::value::{InputValue, RationaleResult};
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
@@ -31,18 +30,16 @@ impl Function for Base64 {
 
     fn call<'v>(
         &'v self,
-        input: Arc<Mutex<Value>>,
+        input: Rc<InputValue>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            let input = input.lock().await;
+            let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
                 let result = base64::decode(inner);
 
                 if let Ok(decoded) = result {
-                    Ok(RationaleResult::Transform(Arc::new(Mutex::new(
-                        decoded.into(),
-                    ))))
+                    Ok(RationaleResult::Transform(Rc::new(decoded.into())))
                 } else {
                     Err(FunctionError::Other("unable to decode base64".into()))
                 }

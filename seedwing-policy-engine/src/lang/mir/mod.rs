@@ -1,14 +1,15 @@
 use crate::core::Function;
 use crate::lang::hir::MemberQualifier;
 use crate::lang::lir;
+use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::PrimordialType;
 use crate::lang::TypeName;
 use crate::lang::{hir, mir};
 use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
-use crate::value::Value;
-use async_mutex::Mutex;
+use crate::value::InputValue;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -19,7 +20,7 @@ use std::sync::Arc;
 pub struct TypeHandle {
     name: Option<TypeName>,
     documentation: Option<String>,
-    ty: Mutex<Option<Arc<Located<Type>>>>,
+    ty: RefCell<Option<Arc<Located<Type>>>>,
     parameters: Vec<Located<String>>,
 }
 
@@ -28,7 +29,7 @@ impl TypeHandle {
         Self {
             name,
             documentation: None,
-            ty: Mutex::new(None),
+            ty: RefCell::new(None),
             parameters: vec![],
         }
     }
@@ -41,7 +42,7 @@ impl TypeHandle {
         Self {
             name,
             documentation: None,
-            ty: Mutex::new(Some(Arc::new(ty))),
+            ty: RefCell::new(Some(Arc::new(ty))),
             parameters: vec![],
         }
     }
@@ -66,16 +67,16 @@ impl TypeHandle {
     }
 
     pub async fn define(&self, ty: Arc<Located<mir::Type>>) {
-        self.ty.lock().await.replace(ty);
+        self.ty.borrow_mut().replace(ty);
     }
 
     pub async fn define_from(&self, ty: Arc<TypeHandle>) {
-        let inbound = ty.ty.lock().await.as_ref().cloned().unwrap();
-        self.ty.lock().await.replace(inbound);
+        let inbound = ty.ty.borrow_mut().as_ref().cloned().unwrap();
+        self.ty.borrow_mut().replace(inbound);
     }
 
     pub async fn ty(&self) -> Arc<Located<mir::Type>> {
-        self.ty.lock().await.as_ref().unwrap().clone()
+        self.ty.borrow_mut().as_ref().unwrap().clone()
     }
 
     pub fn name(&self) -> Option<TypeName> {
@@ -102,7 +103,7 @@ pub enum Type {
     Primordial(PrimordialType),
     Bound(Arc<TypeHandle>, Bindings),
     Argument(Located<String>),
-    Const(Located<Value>),
+    Const(Located<ValueType>),
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
     Join(Arc<TypeHandle>, Arc<TypeHandle>),

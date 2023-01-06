@@ -11,7 +11,6 @@ ariadne = "0.1.5"
 walkdir = "2.3.2"
 serde = { version = "1.0.152", features = [ "rc", "derive"] }
 serde_json = { version = "1.0.89", features = [ "float_roundtrip", "arbitrary_precision"] }
-async-mutex = "1.4.0"
 log = "0.4.17"
 
 # functions

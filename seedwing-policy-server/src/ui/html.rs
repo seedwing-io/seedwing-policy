@@ -1,6 +1,5 @@
-use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type};
+use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type, ValueType};
 use seedwing_policy_engine::lang::{lir, PrimordialType, TypeName};
-use seedwing_policy_engine::value::InnerValue;
 use std::sync::Arc;
 
 #[allow(dead_code)]
@@ -86,25 +85,25 @@ impl<'w> Htmlifier<'w> {
             InnerType::Argument(arg) => {
                 html.push_str(arg.as_str());
             }
-            InnerType::Const(val) => match val.inner() {
-                InnerValue::Null => {
+            InnerType::Const(val) => match val {
+                ValueType::Null => {
                     html.push_str("null");
                 }
-                InnerValue::String(val) => {
+                ValueType::String(val) => {
                     html.push('"');
                     html.push_str(val.as_str());
                     html.push('"');
                 }
-                InnerValue::Integer(val) => html.push_str(format!("{}", val).as_str()),
-                InnerValue::Decimal(val) => html.push_str(format!("{}", val).as_str()),
-                InnerValue::Boolean(val) => html.push_str(format!("{}", val).as_str()),
-                InnerValue::Object(_val) => {
+                ValueType::Integer(val) => html.push_str(format!("{}", val).as_str()),
+                ValueType::Decimal(val) => html.push_str(format!("{}", val).as_str()),
+                ValueType::Boolean(val) => html.push_str(format!("{}", val).as_str()),
+                ValueType::Object(_val) => {
                     todo!()
                 }
-                InnerValue::List(_val) => {
+                ValueType::List(_val) => {
                     todo!()
                 }
-                InnerValue::Octets(_val) => {
+                ValueType::Octets(_val) => {
                     todo!()
                 }
             },

@@ -1,9 +1,8 @@
 use crate::lang::hir::Type;
-use crate::lang::lir::ID_COUNTER;
+use crate::lang::lir::{ValueType, ID_COUNTER};
 use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::RuntimeError;
-use crate::value::{Value as RuntimeValue, Value};
-use async_mutex::Mutex;
+use crate::value::InputValue;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use serde::Serialize;
@@ -33,7 +32,7 @@ impl Expr {
 pub enum InnerExpr {
     SelfLiteral(#[serde(skip)] Location),
     /* self */
-    Value(Located<Value>),
+    Value(Located<ValueType>),
     Accessor(Arc<Located<Expr>>, Located<String>),
     Field(Arc<Located<Expr>>, Arc<Located<Expr>>),
     /* self.len */
@@ -54,18 +53,17 @@ pub enum InnerExpr {
     LogicalOr(Arc<Located<Expr>>, Arc<Located<Expr>>),
 }
 
-pub type ExprFuture =
-    Pin<Box<dyn Future<Output = Result<Arc<Mutex<RuntimeValue>>, RuntimeError>> + 'static>>;
+pub type ExprFuture = Pin<Box<dyn Future<Output = Result<Rc<InputValue>, RuntimeError>> + 'static>>;
 
 impl Located<Expr> {
     #[allow(clippy::let_and_return)]
-    pub fn evaluate(self: &Arc<Self>, value: Arc<Mutex<RuntimeValue>>) -> ExprFuture {
+    pub fn evaluate(self: &Arc<Self>, value: Rc<InputValue>) -> ExprFuture {
         let this = self.clone();
 
         Box::pin(async move {
             match &this.inner.inner {
                 InnerExpr::SelfLiteral(_) => Ok(value.clone()),
-                InnerExpr::Value(ref inner) => Ok(Arc::new(Mutex::new(inner.inner()))),
+                InnerExpr::Value(ref inner) => Ok(Rc::new((&inner.inner()).into())),
                 InnerExpr::Accessor(_, _) => todo!(),
                 InnerExpr::Field(_, _) => todo!(),
                 InnerExpr::Function(_, _) => todo!(),
@@ -79,12 +77,10 @@ impl Located<Expr> {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
-                    let result = if let Some(Ordering::Greater) =
-                        lhs.lock().await.partial_cmp(&*rhs.lock().await)
-                    {
-                        Ok(Arc::new(Mutex::new(true.into())))
+                    let result = if let Some(Ordering::Greater) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
                     } else {
-                        Ok(Arc::new(Mutex::new(false.into())))
+                        Ok(Rc::new(false.into()))
                     };
 
                     result
@@ -94,11 +90,11 @@ impl Located<Expr> {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Greater | Ordering::Equal) =
-                        lhs.lock().await.partial_cmp(&*rhs.lock().await)
+                        (*lhs).partial_cmp(&(*rhs))
                     {
-                        Ok(Arc::new(Mutex::new(true.into())))
+                        Ok(Rc::new(true.into()))
                     } else {
-                        Ok(Arc::new(Mutex::new(false.into())))
+                        Ok(Rc::new(false.into()))
                     };
 
                     result
@@ -140,13 +136,19 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .padded()
         .map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(true.into(), span.clone()))),
+                Expr::new(InnerExpr::Value(Located::new(
+                    ValueType::Boolean(true),
+                    span.clone(),
+                ))),
                 span,
             )
         })
         .or(just("false").padded().map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(false.into(), span.clone()))),
+                Expr::new(InnerExpr::Value(Located::new(
+                    ValueType::Boolean(false),
+                    span.clone(),
+                ))),
                 span,
             )
         }))
@@ -154,7 +156,9 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
 
 pub fn integer_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     text::int::<char, ParserError>(10)
-        .map_with_span(|s: String, span| Located::new(s.parse::<i64>().unwrap().into(), span))
+        .map_with_span(|s: String, span| {
+            Located::new(ValueType::Integer(s.parse::<i64>().unwrap()), span)
+        })
         .padded()
         .map_with_span(|value, span| Located::new(Expr::new(InnerExpr::Value(value)), span))
 }
@@ -166,10 +170,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .map_with_span(
             |(integral, (_dot, decimal)): (String, (char, String)), span| {
                 Located::new(
-                    format!("{}.{}", integral, decimal)
-                        .parse::<f64>()
-                        .unwrap()
-                        .into(),
+                    ValueType::Decimal(format!("{}.{}", integral, decimal).parse::<f64>().unwrap()),
                     span,
                 )
             },
@@ -185,7 +186,10 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .padded()
         .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(x.into(), span.clone()))),
+                Expr::new(InnerExpr::Value(Located::new(
+                    ValueType::String(x),
+                    span.clone(),
+                ))),
                 span,
             )
         })

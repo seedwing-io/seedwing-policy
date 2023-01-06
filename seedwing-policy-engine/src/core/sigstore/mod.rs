@@ -2,8 +2,7 @@ use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{RationaleResult, Value};
-use async_mutex::Mutex;
+use crate::value::{InputValue, RationaleResult};
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
@@ -33,11 +32,11 @@ impl Function for SHA256 {
 
     fn call<'v>(
         &'v self,
-        input: Arc<Mutex<Value>>,
+        input: Rc<InputValue>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            let input = input.lock().await;
+            let input = (*input).borrow();
             if let Some(digest) = input.try_get_string() {
                 let configuration = Configuration::default();
                 let query = SearchIndex {
@@ -47,7 +46,7 @@ impl Function for SHA256 {
                 };
                 let uuid_vec = index_api::search_index(&configuration, query).await;
                 if let Ok(uuid_vec) = uuid_vec {
-                    let mut transform: Vec<Value> = Vec::new();
+                    let mut transform: Vec<InputValue> = Vec::new();
                     for uuid in uuid_vec.iter() {
                         let entry = entries_api::get_log_entry_by_uuid(&configuration, uuid).await;
                         if let Ok(entry) = entry {
@@ -64,9 +63,7 @@ impl Function for SHA256 {
                         }
                     }
 
-                    Ok(RationaleResult::Transform(Arc::new(Mutex::new(
-                        transform.into(),
-                    ))))
+                    Ok(RationaleResult::Transform(Rc::new(transform.into())))
                 } else {
                     Err(FunctionError::Other("no signatures".into()))
                 }

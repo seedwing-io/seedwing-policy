@@ -1,7 +1,6 @@
 use crate::lang::hir::Type;
 use crate::lang::lir::Bindings;
-use crate::value::{RationaleResult, Value};
-use async_mutex::Mutex;
+use crate::value::{InputValue, RationaleResult};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -33,7 +32,7 @@ pub trait Function: Sync + Send + Debug {
 
     fn call<'v>(
         &'v self,
-        input: Arc<Mutex<Value>>,
+        input: Rc<InputValue>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>>;
 }

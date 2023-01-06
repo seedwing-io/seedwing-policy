@@ -14,9 +14,8 @@ use crate::lang::PackagePath;
 use crate::lang::TypeName;
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::value::Value;
+use crate::value::InputValue;
 use ariadne::Cache;
-use async_mutex::Mutex;
 use chumsky::{Error, Stream};
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
@@ -59,7 +58,7 @@ impl From<(SourceLocation, ParserError)> for BuildError {
     }
 }
 
-pub type EvaluationResult = Option<Arc<Mutex<Value>>>;
+pub type EvaluationResult = Option<Arc<RefCell<InputValue>>>;
 
 //#[derive(Default, Debug)]
 //pub struct EvaluationResult {

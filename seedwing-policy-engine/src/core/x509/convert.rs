@@ -1,4 +1,4 @@
-use crate::value::{Object, Value};
+use crate::value::{InputValue, Object};
 use std::str::from_utf8;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::asn1_rs::Any;
@@ -8,7 +8,7 @@ use x509_parser::extensions::{GeneralName, X509Extension};
 use x509_parser::prelude::{ParsedExtension, SubjectAlternativeName};
 use x509_parser::x509::{AttributeTypeAndValue, RelativeDistinguishedName, X509Name};
 
-impl From<&X509Certificate<'_>> for Value {
+impl From<&X509Certificate<'_>> for InputValue {
     fn from(cert: &X509Certificate) -> Self {
         let mut obj = Object::new();
 
@@ -20,9 +20,9 @@ impl From<&X509Certificate<'_>> for Value {
     }
 }
 
-impl From<&X509Name<'_>> for Value {
+impl From<&X509Name<'_>> for InputValue {
     fn from(name: &X509Name<'_>) -> Self {
-        let mut seq: Vec<Value> = Vec::new();
+        let mut seq: Vec<InputValue> = Vec::new();
 
         for rdn in name.iter() {
             seq.push(rdn.into())
@@ -32,9 +32,9 @@ impl From<&X509Name<'_>> for Value {
     }
 }
 
-impl From<&RelativeDistinguishedName<'_>> for Value {
+impl From<&RelativeDistinguishedName<'_>> for InputValue {
     fn from(rdn: &RelativeDistinguishedName<'_>) -> Self {
-        let mut seq: Vec<Value> = Vec::new();
+        let mut seq: Vec<InputValue> = Vec::new();
 
         for attr in rdn.iter() {
             seq.push(attr.into())
@@ -44,7 +44,7 @@ impl From<&RelativeDistinguishedName<'_>> for Value {
     }
 }
 
-impl From<&AttributeTypeAndValue<'_>> for Value {
+impl From<&AttributeTypeAndValue<'_>> for InputValue {
     fn from(attr: &AttributeTypeAndValue<'_>) -> Self {
         let mut obj = Object::new();
 
@@ -59,7 +59,7 @@ impl From<&AttributeTypeAndValue<'_>> for Value {
     }
 }
 
-impl From<&Oid<'_>> for Value {
+impl From<&Oid<'_>> for InputValue {
     fn from(oid: &Oid<'_>) -> Self {
         let stringy = oid
             .as_bytes()
@@ -72,7 +72,7 @@ impl From<&Oid<'_>> for Value {
     }
 }
 
-impl From<&Any<'_>> for Value {
+impl From<&Any<'_>> for InputValue {
     fn from(any: &Any<'_>) -> Self {
         let mut obj = Object::new();
         obj.set("header".into(), (&any.header).into());
@@ -81,7 +81,7 @@ impl From<&Any<'_>> for Value {
     }
 }
 
-impl From<&Header<'_>> for Value {
+impl From<&Header<'_>> for InputValue {
     fn from(header: &Header<'_>) -> Self {
         let mut obj = Object::new();
         obj.set("class".into(), (&header.class()).into());
@@ -89,16 +89,16 @@ impl From<&Header<'_>> for Value {
     }
 }
 
-impl From<&Class> for Value {
+impl From<&Class> for InputValue {
     fn from(class: &Class) -> Self {
         let val = *class as u8;
         val.into()
     }
 }
 
-impl From<&[X509Extension<'_>]> for Value {
+impl From<&[X509Extension<'_>]> for InputValue {
     fn from(extensions: &[X509Extension<'_>]) -> Self {
-        let mut seq: Vec<Value> = Vec::new();
+        let mut seq: Vec<InputValue> = Vec::new();
 
         for ext in extensions {
             if let Ok(ext) = ext.try_into() {
@@ -110,7 +110,7 @@ impl From<&[X509Extension<'_>]> for Value {
     }
 }
 
-impl TryFrom<&X509Extension<'_>> for Value {
+impl TryFrom<&X509Extension<'_>> for InputValue {
     type Error = ();
 
     fn try_from(ext: &X509Extension<'_>) -> Result<Self, Self::Error> {
@@ -118,7 +118,7 @@ impl TryFrom<&X509Extension<'_>> for Value {
     }
 }
 
-impl TryFrom<&ParsedExtension<'_>> for Value {
+impl TryFrom<&ParsedExtension<'_>> for InputValue {
     type Error = ();
 
     fn try_from(ext: &ParsedExtension<'_>) -> Result<Self, Self::Error> {
@@ -155,9 +155,9 @@ impl TryFrom<&ParsedExtension<'_>> for Value {
     }
 }
 
-impl From<&SubjectAlternativeName<'_>> for Value {
+impl From<&SubjectAlternativeName<'_>> for InputValue {
     fn from(san: &SubjectAlternativeName<'_>) -> Self {
-        let mut seq: Vec<Value> = Vec::new();
+        let mut seq: Vec<InputValue> = Vec::new();
 
         for name in &san.general_names {
             seq.push(name.into())
@@ -167,7 +167,7 @@ impl From<&SubjectAlternativeName<'_>> for Value {
     }
 }
 
-impl From<&GeneralName<'_>> for Value {
+impl From<&GeneralName<'_>> for InputValue {
     fn from(name: &GeneralName<'_>) -> Self {
         match name {
             GeneralName::OtherName(_, _) => todo!(),

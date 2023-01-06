@@ -2,11 +2,12 @@ use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{RationaleResult, Value};
+use crate::value::{InputValue, RationaleResult};
 use ariadne::Cache;
-use async_mutex::Mutex;
+use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 use x509_parser::pem::Pem;
@@ -27,11 +28,10 @@ pub struct PEM;
 impl Function for PEM {
     fn call<'v>(
         &'v self,
-        input: Arc<Mutex<Value>>,
+        input: Rc<InputValue>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            let input = input.lock().await;
             let mut bytes = Vec::new();
 
             if let Some(inner) = input.try_get_string() {
@@ -42,20 +42,18 @@ impl Function for PEM {
                 return Err(FunctionError::Other("invalid input type".into()));
             };
 
-            let mut certs: Vec<Value> = Vec::new();
+            let mut certs: Vec<InputValue> = Vec::new();
 
             for pem in Pem::iter_from_buffer(&bytes).flatten() {
                 if pem.label == "PUBLIC" {
                     //println!("public key? {:?}", pem);
                 } else if let Ok(x509) = pem.parse_x509() {
-                    let converted: Value = (&x509).into();
+                    let converted: InputValue = (&x509).into();
                     certs.push(converted);
                 }
             }
 
-            Ok(RationaleResult::Transform(Arc::new(Mutex::new(
-                certs.into(),
-            ))))
+            Ok(RationaleResult::Transform(Rc::new(certs.into())))
         })
     }
 }

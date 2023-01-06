@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
 use crate::lang::hir::{Field, MemberQualifier, ObjectType, Type, TypeDefn};
+use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::{expr, Expr};
 use crate::lang::parser::literal::{
     anything_literal, decimal_literal, integer_literal, string_literal,
@@ -10,7 +11,7 @@ use crate::lang::parser::{
     SourceLocation, SourceSpan, Use,
 };
 use crate::lang::{PackageName, PackagePath, TypeName};
-use crate::value::Value;
+use crate::value::InputValue;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
@@ -304,7 +305,10 @@ pub fn qualified_list(
                 MemberQualifier::N(count) => {
                     let count_loc = count.location();
                     let count = Located::new(
-                        Type::Const(Located::new(count.inner().into(), count_loc)),
+                        Type::Const(Located::new(
+                            ValueType::Integer(count.inner() as _),
+                            count_loc,
+                        )),
                         span.clone(),
                     );
                     Located::new(

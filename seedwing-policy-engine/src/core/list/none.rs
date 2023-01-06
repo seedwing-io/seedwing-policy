@@ -1,10 +1,11 @@
 use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionError};
 use crate::lang::lir::Bindings;
-use crate::value::{RationaleResult, Value};
-use async_mutex::Mutex;
+use crate::value::{InputValue, RationaleResult};
+use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -17,12 +18,11 @@ impl Function for None {
 
     fn call<'v>(
         &'v self,
-        input: Arc<Mutex<Value>>,
+        input: Rc<InputValue>,
         bindings: &'v Bindings,
     ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
         Box::pin(async move {
-            let locked_input = input.lock().await;
-            if let Some(list) = locked_input.try_get_list() {
+            if let Some(list) = input.try_get_list() {
                 let pattern = bindings.get(PATTERN).unwrap();
                 for item in list {
                     let result = pattern.evaluate(item.clone(), &Default::default()).await;

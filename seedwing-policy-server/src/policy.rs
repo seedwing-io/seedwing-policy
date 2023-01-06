@@ -9,7 +9,7 @@ use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 use seedwing_policy_engine::lang::{PackagePath, TypeName};
-use seedwing_policy_engine::value::Value;
+use seedwing_policy_engine::value::InputValue;
 use serde::Serialize;
 
 /*
@@ -42,13 +42,13 @@ pub async fn evaluate(
     let result: Result<serde_json::Value, _> = serde_json::from_slice(&*content);
 
     if let Ok(result) = &result {
-        let value = Value::from(result);
+        let value = InputValue::from(result);
         let path = path.replace('/', "::");
 
         match world.evaluate(&*path, value).await {
             Ok(result) => {
                 let rationale = Rationalizer::new(result.clone());
-                let rationale = rationale.rationale().await;
+                let rationale = rationale.rationale();
 
                 if result.is_some() {
                     HttpResponse::Ok().body(rationale)
