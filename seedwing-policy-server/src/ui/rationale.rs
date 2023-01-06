@@ -36,11 +36,12 @@ impl Rationalizer {
         if rationale.is_empty() {
             return;
         }
-        html.push_str("<div>");
         let value_json = value.as_json();
         let value_json = serde_json::to_string_pretty(&value_json).unwrap();
         let value_json = value_json.replace('<', "&lt;");
         let value_json = value_json.replace('>', "&gt;");
+        html.push_str("<div>");
+        html.push_str("<h2>Input:</h2>");
         html.push_str("<pre class='input-value'>");
         html.push_str(value_json.as_str());
         html.push_str("</pre>");
@@ -53,12 +54,27 @@ impl Rationalizer {
                         html.push_str("</div>");
                     }
                 }
-                RationaleResult::Same(_) => {
+                RationaleResult::Same(inner) => {
                     if let Some(description) = k.description() {
                         html.push_str("<div class='entry match'>");
                         html.push_str(
-                            format!("<b><code>{}</code> matched</b>", description).as_str(),
+                            format!("<h2><code>{}</code> matched</h2>", description).as_str(),
                         );
+                        if let Some(list) = inner.try_get_list() {
+                            for item in list {
+                                Self::rationale_inner(html, (**item).borrow());
+                            }
+                        }
+                        if let Some(object) = inner.try_get_object() {
+                            for (field_name, v) in object.iter() {
+                                html.push_str("<div>");
+                                html.push_str(
+                                    format!("<b>field <code>{}</code></b>", field_name).as_str(),
+                                );
+                                Self::rationale_inner(html, (**v).borrow());
+                                html.push_str("</div>");
+                            }
+                        }
                         html.push_str("</div>");
                     }
                 }
@@ -75,6 +91,22 @@ impl Rationalizer {
                                     .as_str(),
                                 );
                                 Self::rationale_inner(html, (*transform).borrow());
+                                if let Some(list) = transform.try_get_list() {
+                                    for item in list {
+                                        Self::rationale_inner(html, (**item).borrow());
+                                    }
+                                }
+                                if let Some(object) = transform.try_get_object() {
+                                    for (field_name, v) in object.iter() {
+                                        html.push_str("<div>");
+                                        html.push_str(
+                                            format!("<b>field <code>{}</code></b>", field_name)
+                                                .as_str(),
+                                        );
+                                        Self::rationale_inner(html, (**v).borrow());
+                                        html.push_str("</div>");
+                                    }
+                                }
                             }
                             Rationale::Field(_) => {
                                 html.push_str(
@@ -89,16 +121,7 @@ impl Rationalizer {
                 }
             }
         }
-        if let Some(list) = value.try_get_list() {
-            for item in list {
-                Self::rationale_inner(html, (**item).borrow());
-            }
-        }
-        if let Some(object) = value.try_get_object() {
-            for (_, v) in object.iter() {
-                Self::rationale_inner(html, (**v).borrow());
-            }
-        }
+
         html.push_str("</div>");
     }
 }
