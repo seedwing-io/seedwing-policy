@@ -302,7 +302,16 @@ impl InnerValue {
                 }
                 serde_json::Value::Array(inner)
             }
-            InnerValue::Octets(val) => serde_json::Value::String("octets".into()),
+            InnerValue::Octets(val) => {
+                let mut octets = String::new();
+                for chunk in val.chunks(16) {
+                    for octet in chunk {
+                        octets.push_str(format!("{:02x} ", octet).as_str());
+                    }
+                    //octets.push( '\n');
+                }
+                serde_json::Value::String(octets)
+            }
         }
     }
     fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
