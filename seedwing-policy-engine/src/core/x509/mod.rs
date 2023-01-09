@@ -1,8 +1,9 @@
-use crate::core::{Function, FunctionError};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use ariadne::Cache;
 use std::cell::RefCell;
 use std::future::Future;
@@ -28,9 +29,9 @@ pub struct PEM;
 impl Function for PEM {
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let mut bytes = Vec::new();
 
@@ -39,21 +40,25 @@ impl Function for PEM {
             } else if let Some(inner) = input.try_get_octets() {
                 bytes.extend_from_slice(inner);
             } else {
-                return Err(FunctionError::Other("invalid input type".into()));
+                return Ok(Output::None.into());
             };
 
-            let mut certs: Vec<InputValue> = Vec::new();
+            let mut certs: Vec<RuntimeValue> = Vec::new();
 
             for pem in Pem::iter_from_buffer(&bytes).flatten() {
                 if pem.label == "PUBLIC" {
                     //println!("public key? {:?}", pem);
                 } else if let Ok(x509) = pem.parse_x509() {
-                    let converted: InputValue = (&x509).into();
+                    let converted: RuntimeValue = (&x509).into();
                     certs.push(converted);
                 }
             }
 
-            Ok(RationaleResult::Transform(Rc::new(certs.into())))
+            if certs.is_empty() {
+                Ok(Output::None.into())
+            } else {
+                Ok(Output::Transform(Rc::new(certs.into())).into())
+            }
         })
     }
 }

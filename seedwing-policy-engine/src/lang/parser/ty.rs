@@ -11,7 +11,7 @@ use crate::lang::parser::{
     SourceLocation, SourceSpan, Use,
 };
 use crate::lang::{PackageName, PackagePath, TypeName};
-use crate::value::InputValue;
+use crate::value::RuntimeValue;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
@@ -219,9 +219,19 @@ pub fn logical_or(
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     logical_and(expr.clone(), visible_parameters)
         .then(op("||").then(expr).repeated())
-        .foldl(|lhs, (_op, rhs)| {
-            let location = lhs.span().start()..rhs.span().end();
-            Located::new(Type::Join(Box::new(lhs), Box::new(rhs)), location)
+        .map_with_span(|(first, rest), span| {
+            if rest.is_empty() {
+                first
+            } else {
+                Located::new(
+                    Type::Join(
+                        once(first)
+                            .chain(rest.iter().map(|e| e.1.clone()))
+                            .collect(),
+                    ),
+                    span,
+                )
+            }
         })
 }
 
@@ -231,9 +241,19 @@ pub fn logical_and(
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     ty(expr.clone(), visible_parameters)
         .then(op("&&").then(expr).repeated())
-        .foldl(|lhs, (_op, rhs)| {
-            let location = lhs.span().start()..rhs.span().end();
-            Located::new(Type::Meet(Box::new(lhs), Box::new(rhs)), location)
+        .map_with_span(|(first, rest), span| {
+            if rest.is_empty() {
+                first
+            } else {
+                Located::new(
+                    Type::Meet(
+                        once(first)
+                            .chain(rest.iter().map(|e| e.1.clone()))
+                            .collect(),
+                    ),
+                    span,
+                )
+            }
         })
 }
 

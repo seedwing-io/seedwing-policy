@@ -7,8 +7,8 @@ use crate::lang::parser::Located;
 use crate::lang::PrimordialType;
 use crate::lang::TypeName;
 use crate::lang::{hir, mir};
-use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
-use crate::value::InputValue;
+use crate::runtime::{BuildError, RuntimeError};
+use crate::value::RuntimeValue;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -106,8 +106,8 @@ pub enum Type {
     Const(Located<ValueType>),
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
-    Join(Arc<TypeHandle>, Arc<TypeHandle>),
-    Meet(Arc<TypeHandle>, Arc<TypeHandle>),
+    Join(Vec<Arc<TypeHandle>>),
+    Meet(Vec<Arc<TypeHandle>>),
     Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
     List(Arc<TypeHandle>),
     Nothing,
@@ -121,8 +121,8 @@ impl Debug for Type {
             Type::Const(inner) => write!(f, "{:?}", inner),
             Type::Object(inner) => write!(f, "{:?}", inner),
             Type::Expr(inner) => write!(f, "$({:?})", inner),
-            Type::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
-            Type::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
+            Type::Join(terms) => write!(f, "||({:?})", terms),
+            Type::Meet(terms) => write!(f, "&&({:?})", terms),
             Type::Refinement(primary, refinement) => {
                 write!(f, "{:?}({:?})", primary, refinement)
             }
@@ -352,23 +352,25 @@ impl World {
                         .await,
                 )
             }),
-            hir::Type::Join(lhs, rhs) => Box::pin(async move {
+            hir::Type::Join(terms) => Box::pin(async move {
+                let mut inner = Vec::new();
+                for e in terms {
+                    inner.push(self.convert(e).await)
+                }
                 Arc::new(
                     TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Join(self.convert(&**lhs).await, self.convert(&**rhs).await),
-                            ty.location(),
-                        ))
+                        .with(Located::new(mir::Type::Join(inner), ty.location()))
                         .await,
                 )
             }),
-            hir::Type::Meet(lhs, rhs) => Box::pin(async move {
+            hir::Type::Meet(terms) => Box::pin(async move {
+                let mut inner = Vec::new();
+                for e in terms {
+                    inner.push(self.convert(e).await)
+                }
                 Arc::new(
                     TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Meet(self.convert(&**lhs).await, self.convert(&**rhs).await),
-                            ty.location(),
-                        ))
+                        .with(Located::new(mir::Type::Meet(inner), ty.location()))
                         .await,
                 )
             }),

@@ -6,8 +6,8 @@ use crate::lang::parser::{CompilationUnit, Located, PolicyParser, SourceLocation
 use crate::lang::{PackagePath, TypeName};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::{BuildError, EvaluationResult, RuntimeError};
-use crate::value::InputValue;
+use crate::runtime::{BuildError, RuntimeError};
+use crate::value::RuntimeValue;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
@@ -64,8 +64,10 @@ pub enum Type {
     Const(Located<ValueType>),
     Object(ObjectType),
     Expr(Located<Expr>),
-    Join(Box<Located<Type>>, Box<Located<Type>>),
-    Meet(Box<Located<Type>>, Box<Located<Type>>),
+    Join(Vec<Located<Type>>),
+    Meet(Vec<Located<Type>>),
+    //Join(Box<Located<Type>>, Box<Located<Type>>),
+    //Meet(Box<Located<Type>>, Box<Located<Type>>),
     Refinement(Box<Located<Type>>, Box<Located<Type>>),
     List(Box<Located<Type>>),
     Nothing,
@@ -89,18 +91,8 @@ impl Type {
             Type::Const(_) => Vec::default(),
             Type::Object(inner) => inner.referenced_types(),
             Type::Expr(_) => Vec::default(),
-            Type::Join(lhs, rhs) => lhs
-                .referenced_types()
-                .iter()
-                .chain(rhs.referenced_types().iter())
-                .cloned()
-                .collect(),
-            Type::Meet(lhs, rhs) => lhs
-                .referenced_types()
-                .iter()
-                .chain(rhs.referenced_types().iter())
-                .cloned()
-                .collect(),
+            Type::Join(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Type::Meet(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Refinement(primary, refinement) => primary
                 .referenced_types()
                 .iter()
@@ -132,13 +124,11 @@ impl Type {
                 inner.qualify_types(types);
             }
             Type::Expr(_) => {}
-            Type::Join(lhs, rhs) => {
-                lhs.qualify_types(types);
-                rhs.qualify_types(types);
+            Type::Join(terms) => {
+                terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Meet(lhs, rhs) => {
-                lhs.qualify_types(types);
-                rhs.qualify_types(types);
+            Type::Meet(terms) => {
+                terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
             Type::Refinement(primary, refinement) => {
                 primary.qualify_types(types);
@@ -159,8 +149,8 @@ impl Debug for Type {
             Type::Anything => write!(f, "Anything"),
             Type::Ref(r, args) => write!(f, "{:?}<{:?}>", r, args),
             Type::Const(value) => write!(f, "{:?}", value),
-            Type::Join(l, r) => write!(f, "Join({:?}, {:?})", l, r),
-            Type::Meet(l, r) => write!(f, "Meet({:?}, {:?})", l, r),
+            Type::Join(terms) => write!(f, "Join({:?})", terms),
+            Type::Meet(terms) => write!(f, "Meet({:?})", terms),
             Type::Nothing => write!(f, "Nothing"),
             Type::Object(obj) => write!(f, "{:?}", obj),
             Type::Refinement(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),

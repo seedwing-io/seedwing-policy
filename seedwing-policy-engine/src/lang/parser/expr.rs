@@ -2,7 +2,7 @@ use crate::lang::hir::Type;
 use crate::lang::lir::{ValueType, ID_COUNTER};
 use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::RuntimeError;
-use crate::value::InputValue;
+use crate::value::RuntimeValue;
 use chumsky::prelude::*;
 use chumsky::Parser;
 use serde::Serialize;
@@ -53,11 +53,12 @@ pub enum InnerExpr {
     LogicalOr(Arc<Located<Expr>>, Arc<Located<Expr>>),
 }
 
-pub type ExprFuture = Pin<Box<dyn Future<Output = Result<Rc<InputValue>, RuntimeError>> + 'static>>;
+pub type ExprFuture =
+    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
 
 impl Located<Expr> {
     #[allow(clippy::let_and_return)]
-    pub fn evaluate(self: &Arc<Self>, value: Rc<InputValue>) -> ExprFuture {
+    pub fn evaluate(self: &Arc<Self>, value: Rc<RuntimeValue>) -> ExprFuture {
         let this = self.clone();
 
         Box::pin(async move {

@@ -1,8 +1,9 @@
-use crate::core::{Function, FunctionError};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
@@ -32,9 +33,9 @@ impl Function for SHA256 {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(digest) = input.try_get_string() {
@@ -46,13 +47,12 @@ impl Function for SHA256 {
                 };
                 let uuid_vec = index_api::search_index(&configuration, query).await;
                 if let Ok(uuid_vec) = uuid_vec {
-                    let mut transform: Vec<InputValue> = Vec::new();
+                    let mut transform: Vec<RuntimeValue> = Vec::new();
                     for uuid in uuid_vec.iter() {
                         let entry = entries_api::get_log_entry_by_uuid(&configuration, uuid).await;
                         if let Ok(entry) = entry {
                             let body = base64::decode(entry.body);
                             if let Ok(body) = body {
-                                //println!("BODY \n\n{}\n\n", from_utf8(&*body).unwrap());
                                 let body: Result<serde_json::Value, _> =
                                     serde_json::from_slice(&*body);
                                 if let Ok(body) = body {
@@ -63,12 +63,12 @@ impl Function for SHA256 {
                         }
                     }
 
-                    Ok(RationaleResult::Transform(Rc::new(transform.into())))
+                    Ok(Output::Transform(Rc::new(transform.into())).into())
                 } else {
-                    Err(FunctionError::Other("no signatures".into()))
+                    Ok(Output::None.into())
                 }
             } else {
-                Err(FunctionError::Other("invalid input".into()))
+                Ok(Output::None.into())
             }
         })
     }

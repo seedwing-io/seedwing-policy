@@ -114,8 +114,8 @@ impl From<Arc<Located<Expr>>> for Rationale {
 #[derive(Debug, Clone)]
 pub enum RationaleResult {
     None,
-    Same(Rc<InputValue>),
-    Transform(Rc<InputValue>),
+    Same(Rc<RuntimeValue>),
+    Transform(Rc<RuntimeValue>),
 }
 
 impl Display for RationaleResult {
@@ -145,20 +145,18 @@ impl RationaleResult {
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct InputValue {
+pub struct RuntimeValue {
     #[serde(flatten)]
     pub(crate) inner: InnerValue,
-    #[serde(skip)]
-    rational: RefCell<Vec<(Rationale, RationaleResult)>>,
 }
 
-impl Display for InputValue {
+impl Display for RuntimeValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }
 
-impl PartialEq<Self> for InputValue {
+impl PartialEq<Self> for RuntimeValue {
     fn eq(&self, other: &Self) -> bool {
         match (&self.inner, &other.inner) {
             (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs == rhs,
@@ -170,7 +168,7 @@ impl PartialEq<Self> for InputValue {
     }
 }
 
-impl PartialOrd for InputValue {
+impl PartialOrd for RuntimeValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (&self.inner, &other.inner) {
             (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs.partial_cmp(rhs),
@@ -184,78 +182,75 @@ impl PartialOrd for InputValue {
     }
 }
 
-impl From<&str> for InputValue {
+impl From<&str> for RuntimeValue {
     fn from(inner: &str) -> Self {
         InnerValue::String(inner.to_string()).into()
     }
 }
 
-impl From<u8> for InputValue {
+impl From<u8> for RuntimeValue {
     fn from(inner: u8) -> Self {
         InnerValue::Integer(inner as _).into()
     }
 }
 
-impl From<u32> for InputValue {
+impl From<u32> for RuntimeValue {
     fn from(inner: u32) -> Self {
         InnerValue::Integer(inner as _).into()
     }
 }
 
-impl From<i64> for InputValue {
+impl From<i64> for RuntimeValue {
     fn from(inner: i64) -> Self {
         InnerValue::Integer(inner).into()
     }
 }
 
-impl From<f64> for InputValue {
+impl From<f64> for RuntimeValue {
     fn from(inner: f64) -> Self {
         InnerValue::Decimal(inner).into()
     }
 }
 
-impl From<bool> for InputValue {
+impl From<bool> for RuntimeValue {
     fn from(inner: bool) -> Self {
         InnerValue::Boolean(inner).into()
     }
 }
 
-impl From<String> for InputValue {
+impl From<String> for RuntimeValue {
     fn from(inner: String) -> Self {
         InnerValue::String(inner).into()
     }
 }
 
-impl From<Vec<u8>> for InputValue {
+impl From<Vec<u8>> for RuntimeValue {
     fn from(inner: Vec<u8>) -> Self {
         InnerValue::Octets(inner).into()
     }
 }
 
-impl From<&[u8]> for InputValue {
+impl From<&[u8]> for RuntimeValue {
     fn from(inner: &[u8]) -> Self {
         inner.to_vec().into()
     }
 }
 
-impl From<Vec<InputValue>> for InputValue {
-    fn from(inner: Vec<InputValue>) -> Self {
+impl From<Vec<RuntimeValue>> for RuntimeValue {
+    fn from(inner: Vec<RuntimeValue>) -> Self {
         InnerValue::List(inner.iter().map(|e| Rc::new(e.clone())).collect()).into()
     }
 }
 
-impl From<Object> for InputValue {
+impl From<Object> for RuntimeValue {
     fn from(inner: Object) -> Self {
         InnerValue::Object(inner).into()
     }
 }
 
-impl From<InnerValue> for InputValue {
+impl From<InnerValue> for RuntimeValue {
     fn from(inner: InnerValue) -> Self {
-        Self {
-            inner,
-            rational: Default::default(),
-        }
+        Self { inner }
     }
 }
 
@@ -267,7 +262,7 @@ pub enum InnerValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(#[serde(skip)] Vec<Rc<InputValue>>),
+    List(#[serde(skip)] Vec<Rc<RuntimeValue>>),
     Octets(Vec<u8>),
 }
 
@@ -352,34 +347,15 @@ impl InnerValue {
     }
 }
 
-impl InputValue {
+impl RuntimeValue {
     pub fn new(inner: InnerValue) -> Self {
-        Self {
-            inner,
-            rational: RefCell::new(vec![]),
-        }
+        Self { inner }
     }
 
     pub fn null() -> Self {
         Self {
             inner: InnerValue::Null,
-            rational: RefCell::new(vec![]),
         }
-    }
-
-    pub(crate) fn rationale<N: Into<Rationale>>(
-        &self,
-        rationale: N,
-        result: RationaleResult,
-    ) -> RationaleResult {
-        self.rational
-            .borrow_mut()
-            .push((rationale.into(), result.clone()));
-        result
-    }
-
-    pub fn get_rationale(&self) -> Ref<Vec<(Rationale, RationaleResult)>> {
-        self.rational.borrow()
     }
 
     pub fn inner(&self) -> &InnerValue {
@@ -438,7 +414,7 @@ impl InputValue {
         matches!(self.inner, InnerValue::List(_))
     }
 
-    pub fn try_get_list(&self) -> Option<&Vec<Rc<InputValue>>> {
+    pub fn try_get_list(&self) -> Option<&Vec<Rc<RuntimeValue>>> {
         if let InnerValue::List(inner) = &self.inner {
             Some(inner)
         } else {
@@ -484,7 +460,7 @@ impl InputValue {
 #[derive(Serialize, Debug, Clone, Default)]
 pub struct Object {
     #[serde(skip)]
-    fields: HashMap<String, Rc<InputValue>>,
+    fields: HashMap<String, Rc<RuntimeValue>>,
 }
 
 impl Display for Object {
@@ -526,15 +502,15 @@ impl Object {
         printer.write_with_indent("}");
     }
 
-    pub fn get(&self, name: String) -> Option<Rc<InputValue>> {
+    pub fn get(&self, name: String) -> Option<Rc<RuntimeValue>> {
         self.fields.get(&name).cloned()
     }
 
-    pub fn set(&mut self, name: String, value: InputValue) {
+    pub fn set(&mut self, name: String, value: RuntimeValue) {
         self.fields.insert(name, Rc::new(value));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<InputValue>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<RuntimeValue>)> {
         self.fields.iter()
     }
 }

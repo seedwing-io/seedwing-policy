@@ -67,19 +67,18 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Bob",
-                            "age": 52,
-                        }
-                    )
-                )
-                .await,
-            Ok(RationaleResult::Same(_))
-        ));
+        let result = runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Bob",
+                        "age": 52,
+                    }
+                ),
+            )
+            .await;
+
+        assert!(result.unwrap().satisfied());
     }
 }

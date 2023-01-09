@@ -4,8 +4,9 @@ use crate::lang::mir::TypeHandle;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialType, TypeName};
-use crate::runtime::{EvaluationResult, RuntimeError};
-use crate::value::{InnerValue, InputValue, Object, RationaleResult};
+use crate::runtime::rationale::Rationale;
+use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::value::{InnerValue, Object, RationaleResult, RuntimeValue};
 use serde::Serialize;
 use std::any::Any;
 use std::borrow::Borrow;
@@ -53,126 +54,169 @@ impl Type {
 
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
-        value: Rc<InputValue>,
+        value: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
-                Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
+                //Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
+                Ok(EvaluationResult::new(
+                    Some(value.clone()),
+                    self.clone(),
+                    Rationale::Anything,
+                    Output::Identity,
+                ))
             }),
             InnerType::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
-                    let result = bound.evaluate(value.clone(), bindings).await?;
-                    let mut locked_value = (*value).borrow();
-                    if result.is_some() {
-                        Ok(locked_value
-                            .rationale(self.clone(), RationaleResult::Same(value.clone())))
-                    } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
-                    }
+                    bound.evaluate(value.clone(), bindings).await
                 } else {
-                    let mut locked_value = (*value).borrow();
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::InvalidArgument(name.clone()),
+                        Output::None,
+                    ))
                 }
             }),
             InnerType::Primordial(inner) => match inner {
                 PrimordialType::Integer => Box::pin(async move {
                     let mut locked_value = (*value).borrow();
                     if locked_value.is_integer() {
-                        Ok(locked_value
-                            .rationale(self.clone(), RationaleResult::Same(value.clone())))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                        ))
                     } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                        ))
                     }
                 }),
                 PrimordialType::Decimal => Box::pin(async move {
                     let mut locked_value = (*value).borrow();
                     if locked_value.is_decimal() {
-                        Ok(locked_value
-                            .rationale(self.clone(), RationaleResult::Same(value.clone())))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                        ))
                     } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                        ))
                     }
                 }),
                 PrimordialType::Boolean => Box::pin(async move {
                     let mut locked_value = (*value).borrow();
 
                     if locked_value.is_boolean() {
-                        Ok(locked_value
-                            .rationale(self.clone(), RationaleResult::Same(value.clone())))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                        ))
                     } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                        ))
                     }
                 }),
                 PrimordialType::String => Box::pin(async move {
                     let mut locked_value = (*value).borrow();
                     if locked_value.is_string() {
-                        Ok(locked_value
-                            .rationale(self.clone(), RationaleResult::Same(value.clone())))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                        ))
                     } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                        ))
                     }
                 }),
                 PrimordialType::Function(name, func) => Box::pin(async move {
-                    let mut result = func.call(value.clone(), bindings).await;
-                    if let Ok(result) = result {
-                        let mut locked_value = (*value).borrow();
-                        Ok(locked_value.rationale(self.clone(), result))
-                    } else {
-                        let mut locked_value = (*value).borrow();
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
-                    }
+                    let mut result = func.call(value.clone(), bindings).await?;
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Function(result.output().is_some(), result.supporting()),
+                        result.output(),
+                    ))
                 }),
             },
             InnerType::Const(inner) => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
-                //if (*inner).eq(&*locked_value.into()) {
                 if inner.is_equal(locked_value) {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Const(true),
+                        Output::Identity,
+                    ))
                 } else {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Const(false),
+                        Output::Identity,
+                    ))
                 }
             }),
             InnerType::Object(inner) => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
-                if locked_value.is_object() {
-                    let mut obj = locked_value.try_get_object();
-                    let mut matches = vec![];
-                    let mut mismatch = vec![];
-                    if let Some(obj) = obj {
-                        for field in inner.fields() {
-                            if let Some(ref field_value) = obj.get(field.name()) {
-                                let result =
-                                    field.ty().evaluate(field_value.clone(), bindings).await?;
-                                if result.is_none() {
-                                    return Ok(
-                                        locked_value.rationale(self.clone(), RationaleResult::None)
-                                    );
-                                }
-                                matches.push((field, result));
-                            } else {
-                                mismatch.push(field);
-                                break;
-                            }
-                        }
-                        if !mismatch.is_empty() {
-                            for e in mismatch {
-                                locked_value.rationale(e.clone(), RationaleResult::None);
-                            }
-                            Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                if let Some(obj) = locked_value.try_get_object() {
+                    let mut result = HashMap::new();
+                    for field in &inner.fields {
+                        if let Some(ref field_value) = obj.get(field.name()) {
+                            result.insert(
+                                field.name(),
+                                field.ty().evaluate(field_value.clone(), bindings).await?,
+                            );
                         } else {
-                            for (f, v) in matches {
-                                locked_value.rationale(f.clone(), v);
-                            }
-                            Ok(locked_value
-                                .rationale(self.clone(), RationaleResult::Same(value.clone())))
+                            result.insert(
+                                field.name(),
+                                EvaluationResult::new(
+                                    None,
+                                    field.ty(),
+                                    Rationale::MissingField(field.name()),
+                                    Output::None,
+                                ),
+                            );
                         }
-                    } else {
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
                     }
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Object(result),
+                        Output::Identity,
+                    ))
                 } else {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::NotAnObject,
+                        Output::None,
+                    ))
                 }
             }),
             InnerType::Expr(expr) => Box::pin(async move {
@@ -180,38 +224,72 @@ impl Type {
                 let mut locked_value = (*value).borrow();
                 let locked_result = (*result).borrow();
                 if let Some(true) = locked_result.try_get_boolean() {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Expression(true),
+                        Output::Identity,
+                    ))
                 } else {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Expression(false),
+                        Output::None,
+                    ))
                 }
             }),
-            InnerType::Join(lhs, rhs) => Box::pin(async move {
-                let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
-                let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
-
-                let mut locked_value = (*value).borrow();
-
-                if rhs_result.is_some() || lhs_result.is_some() {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
-                } else {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+            InnerType::Join(terms) => Box::pin(async move {
+                let mut result = Vec::new();
+                for e in terms {
+                    result.push(e.evaluate(value.clone(), bindings).await?);
                 }
+
+                Ok(EvaluationResult::new(
+                    Some(value.clone()),
+                    self.clone(),
+                    Rationale::Join(result),
+                    Output::Identity,
+                ))
             }),
-            InnerType::Meet(lhs, rhs) => Box::pin(async move {
-                let lhs_result = lhs.evaluate(value.clone(), bindings).await?;
-                let rhs_result = rhs.evaluate(value.clone(), bindings).await?;
-
-                let mut locked_value = (*value).borrow();
-
-                if rhs_result.is_some() && lhs_result.is_some() {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
-                } else {
-                    Ok(locked_value.rationale(self.clone(), RationaleResult::None))
+            InnerType::Meet(terms) => Box::pin(async move {
+                let mut result = Vec::new();
+                for e in terms {
+                    result.push(e.evaluate(value.clone(), bindings).await?);
                 }
+
+                Ok(EvaluationResult::new(
+                    Some(value.clone()),
+                    self.clone(),
+                    Rationale::Meet(result),
+                    Output::Identity,
+                ))
             }),
             InnerType::Refinement(primary, refinement) => Box::pin(async move {
                 let mut result = primary.evaluate(value.clone(), bindings).await?;
-                match &result {
+
+                if !result.satisfied() {
+                    return Ok(result);
+                }
+
+                if let Some(output) = result.output() {
+                    let refinement_result = refinement.evaluate(output, bindings).await?;
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Refinement(Box::new(result), Some(Box::new(refinement_result))),
+                        Output::None,
+                    ))
+                } else {
+                    Ok(EvaluationResult::new(
+                        Some(value.clone()),
+                        self.clone(),
+                        Rationale::Refinement(Box::new(result), None),
+                        Output::None,
+                    ))
+                }
+                /*
+                match &result.output {
                     RationaleResult::None => {
                         let mut locked_value = (*value).borrow();
                         Ok(locked_value.rationale(self.clone(), RationaleResult::None))
@@ -237,12 +315,20 @@ impl Type {
                         }
                     }
                 }
+                 */
             }),
             InnerType::List(_) => todo!(),
             InnerType::Bound(primary, bindings) => {
                 Box::pin(async move { primary.evaluate(value, bindings).await })
             }
-            InnerType::Nothing => Box::pin(ready(Ok(RationaleResult::None))),
+            InnerType::Nothing => Box::pin(async move {
+                Ok(EvaluationResult::new(
+                    Some(value.clone()),
+                    self.clone(),
+                    Rationale::Nothing,
+                    Output::None,
+                ))
+            }),
         }
     }
 }
@@ -256,8 +342,8 @@ pub enum InnerType {
     Const(ValueType),
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
-    Join(Arc<Type>, Arc<Type>),
-    Meet(Arc<Type>, Arc<Type>),
+    Join(Vec<Arc<Type>>),
+    Meet(Vec<Arc<Type>>),
     Refinement(Arc<Type>, Arc<Type>),
     List(Arc<Type>),
     Nothing,
@@ -304,8 +390,8 @@ impl Debug for InnerType {
             InnerType::Const(inner) => write!(f, "{:?}", inner),
             InnerType::Object(inner) => write!(f, "{:?}", inner),
             InnerType::Expr(inner) => write!(f, "$({:?})", inner),
-            InnerType::Join(lhs, rhs) => write!(f, "({:?} || {:?})", lhs, rhs),
-            InnerType::Meet(lhs, rhs) => write!(f, "({:?} && {:?})", lhs, rhs),
+            InnerType::Join(terms) => write!(f, "||({:?})", terms),
+            InnerType::Meet(terms) => write!(f, "&&({:?})", terms),
             InnerType::Refinement(primary, refinement) => {
                 write!(f, "{:?}({:?})", primary, refinement)
             }
@@ -360,30 +446,30 @@ pub enum ValueType {
     Octets(Vec<u8>),
 }
 
-impl From<&ValueType> for InputValue {
+impl From<&ValueType> for RuntimeValue {
     fn from(ty: &ValueType) -> Self {
         match ty {
-            ValueType::Null => InputValue::null(),
+            ValueType::Null => RuntimeValue::null(),
             ValueType::String(val) => val.clone().into(),
             ValueType::Integer(val) => (*val).into(),
             ValueType::Decimal(val) => (*val).into(),
             ValueType::Boolean(val) => (*val).into(),
             ValueType::Object(val) => val.into(),
-            ValueType::List(val) => InputValue::new(InnerValue::List(
+            ValueType::List(val) => RuntimeValue::new(InnerValue::List(
                 val.iter()
                     .map(|e| {
                         let copy = &*e.clone();
-                        Rc::new(InputValue::from(copy))
+                        Rc::new(RuntimeValue::from(copy))
                     })
                     .collect(),
             )),
-            ValueType::Octets(val) => InputValue::new(InnerValue::Octets(val.clone())),
+            ValueType::Octets(val) => RuntimeValue::new(InnerValue::Octets(val.clone())),
         }
     }
 }
 
 impl ValueType {
-    pub fn is_equal(&self, other: &InputValue) -> bool {
+    pub fn is_equal(&self, other: &RuntimeValue) -> bool {
         match (self, &other.inner) {
             (ValueType::Null, InnerValue::Null) => true,
             (ValueType::String(lhs), InnerValue::String(rhs)) => lhs.eq(rhs),
@@ -403,7 +489,7 @@ pub struct ObjectType {
     fields: Vec<Arc<Field>>,
 }
 
-impl From<&ObjectType> for InputValue {
+impl From<&ObjectType> for RuntimeValue {
     fn from(ty: &ObjectType) -> Self {
         todo!()
     }
@@ -444,22 +530,17 @@ impl World {
         self.types.insert(path, converted);
     }
 
-    pub async fn evaluate<P: Into<String>, V: Into<InputValue>>(
+    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
         &self,
         path: P,
         value: V,
-    ) -> Result<RationaleResult, RuntimeError> {
+    ) -> Result<EvaluationResult, RuntimeError> {
         let value = Rc::new(value.into());
         let path = TypeName::from(path.into());
         let ty = self.types.get(&path);
         if let Some(ty) = ty {
             let bindings = Bindings::default();
-            match ty.evaluate(value.clone(), &bindings).await? {
-                RationaleResult::None => Ok(RationaleResult::None),
-                RationaleResult::Same(_) | RationaleResult::Transform(_) => {
-                    Ok(RationaleResult::Same(value))
-                }
-            }
+            ty.evaluate(value.clone(), &bindings).await
         } else {
             Err(RuntimeError::NoSuchType(path))
         }
@@ -601,22 +682,26 @@ fn convert(
                 lir::InnerType::Expr(expr.clone()),
             ))
         }),
-        mir::Type::Join(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(lhs.name(), lhs.documentation(), &lhs.ty().await).await;
-            let rhs = convert(rhs.name(), rhs.documentation(), &rhs.ty().await).await;
+        mir::Type::Join(terms) => Box::pin(async move {
+            let mut inner = Vec::new();
+            for e in terms {
+                inner.push(convert(e.name(), e.documentation(), &e.ty().await).await)
+            }
             Arc::new(lir::Type::new(
                 name,
                 documentation,
-                lir::InnerType::Join(lhs, rhs),
+                lir::InnerType::Join(inner),
             ))
         }),
-        mir::Type::Meet(lhs, rhs) => Box::pin(async move {
-            let lhs = convert(lhs.name(), lhs.documentation(), &lhs.ty().await).await;
-            let rhs = convert(rhs.name(), rhs.documentation(), &rhs.ty().await).await;
+        mir::Type::Meet(terms) => Box::pin(async move {
+            let mut inner = Vec::new();
+            for e in terms {
+                inner.push(convert(e.name(), e.documentation(), &e.ty().await).await)
+            }
             Arc::new(lir::Type::new(
                 name,
                 documentation,
-                lir::InnerType::Meet(lhs, rhs),
+                lir::InnerType::Meet(inner),
             ))
         }),
         mir::Type::Refinement(primary, refinement) => Box::pin(async move {

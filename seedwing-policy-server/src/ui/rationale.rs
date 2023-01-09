@@ -1,127 +1,165 @@
-use seedwing_policy_engine::value::{InputValue, Rationale, RationaleResult};
-use std::borrow::Borrow;
+use seedwing_policy_engine::runtime::rationale::Rationale;
+use seedwing_policy_engine::runtime::{EvaluationResult, Output};
 
-pub struct Rationalizer {
-    value: RationaleResult,
+pub struct Rationalizer<'r> {
+    result: &'r EvaluationResult,
 }
 
-impl Rationalizer {
-    pub fn new(value: RationaleResult) -> Self {
-        Self { value }
+impl<'r> Rationalizer<'r> {
+    pub fn new(result: &'r EvaluationResult) -> Self {
+        Self { result }
     }
 
     pub fn rationale(&self) -> String {
         let mut html = String::new();
         html.push_str("<div>");
-        match &self.value {
-            RationaleResult::None => {
-                html.push_str("failed");
-            }
-            RationaleResult::Same(value) => {
-                let locked_value = (**value).borrow();
-                Self::rationale_inner(&mut html, locked_value);
-            }
-            RationaleResult::Transform(value) => {
-                let locked_value = (**value).borrow();
-                Self::rationale_inner(&mut html, locked_value);
-            }
-        }
+        Self::rationale_inner(&mut html, self.result);
 
         html.push_str("<div>");
         html
     }
 
-    pub fn rationale_inner<'h>(html: &'h mut String, value: &'h InputValue) {
-        let rationale = value.get_rationale();
-        if rationale.is_empty() {
-            return;
+    pub fn rationale_inner(html: &mut String, result: &EvaluationResult) {
+        if result.satisfied() {
+            html.push_str("<div class='entry satisfied'>");
+        } else {
+            html.push_str("<div class='entry unsatisfied'>");
         }
-        let value_json = value.as_json();
-        let value_json = serde_json::to_string_pretty(&value_json).unwrap();
-        let value_json = value_json.replace('<', "&lt;");
-        let value_json = value_json.replace('>', "&gt;");
-        html.push_str("<div>");
-        html.push_str("<h2>Input:</h2>");
-        html.push_str("<pre class='input-value'>");
-        html.push_str(value_json.as_str());
-        html.push_str("</pre>");
-        for (k, v) in rationale.iter().rev() {
-            match v {
-                RationaleResult::None => {
-                    if let Some(description) = k.description() {
-                        html.push_str("<div class='entry no-match'>");
-                        html.push_str(format!("did not match {}\n", description).as_str());
-                        html.push_str("</div>");
-                    }
+
+        if let Some(input) = result.input() {
+            let input_json = input.as_json();
+            let input_json = serde_json::to_string_pretty(&input_json).unwrap();
+            let input_json = input_json.replace('<', "&lt;");
+            let input_json = input_json.replace('>', "&gt;");
+            html.push_str("<div class='input'>");
+            html.push_str("<pre>");
+            html.push_str(input_json.as_str());
+            html.push_str("</pre>");
+            html.push_str("</div>");
+
+            if let Some(name) = result.ty().name() {
+                if result.satisfied() {
+                    html.push_str(
+                        format!("<div>Type <code>{}</code> was satisfied</div>", name).as_str(),
+                    );
+                } else {
+                    html.push_str(
+                        format!("<div>Type <code>{}</code> was not satisfied</div>", name).as_str(),
+                    );
                 }
-                RationaleResult::Same(inner) => {
-                    if let Some(description) = k.description() {
-                        html.push_str("<div class='entry match'>");
-                        html.push_str(
-                            format!("<h2><code>{}</code> matched</h2>", description).as_str(),
-                        );
-                        if let Some(list) = inner.try_get_list() {
-                            for item in list {
-                                Self::rationale_inner(html, (**item).borrow());
-                            }
-                        }
-                        if let Some(object) = inner.try_get_object() {
-                            for (field_name, v) in object.iter() {
-                                html.push_str("<div>");
-                                html.push_str(
-                                    format!("<b>field <code>{}</code></b>", field_name).as_str(),
-                                );
-                                Self::rationale_inner(html, (**v).borrow());
-                                html.push_str("</div>");
-                            }
-                        }
-                        html.push_str("</div>");
-                    }
-                }
-                RationaleResult::Transform(transform) => {
-                    if let Some(description) = k.description() {
-                        html.push_str("<div class='entry match transform'>");
-                        match k {
-                            Rationale::Type(_) => {
-                                html.push_str(
-                                    format!(
-                                        "<b><code>{}</code> produced a value</b>\n",
-                                        description
-                                    )
-                                    .as_str(),
-                                );
-                                Self::rationale_inner(html, (*transform).borrow());
-                                if let Some(list) = transform.try_get_list() {
-                                    for item in list {
-                                        Self::rationale_inner(html, (**item).borrow());
-                                    }
-                                }
-                                if let Some(object) = transform.try_get_object() {
-                                    for (field_name, v) in object.iter() {
-                                        html.push_str("<div>");
-                                        html.push_str(
-                                            format!("<b>field <code>{}</code></b>", field_name)
-                                                .as_str(),
-                                        );
-                                        Self::rationale_inner(html, (**v).borrow());
-                                        html.push_str("</div>");
-                                    }
-                                }
-                            }
-                            Rationale::Field(_) => {
-                                html.push_str(
-                                    format!("<b>field <code>{}</code> matched</b>\n", description)
-                                        .as_str(),
-                                );
-                            }
-                            Rationale::Expr(_) => {}
-                        }
-                        html.push_str("</div>")
-                    }
-                }
+            } else if result.satisfied() {
+                html.push_str("<div>was satisfied</div>");
+            } else {
+                html.push_str("<div>was not satisfied</div>");
             }
+
+            Self::supported_by(html, result);
+        } else {
+            html.push_str("No input provided");
         }
 
         html.push_str("</div>");
+    }
+
+    pub fn supported_by(html: &mut String, result: &EvaluationResult) {
+        match result.rationale() {
+            Rationale::Anything => {}
+            Rationale::Nothing => {}
+            Rationale::Join(terms) => {
+                html.push_str("<div class='join'>");
+                if result.rationale().satisfied() {
+                    html.push_str("<div class='reason'>because at least one was satisfied:</div>");
+                } else {
+                    html.push_str("<div class='reason'>because none were satisfied:</div>");
+                }
+                terms.iter().for_each(|e| {
+                    Self::rationale_inner(html, e);
+                });
+                html.push_str("</div>");
+            }
+            Rationale::Meet(terms) => {
+                html.push_str("<div class='meet'>");
+                if result.rationale().satisfied() {
+                    html.push_str("<div class='reason'>because all were satisfied:</div>");
+                } else {
+                    html.push_str("<div class='reason'>because not all were satisfied:</div>");
+                }
+                terms.iter().for_each(|e| {
+                    Self::rationale_inner(html, e);
+                });
+                html.push_str("</div>");
+            }
+            Rationale::Object(fields) => {
+                html.push_str("<div class='object'>");
+                if result.rationale().satisfied() {
+                    html.push_str("<div class='reason'>because all fields were satisfied:</div>");
+                } else {
+                    html.push_str(
+                        "<div class='reason'>because not all fields were satisfied:</div>",
+                    );
+                }
+                for (name, result) in fields {
+                    if let Rationale::MissingField(_) = result.rationale() {
+                        html.push_str("<div class='field unsatisfied'>");
+                        html.push_str(format!("field <code>{}</code> is missing", name).as_str());
+                        html.push_str("</div>");
+                    } else {
+                        if result.satisfied() {
+                            html.push_str("<div class='field satisfied'>");
+                        } else {
+                            html.push_str("<div class='field unsatisfied'>");
+                        }
+                        html.push_str("<div class='field-name'><code>");
+                        html.push_str(name.as_str());
+                        html.push_str("</code></div>");
+                        Self::rationale_inner(html, result);
+                        html.push_str("</div>");
+                    }
+                }
+                html.push_str("</div>");
+            }
+            Rationale::NotAnObject => {
+                html.push_str("<div>not an object</div>");
+            }
+            Rationale::MissingField(name) => {
+                html.push_str(format!("<div>missing field: {}</div>", name).as_str());
+            }
+            Rationale::InvalidArgument(name) => {
+                html.push_str(format!("<div>invalid argument: {}</div>", name).as_str());
+            }
+            Rationale::Const(_) => {}
+            Rationale::Primordial(_) => {}
+            Rationale::Expression(_) => {}
+            Rationale::Function(val, supporting) => {
+                if *val {
+                    match result.raw_output() {
+                        Output::None => {
+                            todo!("should not get here")
+                        }
+                        Output::Identity => {
+                            //html.push_str("<div class='function'>");
+                            //html.push_str( "function was satisfied");
+                            //html.push_str("</div>");
+                        }
+                        Output::Transform(_output) => {
+                            html.push_str("<div class='function'>");
+                            html.push_str("and produced a value...");
+                            html.push_str("</div>");
+                        }
+                    }
+                    if !supporting.is_empty() {
+                        for e in supporting {
+                            Self::rationale_inner(html, e);
+                        }
+                    }
+                }
+            }
+            Rationale::Refinement(primary, refinement) => {
+                Self::rationale_inner(html, primary);
+                if let Some(refinement) = refinement {
+                    Self::rationale_inner(html, refinement);
+                }
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::value::{InputValue, Object};
+use crate::value::{Object, RuntimeValue};
 use std::str::from_utf8;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::asn1_rs::Any;
@@ -8,7 +8,7 @@ use x509_parser::extensions::{GeneralName, X509Extension};
 use x509_parser::prelude::{ParsedExtension, SubjectAlternativeName};
 use x509_parser::x509::{AttributeTypeAndValue, RelativeDistinguishedName, X509Name};
 
-impl From<&X509Certificate<'_>> for InputValue {
+impl From<&X509Certificate<'_>> for RuntimeValue {
     fn from(cert: &X509Certificate) -> Self {
         let mut obj = Object::new();
 
@@ -20,9 +20,9 @@ impl From<&X509Certificate<'_>> for InputValue {
     }
 }
 
-impl From<&X509Name<'_>> for InputValue {
+impl From<&X509Name<'_>> for RuntimeValue {
     fn from(name: &X509Name<'_>) -> Self {
-        let mut seq: Vec<InputValue> = Vec::new();
+        let mut seq: Vec<RuntimeValue> = Vec::new();
 
         for rdn in name.iter() {
             seq.push(rdn.into())
@@ -32,9 +32,9 @@ impl From<&X509Name<'_>> for InputValue {
     }
 }
 
-impl From<&RelativeDistinguishedName<'_>> for InputValue {
+impl From<&RelativeDistinguishedName<'_>> for RuntimeValue {
     fn from(rdn: &RelativeDistinguishedName<'_>) -> Self {
-        let mut seq: Vec<InputValue> = Vec::new();
+        let mut seq: Vec<RuntimeValue> = Vec::new();
 
         for attr in rdn.iter() {
             seq.push(attr.into())
@@ -44,7 +44,7 @@ impl From<&RelativeDistinguishedName<'_>> for InputValue {
     }
 }
 
-impl From<&AttributeTypeAndValue<'_>> for InputValue {
+impl From<&AttributeTypeAndValue<'_>> for RuntimeValue {
     fn from(attr: &AttributeTypeAndValue<'_>) -> Self {
         let mut obj = Object::new();
 
@@ -59,7 +59,7 @@ impl From<&AttributeTypeAndValue<'_>> for InputValue {
     }
 }
 
-impl From<&Oid<'_>> for InputValue {
+impl From<&Oid<'_>> for RuntimeValue {
     fn from(oid: &Oid<'_>) -> Self {
         let stringy = oid
             .as_bytes()
@@ -72,7 +72,7 @@ impl From<&Oid<'_>> for InputValue {
     }
 }
 
-impl From<&Any<'_>> for InputValue {
+impl From<&Any<'_>> for RuntimeValue {
     fn from(any: &Any<'_>) -> Self {
         let mut obj = Object::new();
         obj.set("header".into(), (&any.header).into());
@@ -81,7 +81,7 @@ impl From<&Any<'_>> for InputValue {
     }
 }
 
-impl From<&Header<'_>> for InputValue {
+impl From<&Header<'_>> for RuntimeValue {
     fn from(header: &Header<'_>) -> Self {
         let mut obj = Object::new();
         obj.set("class".into(), (&header.class()).into());
@@ -89,16 +89,16 @@ impl From<&Header<'_>> for InputValue {
     }
 }
 
-impl From<&Class> for InputValue {
+impl From<&Class> for RuntimeValue {
     fn from(class: &Class) -> Self {
         let val = *class as u8;
         val.into()
     }
 }
 
-impl From<&[X509Extension<'_>]> for InputValue {
+impl From<&[X509Extension<'_>]> for RuntimeValue {
     fn from(extensions: &[X509Extension<'_>]) -> Self {
-        let mut seq: Vec<InputValue> = Vec::new();
+        let mut seq: Vec<RuntimeValue> = Vec::new();
 
         for ext in extensions {
             if let Ok(ext) = ext.try_into() {
@@ -110,7 +110,7 @@ impl From<&[X509Extension<'_>]> for InputValue {
     }
 }
 
-impl TryFrom<&X509Extension<'_>> for InputValue {
+impl TryFrom<&X509Extension<'_>> for RuntimeValue {
     type Error = ();
 
     fn try_from(ext: &X509Extension<'_>) -> Result<Self, Self::Error> {
@@ -118,7 +118,7 @@ impl TryFrom<&X509Extension<'_>> for InputValue {
     }
 }
 
-impl TryFrom<&ParsedExtension<'_>> for InputValue {
+impl TryFrom<&ParsedExtension<'_>> for RuntimeValue {
     type Error = ();
 
     fn try_from(ext: &ParsedExtension<'_>) -> Result<Self, Self::Error> {
@@ -155,9 +155,9 @@ impl TryFrom<&ParsedExtension<'_>> for InputValue {
     }
 }
 
-impl From<&SubjectAlternativeName<'_>> for InputValue {
+impl From<&SubjectAlternativeName<'_>> for RuntimeValue {
     fn from(san: &SubjectAlternativeName<'_>) -> Self {
-        let mut seq: Vec<InputValue> = Vec::new();
+        let mut seq: Vec<RuntimeValue> = Vec::new();
 
         for name in &san.general_names {
             seq.push(name.into())
@@ -167,7 +167,7 @@ impl From<&SubjectAlternativeName<'_>> for InputValue {
     }
 }
 
-impl From<&GeneralName<'_>> for InputValue {
+impl From<&GeneralName<'_>> for RuntimeValue {
     fn from(name: &GeneralName<'_>) -> Self {
         match name {
             GeneralName::OtherName(_, _) => todo!(),

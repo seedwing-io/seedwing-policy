@@ -1,6 +1,7 @@
 use crate::lang::hir::Type;
 use crate::lang::lir::Bindings;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -16,9 +17,28 @@ pub mod sigstore;
 pub mod x509;
 
 #[derive(Debug)]
-pub enum FunctionError {
-    InvalidInput,
-    Other(String),
+pub struct FunctionEvaluationResult(Output, Vec<EvaluationResult>);
+
+impl FunctionEvaluationResult {
+    pub fn output(&self) -> Output {
+        self.0.clone()
+    }
+
+    pub fn supporting(&self) -> Vec<EvaluationResult> {
+        self.1.clone()
+    }
+}
+
+impl From<Output> for FunctionEvaluationResult {
+    fn from(output: Output) -> Self {
+        Self(output, vec![])
+    }
+}
+
+impl From<(Output, Vec<EvaluationResult>)> for FunctionEvaluationResult {
+    fn from(inner: (Output, Vec<EvaluationResult>)) -> Self {
+        Self(inner.0, inner.1)
+    }
 }
 
 pub trait Function: Sync + Send + Debug {
@@ -32,7 +52,7 @@ pub trait Function: Sync + Send + Debug {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>>;
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
 }

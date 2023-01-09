@@ -1,7 +1,8 @@
 use crate::core::list::PATTERN;
-use crate::core::{Function, FunctionError};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
@@ -18,26 +19,24 @@ impl Function for None {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(list) = input.try_get_list() {
                 let pattern = bindings.get(PATTERN).unwrap();
+                let mut supporting = Vec::new();
                 for item in list {
-                    let result = pattern.evaluate(item.clone(), &Default::default()).await;
-
-                    match result {
-                        Ok(RationaleResult::None) => continue,
-                        Err(_) => return Err(FunctionError::InvalidInput),
-                        Ok(RationaleResult::Same(_) | RationaleResult::Transform(_)) => {
-                            return Err(FunctionError::InvalidInput)
-                        }
-                    }
+                    supporting.push(pattern.evaluate(item.clone(), &Default::default()).await?);
                 }
-                Ok(RationaleResult::Same(input.clone()))
+
+                if supporting.iter().all(|e| !e.satisfied()) {
+                    Ok((Output::Identity, supporting).into())
+                } else {
+                    Ok(Output::None.into())
+                }
             } else {
-                Err(FunctionError::InvalidInput)
+                Ok(Output::None.into())
             }
         })
     }
@@ -69,7 +68,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -91,7 +91,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -113,7 +114,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -135,7 +137,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None)))
+        //assert!(matches!(result, Ok(RationaleResult::None)))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -157,7 +160,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -179,7 +183,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -201,6 +206,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-none", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 }

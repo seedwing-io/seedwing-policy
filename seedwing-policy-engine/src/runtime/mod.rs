@@ -1,10 +1,10 @@
 pub mod sources;
 
-use crate::core::{Function, FunctionError};
+use crate::core::Function;
 use crate::lang::hir;
 use crate::lang::hir::MemberQualifier;
 use crate::lang::lir;
-use crate::lang::lir::{Bindings, Field, ObjectType};
+use crate::lang::lir::{Bindings, Field, ObjectType, Type};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{
@@ -14,7 +14,8 @@ use crate::lang::PackagePath;
 use crate::lang::TypeName;
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::value::InputValue;
+use crate::runtime::rationale::Rationale;
+use crate::value::RuntimeValue;
 use ariadne::Cache;
 use chumsky::{Error, Stream};
 use std::borrow::{Borrow, BorrowMut};
@@ -29,6 +30,7 @@ use std::sync::Arc;
 use std::task::ready;
 
 pub mod cache;
+pub mod rationale;
 
 #[derive(Clone, Debug)]
 pub enum BuildError {
@@ -58,7 +60,72 @@ impl From<(SourceLocation, ParserError)> for BuildError {
     }
 }
 
-pub type EvaluationResult = Option<Arc<RefCell<InputValue>>>;
+#[derive(Debug, Clone)]
+pub enum Output {
+    None,
+    Identity,
+    Transform(Rc<RuntimeValue>),
+}
+
+impl Output {
+    pub fn is_some(&self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EvaluationResult {
+    input: Option<Rc<RuntimeValue>>,
+    ty: Arc<Type>,
+    rationale: Rationale,
+    output: Output,
+}
+
+impl EvaluationResult {
+    pub fn new(
+        input: Option<Rc<RuntimeValue>>,
+        ty: Arc<Type>,
+        rationale: Rationale,
+        output: Output,
+    ) -> Self {
+        Self {
+            input,
+            ty,
+            rationale,
+            output,
+        }
+    }
+
+    pub fn satisfied(&self) -> bool {
+        self.rationale.satisfied()
+    }
+
+    pub fn ty(&self) -> Arc<Type> {
+        self.ty.clone()
+    }
+
+    pub fn input(&self) -> Option<Rc<RuntimeValue>> {
+        self.input.clone()
+    }
+
+    pub fn rationale(&self) -> &Rationale {
+        &self.rationale
+    }
+
+    pub fn output(&self) -> Option<Rc<RuntimeValue>> {
+        match &self.output {
+            Output::None => None,
+            Output::Identity => self.input.clone(),
+            Output::Transform(inner) => Some(inner.clone()),
+        }
+    }
+
+    pub fn raw_output(&self) -> &Output {
+        &self.output
+    }
+}
+
+//pub type EvaluationResult = Option<Arc<RefCell<InputValue>>>;
 
 //#[derive(Default, Debug)]
 //pub struct EvaluationResult {
@@ -92,7 +159,6 @@ pub enum RuntimeError {
     Lock,
     InvalidState,
     NoSuchType(TypeName),
-    Function(FunctionError),
 }
 
 #[cfg(test)]
@@ -177,7 +243,8 @@ mod test {
 
         let result = runtime.evaluate("foo::bar::signed-thing", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 
     #[actix_rt::test]
@@ -208,20 +275,19 @@ mod test {
             }
         );
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Bob",
-                            "age": 52,
-                        }
-                    )
-                )
-                .await,
-            Ok(RationaleResult::Same(_))
-        ));
+        assert!(runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Bob",
+                        "age": 52,
+                    }
+                ),
+            )
+            .await
+            .unwrap()
+            .satisfied());
     }
 
     #[actix_rt::test]
@@ -245,20 +311,19 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Bob",
-                            "age": 52,
-                        }
-                    )
-                )
-                .await,
-            Ok(RationaleResult::Same(_))
-        ));
+        assert!(runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Bob",
+                        "age": 52,
+                    }
+                ),
+            )
+            .await
+            .unwrap()
+            .satisfied());
     }
 
     #[actix_rt::test]
@@ -285,64 +350,60 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Bob",
-                            "age": 49,
-                        }
-                    )
-                )
-                .await,
-            Ok(RationaleResult::Same(_))
-        ));
+        assert!(runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Bob",
+                        "age": 49,
+                    }
+                ),
+            )
+            .await
+            .unwrap()
+            .satisfied());
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Jim",
-                            "age": 49,
-                        }
-                    )
+        assert!(!runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Jim",
+                        "age": 49,
+                    }
                 )
-                .await,
-            Ok(RationaleResult::None)
-        ));
+            )
+            .await
+            .unwrap()
+            .satisfied());
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Bob",
-                            "age": 42,
-                        }
-                    )
+        assert!(!runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Bob",
+                        "age": 42,
+                    }
                 )
-                .await,
-            Ok(RationaleResult::None)
-        ));
+            )
+            .await
+            .unwrap()
+            .satisfied());
 
-        assert!(matches!(
-            runtime
-                .evaluate(
-                    "foo::bar::folks",
-                    json!(
-                        {
-                            "name": "Jim",
-                            "age": 53,
-                        }
-                    )
+        assert!(runtime
+            .evaluate(
+                "foo::bar::folks",
+                json!(
+                    {
+                        "name": "Jim",
+                        "age": 53,
+                    }
                 )
-                .await,
-            Ok(RationaleResult::Same(_))
-        ));
+            )
+            .await
+            .unwrap()
+            .satisfied());
     }
 }

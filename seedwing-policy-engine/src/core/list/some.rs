@@ -1,8 +1,8 @@
 use crate::core::list::{COUNT, PATTERN};
-use crate::core::{Function, FunctionError};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::EvaluationResult;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
@@ -19,49 +19,44 @@ impl Function for Some {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Option::Some(list) = input.try_get_list() {
                 let expected_count = bindings.get(COUNT).unwrap();
                 let pattern = bindings.get(PATTERN).unwrap();
 
-                let mut count: u32 = 0;
+                let mut supporting: Vec<EvaluationResult> = Vec::new();
+
+                let mut satisfied = false;
 
                 for item in list {
-                    let result = pattern
+                    let item_result = pattern
                         .clone()
                         .evaluate(item.clone(), &Default::default())
-                        .await;
+                        .await?;
 
-                    if let Ok(result) = result {
-                        match result {
-                            RationaleResult::Same(_) | RationaleResult::Transform(_) => {
-                                count += 1;
-                            }
-                            RationaleResult::None => continue,
-                        }
-                    } else {
-                        return Err(FunctionError::InvalidInput);
-                    }
+                    supporting.push(item_result.clone());
 
-                    match expected_count
-                        .evaluate(Rc::new(count.into()), &Default::default())
-                        .await
-                    {
-                        Ok(RationaleResult::Same(_) | RationaleResult::Transform(_)) => {
-                            return Ok(RationaleResult::Same(input.clone()))
+                    if !satisfied && item_result.satisfied() {
+                        let count = supporting.iter().filter(|e| e.satisfied()).count();
+                        let expected_result = expected_count
+                            .evaluate(Rc::new((count as i64).into()), &Default::default())
+                            .await?;
+                        if expected_result.satisfied() {
+                            satisfied = true
                         }
-                        Ok(RationaleResult::None) => {
-                            continue;
-                        }
-                        Err(_) => return Err(FunctionError::InvalidInput),
                     }
                 }
-                Err(FunctionError::InvalidInput)
+
+                if satisfied {
+                    Ok((Output::Identity, supporting).into())
+                } else {
+                    Ok((Output::None, supporting).into())
+                }
             } else {
-                Err(FunctionError::InvalidInput)
+                Ok(Output::None.into())
             }
         })
     }
@@ -93,7 +88,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -115,7 +111,31 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
+    }
+
+    #[actix_rt::test]
+    async fn call_matching_homogenous_type_more_than_necessary() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            type test-some = list::Some<2, $(self > 50)>
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let value = json!([1, 2, 3, 4, 5, 42, 99, 1024, 976,]);
+
+        let result = runtime.evaluate("test::test-some", value).await;
+
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -137,7 +157,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -159,7 +180,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -181,7 +203,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -203,7 +226,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -225,7 +249,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 
     #[actix_rt::test]
@@ -247,6 +272,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-some", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 }

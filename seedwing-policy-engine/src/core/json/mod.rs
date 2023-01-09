@@ -1,8 +1,9 @@
-use crate::core::{json, Function, FunctionError};
+use crate::core::{json, Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
@@ -30,21 +31,21 @@ impl Function for JSON {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
                 let json_value: Result<serde_json::Value, _> =
                     serde_json::from_slice(inner.as_bytes());
                 if let Ok(json_value) = json_value {
-                    Ok(RationaleResult::Transform(Rc::new(json_value.into())))
+                    Ok(Output::Transform(Rc::new(json_value.into())).into())
                 } else {
-                    Err(FunctionError::Other("unable to decode as json".into()))
+                    Ok(Output::None.into())
                 }
             } else {
-                Err(FunctionError::InvalidInput)
+                Ok(Output::None.into())
             }
         })
     }
@@ -82,7 +83,8 @@ mod test {
 
         let result = runtime.evaluate("test::test-json", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert!(result.unwrap().satisfied())
+        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
     }
 
     #[actix_rt::test]
@@ -106,6 +108,7 @@ mod test {
 
         let result = runtime.evaluate("test::test-json", value).await;
 
-        assert!(matches!(result, Ok(RationaleResult::None),))
+        //assert!(matches!(result, Ok(RationaleResult::None),))
+        assert!(!result.unwrap().satisfied())
     }
 }

@@ -113,15 +113,25 @@ impl<'w> Htmlifier<'w> {
             InnerType::Expr(_) => {
                 todo!()
             }
-            InnerType::Join(lhs, rhs) => {
+            InnerType::Join(terms) => {
                 html.push_str("<span>");
-                self.html_of_ty(html, lhs.clone());
-                html.push_str(" || ");
-                self.html_of_ty(html, rhs.clone());
+                for (i, term) in terms.iter().enumerate() {
+                    self.html_of_ty(html, term.clone());
+                    if i + 1 < terms.len() {
+                        html.push_str(" || ");
+                    }
+                }
                 html.push_str("</span>");
             }
-            InnerType::Meet(_, _) => {
-                todo!()
+            InnerType::Meet(terms) => {
+                html.push_str("<span>");
+                for (i, term) in terms.iter().enumerate() {
+                    self.html_of_ty(html, term.clone());
+                    if i + 1 < terms.len() {
+                        html.push_str(" && ");
+                    }
+                }
+                html.push_str("</span>");
             }
             InnerType::Refinement(primary, refinement) => {
                 html.push_str("<span>");

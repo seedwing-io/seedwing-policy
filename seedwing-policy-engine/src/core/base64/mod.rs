@@ -1,8 +1,9 @@
-use crate::core::{Function, FunctionError};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::PackagePath;
 use crate::package::Package;
-use crate::value::{InputValue, RationaleResult};
+use crate::runtime::{Output, RuntimeError};
+use crate::value::{RationaleResult, RuntimeValue};
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
@@ -30,21 +31,22 @@ impl Function for Base64 {
 
     fn call<'v>(
         &'v self,
-        input: Rc<InputValue>,
+        input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<RationaleResult, FunctionError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
                 let result = base64::decode(inner);
 
                 if let Ok(decoded) = result {
-                    Ok(RationaleResult::Transform(Rc::new(decoded.into())))
+                    Ok(Output::Transform(Rc::new(decoded.into())).into())
                 } else {
-                    Err(FunctionError::Other("unable to decode base64".into()))
+                    //Err(FunctionError::Other("unable to decode base64".into()))
+                    Ok(Output::None.into())
                 }
             } else {
-                Err(FunctionError::InvalidInput)
+                Ok(Output::None.into())
             }
         })
     }
