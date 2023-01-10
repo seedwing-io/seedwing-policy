@@ -67,7 +67,7 @@ pub enum Type {
     Join(Vec<Located<Type>>),
     Meet(Vec<Located<Type>>),
     Refinement(Box<Located<Type>>, Box<Located<Type>>),
-    List(Box<Located<Type>>),
+    List(Vec<Located<Type>>),
     Nothing,
 }
 
@@ -97,7 +97,7 @@ impl Type {
                 .chain(refinement.referenced_types().iter())
                 .cloned()
                 .collect(),
-            Type::List(inner) => inner.referenced_types(),
+            Type::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Nothing => Vec::default(),
             Type::Parameter(_) => Vec::default(),
         }
@@ -132,8 +132,8 @@ impl Type {
                 primary.qualify_types(types);
                 refinement.qualify_types(types);
             }
-            Type::List(inner) => {
-                inner.qualify_types(types);
+            Type::List(terms) => {
+                terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
             Type::Nothing => {}
             Type::Parameter(_) => {}

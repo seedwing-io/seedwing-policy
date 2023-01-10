@@ -118,8 +118,31 @@ impl<'r> Rationalizer<'r> {
                 }
                 html.push_str("</div>");
             }
+            Rationale::List(terms) => {
+                html.push_str("<div class='list'>");
+                if result.rationale().satisfied() {
+                    html.push_str("<div class='reason'>because all members were satisfied:</div>");
+                } else {
+                    html.push_str(
+                        "<div class='reason'>because not all members were satisfied:</div>",
+                    );
+                }
+                for element in terms {
+                    if result.satisfied() {
+                        html.push_str("<div class='element satisfied'>");
+                    } else {
+                        html.push_str("<div class='element unsatisfied'>");
+                    }
+                    Self::rationale_inner(html, element);
+                    html.push_str("</div>");
+                }
+                html.push_str("</div>");
+            }
             Rationale::NotAnObject => {
                 html.push_str("<div>not an object</div>");
+            }
+            Rationale::NotAList => {
+                html.push_str("<div>not a list</div>");
             }
             Rationale::MissingField(name) => {
                 html.push_str(format!("<div>missing field: {}</div>", name).as_str());

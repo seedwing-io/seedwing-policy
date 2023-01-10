@@ -360,11 +360,13 @@ pub fn list_literal(
     just("[")
         .padded()
         .ignored()
-        .then(expr)
+        .then(
+            expr.separated_by(just(",").padded().ignored())
+                .allow_trailing(),
+        )
         .then(just("]").padded().ignored())
-        .map_with_span(|((_, ty), _), span| Located::new(Type::List(Box::new(ty)), span))
+        .map_with_span(|((_, ty), _), span| Located::new(Type::List(ty), span))
 }
-
 
 pub fn ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,

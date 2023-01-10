@@ -1,5 +1,5 @@
 use crate::core::Function;
-use crate::lang::hir::{MemberQualifier};
+use crate::lang::hir::MemberQualifier;
 use crate::lang::lir;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::Expr;
@@ -109,7 +109,7 @@ pub enum Type {
     Join(Vec<Arc<TypeHandle>>),
     Meet(Vec<Arc<TypeHandle>>),
     Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
-    List(Arc<TypeHandle>),
+    List(Vec<Arc<TypeHandle>>),
     Nothing,
 }
 
@@ -387,13 +387,14 @@ impl World {
                         .await,
                 )
             }),
-            hir::Type::List(inner) => Box::pin(async move {
+            hir::Type::List(terms) => Box::pin(async move {
+                let mut inner = Vec::new();
+                for e in terms {
+                    inner.push(self.convert(e).await)
+                }
                 Arc::new(
                     TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::List(self.convert(inner).await),
-                            ty.location(),
-                        ))
+                        .with(Located::new(mir::Type::List(inner), ty.location()))
                         .await,
                 )
             }),

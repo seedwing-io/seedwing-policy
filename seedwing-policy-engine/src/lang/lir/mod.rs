@@ -288,36 +288,29 @@ impl Type {
                         Output::None,
                     ))
                 }
-                /*
-                match &result.output {
-                    RationaleResult::None => {
-                        let mut locked_value = (*value).borrow();
-                        Ok(locked_value.rationale(self.clone(), RationaleResult::None))
-                    }
-                    RationaleResult::Same(primary_value) => {
-                        let refinement_result =
-                            refinement.evaluate(primary_value.clone(), bindings).await?;
-                        let mut locked_value = (*value).borrow();
-                        Ok(locked_value.rationale(self.clone(), refinement_result))
-                    }
-                    RationaleResult::Transform(primary_value) => {
-                        let refinement_result =
-                            refinement.evaluate(primary_value.clone(), bindings).await?;
-                        if refinement_result.is_none() {
-                            let mut locked_value = (*value).borrow();
-                            Ok(locked_value.rationale(self.clone(), RationaleResult::None))
-                        } else {
-                            let mut locked_value = (*value).borrow();
-                            Ok(locked_value.rationale(
-                                self.clone(),
-                                RationaleResult::Transform(primary_value.clone()),
-                            ))
+            }),
+            InnerType::List(terms) => Box::pin(async move {
+                if let Some(list_value) = value.try_get_list() {
+                    if list_value.len() == terms.len() {
+                        let mut result = Vec::new();
+                        for (term, element) in terms.iter().zip(list_value.iter()) {
+                            result.push(term.evaluate(element.clone(), bindings).await?);
                         }
+                        return Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            Rationale::List(result),
+                            Output::Identity,
+                        ));
                     }
                 }
-                 */
+                Ok(EvaluationResult::new(
+                    Some(value.clone()),
+                    self.clone(),
+                    Rationale::NotAList,
+                    Output::None,
+                ))
             }),
-            InnerType::List(_) => todo!(),
             InnerType::Bound(primary, bindings) => {
                 Box::pin(async move { primary.evaluate(value, bindings).await })
             }
@@ -345,7 +338,7 @@ pub enum InnerType {
     Join(Vec<Arc<Type>>),
     Meet(Vec<Arc<Type>>),
     Refinement(Arc<Type>, Arc<Type>),
-    List(Arc<Type>),
+    List(Vec<Arc<Type>>),
     Nothing,
 }
 
@@ -719,8 +712,12 @@ fn convert(
                 lir::InnerType::Refinement(primary, refinement),
             ))
         }),
-        mir::Type::List(inner) => Box::pin(async move {
-            let inner = convert(inner.name(), inner.documentation(), &inner.ty().await).await;
+        mir::Type::List(terms) => Box::pin(async move {
+            let mut inner = Vec::new();
+            for e in terms {
+                inner.push(convert(e.name(), e.documentation(), &e.ty().await).await)
+            }
+
             Arc::new(lir::Type::new(
                 name,
                 documentation,

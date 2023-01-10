@@ -141,8 +141,15 @@ impl<'w> Htmlifier<'w> {
                 html.push(')');
                 html.push_str("</span>");
             }
-            InnerType::List(_) => {
-                todo!()
+            InnerType::List(terms) => {
+                html.push_str("<span>[ ");
+                for (i, term) in terms.iter().enumerate() {
+                    self.html_of_ty(html, term.clone());
+                    if i + 1 < terms.len() {
+                        html.push_str(", ");
+                    }
+                }
+                html.push_str(" ]</span>");
             }
             InnerType::Nothing => {
                 html.push_str("<span>");
