@@ -217,8 +217,12 @@ pub fn logical_or(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    logical_and(expr.clone(), visible_parameters)
-        .then(op("||").then(expr).repeated())
+    logical_and(expr.clone(), visible_parameters.clone())
+        .then(
+            op("||")
+                .then(logical_and(expr, visible_parameters))
+                .repeated(),
+        )
         .map_with_span(|(first, rest), span| {
             if rest.is_empty() {
                 first
