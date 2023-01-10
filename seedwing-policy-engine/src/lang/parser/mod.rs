@@ -273,7 +273,6 @@ impl PolicyParser {
         S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let tokens = lexer().parse(stream)?;
-        //compilation_unit(source).parse(stream)
         let tokens = remove_comments(&tokens);
         compilation_unit(source).parse(Stream::from_iter(
             tokens.len()..tokens.len() + 1,

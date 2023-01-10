@@ -109,7 +109,7 @@ impl<'r> Rationalizer<'r> {
                         } else {
                             html.push_str("<div class='field unsatisfied'>");
                         }
-                        html.push_str("<div class='field-name'><code>");
+                        html.push_str("<div class='field-name'>field <code>");
                         html.push_str(name.as_str());
                         html.push_str("</code></div>");
                         Self::rationale_inner(html, result);

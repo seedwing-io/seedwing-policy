@@ -1,5 +1,5 @@
 use crate::core::Function;
-use crate::lang::hir::MemberQualifier;
+use crate::lang::hir::{MemberQualifier};
 use crate::lang::lir;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::Expr;

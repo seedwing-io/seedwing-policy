@@ -66,8 +66,6 @@ pub enum Type {
     Expr(Located<Expr>),
     Join(Vec<Located<Type>>),
     Meet(Vec<Located<Type>>),
-    //Join(Box<Located<Type>>, Box<Located<Type>>),
-    //Meet(Box<Located<Type>>, Box<Located<Type>>),
     Refinement(Box<Located<Type>>, Box<Located<Type>>),
     List(Box<Located<Type>>),
     Nothing,

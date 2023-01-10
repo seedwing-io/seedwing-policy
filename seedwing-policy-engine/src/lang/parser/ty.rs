@@ -365,11 +365,13 @@ pub fn list_literal(
         .map_with_span(|((_, ty), _), span| Located::new(Type::List(Box::new(ty)), span))
 }
 
+
 pub fn ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     expr_ty()
+        //.or( parser_function())
         .or(anything_literal())
         .or(list_ty(expr.clone()))
         .or(const_type())
