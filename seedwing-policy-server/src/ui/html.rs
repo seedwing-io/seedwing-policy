@@ -67,16 +67,19 @@ impl<'w> Htmlifier<'w> {
                     html.push_str("</span>");
                 }
             },
-            InnerType::Bound(ty, bindings) => {
+            InnerType::Bound(primary, bindings) => {
                 html.push_str("<span>");
-                self.html_of_ty(html, ty.clone());
+                self.html_of_ty(html, primary.clone());
                 html.push_str("&lt;");
-                for (i, (name, bound)) in bindings.iter().enumerate() {
-                    html.push_str(name.as_str());
-                    html.push('=');
-                    self.html_of_ty(html, bound.clone());
-                    if i + 1 < bindings.len() {
-                        html.push_str(", ");
+                for (i, param) in primary.parameters().iter().enumerate() {
+                    let bound = bindings.get(param);
+                    if let Some(bound) = bound {
+                        self.html_of_ty(html, bound.clone());
+                        if i + 1 < bindings.len() {
+                            html.push_str(", ");
+                        }
+                    } else {
+                        html.push_str("missing");
                     }
                 }
                 html.push_str("&gt;");

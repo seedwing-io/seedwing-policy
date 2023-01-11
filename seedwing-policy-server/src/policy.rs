@@ -142,11 +142,11 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                         path_segments,
                         url_path,
                         path,
+                        parameters: ty.parameters(),
                         documentation: ty.documentation().unwrap_or_default(),
                         definition: html.html_of(ty),
                     },
                 )
-                //renderer.render_template(TYPE_HTML, &RenderContext { path, payload: ty })
             }
         };
 
@@ -180,4 +180,5 @@ pub struct TypeRenderContext {
     path: String,
     definition: String,
     documentation: String,
+    parameters: Vec<String>,
 }

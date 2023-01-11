@@ -13,7 +13,7 @@ type baz = {
   baz: integer
 }
 
-type signers = [ "bob", "jim" ]
+type signers = pattern::Set<[ "bob", "jim" ]>
 
 
 /// It could be a foo

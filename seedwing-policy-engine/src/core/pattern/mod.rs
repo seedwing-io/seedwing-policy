@@ -44,7 +44,7 @@ impl Function for Set {
         Box::pin(async move {
             if let Some(pattern) = bindings.get(PATTERN) {
                 if let InnerType::List(terms) = pattern.inner() {
-                    let set = Type::new(None, None, InnerType::Join(terms.clone()));
+                    let set = Type::new(None, None, Vec::default(), InnerType::Join(terms.clone()));
                     let result = Arc::new(set).evaluate(input, bindings).await?;
                     if result.satisfied() {
                         Ok((Output::Identity, vec![result]).into())

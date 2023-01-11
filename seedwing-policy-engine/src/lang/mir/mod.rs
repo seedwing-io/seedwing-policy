@@ -236,6 +236,7 @@ impl World {
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
+        println!("DECLARE {} {:?}", path.as_type_str(), parameters);
         self.types.insert(
             path.clone(),
             Arc::new(
