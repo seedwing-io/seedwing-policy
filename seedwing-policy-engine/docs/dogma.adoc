@@ -140,11 +140,11 @@ The name may include upper- and lower-case letters, hyphens, underscores, and ev
 Here's examples of types:
 
 ```
-type bob
+pattern bob
 
-type jim
+pattern jim
 
-type dejan
+pattern dejan
 ```
 
 Notice, no semicolons.
@@ -159,11 +159,11 @@ If you want to provide a non-`nothing` definition, append an equal sign and then
 Let's define those three types to be stringy things matching each person's email address.
 
 ```
-type bob = "bob@yourcorp.com"
+pattern bob = "bob@yourcorp.com"
 
-type jim = "jim@yourcorp.com"
+pattern jim = "jim@yourcorp.com"
 
-type dejan = "dejan@yourcorp.com"
+pattern dejan = "dejan@yourcorp.com"
 ```
 
 As noted above, all "values" are actually just types.
@@ -225,7 +225,7 @@ They are denoted using curly-bracked, and field-names specifying their own type 
 An example:
 
 ```
-type some-object = {
+pattern some-object = {
     email: bob,
 }
 ```
@@ -247,15 +247,15 @@ Lists are definitely a work-in-progress and subject to change.
 Lists can be specified several ways, the simplest using square brackets.
 
 ```
-type my-dogs = [ "Alphe", "Ada" ]
+pattern my-dogs = [ "Alphe", "Ada" ]
 
-type my-pets = [ my-dogs, "Mr. Squirrel" ]
+pattern my-pets = [ my-dogs, "Mr. Squirrel" ]
 ```
 
 List types can also (currently) be specified abstractly, denoting what their contents must/must-not be, using `all::()`, `any::()` or `n<..>::()`.
 
 ```
-type acceptable-list-of-emails = any::( sre-approvers )
+pattern acceptable-list-of-emails = any::( sre-approvers )
 ```
 
 The above type would match any list of email addresses, as long as at least 1 member matches the `sre-approvers` type.
@@ -272,7 +272,7 @@ For that, `${..}` can be used to evaluate basic expressions.
 For instance:
 
 ```
-type allowed-to-buy-beer = {
+pattern allowed-to-buy-beer = {
     age: ${self >= 21}
 }
 ```
@@ -292,7 +292,7 @@ This allows us to create "super-classes" if you want to use that terminology.
 It may also be considered a *join* if you're into type theory.
 
 ```
-type sre-approvers = bob || jim || dejan
+pattern sre-approvers = bob || jim || dejan
 ```
 
 .Seedwing Policy Server
@@ -310,16 +310,16 @@ This could mostly be useful when working with object-shaped things.
 
 ```
 ## An employee of YourCorp
-type employee = {
+pattern employee = {
     employer: "YourCorp",
 }
 
 ## A manager of any company
-type manager = {
+pattern manager = {
     is_manager: true,
 }
 
-type manager_of_yourcorp = employee && manager
+pattern manager_of_yourcorp = employee && manager
 ```
 
 .Seedwing Policy Server
@@ -347,7 +347,7 @@ Functions implicitly take the inbound value/type as their argument, and produce 
 An example may make it easier to understand.
 
 ```
-type thing-with-payload = {
+pattern thing-with-payload = {
     topic: string,
     payload: Base64,
 }
@@ -369,7 +369,7 @@ To refine a type, you may add parentheses (which is why we don't use them to cal
 In the `Function` example, if we want to only accept base64-encoded payloads of a particular type, we could do:
 
 ```
-type thing-with-payload = {
+pattern thing-with-payload = {
     topic: string,
     payload: Base64("bob@yourcorp.com")
 }
@@ -390,7 +390,7 @@ When defining a type, using angle brackets you can denote one or more parameters
 If you're working with x509 certificates, you might want to create a shorthand to match an ASN.1 OID value.
 
 ```
-type subject-alternative-name<EMAIL> = {
+pattern subject-alternative-name<EMAIL> = {
     oid: "1.2.3.4.5",
     email: EMAIL,
 }
@@ -400,11 +400,11 @@ type subject-alternative-name<EMAIL> = {
 This could subsequently be used similar to:
 
 ```
-type x509attr-thing = {
+pattern x509attr-thing = {
     extension: subject-alternative-name<sre-approvers>,
 }
 
-type x509attr-thing-only-bob = {
+pattern x509attr-thing-only-bob = {
     extension: subject-alternative-name<"bob@yourcorp.com">,
 }
 ```
@@ -443,7 +443,7 @@ Here's the biggest example currently used as testing.
 It uses the built-in core functions for working with _Sigstore_ and _X509_.
 
 ```
-type signed-thing = {
+pattern signed-thing = {
     digest: sigstore::SHA256(
         n<1>::{
             apiVersion: "0.0.1",
