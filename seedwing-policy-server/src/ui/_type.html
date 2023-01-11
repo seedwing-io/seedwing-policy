@@ -82,6 +82,7 @@
     padding: 1ex;
     margin-bottom: 1em;
   }
+
 </style>
 
 <h1 class="pf-c-title pf-m-4xl">
@@ -99,9 +100,7 @@
     <div class="pf-c-panel">
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
-          <div id="documentation">
-{{documentation}}
-          </div>
+          <div id="documentation">{{documentation}}</div>
           <hr class="pf-c-divider"/>
           <div id="type-definition">
             <pre>{{&definition}}</pre>
@@ -111,6 +110,18 @@
     </div>
   </div>
   {{#if parameters}}
+  <div class="pf-l-grid__item">
+    <div class="pf-c-panel">
+      <div class="pf-c-panel__header">Experiment</div>
+      <hr class="pf-c-divider"/>
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__main-body">
+          <p>Parameterized patterns may not be experimented upon directly.</p>
+          <p>They should be used in another named pattern, with their parameters bound to concrete types.</p>
+        </div>
+      </div>
+    </div>
+  </div>
   {{else}}
   <div class="pf-l-grid__item">
     <div class="pf-c-panel">
@@ -159,15 +170,12 @@
 </div>
 
 
-
 <script>
   $(document).ready( function() {
 
     var adoc = Asciidoctor();
     var documentation = $("#documentation").text();
-    console.log( documentation );
     var converted = adoc.convert( documentation, { "safe": "safe" }  );
-    console.log( converted );
     $("#documentation").html(converted);
 
     $("#documentation ul").addClass("pf-c-list");
@@ -183,7 +191,6 @@
       $('#rationale_body').html("");
       event.preventDefault();
       body = $("#experiment_body").val();
-      console.log(body);
       $.post(
         "{{url_path}}",
         body,
@@ -195,7 +202,6 @@
           $('#experiment_status').addClass("pf-m-green");
         }
       ).fail( function(arg) {
-          console.log(arg);
           if (arg.status == 406) {
             $('#rationale_body').html(arg.responseText);
             $("#rationale").show();
@@ -213,6 +219,7 @@
       } )
     } )
   });
+
 
 </script>
 
