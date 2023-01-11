@@ -13,6 +13,7 @@ use std::sync::Arc;
 pub mod base64;
 pub mod json;
 pub mod list;
+pub mod pattern;
 pub mod sigstore;
 pub mod x509;
 

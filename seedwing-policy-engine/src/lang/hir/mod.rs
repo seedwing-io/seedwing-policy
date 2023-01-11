@@ -250,6 +250,7 @@ impl World {
         world.add_package(crate::core::x509::package());
         world.add_package(crate::core::base64::package());
         world.add_package(crate::core::json::package());
+        world.add_package(crate::core::pattern::package());
 
         world
     }

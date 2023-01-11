@@ -31,7 +31,11 @@ pub struct Type {
 }
 
 impl Type {
-    fn new(name: Option<TypeName>, documentation: Option<String>, inner: InnerType) -> Self {
+    pub(crate) fn new(
+        name: Option<TypeName>,
+        documentation: Option<String>,
+        inner: InnerType,
+    ) -> Self {
         Self {
             id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name,
