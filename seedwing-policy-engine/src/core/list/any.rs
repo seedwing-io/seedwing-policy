@@ -9,12 +9,18 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
+const DOCUMENTATION: &str = include_str!("Any.adoc");
+
 #[derive(Debug)]
 pub struct Any;
 
 impl Function for Any {
     fn parameters(&self) -> Vec<String> {
         vec![PATTERN.into()]
+    }
+
+    fn documentation(&self) -> Option<String> {
+        Some(DOCUMENTATION.into())
     }
 
     fn call<'v>(

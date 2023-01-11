@@ -100,7 +100,7 @@
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
           <div id="documentation">
-{{&documentation}}
+{{documentation}}
           </div>
           <hr class="pf-c-divider"/>
           <div id="type-definition">
@@ -165,7 +165,9 @@
 
     var adoc = Asciidoctor();
     var documentation = $("#documentation").text();
+    console.log( documentation );
     var converted = adoc.convert( documentation, { "safe": "safe" }  );
+    console.log( converted );
     $("#documentation").html(converted);
 
     $("#documentation ul").addClass("pf-c-list");

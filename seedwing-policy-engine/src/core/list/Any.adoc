@@ -1,0 +1,24 @@
+Parameterized pattern that ensures any member of an input list match the pattern.
+
+An empty input list does *not* match.
+
+For instance:
+
+```
+pattern contains-bob = list::Any<"Bob">
+```
+
+Would match
+
+```
+[ "Bob", "Jim" ]
+```
+
+but would not match
+
+```
+[ "Robert", 42 ]
+```
+
+
+

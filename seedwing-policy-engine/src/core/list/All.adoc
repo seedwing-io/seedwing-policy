@@ -1,0 +1,29 @@
+Parameterized pattern that ensures all members of an input list match the pattern.
+
+An empty input list *does* match this pattern.
+
+For instance, this pattern:
+
+```
+pattern only-numbers = list::All<integer>
+```
+
+would match
+
+```
+[ 1, 2, 3, 4 ]
+```
+
+and would also match
+
+```
+[ ]
+```
+
+but would not match
+
+```
+[ 1, 2, 3, "bob" ]
+```
+
+
