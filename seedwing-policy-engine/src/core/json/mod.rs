@@ -63,7 +63,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-json = json::JSON
+            pattern test-json = json::JSON
         "#,
         );
 
@@ -92,7 +92,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-json = json::JSON
+            pattern test-json = json::JSON
         "#,
         );
 

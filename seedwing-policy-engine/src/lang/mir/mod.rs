@@ -82,20 +82,6 @@ impl TypeHandle {
     pub fn name(&self) -> Option<TypeName> {
         self.name.clone()
     }
-
-    /*
-    pub async fn evaluate(
-        &self,
-        value: Arc<Mutex<Value>>,
-        bindings: &Bindings,
-    ) -> Result<EvaluationResult, RuntimeError> {
-        if let Some(ty) = &*self.ty.lock().await {
-            ty.evaluate(value, bindings).await
-        } else {
-            Err(RuntimeError::InvalidState)
-        }
-    }
-     */
 }
 
 pub enum Type {
@@ -236,7 +222,6 @@ impl World {
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
-        println!("DECLARE {} {:?}", path.as_type_str(), parameters);
         self.types.insert(
             path.clone(),
             Arc::new(

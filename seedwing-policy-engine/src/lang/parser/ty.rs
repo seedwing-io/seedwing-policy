@@ -138,7 +138,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
     doc_comment()
         .or_not()
         .then(
-            just("type")
+            just("pattern")
                 .padded()
                 .ignored()
                 .then(simple_type_name())
@@ -476,7 +476,7 @@ mod test {
 
     #[test]
     fn parse_ty_defn() {
-        let ty = type_definition().parse("type bob").unwrap().inner();
+        let ty = type_definition().parse("pattern bob").unwrap().inner();
 
         assert_eq!(&*ty.name().inner(), "bob");
     }
@@ -591,9 +591,9 @@ mod test {
             use foo::bar::bar
             use x::y::z as osi-approved-license
 
-            type signed = SHA256()
+            pattern signed = SHA256()
 
-            type bob = {
+            pattern bob = {
                 foo: int,
                 bar: {
                   quux: int
@@ -601,11 +601,11 @@ mod test {
                 taco: int,
             }
 
-            type jim = int && taco
+            pattern jim = int && taco
 
-            type unsigned-int = int && $( self >= 0 )
+            pattern unsigned-int = int && $( self >= 0 )
 
-            type lily
+            pattern lily
 
         "#,
             )

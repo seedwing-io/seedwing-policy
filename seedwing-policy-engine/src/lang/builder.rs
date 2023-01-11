@@ -51,14 +51,14 @@ mod test {
         let src = Ephemeral::new(
             "foo::bar",
             r#"
-        type named<name> = {
+        pattern named<name> = {
             name: name
         }
 
-        type jim = named<"Jim">
-        type bob = named<"Bob">
+        pattern jim = named<"Jim">
+        pattern bob = named<"Bob">
 
-        type folks = jim || bob
+        pattern folks = jim || bob
 
         "#,
         );

@@ -73,8 +73,8 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type names = [ "bob", "ulf", "jim" ]
-            type people = pattern::Set<names>
+            pattern names = [ "bob", "ulf", "jim" ]
+            pattern people = pattern::Set<names>
         "#,
         );
 

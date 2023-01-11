@@ -54,7 +54,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-all = list::All<42>
+            pattern test-all = list::All<42>
         "#,
         );
 
@@ -77,7 +77,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-all = list::All<$(self >= 42)>
+            pattern test-all = list::All<$(self >= 42)>
         "#,
         );
 
@@ -100,7 +100,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-all = list::All<42>
+            pattern test-all = list::All<42>
         "#,
         );
 
@@ -123,7 +123,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-all = list::All<$(self >= 42)>
+            pattern test-all = list::All<$(self >= 42)>
         "#,
         );
 
@@ -145,7 +145,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-all = list::All<42>
+            pattern test-all = list::All<42>
         "#,
         );
 

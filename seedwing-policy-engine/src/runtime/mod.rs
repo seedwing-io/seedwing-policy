@@ -125,35 +125,6 @@ impl EvaluationResult {
     }
 }
 
-//pub type EvaluationResult = Option<Arc<RefCell<InputValue>>>;
-
-//#[derive(Default, Debug)]
-//pub struct EvaluationResult {
-//value: Option<Arc<Mutex<Value>>>,
-//}
-
-/*
-impl EvaluationResult {
-    pub fn new() -> Self {
-        Self { value: None }
-    }
-
-    pub fn set_value(mut self, value: Arc<Mutex<Value>>) -> Self {
-        self.value.replace(value);
-        self
-    }
-
-    pub fn value(&self) -> &Option<Arc<Mutex<Value>>> {
-        &self.value
-    }
-
-    pub fn matches(&self) -> bool {
-        self.value.is_some()
-    }
-}
-
- */
-
 #[derive(Debug)]
 pub enum RuntimeError {
     Lock,
@@ -174,7 +145,7 @@ mod test {
 
     #[actix_rt::test]
     async fn ephemeral_sources() {
-        let src = Ephemeral::new("foo::bar", "type bob");
+        let src = Ephemeral::new("foo::bar", "pattern bob");
 
         let mut builder = Builder::new();
 
@@ -204,7 +175,7 @@ mod test {
             "foo::bar",
             r#"
             // Single-line comment, yay
-            type signed-thing = {
+            pattern signed-thing = {
                 digest: sigstore::SHA256(
                     n<1>::{
                         apiVersion: "0.0.1",
@@ -252,14 +223,14 @@ mod test {
         let src = Ephemeral::new(
             "foo::bar",
             r#"
-        type named<name> = {
+        pattern named<name> = {
             name: name
         }
 
-        type jim = named<"Jim">
-        type bob = named<"Bob">
+        pattern jim = named<"Jim">
+        pattern bob = named<"Bob">
 
-        type folks = jim || bob
+        pattern folks = jim || bob
 
         "#,
         );
@@ -295,14 +266,14 @@ mod test {
         let src = Ephemeral::new(
             "foo::bar",
             r#"
-                type named<name> = {
+                pattern named<name> = {
                     name: name
                 }
 
-                type jim = named<integer>
-                type bob = named<"Bob">
+                pattern jim = named<integer>
+                pattern bob = named<"Bob">
 
-                type folks = jim || bob
+                pattern folks = jim || bob
 
                 "#,
         );
@@ -331,17 +302,17 @@ mod test {
         let src = Ephemeral::new(
             "foo::bar",
             r#"
-        type bob = {
+        pattern bob = {
             name: "Bob",
             age: $(self > 48),
         }
 
-        type jim = {
+        pattern jim = {
             name: "Jim",
             age: $(self > 52),
         }
 
-        type folks = bob || jim
+        pattern folks = bob || jim
 
         "#,
         );

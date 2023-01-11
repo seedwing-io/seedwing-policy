@@ -54,7 +54,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<42>
+            pattern test-any = list::Any<42>
         "#,
         );
 
@@ -77,7 +77,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<$(self > 50)>
+            pattern test-any = list::Any<$(self > 50)>
         "#,
         );
 
@@ -100,7 +100,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<42>
+            pattern test-any = list::Any<42>
         "#,
         );
 
@@ -122,7 +122,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<$(self > 101)>
+            pattern test-any = list::Any<$(self > 101)>
         "#,
         );
 
@@ -145,7 +145,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<42>
+            pattern test-any = list::Any<42>
         "#,
         );
 
@@ -168,7 +168,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<$(self > 99.0)>
+            pattern test-any = list::Any<$(self > 99.0)>
         "#,
         );
 
@@ -191,7 +191,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<42>
+            pattern test-any = list::Any<42>
         "#,
         );
 
@@ -214,7 +214,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<42>
+            pattern test-any = list::Any<42>
         "#,
         );
 
@@ -237,7 +237,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            type test-any = list::Any<
+            pattern test-any = list::Any<
                 list::Any<99>
             >
         "#,

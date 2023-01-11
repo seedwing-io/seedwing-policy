@@ -1,24 +1,24 @@
 
-type foo = {
+pattern foo = {
   foo: integer
 }
 
 // comment removed.
 
-type bar = {
+pattern bar = {
   bar: integer
 }
 
-type baz = {
+pattern baz = {
   baz: integer
 }
 
-type signers = pattern::Set<[ "bob", "jim" ]>
+pattern signers = pattern::Set<[ "bob", "jim" ]>
 
 
 /// It could be a foo
 /// or a bar or a baz
-type quux = foo || bar || baz
+pattern quux = foo || bar || baz
 
 
 
@@ -31,7 +31,7 @@ type quux = foo || bar || baz
 ///     "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
 /// }
 /// ```
-type signed-thing = {
+pattern signed-thing = {
     digest: sigstore::SHA256(
         n<1>::{
             apiVersion: "0.0.1",
