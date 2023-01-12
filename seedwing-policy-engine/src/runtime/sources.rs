@@ -6,6 +6,7 @@ use std::iter::{once, Once};
 use std::path::{Iter, Path, PathBuf};
 use walkdir::WalkDir;
 
+#[derive(Clone)]
 pub struct Ephemeral {
     source: SourceLocation,
     content: String,
