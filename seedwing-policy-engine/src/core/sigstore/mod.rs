@@ -56,7 +56,7 @@ impl Function for SHA256 {
                                 let body: Result<serde_json::Value, _> =
                                     serde_json::from_slice(&*body);
                                 if let Ok(body) = body {
-                                    let value = (&body).into();
+                                    let value = body.into();
                                     transform.push(value)
                                 }
                             }

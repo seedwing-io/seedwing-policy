@@ -7,7 +7,7 @@ use crate::lang::{lir, mir, PrimordialType};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::TypeName;
 use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
-use crate::value::{InnerValue, Object, RationaleResult, RuntimeValue};
+use crate::value::{Object, RationaleResult, RuntimeValue};
 use serde::Serialize;
 use std::any::Any;
 use std::borrow::Borrow;
@@ -460,30 +460,30 @@ impl From<&ValueType> for RuntimeValue {
             ValueType::Decimal(val) => (*val).into(),
             ValueType::Boolean(val) => (*val).into(),
             ValueType::Object(val) => val.into(),
-            ValueType::List(val) => RuntimeValue::new(InnerValue::List(
+            ValueType::List(val) => Self::List(
                 val.iter()
                     .map(|e| {
                         let copy = &*e.clone();
                         Rc::new(RuntimeValue::from(copy))
                     })
                     .collect(),
-            )),
-            ValueType::Octets(val) => RuntimeValue::new(InnerValue::Octets(val.clone())),
+            ),
+            ValueType::Octets(val) => Self::Octets(val.clone()),
         }
     }
 }
 
 impl ValueType {
     pub fn is_equal(&self, other: &RuntimeValue) -> bool {
-        match (self, &other.inner) {
-            (ValueType::Null, InnerValue::Null) => true,
-            (ValueType::String(lhs), InnerValue::String(rhs)) => lhs.eq(rhs),
-            (ValueType::Integer(lhs), InnerValue::Integer(rhs)) => lhs.eq(rhs),
-            (ValueType::Decimal(lhs), InnerValue::Decimal(rhs)) => lhs.eq(rhs),
-            (ValueType::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs.eq(rhs),
-            (ValueType::Object(lhs), InnerValue::Object(rhs)) => todo!(),
-            (ValueType::List(lhs), InnerValue::List(rhs)) => todo!(),
-            (ValueType::Octets(lhs), InnerValue::Octets(rhs)) => todo!(),
+        match (self, &other) {
+            (ValueType::Null, RuntimeValue::Null) => true,
+            (ValueType::String(lhs), RuntimeValue::String(rhs)) => lhs.eq(rhs),
+            (ValueType::Integer(lhs), RuntimeValue::Integer(rhs)) => lhs.eq(rhs),
+            (ValueType::Decimal(lhs), RuntimeValue::Decimal(rhs)) => lhs.eq(rhs),
+            (ValueType::Boolean(lhs), RuntimeValue::Boolean(rhs)) => lhs.eq(rhs),
+            (ValueType::Object(lhs), RuntimeValue::Object(rhs)) => todo!(),
+            (ValueType::List(lhs), RuntimeValue::List(rhs)) => todo!(),
+            (ValueType::Octets(lhs), RuntimeValue::Octets(rhs)) => todo!(),
             _ => false,
         }
     }

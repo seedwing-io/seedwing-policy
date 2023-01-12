@@ -144,25 +144,13 @@ impl RationaleResult {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct RuntimeValue {
-    #[serde(flatten)]
-    pub(crate) inner: InnerValue,
-}
-
-impl Display for RuntimeValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
 impl PartialEq<Self> for RuntimeValue {
     fn eq(&self, other: &Self) -> bool {
-        match (&self.inner, &other.inner) {
-            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs == rhs,
-            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => lhs == rhs,
-            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => lhs == rhs,
-            (InnerValue::String(lhs), InnerValue::String(rhs)) => lhs == rhs,
+        match (&self, &other) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs == rhs,
+            (Self::Integer(lhs), Self::Integer(rhs)) => lhs == rhs,
+            (Self::Decimal(lhs), Self::Decimal(rhs)) => lhs == rhs,
+            (Self::String(lhs), Self::String(rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -170,13 +158,13 @@ impl PartialEq<Self> for RuntimeValue {
 
 impl PartialOrd for RuntimeValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (&self.inner, &other.inner) {
-            (InnerValue::Boolean(lhs), InnerValue::Boolean(rhs)) => lhs.partial_cmp(rhs),
-            (InnerValue::Integer(lhs), InnerValue::Integer(rhs)) => lhs.partial_cmp(rhs),
-            (InnerValue::Decimal(lhs), InnerValue::Decimal(rhs)) => lhs.partial_cmp(rhs),
-            (InnerValue::Decimal(lhs), InnerValue::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
-            (InnerValue::Integer(lhs), InnerValue::Decimal(rhs)) => (*lhs as f64).partial_cmp(rhs),
-            (InnerValue::String(lhs), InnerValue::String(rhs)) => lhs.partial_cmp(rhs),
+        match (&self, &other) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Integer(lhs), Self::Integer(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Decimal(lhs), Self::Decimal(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Decimal(lhs), Self::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
+            (Self::Integer(lhs), Self::Decimal(rhs)) => (*lhs as f64).partial_cmp(rhs),
+            (Self::String(lhs), Self::String(rhs)) => lhs.partial_cmp(rhs),
             _ => None,
         }
     }
@@ -184,49 +172,49 @@ impl PartialOrd for RuntimeValue {
 
 impl From<&str> for RuntimeValue {
     fn from(inner: &str) -> Self {
-        InnerValue::String(inner.to_string()).into()
+        Self::String(inner.to_string())
     }
 }
 
 impl From<u8> for RuntimeValue {
     fn from(inner: u8) -> Self {
-        InnerValue::Integer(inner as _).into()
+        Self::Integer(inner as _)
     }
 }
 
 impl From<u32> for RuntimeValue {
     fn from(inner: u32) -> Self {
-        InnerValue::Integer(inner as _).into()
+        Self::Integer(inner as _)
     }
 }
 
 impl From<i64> for RuntimeValue {
     fn from(inner: i64) -> Self {
-        InnerValue::Integer(inner).into()
+        Self::Integer(inner)
     }
 }
 
 impl From<f64> for RuntimeValue {
     fn from(inner: f64) -> Self {
-        InnerValue::Decimal(inner).into()
+        Self::Decimal(inner)
     }
 }
 
 impl From<bool> for RuntimeValue {
     fn from(inner: bool) -> Self {
-        InnerValue::Boolean(inner).into()
+        Self::Boolean(inner)
     }
 }
 
 impl From<String> for RuntimeValue {
     fn from(inner: String) -> Self {
-        InnerValue::String(inner).into()
+        Self::String(inner)
     }
 }
 
 impl From<Vec<u8>> for RuntimeValue {
     fn from(inner: Vec<u8>) -> Self {
-        InnerValue::Octets(inner).into()
+        Self::Octets(inner)
     }
 }
 
@@ -238,24 +226,18 @@ impl From<&[u8]> for RuntimeValue {
 
 impl From<Vec<RuntimeValue>> for RuntimeValue {
     fn from(inner: Vec<RuntimeValue>) -> Self {
-        InnerValue::List(inner.iter().map(|e| Rc::new(e.clone())).collect()).into()
+        Self::List(inner.iter().map(|e| Rc::new(e.clone())).collect())
     }
 }
 
 impl From<Object> for RuntimeValue {
     fn from(inner: Object) -> Self {
-        InnerValue::Object(inner).into()
-    }
-}
-
-impl From<InnerValue> for RuntimeValue {
-    fn from(inner: InnerValue) -> Self {
-        Self { inner }
+        Self::Object(inner)
     }
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub enum InnerValue {
+pub enum RuntimeValue {
     Null,
     String(String),
     Integer(i64),
@@ -266,38 +248,38 @@ pub enum InnerValue {
     Octets(Vec<u8>),
 }
 
-impl Display for InnerValue {
+impl Display for RuntimeValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            InnerValue::Null => write!(f, "<null>"),
-            InnerValue::String(val) => write!(f, "{}", val),
-            InnerValue::Integer(val) => write!(f, "{}", val),
-            InnerValue::Decimal(val) => write!(f, "{}", val),
-            InnerValue::Boolean(val) => write!(f, "{}", val),
-            InnerValue::Object(val) => Display::fmt(val, f),
-            InnerValue::List(val) => write!(f, "[ <<things>> ]"),
-            InnerValue::Octets(val) => write!(f, "[ <<octets>> ]"),
+            Self::Null => write!(f, "<null>"),
+            Self::String(val) => write!(f, "{}", val),
+            Self::Integer(val) => write!(f, "{}", val),
+            Self::Decimal(val) => write!(f, "{}", val),
+            Self::Boolean(val) => write!(f, "{}", val),
+            Self::Object(val) => Display::fmt(val, f),
+            Self::List(val) => write!(f, "[ <<things>> ]"),
+            Self::Octets(val) => write!(f, "[ <<octets>> ]"),
         }
     }
 }
 
-impl InnerValue {
-    fn as_json(&self) -> serde_json::Value {
+impl RuntimeValue {
+    pub fn as_json(&self) -> serde_json::Value {
         match self {
-            InnerValue::Null => serde_json::Value::Null,
-            InnerValue::String(val) => serde_json::Value::String(val.clone()),
-            InnerValue::Integer(val) => serde_json::Value::Number(Number::from(*val)),
-            InnerValue::Decimal(val) => json!(val),
-            InnerValue::Boolean(val) => serde_json::Value::Bool(*val),
-            InnerValue::Object(val) => val.as_json(),
-            InnerValue::List(val) => {
+            Self::Null => serde_json::Value::Null,
+            Self::String(val) => serde_json::Value::String(val.clone()),
+            Self::Integer(val) => serde_json::Value::Number(Number::from(*val)),
+            Self::Decimal(val) => json!(val),
+            Self::Boolean(val) => serde_json::Value::Bool(*val),
+            Self::Object(val) => val.as_json(),
+            Self::List(val) => {
                 let mut inner = Vec::new();
                 for each in val {
                     inner.push((**each).borrow().as_json())
                 }
                 serde_json::Value::Array(inner)
             }
-            InnerValue::Octets(val) => {
+            Self::Octets(val) => {
                 let mut octets = String::new();
                 for chunk in val.chunks(16) {
                     for octet in chunk {
@@ -309,65 +291,19 @@ impl InnerValue {
             }
         }
     }
-    fn display<'p>(&'p self, printer: &'p mut Printer) -> Pin<Box<dyn Future<Output = ()> + 'p>> {
-        match self {
-            InnerValue::Null => Box::pin(async move {
-                printer.write("<null>");
-            }),
-            InnerValue::String(inner) => {
-                Box::pin(async move { printer.write(format!("\"{}\"", inner).as_str()) })
-            }
-            InnerValue::Integer(inner) => {
-                Box::pin(async move { printer.write(format!("{}", inner).as_str()) })
-            }
-            InnerValue::Decimal(inner) => {
-                Box::pin(async move { printer.write(format!("{}", inner).as_str()) })
-            }
-            InnerValue::Boolean(inner) => {
-                Box::pin(async move { printer.write(format!("{}", inner).as_str()) })
-            }
-            InnerValue::Object(inner) => Box::pin(async move { inner.display(printer).await }),
-            InnerValue::List(inner) => Box::pin(async move {
-                printer.write("[ ");
-                for item in inner {
-                    (**item).borrow().inner.display(printer).await;
-                    printer.write(", ");
-                }
-                printer.write(" ]");
-            }),
-            InnerValue::Octets(inner) => {
-                Box::pin(async move {
-                    // todo write in columns of bytes like a byte inspector
-                    for byte in inner {
-                        printer.write(format!("{:0x}", byte).as_str())
-                    }
-                })
-            }
-        }
-    }
 }
 
 impl RuntimeValue {
-    pub fn new(inner: InnerValue) -> Self {
-        Self { inner }
-    }
-
     pub fn null() -> Self {
-        Self {
-            inner: InnerValue::Null,
-        }
-    }
-
-    pub fn inner(&self) -> &InnerValue {
-        &self.inner
+        Self::Null
     }
 
     pub fn is_string(&self) -> bool {
-        matches!(self.inner, InnerValue::String(_))
+        matches!(self, Self::String(_))
     }
 
     pub fn try_get_string(&self) -> Option<String> {
-        if let InnerValue::String(inner) = &self.inner {
+        if let Self::String(inner) = self {
             Some(inner.clone())
         } else {
             None
@@ -375,11 +311,11 @@ impl RuntimeValue {
     }
 
     pub fn is_integer(&self) -> bool {
-        matches!(self.inner, InnerValue::Integer(_))
+        matches!(self, Self::Integer(_))
     }
 
     pub fn try_get_integer(&self) -> Option<i64> {
-        if let InnerValue::Integer(inner) = &self.inner {
+        if let Self::Integer(inner) = self {
             Some(*inner)
         } else {
             None
@@ -387,11 +323,11 @@ impl RuntimeValue {
     }
 
     pub fn is_decimal(&self) -> bool {
-        matches!(self.inner, InnerValue::Decimal(_))
+        matches!(self, Self::Decimal(_))
     }
 
     pub fn try_get_decimal(&self) -> Option<f64> {
-        if let InnerValue::Decimal(inner) = &self.inner {
+        if let Self::Decimal(inner) = self {
             Some(*inner)
         } else {
             None
@@ -399,11 +335,11 @@ impl RuntimeValue {
     }
 
     pub fn is_boolean(&self) -> bool {
-        matches!(self.inner, InnerValue::Boolean(_))
+        matches!(self, Self::Boolean(_))
     }
 
     pub fn try_get_boolean(&self) -> Option<bool> {
-        if let InnerValue::Boolean(inner) = &self.inner {
+        if let Self::Boolean(inner) = self {
             Some(*inner)
         } else {
             None
@@ -411,11 +347,11 @@ impl RuntimeValue {
     }
 
     pub fn is_list(&self) -> bool {
-        matches!(self.inner, InnerValue::List(_))
+        matches!(self, Self::List(_))
     }
 
     pub fn try_get_list(&self) -> Option<&Vec<Rc<RuntimeValue>>> {
-        if let InnerValue::List(inner) = &self.inner {
+        if let Self::List(inner) = self {
             Some(inner)
         } else {
             None
@@ -423,11 +359,11 @@ impl RuntimeValue {
     }
 
     pub fn is_object(&self) -> bool {
-        matches!(self.inner, InnerValue::Object(_))
+        matches!(self, Self::Object(_))
     }
 
     pub fn try_get_object(&self) -> Option<&Object> {
-        if let InnerValue::Object(inner) = &self.inner {
+        if let Self::Object(inner) = self {
             Some(inner)
         } else {
             None
@@ -435,25 +371,15 @@ impl RuntimeValue {
     }
 
     pub fn is_octets(&self) -> bool {
-        matches!(self.inner, InnerValue::Octets(_))
+        matches!(self, Self::Octets(_))
     }
 
     pub fn try_get_octets(&self) -> Option<&Vec<u8>> {
-        if let InnerValue::Octets(inner) = &self.inner {
+        if let Self::Octets(inner) = self {
             Some(inner)
         } else {
             None
         }
-    }
-
-    pub async fn display(&self) -> String {
-        let mut printer = Printer::new();
-        self.inner.display(&mut printer).await;
-        printer.content
-    }
-
-    pub fn as_json(&self) -> serde_json::Value {
-        self.inner.as_json()
     }
 }
 
@@ -487,19 +413,6 @@ impl Object {
         }
 
         serde_json::Value::Object(inner)
-    }
-
-    async fn display(&self, printer: &mut Printer) {
-        printer.write("{");
-        printer.indent += 1;
-        for (name, value) in &self.fields {
-            printer.write_with_indent(name.as_str());
-            printer.write(": ");
-            (**value).borrow().inner.display(printer).await;
-            printer.write(",");
-        }
-        printer.indent -= 1;
-        printer.write_with_indent("}");
     }
 
     pub fn get(&self, name: String) -> Option<Rc<RuntimeValue>> {
