@@ -7,7 +7,7 @@ fn eval_speed(bencher: &mut Bencher) {
     let data = testdata1();
     let mut builder = Builder::new();
 
-    let result = builder.build(data.src.iter());
+    let _ = builder.build(data.src.iter());
     let runtime = block_on(builder.finish()).unwrap();
 
     let executor = tokio::runtime::Builder::new_current_thread()
@@ -36,16 +36,15 @@ fn finish_speed(bencher: &mut Bencher) {
     let data = testdata1();
 
     let mut builder = Builder::new();
-    let result = builder.build(data.src.iter());
+    let _ = builder.build(data.src.iter());
 
     bencher.iter(|| {
-        let runtime = block_on(builder.finish()).unwrap();
+        let _ = block_on(builder.finish()).unwrap();
     });
 }
 
 #[derive(Clone)]
 struct TestData {
-    id: String,
     src: Ephemeral,
     path: String,
     value: String,
@@ -55,20 +54,19 @@ fn testdata1() -> TestData {
     let src = Ephemeral::new(
         "test1",
         r#"
-        type named<name> = {
+        pattern named<name> = {
             name: name
         }
 
-        type jim = named<"Jim">
-        type bob = named<"Bob">
+        pattern jim = named<"Jim">
+        pattern bob = named<"Bob">
 
-        type folks = jim || bob
+        pattern folks = jim || bob
 
         "#,
     );
 
     TestData {
-        id: "test1".to_string(),
         src,
         path: "test1::folks".to_string(),
         value: json!(
