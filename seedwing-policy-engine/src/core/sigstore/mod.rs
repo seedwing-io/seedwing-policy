@@ -62,40 +62,18 @@ impl Function for SHA256 {
                                         serde_json::from_slice(&*body);
                                     if let Ok(body) = body {
                                         let value: RuntimeValue = body.into();
-                                        //return (transform.push(value));
-                                        Some(value)
-                                    } else {
-                                        None
+                                        return Some(value);
                                     }
-                                } else {
-                                    None
                                 }
-                            } else {
-                                None
                             }
+
+                            None
                         })
                     });
 
                     let joined = join_all(handles).await;
                     let transform: Vec<RuntimeValue> =
                         joined.into_iter().flatten().flatten().collect();
-
-                    /*
-                    for uuid in uuid_vec.iter() {
-                        let entry = entries_api::get_log_entry_by_uuid(&configuration, uuid).await;
-                        if let Ok(entry) = entry {
-                            let body = base64::decode(entry.body);
-                            if let Ok(body) = body {
-                                let body: Result<serde_json::Value, _> =
-                                    serde_json::from_slice(&*body);
-                                if let Ok(body) = body {
-                                    let value = body.into();
-                                    transform.push(value)
-                                }
-                            }
-                        }
-                    }
-                     */
 
                     Ok(Output::Transform(Rc::new(transform.into())).into())
                 } else {
