@@ -27,6 +27,9 @@ impl<'c> ErrorPrinter<'c> {
                 span.start,
             )
             .with_label(Label::new(full_span).with_message(match error {
+                BuildError::ArgumentMismatch(_, _) => {
+                    format!("Argument mismatch")
+                }
                 BuildError::TypeNotFound(_, _, name) => {
                     format!("type not found: {}", name)
                 }

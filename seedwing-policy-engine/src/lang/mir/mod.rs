@@ -3,7 +3,7 @@ use crate::lang::hir::MemberQualifier;
 use crate::lang::lir;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::Expr;
-use crate::lang::parser::Located;
+use crate::lang::parser::{Located, SourceLocation};
 use crate::lang::PrimordialType;
 use crate::lang::{hir, mir};
 use crate::runtime;
@@ -233,12 +233,17 @@ impl World {
         );
     }
 
-    pub(crate) async fn define(&mut self, path: TypeName, ty: &Located<hir::Type>) {
+    pub(crate) async fn define(
+        &mut self,
+        path: TypeName,
+        ty: &Located<hir::Type>,
+    ) -> Result<(), BuildError> {
         log::info!("define type {}", path);
-        let converted = self.convert(ty).await;
+        let converted = self.convert(ty).await?;
         if let Some(handle) = self.types.get_mut(&path) {
             handle.define_from(converted).await;
         }
+        Ok(())
     }
 
     pub(crate) async fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
@@ -256,141 +261,144 @@ impl World {
     fn convert<'c>(
         &'c self,
         ty: &'c Located<hir::Type>,
-    ) -> Pin<Box<dyn Future<Output = Arc<TypeHandle>> + 'c>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Arc<TypeHandle>, BuildError>> + 'c>> {
         match &**ty {
             hir::Type::Anything => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::Anything, ty.location()))
                         .await,
-                )
+                ))
             }),
             hir::Type::Ref(inner, arguments) => Box::pin(async move {
                 let primary_type = self.types[&(inner.inner())].clone();
 
                 if arguments.is_empty() {
-                    primary_type
+                    Ok(primary_type)
                 } else {
                     let parameter_names = primary_type.parameters();
 
                     if parameter_names.len() != arguments.len() {
-                        todo!("argument mismatch")
+                        return Err(BuildError::ArgumentMismatch(
+                            String::new().into(),
+                            arguments[0].location().span(),
+                        ));
                     }
 
                     let mut bindings = Bindings::new();
 
                     for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
-                        bindings.bind(name.inner(), self.convert(arg).await)
+                        bindings.bind(name.inner(), self.convert(arg).await?)
                     }
 
-                    Arc::new(
+                    Ok(Arc::new(
                         TypeHandle::new(None)
                             .with(Located::new(
                                 mir::Type::Bound(primary_type, bindings),
                                 ty.location(),
                             ))
                             .await,
-                    )
+                    ))
                 }
             }),
             hir::Type::Parameter(name) => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(
                             mir::Type::Argument(name.clone()),
                             name.location(),
                         ))
                         .await,
-                )
+                ))
             }),
             hir::Type::Const(inner) => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::Const(inner.clone()), ty.location()))
                         .await,
-                )
+                ))
             }),
             hir::Type::Object(inner) => Box::pin(async move {
                 let mut fields = Vec::new();
 
                 for f in inner.fields().iter() {
                     fields.push(Arc::new(Located::new(
-                        Field::new(f.name().clone(), self.convert(f.ty()).await),
+                        Field::new(f.name().clone(), self.convert(f.ty()).await?),
                         ty.location(),
                     )));
                 }
 
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(
                             mir::Type::Object(ObjectType::new(fields)),
                             ty.location(),
                         ))
                         .await,
-                )
+                ))
             }),
             hir::Type::Expr(inner) => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(
                             mir::Type::Expr(Arc::new(inner.clone())),
                             ty.location(),
                         ))
                         .await,
-                )
+                ))
             }),
             hir::Type::Join(terms) => Box::pin(async move {
                 let mut inner = Vec::new();
                 for e in terms {
-                    inner.push(self.convert(e).await)
+                    inner.push(self.convert(e).await?)
                 }
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::Join(inner), ty.location()))
                         .await,
-                )
+                ))
             }),
             hir::Type::Meet(terms) => Box::pin(async move {
                 let mut inner = Vec::new();
                 for e in terms {
-                    inner.push(self.convert(e).await)
+                    inner.push(self.convert(e).await?)
                 }
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::Meet(inner), ty.location()))
                         .await,
-                )
+                ))
             }),
             hir::Type::Refinement(primary, refinement) => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(
                             mir::Type::Refinement(
-                                self.convert(&**primary).await,
-                                self.convert(&**refinement).await,
+                                self.convert(&**primary).await?,
+                                self.convert(&**refinement).await?,
                             ),
                             ty.location(),
                         ))
                         .await,
-                )
+                ))
             }),
             hir::Type::List(terms) => Box::pin(async move {
                 let mut inner = Vec::new();
                 for e in terms {
-                    inner.push(self.convert(e).await)
+                    inner.push(self.convert(e).await?)
                 }
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::List(inner), ty.location()))
                         .await,
-                )
+                ))
             }),
             hir::Type::Nothing => Box::pin(async move {
-                Arc::new(
+                Ok(Arc::new(
                     TypeHandle::new(None)
                         .with(Located::new(mir::Type::Nothing, ty.location()))
                         .await,
-                )
+                ))
             }),
         }
     }

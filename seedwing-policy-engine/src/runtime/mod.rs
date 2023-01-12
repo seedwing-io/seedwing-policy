@@ -35,6 +35,7 @@ pub mod rationale;
 pub enum BuildError {
     TypeNotFound(SourceLocation, SourceSpan, String),
     Parser(SourceLocation, ParserError),
+    ArgumentMismatch(SourceLocation, SourceSpan),
 }
 
 impl BuildError {
@@ -42,6 +43,7 @@ impl BuildError {
         match self {
             BuildError::TypeNotFound(loc, _, _) => loc.clone(),
             BuildError::Parser(loc, _) => loc.clone(),
+            BuildError::ArgumentMismatch(loc, _) => loc.clone(),
         }
     }
 
@@ -49,6 +51,7 @@ impl BuildError {
         match self {
             BuildError::TypeNotFound(_, span, _) => span.clone(),
             BuildError::Parser(_, err) => err.span(),
+            BuildError::ArgumentMismatch(_, span) => span.clone(),
         }
     }
 }
