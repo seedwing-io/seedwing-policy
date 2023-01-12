@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
         Ok(world) => {
             let server = HttpServer::new(move || {
                 App::new()
-                    .app_data(web::Data::new(world))
+                    .app_data(web::Data::new(world.clone()))
                     .service(ui_asset)
                     .service(index)
                     .service(display_root_no_slash)
