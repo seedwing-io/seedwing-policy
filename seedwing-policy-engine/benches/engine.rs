@@ -38,8 +38,35 @@ fn finish_speed(bencher: &mut Bencher) {
     let mut builder = Builder::new();
     let _ = builder.build(data.src.iter());
 
+    let executor = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
     bencher.iter(|| {
-        let _ = block_on(builder.finish()).unwrap();
+        let _ = executor.block_on(builder.finish()).unwrap();
+    });
+}
+
+fn end_to_end_speed(bencher: &mut Bencher) {
+    let data = testdata1();
+    let executor = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    bencher.iter(|| {
+        let data = data.clone();
+        executor.block_on(async move {
+            let mut builder = Builder::new();
+
+            let _ = builder.build(data.src.iter());
+            let runtime = builder.finish().await.unwrap();
+            runtime
+                .evaluate(&data.path, data.value.clone())
+                .await
+                .unwrap()
+        });
     });
 }
 
@@ -79,5 +106,11 @@ fn testdata1() -> TestData {
     }
 }
 
-benchmark_group!(benches, build_speed, finish_speed, eval_speed);
+benchmark_group!(
+    benches,
+    build_speed,
+    finish_speed,
+    eval_speed,
+    end_to_end_speed
+);
 benchmark_main!(benches);
