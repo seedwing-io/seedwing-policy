@@ -12,6 +12,8 @@ walkdir = "2.3.2"
 serde = { version = "1.0.152", features = [ "rc", "derive"] }
 serde_json = { version = "1.0.89", features = [ "float_roundtrip", "arbitrary_precision"] }
 log = "0.4.17"
+actix-rt = "2.7.0"
+futures-util = "0.3.25"
 
 # functions
 sigstore = "0.6.0"
@@ -19,7 +21,6 @@ x509-parser = "0.14.0"
 base64 = "0.20.0"
 
 [dev-dependencies]
-actix-rt = "2.7.0"
 bencher = "0.1"
 futures = { version = "0.3", features = ["executor"] }
 tokio = { version = "1.24", features = ["rt"] }
