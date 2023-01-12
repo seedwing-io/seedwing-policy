@@ -515,12 +515,6 @@ pub struct ObjectType {
     fields: Vec<Arc<Field>>,
 }
 
-impl From<&ObjectType> for RuntimeValue {
-    fn from(ty: &ObjectType) -> Self {
-        todo!()
-    }
-}
-
 impl ObjectType {
     pub fn new(fields: Vec<Arc<Field>>) -> Self {
         Self { fields }
