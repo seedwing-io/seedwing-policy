@@ -54,7 +54,6 @@ impl From<JsonValue> for RuntimeValue {
     }
 }
 
-
 impl From<&JsonValue> for RuntimeValue {
     fn from(value: &JsonValue) -> Self {
         match value {
@@ -87,4 +86,3 @@ impl From<&JsonValue> for RuntimeValue {
         }
     }
 }
-

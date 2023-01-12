@@ -178,7 +178,7 @@ impl Type {
             },
             InnerType::Const(inner) => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
-                if inner.is_equal(locked_value) {
+                if inner.is_equal(locked_value).await {
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
@@ -446,7 +446,6 @@ pub enum ValueType {
     Integer(i64),
     Decimal(f64),
     Boolean(bool),
-    Object(ObjectType),
     List(Vec<Arc<ValueType>>),
     Octets(Vec<u8>),
 }
@@ -459,7 +458,6 @@ impl From<&ValueType> for RuntimeValue {
             ValueType::Integer(val) => (*val).into(),
             ValueType::Decimal(val) => (*val).into(),
             ValueType::Boolean(val) => (*val).into(),
-            ValueType::Object(val) => val.into(),
             ValueType::List(val) => Self::List(
                 val.iter()
                     .map(|e| {
@@ -474,17 +472,40 @@ impl From<&ValueType> for RuntimeValue {
 }
 
 impl ValueType {
-    pub fn is_equal(&self, other: &RuntimeValue) -> bool {
+    pub fn is_equal<'e>(
+        &'e self,
+        other: &'e RuntimeValue,
+    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
         match (self, &other) {
-            (ValueType::Null, RuntimeValue::Null) => true,
-            (ValueType::String(lhs), RuntimeValue::String(rhs)) => lhs.eq(rhs),
-            (ValueType::Integer(lhs), RuntimeValue::Integer(rhs)) => lhs.eq(rhs),
-            (ValueType::Decimal(lhs), RuntimeValue::Decimal(rhs)) => lhs.eq(rhs),
-            (ValueType::Boolean(lhs), RuntimeValue::Boolean(rhs)) => lhs.eq(rhs),
-            (ValueType::Object(lhs), RuntimeValue::Object(rhs)) => todo!(),
-            (ValueType::List(lhs), RuntimeValue::List(rhs)) => todo!(),
-            (ValueType::Octets(lhs), RuntimeValue::Octets(rhs)) => todo!(),
-            _ => false,
+            (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
+            (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
+                Box::pin(async move { lhs.eq(rhs) })
+            }
+            (ValueType::Integer(lhs), RuntimeValue::Integer(rhs)) => {
+                Box::pin(async move { lhs.eq(rhs) })
+            }
+            (ValueType::Decimal(lhs), RuntimeValue::Decimal(rhs)) => {
+                Box::pin(async move { lhs.eq(rhs) })
+            }
+            (ValueType::Boolean(lhs), RuntimeValue::Boolean(rhs)) => {
+                Box::pin(async move { lhs.eq(rhs) })
+            }
+            (ValueType::List(lhs), RuntimeValue::List(rhs)) => Box::pin(async move {
+                if lhs.len() != rhs.len() {
+                    false
+                } else {
+                    for (l, r) in lhs.iter().zip(rhs.iter()) {
+                        if !l.is_equal(r).await {
+                            return false;
+                        }
+                    }
+                    true
+                }
+            }),
+            (ValueType::Octets(lhs), RuntimeValue::Octets(rhs)) => {
+                Box::pin(async move { lhs.eq(rhs) })
+            }
+            _ => Box::pin(ready(false)),
         }
     }
 }

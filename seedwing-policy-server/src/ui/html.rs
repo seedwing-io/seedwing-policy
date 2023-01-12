@@ -102,9 +102,6 @@ impl<'w> Htmlifier<'w> {
                 ValueType::Integer(val) => html.push_str(format!("{}", val).as_str()),
                 ValueType::Decimal(val) => html.push_str(format!("{}", val).as_str()),
                 ValueType::Boolean(val) => html.push_str(format!("{}", val).as_str()),
-                ValueType::Object(_val) => {
-                    todo!()
-                }
                 ValueType::List(_val) => {
                     todo!()
                 }
