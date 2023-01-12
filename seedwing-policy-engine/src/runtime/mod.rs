@@ -1,29 +1,28 @@
 pub mod sources;
 
 use crate::core::Function;
-use crate::lang::hir;
 use crate::lang::hir::MemberQualifier;
-use crate::lang::lir;
 use crate::lang::lir::{Bindings, Field, ObjectType, Type};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
 };
-use crate::lang::PackagePath;
-use crate::lang::TypeName;
+use crate::lang::{hir, lir};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::rationale::Rationale;
 use crate::value::RuntimeValue;
 use ariadne::Cache;
 use chumsky::{Error, Stream};
+use serde::{Serialize, Serializer};
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::mem;
+use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -377,4 +376,318 @@ mod test {
             .unwrap()
             .satisfied());
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct World {
+    types: HashMap<TypeName, Arc<Type>>,
+}
+
+impl Default for World {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl World {
+    pub fn new() -> Self {
+        Self {
+            types: Default::default(),
+        }
+    }
+
+    pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
+        let ty = handle.ty().await;
+        let name = handle.name();
+        let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
+        let converted = lir::convert(name, handle.documentation(), parameters, &ty).await;
+        self.types.insert(path, converted);
+    }
+
+    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
+        &self,
+        path: P,
+        value: V,
+    ) -> Result<EvaluationResult, RuntimeError> {
+        let value = Rc::new(value.into());
+        let path = TypeName::from(path.into());
+        let ty = self.types.get(&path);
+        if let Some(ty) = ty {
+            let bindings = Bindings::default();
+            ty.evaluate(value.clone(), &bindings).await
+        } else {
+            Err(RuntimeError::NoSuchType(path))
+        }
+    }
+
+    pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
+        let name = name.into();
+        let path = TypeName::from(name);
+
+        if let Some(ty) = self.types.get(&path) {
+            return Some(Component::Type(ty.clone()));
+        }
+
+        let mut module_handle = ModuleHandle::new();
+        let path = path.as_type_str();
+        for (name, ty) in self.types.iter() {
+            let name = name.as_type_str();
+            if let Some(relative_name) = name.strip_prefix(&path) {
+                let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
+                let parts: Vec<&str> = relative_name.split("::").collect();
+                if parts.len() == 1 {
+                    module_handle.types.push(parts[0].into());
+                } else if !module_handle.modules.contains(&parts[0].into()) {
+                    module_handle.modules.push(parts[0].into())
+                }
+            }
+        }
+
+        if module_handle.is_empty() {
+            None
+        } else {
+            Some(Component::Module(module_handle.sort()))
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct ModuleHandle {
+    modules: Vec<String>,
+    types: Vec<String>,
+}
+
+impl ModuleHandle {
+    fn new() -> Self {
+        Self {
+            modules: vec![],
+            types: vec![],
+        }
+    }
+
+    fn sort(mut self) -> Self {
+        self.modules.sort();
+        self.types.sort();
+        self
+    }
+
+    fn is_empty(&self) -> bool {
+        self.modules.is_empty() && self.types.is_empty()
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct TypeName {
+    package: Option<PackagePath>,
+    name: String,
+}
+
+impl Serialize for TypeName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_type_str().serialize(serializer)
+    }
+}
+
+impl Display for TypeName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_type_str())
+    }
+}
+
+impl TypeName {
+    pub fn new(package: Option<PackagePath>, name: String) -> Self {
+        Self { package, name }
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn is_qualified(&self) -> bool {
+        self.package.is_some()
+    }
+
+    pub fn as_type_str(&self) -> String {
+        let mut fq = String::new();
+        if let Some(package) = &self.package {
+            fq.push_str(&package.as_package_str());
+            fq.push_str("::");
+        }
+
+        fq.push_str(&self.name);
+
+        fq
+    }
+
+    pub fn segments(&self) -> Vec<String> {
+        let mut segments = Vec::new();
+        if let Some(package) = &self.package {
+            segments.extend_from_slice(&*package.segments())
+        }
+
+        segments.push(self.name.clone());
+        segments
+    }
+}
+
+impl From<String> for TypeName {
+    fn from(path: String) -> Self {
+        let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
+        if segments.is_empty() {
+            Self::new(None, "".into())
+        } else {
+            let tail = segments.pop().unwrap();
+            if segments.is_empty() {
+                Self {
+                    package: None,
+                    name: tail,
+                }
+            } else {
+                let package = Some(segments.into());
+                Self {
+                    package,
+                    name: tail,
+                }
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct PackageName(pub(crate) String);
+
+impl PackageName {
+    pub fn new(name: String) -> Self {
+        Self(name)
+    }
+}
+
+impl Deref for PackageName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct PackagePath {
+    is_absolute: bool,
+    path: Vec<Located<PackageName>>,
+}
+
+impl From<&str> for PackagePath {
+    fn from(segments: &str) -> Self {
+        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
+        segments.into()
+    }
+}
+
+impl From<String> for PackagePath {
+    fn from(mut segments: String) -> Self {
+        if let Some(stripped) = segments.strip_suffix("::") {
+            segments = stripped.into();
+        }
+
+        let segments: Vec<String> = segments.split("::").map(|e| e.into()).collect();
+        segments.into()
+    }
+}
+
+impl From<Vec<String>> for PackagePath {
+    fn from(mut segments: Vec<String>) -> Self {
+        let first = segments.get(0).unwrap();
+        let is_absolute = first.is_empty();
+        if is_absolute {
+            segments = segments[1..].to_vec()
+        }
+
+        Self {
+            is_absolute: true,
+            path: segments
+                .iter()
+                .map(|e| Located::new(PackageName(e.clone()), 0..0))
+                .collect(),
+        }
+    }
+}
+
+impl From<Vec<Located<PackageName>>> for PackagePath {
+    fn from(mut segments: Vec<Located<PackageName>>) -> Self {
+        Self {
+            is_absolute: true,
+            path: segments,
+        }
+    }
+}
+
+impl PackagePath {
+    pub fn from_parts(segments: Vec<&str>) -> Self {
+        Self {
+            is_absolute: true,
+            path: segments
+                .iter()
+                .map(|e| Located::new(PackageName(String::from(*e)), 0..0))
+                .collect(),
+        }
+    }
+
+    pub fn is_absolute(&self) -> bool {
+        self.is_absolute
+    }
+
+    pub fn is_qualified(&self) -> bool {
+        self.path.len() > 1
+    }
+
+    pub fn type_name(&self, name: String) -> TypeName {
+        TypeName::new(Some(self.clone()), name)
+    }
+
+    pub fn as_package_str(&self) -> String {
+        let mut fq = String::new();
+
+        fq.push_str(
+            &self
+                .path
+                .iter()
+                .map(|e| e.inner().0)
+                .collect::<Vec<String>>()
+                .join("::"),
+        );
+
+        fq
+    }
+
+    pub fn path(&self) -> &Vec<Located<PackageName>> {
+        &self.path
+    }
+
+    pub fn segments(&self) -> Vec<String> {
+        self.path.iter().map(|e| e.0.clone()).collect()
+    }
+}
+
+impl From<SourceLocation> for PackagePath {
+    fn from(src: SourceLocation) -> Self {
+        let name = src.name().replace('/', "::");
+        let segments = name
+            .split("::")
+            .map(|segment| Located::new(PackageName(segment.into()), 0..0))
+            .collect();
+
+        Self {
+            is_absolute: true,
+            path: segments,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Component {
+    Module(ModuleHandle),
+    Type(Arc<Type>),
 }

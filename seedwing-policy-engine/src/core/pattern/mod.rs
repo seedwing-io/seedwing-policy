@@ -1,8 +1,8 @@
 use crate::core::{json, Function, FunctionEvaluationResult};
 use crate::lang::lir::Type;
 use crate::lang::lir::{Bindings, InnerType};
-use crate::lang::PackagePath;
 use crate::package::Package;
+use crate::runtime::PackagePath;
 use crate::runtime::{Output, RuntimeError};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::borrow::Borrow;

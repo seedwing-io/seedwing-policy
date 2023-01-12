@@ -1,7 +1,7 @@
 use crate::core::Function;
 use crate::lang::parser::SourceLocation;
-use crate::lang::PackagePath;
 use crate::runtime::sources::Ephemeral;
+use crate::runtime::PackagePath;
 use std::collections::HashMap;
 use std::sync::Arc;
 

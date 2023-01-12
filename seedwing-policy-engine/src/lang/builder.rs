@@ -1,5 +1,6 @@
 use crate::lang::parser::SourceLocation;
 use crate::lang::{hir, lir};
+use crate::runtime;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
 
@@ -29,7 +30,7 @@ impl Builder {
         self.hir.build(sources)
     }
 
-    pub async fn finish(&mut self) -> Result<lir::World, Vec<BuildError>> {
+    pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
         let mir = self.hir.lower().await?;
         mir.lower().await
     }

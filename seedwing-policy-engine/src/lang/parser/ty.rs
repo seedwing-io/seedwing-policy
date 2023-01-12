@@ -10,7 +10,7 @@ use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
     SourceLocation, SourceSpan, Use,
 };
-use crate::lang::{PackageName, PackagePath, TypeName};
+use crate::runtime::{PackageName, PackagePath, TypeName};
 use crate::value::RuntimeValue;
 use chumsky::prelude::*;
 use chumsky::Parser;
@@ -57,13 +57,7 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
                 ))
             };
 
-            Located::new(
-                TypeName {
-                    package,
-                    name: tail.inner(),
-                },
-                span,
-            )
+            Located::new(TypeName::new(package, tail.inner()), span)
         })
 }
 
@@ -409,11 +403,14 @@ pub fn type_ref(
         .map_with_span(move |(name, arguments), span| {
             let loc = name.location();
             let arguments = arguments.unwrap_or_default();
-            if visisble_parameters.contains(&name.name) {
+            if visisble_parameters.contains(&name.name()) {
                 if !arguments.is_empty() {
                     todo!("arguments to parameter references not currently allowed")
                 }
-                Located::new(Type::Parameter(Located::new(name.name.clone(), span)), loc)
+                Located::new(
+                    Type::Parameter(Located::new(name.name(), span)),
+                    loc,
+                )
             } else {
                 Located::new(
                     Type::Ref(Located::new(name.inner(), loc.clone()), arguments),

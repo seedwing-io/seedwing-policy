@@ -1,15 +1,17 @@
 use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type, ValueType};
-use seedwing_policy_engine::lang::{lir, PrimordialType, TypeName};
+use seedwing_policy_engine::lang::PrimordialType;
+use seedwing_policy_engine::runtime;
+use seedwing_policy_engine::runtime::TypeName;
 use std::sync::Arc;
 
 #[allow(dead_code)]
 pub struct Htmlifier<'w> {
     root: String,
-    world: &'w lir::World,
+    world: &'w runtime::World,
 }
 
 impl<'w> Htmlifier<'w> {
-    pub fn new(root: String, world: &'w lir::World) -> Self {
+    pub fn new(root: String, world: &'w runtime::World) -> Self {
         Self { root, world }
     }
 

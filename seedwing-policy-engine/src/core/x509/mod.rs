@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::PackagePath;
 use crate::package::Package;
+use crate::runtime::PackagePath;
 use crate::runtime::{Output, RuntimeError};
 use crate::value::{RationaleResult, RuntimeValue};
 use ariadne::Cache;
@@ -23,6 +23,7 @@ pub fn package() -> Package {
     pkg
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 pub struct PEM;
 

@@ -9,9 +9,9 @@ use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 //use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
+use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
-use seedwing_policy_engine::{Component, ModuleHandle, PackagePath, TypeName, World};
 
 /*
 pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {

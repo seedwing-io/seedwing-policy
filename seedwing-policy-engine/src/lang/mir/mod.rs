@@ -5,8 +5,9 @@ use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::PrimordialType;
-use crate::lang::TypeName;
 use crate::lang::{hir, mir};
+use crate::runtime;
+use crate::runtime::TypeName;
 use crate::runtime::{BuildError, RuntimeError};
 use crate::value::RuntimeValue;
 use std::cell::RefCell;
@@ -394,8 +395,8 @@ impl World {
         }
     }
 
-    pub async fn lower(mut self) -> Result<lir::World, Vec<BuildError>> {
-        let mut world = lir::World::new();
+    pub async fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+        let mut world = runtime::World::new();
 
         for (path, handle) in self.types {
             world.add(path, handle).await;

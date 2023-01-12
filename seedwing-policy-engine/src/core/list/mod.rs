@@ -1,6 +1,6 @@
 use crate::core::Function;
-use crate::lang::PackagePath;
 use crate::package::Package;
+use crate::runtime::PackagePath;
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;

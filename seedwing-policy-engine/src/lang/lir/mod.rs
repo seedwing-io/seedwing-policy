@@ -3,9 +3,10 @@ use crate::lang::hir::MemberQualifier;
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
-use crate::lang::{lir, mir, PrimordialType, TypeName};
+use crate::lang::{lir, mir, PrimordialType};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::runtime::TypeName;
+use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
 use crate::value::{InnerValue, Object, RationaleResult, RuntimeValue};
 use serde::Serialize;
 use std::any::Any;
@@ -509,111 +510,7 @@ impl ObjectType {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct World {
-    types: HashMap<TypeName, Arc<Type>>,
-}
-
-impl Default for World {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl World {
-    pub fn new() -> Self {
-        Self {
-            types: Default::default(),
-        }
-    }
-
-    pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
-        let ty = handle.ty().await;
-        let name = handle.name();
-        let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
-        let converted = convert(name, handle.documentation(), parameters, &ty).await;
-        self.types.insert(path, converted);
-    }
-
-    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
-        &self,
-        path: P,
-        value: V,
-    ) -> Result<EvaluationResult, RuntimeError> {
-        let value = Rc::new(value.into());
-        let path = TypeName::from(path.into());
-        let ty = self.types.get(&path);
-        if let Some(ty) = ty {
-            let bindings = Bindings::default();
-            ty.evaluate(value.clone(), &bindings).await
-        } else {
-            Err(RuntimeError::NoSuchType(path))
-        }
-    }
-
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
-        let name = name.into();
-        let path = TypeName::from(name);
-
-        if let Some(ty) = self.types.get(&path) {
-            return Some(Component::Type(ty.clone()));
-        }
-
-        let mut module_handle = ModuleHandle::new();
-        let path = path.as_type_str();
-        for (name, ty) in self.types.iter() {
-            let name = name.as_type_str();
-            if let Some(relative_name) = name.strip_prefix(&path) {
-                let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
-                let parts: Vec<&str> = relative_name.split("::").collect();
-                if parts.len() == 1 {
-                    module_handle.types.push(parts[0].into());
-                } else if !module_handle.modules.contains(&parts[0].into()) {
-                    module_handle.modules.push(parts[0].into())
-                }
-            }
-        }
-
-        if module_handle.is_empty() {
-            None
-        } else {
-            Some(Component::Module(module_handle.sort()))
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Component {
-    Module(ModuleHandle),
-    Type(Arc<Type>),
-}
-
-#[derive(Serialize, Debug)]
-pub struct ModuleHandle {
-    modules: Vec<String>,
-    types: Vec<String>,
-}
-
-impl ModuleHandle {
-    fn new() -> Self {
-        Self {
-            modules: vec![],
-            types: vec![],
-        }
-    }
-
-    fn sort(mut self) -> Self {
-        self.modules.sort();
-        self.types.sort();
-        self
-    }
-
-    fn is_empty(&self) -> bool {
-        self.modules.is_empty() && self.types.is_empty()
-    }
-}
-
-fn convert(
+pub(crate) fn convert(
     name: Option<TypeName>,
     documentation: Option<String>,
     parameters: Vec<String>,

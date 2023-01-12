@@ -1,9 +1,9 @@
 //use crate::lang::expr::expr;
 use crate::lang::hir::{Type, TypeDefn};
 use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
-use crate::lang::PackagePath;
-use crate::lang::TypeName;
 use crate::runtime::BuildError;
+use crate::runtime::PackagePath;
+use crate::runtime::TypeName;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 use serde::{Serialize, Serializer};
