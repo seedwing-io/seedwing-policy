@@ -1,5 +1,4 @@
 use bencher::{benchmark_group, benchmark_main, Bencher};
-use futures::executor::block_on;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::json;
 
@@ -8,12 +7,13 @@ fn eval_speed(bencher: &mut Bencher) {
     let mut builder = Builder::new();
 
     let _ = builder.build(data.src.iter());
-    let runtime = block_on(builder.finish()).unwrap();
 
     let executor = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
+
+    let runtime = executor.block_on(builder.finish()).unwrap();
 
     bencher.iter(|| {
         executor
