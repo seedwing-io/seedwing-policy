@@ -205,15 +205,17 @@ impl Type {
                                 field.ty().evaluate(field_value.clone(), bindings).await?,
                             );
                         } else {
-                            result.insert(
-                                field.name(),
-                                EvaluationResult::new(
-                                    None,
-                                    field.ty(),
-                                    Rationale::MissingField(field.name()),
-                                    Output::None,
-                                ),
-                            );
+                            if !field.optional() {
+                                result.insert(
+                                    field.name(),
+                                    EvaluationResult::new(
+                                        None,
+                                        field.ty(),
+                                        Rationale::MissingField(field.name()),
+                                        Output::None,
+                                    ),
+                                );
+                            }
                         }
                     }
                     Ok(EvaluationResult::new(
@@ -413,6 +415,7 @@ pub struct Field {
     pub(crate) id: u64,
     name: String,
     ty: Arc<Type>,
+    optional: bool,
 }
 
 impl Display for Field {
@@ -422,11 +425,12 @@ impl Display for Field {
 }
 
 impl Field {
-    pub fn new(name: String, ty: Arc<Type>) -> Self {
+    pub fn new(name: String, ty: Arc<Type>, optional: bool) -> Self {
         Self {
             id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name,
             ty,
+            optional,
         }
     }
 
@@ -436,6 +440,10 @@ impl Field {
 
     pub fn ty(&self) -> Arc<Type> {
         self.ty.clone()
+    }
+
+    pub fn optional(&self) -> bool {
+        self.optional
     }
 }
 
@@ -605,6 +613,7 @@ pub(crate) fn convert(
                         &ty.ty().await,
                     )
                     .await,
+                    f.optional(),
                 ));
                 fields.push(field);
             }

@@ -13,6 +13,7 @@ use crate::lang::parser::{
 use crate::runtime::{PackageName, PackagePath, TypeName};
 use crate::value::RuntimeValue;
 use chumsky::prelude::*;
+use chumsky::text::Character;
 use chumsky::Parser;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter;
@@ -449,18 +450,29 @@ pub fn object_type(
 }
 
 pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
-    text::ident().map_with_span(Located::new)
+    //text::ident().map_with_span(Located::new)
+    filter(|c: &char| c.to_char().is_ascii_alphabetic() || c.to_char() == '_')
+        .map(Some)
+        .chain::<char, Vec<_>, _>(
+            filter(|c: &char| {
+                c.to_char().is_ascii_alphanumeric() || c.to_char() == '_' || c.to_char() == '-'
+            })
+            .repeated(),
+        )
+        .collect()
+        .map_with_span(Located::new)
 }
 
 pub fn field_definition(
     ty: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Field>, Error = ParserError> + Clone {
     field_name()
+        .then(just("?").or_not())
         .then(just(":").labelled("colon").padded().ignored())
         .then(ty)
-        .map(|((name, _), ty)| {
+        .map(|(((name, optional), _), ty)| {
             let loc = name.span().start()..ty.span().end();
-            Located::new(Field::new(name, ty), loc)
+            Located::new(Field::new(name, ty, optional.is_some()), loc)
         })
 }
 

@@ -16,6 +16,7 @@ impl SourceCache {
     }
 
     pub fn add(&mut self, id: SourceLocation, source: Source) {
+        println!("adding source {:?}", id);
         self.cache.insert(id, source);
     }
 }

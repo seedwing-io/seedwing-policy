@@ -6,6 +6,7 @@ use crate::runtime::PackagePath;
 use crate::runtime::TypeName;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
+use futures_util::future::err;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -274,10 +275,22 @@ impl PolicyParser {
     {
         let tokens = lexer().parse(stream)?;
         let tokens = remove_comments(&tokens);
-        compilation_unit(source).parse(Stream::from_iter(
-            tokens.len()..tokens.len() + 1,
-            tokens.iter().cloned(),
-        ))
+        let (compilation_unit, errors) = compilation_unit(source).parse_recovery(
+            Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
+        );
+
+        if !errors.is_empty() {
+            Err(errors)
+        } else {
+            if let Some(compilation_unit) = compilation_unit {
+                Ok(compilation_unit)
+            } else {
+                Err(vec![ParserError::custom(
+                    0..0,
+                    "Unable to parse; no further details available",
+                )])
+            }
+        }
     }
 }
 

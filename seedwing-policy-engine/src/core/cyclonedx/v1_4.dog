@@ -1,0 +1,103 @@
+/// Pattern matching a well-formed CycloneDX (v1.4) BOM.
+pattern bom = {
+  bomFormat: "CycloneDX",
+  specVersion: "1.4",
+  serialNumber?: string,
+  version: integer,
+  metadata?: metadata,
+  components?: list::All<component>,
+}
+
+pattern metadata = {
+  timestamp?: string,
+  tools?: list::All<tool>,
+  authors?: list::All<contact>,
+}
+
+pattern tool = {
+  vendor?: string,
+  name?: string,
+  version?: string,
+  hashes?: list::All<hash>,
+  externalReferences?: list::All<external-reference>,
+}
+
+pattern hash = {
+  alg: "MD5" || "SHA-1" || "SHA-256" || "SHA-384" || "SHA-512" || "SHA3-256" || "SHA3-384" || "SHA3-512" || "BLAKE2b-256" || "BLAKE2b-384" || "BLAKE2b-512" || "BLAKE3",
+  content: string,
+}
+
+pattern external-reference = {
+  url: string,
+  comment?: string,
+  type:  "vcs"
+      || "issue-tracker"
+      || "website"
+      || "advisories"
+      || "bom"
+      || "mailing-list"
+      || "social"
+      || "chat"
+      || "documentation"
+      || "support"
+      || "distribution"
+      || "license"
+      || "build-meta"
+      || "build-system"
+      || "release-notes"
+      || "other",
+  hashes?: list::All<hash>,
+}
+
+pattern contact = {
+  name?: string,
+  email?: string,
+  phone?: string,
+}
+
+pattern component = {
+  type: "application"
+     || "framework"
+     || "library"
+     || "container"
+     || "operating-system"
+     || "device"
+     || "firmware"
+     || "file",
+
+  mime-type?: string,
+  bom-ref?: string,
+  supplier?: list::All<{
+    name?: string,
+    url?: string,
+    contact: list::All<contact>,
+  }>,
+  author?: string,
+  publisher?: string,
+  group?: string,
+  name: string,
+  version?: string,
+  description?: string,
+  scope?: "required" || "optional" || "excluded",
+  hashes?: list::All<hash>,
+  licenses?: list::All<license>,
+  copyright?: string,
+  cpe?: string,
+  purl?: string,
+  swid?: iso::swid::tag,
+
+
+}
+
+pattern license = {
+  expression: string,
+} || {
+  id: spdx::license::id,
+  name?: string,
+  text?: {
+    content-type?: string,
+    encoding?: "base64",
+    content: string,
+  },
+
+}

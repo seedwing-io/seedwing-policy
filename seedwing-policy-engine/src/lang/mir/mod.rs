@@ -150,11 +150,12 @@ impl Bindings {
 pub struct Field {
     name: Located<String>,
     ty: Arc<TypeHandle>,
+    optional: bool,
 }
 
 impl Field {
-    pub fn new(name: Located<String>, ty: Arc<TypeHandle>) -> Self {
-        Self { name, ty }
+    pub fn new(name: Located<String>, ty: Arc<TypeHandle>, optional: bool) -> Self {
+        Self { name, ty, optional }
     }
 
     pub fn name(&self) -> Located<String> {
@@ -163,6 +164,10 @@ impl Field {
 
     pub fn ty(&self) -> Arc<TypeHandle> {
         self.ty.clone()
+    }
+
+    pub fn optional(&self) -> bool {
+        self.optional
     }
 }
 
@@ -323,7 +328,7 @@ impl World {
 
                 for f in inner.fields().iter() {
                     fields.push(Arc::new(Located::new(
-                        Field::new(f.name().clone(), self.convert(f.ty()).await?),
+                        Field::new(f.name().clone(), self.convert(f.ty()).await?, f.optional()),
                         ty.location(),
                     )));
                 }

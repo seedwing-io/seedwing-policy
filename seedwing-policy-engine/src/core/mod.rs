@@ -11,10 +11,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 pub mod base64;
+pub mod cyclonedx;
+pub mod iso;
 pub mod json;
 pub mod list;
 pub mod pattern;
 pub mod sigstore;
+pub mod spdx;
 pub mod x509;
 
 #[derive(Debug)]

@@ -201,11 +201,12 @@ impl ObjectType {
 pub struct Field {
     name: Located<String>,
     ty: Located<Type>,
+    optional: bool,
 }
 
 impl Field {
-    pub fn new(name: Located<String>, ty: Located<Type>) -> Self {
-        Self { name, ty }
+    pub fn new(name: Located<String>, ty: Located<Type>, optional: bool) -> Self {
+        Self { name, ty, optional }
     }
 
     pub fn name(&self) -> &Located<String> {
@@ -214,6 +215,10 @@ impl Field {
 
     pub fn ty(&self) -> &Located<Type> {
         &self.ty
+    }
+
+    pub fn optional(&self) -> bool {
+        self.optional
     }
 
     pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
@@ -244,12 +249,15 @@ impl World {
             packages: Default::default(),
             source_cache: Default::default(),
         };
+        world.add_package(crate::core::pattern::package());
         world.add_package(crate::core::list::package());
-        world.add_package(crate::core::sigstore::package());
-        world.add_package(crate::core::x509::package());
         world.add_package(crate::core::base64::package());
         world.add_package(crate::core::json::package());
-        world.add_package(crate::core::pattern::package());
+        world.add_package(crate::core::sigstore::package());
+        world.add_package(crate::core::x509::package());
+        world.add_package(crate::core::cyclonedx::package());
+        world.add_package(crate::core::spdx::package());
+        world.add_package(crate::core::iso::package());
 
         world
     }
@@ -305,6 +313,7 @@ impl World {
         for pkg in self.packages.values() {
             for (source, stream) in pkg.source_iter() {
                 log::info!("loading {}", source);
+                self.source_cache.add(source.clone(), stream.clone().into());
                 let unit = PolicyParser::default().parse(source.to_owned(), stream);
                 match unit {
                     Ok(unit) => {

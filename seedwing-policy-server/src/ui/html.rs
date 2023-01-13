@@ -159,8 +159,6 @@ impl<'w> Htmlifier<'w> {
                 html.push_str("</span>");
             }
         }
-
-        //"howdy".into()
     }
 
     fn html_of_object(&self, html: &mut String, object: &ObjectType) {
@@ -169,6 +167,9 @@ impl<'w> Htmlifier<'w> {
         for f in object.fields() {
             html.push_str("<div>");
             html.push_str(f.name().as_str());
+            if f.optional() {
+                html.push_str("?");
+            }
             html.push_str(": ");
             self.html_of_ty(html, f.ty());
             html.push_str("</div>");

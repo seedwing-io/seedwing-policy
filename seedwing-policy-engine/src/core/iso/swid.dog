@@ -1,0 +1,10 @@
+
+pattern tag = {
+  tagId: string,
+  name: string,
+  version?: string,
+  tagVersion?: integer,
+  patch?: boolean,
+  // todo: mime-type pattern
+  url?: string,
+}

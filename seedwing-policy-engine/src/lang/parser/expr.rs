@@ -88,7 +88,9 @@ impl Located<Expr> {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
-                    let result = if let Some(Ordering::Less | Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                    let result = if let Some(Ordering::Less | Ordering::Equal) =
+                        (*lhs).partial_cmp(&(*rhs))
+                    {
                         Ok(Rc::new(true.into()))
                     } else {
                         Ok(Rc::new(false.into()))
