@@ -72,8 +72,30 @@ impl Located<Expr> {
                 InnerExpr::Subtract(_, _) => todo!(),
                 InnerExpr::Multiply(_, _) => todo!(),
                 InnerExpr::Divide(_, _) => todo!(),
-                InnerExpr::LessThan(_, _) => todo!(),
-                InnerExpr::LessThanEqual(_, _) => todo!(),
+                InnerExpr::LessThan(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Less) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                InnerExpr::LessThanEqual(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Less | Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
                 InnerExpr::GreaterThan(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
@@ -100,8 +122,30 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::Equal(_, _) => todo!(),
-                InnerExpr::NotEqual(_, _) => todo!(),
+                InnerExpr::Equal(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                InnerExpr::NotEqual(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(false.into()))
+                    } else {
+                        Ok(Rc::new(true.into()))
+                    };
+
+                    result
+                }
                 InnerExpr::Not(_) => todo!(),
                 InnerExpr::LogicalAnd(_, _) => todo!(),
                 InnerExpr::LogicalOr(_, _) => todo!(),
