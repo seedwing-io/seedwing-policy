@@ -25,13 +25,14 @@ fn eval_speed(bencher: &mut Bencher) {
 fn build_speed(bencher: &mut Bencher) {
     let data = testdata1();
 
-    let mut builder = Builder::new();
-
     bencher.iter(|| {
+        let mut builder = Builder::new();
         let _ = builder.build(data.src.clone().iter());
     });
 }
 
+/*
+ * TODO looks like finish multiple times will slow things down. Figure out how to 'clone' the built state.
 fn finish_speed(bencher: &mut Bencher) {
     let data = testdata1();
 
@@ -46,7 +47,7 @@ fn finish_speed(bencher: &mut Bencher) {
     bencher.iter(|| {
         let _ = executor.block_on(builder.finish()).unwrap();
     });
-}
+}*/
 
 fn end_to_end_speed(bencher: &mut Bencher) {
     let data = testdata1();
@@ -106,11 +107,5 @@ fn testdata1() -> TestData {
     }
 }
 
-benchmark_group!(
-    benches,
-    build_speed,
-    finish_speed,
-    eval_speed,
-    end_to_end_speed
-);
+benchmark_group!(benches, build_speed, eval_speed, end_to_end_speed);
 benchmark_main!(benches);
