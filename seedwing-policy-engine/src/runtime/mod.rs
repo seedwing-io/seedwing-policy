@@ -15,10 +15,10 @@ use crate::runtime::rationale::Rationale;
 use crate::value::RuntimeValue;
 use ariadne::Cache;
 use chumsky::{Error, Stream};
+use indexmap::IndexMap;
 use serde::{Serialize, Serializer};
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::mem;
@@ -383,7 +383,7 @@ mod test {
 
 #[derive(Clone, Debug)]
 pub struct World {
-    types: HashMap<TypeName, Arc<Type>>,
+    types: IndexMap<TypeName, Arc<Type>>,
 }
 
 impl Default for World {

@@ -2,7 +2,7 @@ use crate::core::Function;
 use crate::lang::parser::SourceLocation;
 use crate::runtime::sources::Ephemeral;
 use crate::runtime::PackagePath;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::sync::Arc;
 
 pub struct PackageSource {
@@ -12,7 +12,7 @@ pub struct PackageSource {
 
 pub struct Package {
     path: PackagePath,
-    functions: HashMap<String, Arc<dyn Function>>,
+    functions: IndexMap<String, Arc<dyn Function>>,
     sources: Vec<PackageSource>,
 }
 

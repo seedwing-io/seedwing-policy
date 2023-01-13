@@ -1,5 +1,5 @@
 use crate::runtime::EvaluationResult;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[derive(Debug, Clone)]
 pub enum Rationale {
@@ -7,7 +7,7 @@ pub enum Rationale {
     Nothing,
     Join(Vec<EvaluationResult>),
     Meet(Vec<EvaluationResult>),
-    Object(HashMap<String, EvaluationResult>),
+    Object(IndexMap<String, EvaluationResult>),
     List(Vec<EvaluationResult>),
     NotAnObject,
     NotAList,

@@ -10,8 +10,8 @@ use crate::runtime;
 use crate::runtime::TypeName;
 use crate::runtime::{BuildError, RuntimeError};
 use crate::value::RuntimeValue;
+use indexmap::IndexMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::pin::Pin;
@@ -123,7 +123,7 @@ impl Debug for Type {
 
 #[derive(Default, Debug)]
 pub struct Bindings {
-    bindings: HashMap<String, Arc<TypeHandle>>,
+    bindings: IndexMap<String, Arc<TypeHandle>>,
 }
 
 impl Bindings {
@@ -196,12 +196,12 @@ macro_rules! primordial_type {
 
 #[derive(Debug)]
 pub struct World {
-    types: HashMap<TypeName, Arc<TypeHandle>>,
+    types: IndexMap<TypeName, Arc<TypeHandle>>,
 }
 
 impl World {
     pub(crate) fn new() -> Self {
-        let mut initial_types = HashMap::new();
+        let mut initial_types = IndexMap::new();
 
         primordial_type!(initial_types, "integer", PrimordialType::Integer);
         primordial_type!(initial_types, "string", PrimordialType::String);

@@ -1,11 +1,11 @@
 use crate::lang::parser::SourceLocation;
 use ariadne::{Cache, Source};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::fmt::{Debug, Display};
 
 #[derive(Default)]
 pub struct SourceCache {
-    cache: HashMap<SourceLocation, Source>,
+    cache: IndexMap<SourceLocation, Source>,
 }
 
 impl SourceCache {

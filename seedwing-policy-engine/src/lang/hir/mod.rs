@@ -7,7 +7,7 @@ use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, PackagePath, RuntimeError, TypeName};
 use crate::value::RuntimeValue;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
 use std::sync::Arc;
@@ -46,7 +46,7 @@ impl TypeDefn {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &IndexMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types);
     }
 
@@ -102,7 +102,7 @@ impl Type {
         }
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &IndexMap<String, Option<Located<TypeName>>>) {
         match self {
             Type::Anything => {}
             Type::Ref(ref mut name, arguments) => {
@@ -186,7 +186,7 @@ impl ObjectType {
             .collect()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &IndexMap<String, Option<Located<TypeName>>>) {
         for field in &mut self.fields {
             field.qualify_types(types);
         }
@@ -220,14 +220,14 @@ impl Field {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &IndexMap<String, Option<Located<TypeName>>>) {
         self.ty.qualify_types(types)
     }
 }
 
 pub struct World {
     units: Vec<CompilationUnit>,
-    packages: HashMap<PackagePath, Package>,
+    packages: IndexMap<PackagePath, Package>,
     source_cache: SourceCache,
 }
 
@@ -335,13 +335,13 @@ impl World {
 
 struct Lowerer<'b> {
     units: &'b mut Vec<CompilationUnit>,
-    packages: &'b mut HashMap<PackagePath, Package>,
+    packages: &'b mut IndexMap<PackagePath, Package>,
 }
 
 impl<'b> Lowerer<'b> {
     pub fn new(
         units: &'b mut Vec<CompilationUnit>,
-        packages: &'b mut HashMap<PackagePath, Package>,
+        packages: &'b mut IndexMap<PackagePath, Package>,
     ) -> Self {
         Self { units, packages }
     }
@@ -367,7 +367,7 @@ impl<'b> Lowerer<'b> {
                         )),
                     )
                 }))
-                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+                .collect::<IndexMap<String, Option<Located<TypeName>>>>();
 
             //visible_types.insert("int".into(), None);
             for primordial in world.known_world() {

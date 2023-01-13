@@ -3,7 +3,6 @@ use crate::lang::lir::Bindings;
 use crate::runtime::{EvaluationResult, Output, RuntimeError};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;

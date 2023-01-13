@@ -8,11 +8,11 @@ use crate::runtime::rationale::Rationale;
 use crate::runtime::TypeName;
 use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
 use crate::value::{Object, RationaleResult, RuntimeValue};
+use indexmap::IndexMap;
 use serde::Serialize;
 use std::any::Any;
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::hash::{Hash, Hasher};
@@ -197,7 +197,7 @@ impl Type {
             InnerType::Object(inner) => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
                 if let Some(obj) = locked_value.try_get_object() {
-                    let mut result = HashMap::new();
+                    let mut result = IndexMap::new();
                     for field in &inner.fields {
                         if let Some(ref field_value) = obj.get(field.name()) {
                             result.insert(
@@ -356,7 +356,7 @@ pub enum InnerType {
 
 #[derive(Serialize, Default, Debug)]
 pub struct Bindings {
-    bindings: HashMap<String, Arc<Type>>,
+    bindings: IndexMap<String, Arc<Type>>,
 }
 
 impl Bindings {
