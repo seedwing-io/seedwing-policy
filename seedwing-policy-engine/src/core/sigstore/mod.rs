@@ -4,8 +4,8 @@ use crate::package::Package;
 use crate::runtime::PackagePath;
 use crate::runtime::{Output, RuntimeError};
 use crate::value::{RationaleResult, RuntimeValue};
-use actix_rt::spawn;
 use futures_util::future::join_all;
+use futures_util::{FutureExt, TryFutureExt};
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
@@ -49,31 +49,28 @@ impl Function for SHA256 {
                 };
                 let uuid_vec = index_api::search_index(&configuration, query).await;
                 if let Ok(uuid_vec) = uuid_vec {
-                    let handles = uuid_vec.iter().cloned().map(|uuid| {
-                        let configuration = configuration.clone();
-                        spawn(async move {
-                            let entry =
-                                entries_api::get_log_entry_by_uuid(&configuration, uuid.as_str())
-                                    .await;
-                            if let Ok(entry) = entry {
-                                let body = base64::decode(entry.body);
-                                if let Ok(body) = body {
-                                    let body: Result<serde_json::Value, _> =
-                                        serde_json::from_slice(&*body);
+                    let handles = uuid_vec.iter().map(|uuid| {
+                        entries_api::get_log_entry_by_uuid(&configuration, uuid.as_str()).map(
+                            |entry| {
+                                if let Ok(entry) = entry {
+                                    let body = base64::decode(entry.body);
                                     if let Ok(body) = body {
-                                        let value: RuntimeValue = body.into();
-                                        return Some(value);
+                                        let body: Result<serde_json::Value, _> =
+                                            serde_json::from_slice(&*body);
+                                        if let Ok(body) = body {
+                                            let value: RuntimeValue = body.into();
+                                            return Some(value);
+                                        }
                                     }
                                 }
-                            }
 
-                            None
-                        })
+                                None
+                            },
+                        )
                     });
 
                     let joined = join_all(handles).await;
-                    let transform: Vec<RuntimeValue> =
-                        joined.into_iter().flatten().flatten().collect();
+                    let transform: Vec<RuntimeValue> = joined.into_iter().flatten().collect();
 
                     Ok(Output::Transform(Rc::new(transform.into())).into())
                 } else {
