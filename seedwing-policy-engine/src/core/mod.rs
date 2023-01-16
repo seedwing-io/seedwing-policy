@@ -16,6 +16,7 @@ pub mod iso;
 pub mod json;
 pub mod list;
 pub mod pattern;
+#[cfg(feature = "sigstore")]
 pub mod sigstore;
 pub mod spdx;
 pub mod x509;

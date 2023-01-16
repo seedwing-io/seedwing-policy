@@ -253,6 +253,7 @@ impl World {
         world.add_package(crate::core::list::package());
         world.add_package(crate::core::base64::package());
         world.add_package(crate::core::json::package());
+        #[cfg(feature = "sigstore")]
         world.add_package(crate::core::sigstore::package());
         world.add_package(crate::core::x509::package());
         world.add_package(crate::core::cyclonedx::package());
