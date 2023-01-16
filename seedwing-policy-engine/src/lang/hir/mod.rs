@@ -501,7 +501,7 @@ impl<'b> Lowerer<'b> {
         for (path, package) in self.packages.iter() {
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
-                world.define_function(path, func).await;
+                world.define_function(path, func);
             }
         }
 
@@ -514,7 +514,7 @@ impl<'b> Lowerer<'b> {
                     e.ty(),
                 )
             }) {
-                world.define(path.inner(), ty).await;
+                world.define(path.inner(), ty);
             }
         }
 

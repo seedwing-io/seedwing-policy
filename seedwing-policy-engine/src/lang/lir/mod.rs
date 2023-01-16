@@ -538,32 +538,27 @@ pub(crate) fn convert(
     documentation: Option<String>,
     parameters: Vec<String>,
     ty: &Arc<Located<mir::Type>>,
-) -> Pin<Box<dyn Future<Output = Arc<Type>> + '_>> {
+) -> Arc<Type> {
     match &***ty {
-        mir::Type::Anything => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Anything,
-            ))
-        }),
-        mir::Type::Primordial(primordial) => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Primordial(primordial.clone()),
-            ))
-        }),
-        mir::Type::Bound(primary, mir_bindings) => Box::pin(async move {
+        mir::Type::Anything => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            parameters,
+            lir::InnerType::Anything,
+        )),
+        mir::Type::Primordial(primordial) => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            parameters,
+            lir::InnerType::Primordial(primordial.clone()),
+        )),
+        mir::Type::Bound(primary, mir_bindings) => {
             let primary = convert(
                 primary.name(),
                 primary.documentation(),
                 primary.parameters().iter().map(|e| e.inner()).collect(),
-                &primary.ty().await,
-            )
-            .await;
+                &primary.ty(),
+            );
             let mut bindings = Bindings::new();
             for (key, value) in mir_bindings.iter() {
                 bindings.bind(
@@ -572,9 +567,8 @@ pub(crate) fn convert(
                         value.name(),
                         value.documentation(),
                         value.parameters().iter().map(|e| e.inner()).collect(),
-                        &value.ty().await,
-                    )
-                    .await,
+                        &value.ty(),
+                    ),
                 )
             }
             Arc::new(lir::Type::new(
@@ -583,24 +577,20 @@ pub(crate) fn convert(
                 parameters,
                 lir::InnerType::Bound(primary, bindings),
             ))
-        }),
-        mir::Type::Argument(name) => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                None,
-                None,
-                parameters,
-                lir::InnerType::Argument(name.inner()),
-            ))
-        }),
-        mir::Type::Const(value) => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Const(value.inner()),
-            ))
-        }),
-        mir::Type::Object(mir_object) => Box::pin(async move {
+        }
+        mir::Type::Argument(name) => Arc::new(lir::Type::new(
+            None,
+            None,
+            parameters,
+            lir::InnerType::Argument(name.clone()),
+        )),
+        mir::Type::Const(value) => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            parameters,
+            lir::InnerType::Const(value.clone()),
+        )),
+        mir::Type::Object(mir_object) => {
             let mut fields: Vec<Arc<Field>> = Default::default();
             for f in mir_object.fields().iter() {
                 let ty = f.ty();
@@ -610,9 +600,8 @@ pub(crate) fn convert(
                         ty.name(),
                         ty.documentation(),
                         ty.parameters().iter().map(|e| e.inner()).collect(),
-                        &ty.ty().await,
-                    )
-                    .await,
+                        &ty.ty(),
+                    ),
                     f.optional(),
                 ));
                 fields.push(field);
@@ -624,27 +613,22 @@ pub(crate) fn convert(
                 parameters,
                 lir::InnerType::Object(object),
             ))
-        }),
-        mir::Type::Expr(expr) => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Expr(expr.clone()),
-            ))
-        }),
-        mir::Type::Join(terms) => Box::pin(async move {
+        }
+        mir::Type::Expr(expr) => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            parameters,
+            lir::InnerType::Expr(expr.clone()),
+        )),
+        mir::Type::Join(terms) => {
             let mut inner = Vec::new();
             for e in terms {
-                inner.push(
-                    convert(
-                        e.name(),
-                        e.documentation(),
-                        e.parameters().iter().map(|e| e.inner()).collect(),
-                        &e.ty().await,
-                    )
-                    .await,
-                );
+                inner.push(convert(
+                    e.name(),
+                    e.documentation(),
+                    e.parameters().iter().map(|e| e.inner()).collect(),
+                    &e.ty(),
+                ));
             }
             Arc::new(lir::Type::new(
                 name,
@@ -652,19 +636,16 @@ pub(crate) fn convert(
                 parameters,
                 lir::InnerType::Join(inner),
             ))
-        }),
-        mir::Type::Meet(terms) => Box::pin(async move {
+        }
+        mir::Type::Meet(terms) => {
             let mut inner = Vec::new();
             for e in terms {
-                inner.push(
-                    convert(
-                        e.name(),
-                        e.documentation(),
-                        e.parameters().iter().map(|e| e.inner()).collect(),
-                        &e.ty().await,
-                    )
-                    .await,
-                );
+                inner.push(convert(
+                    e.name(),
+                    e.documentation(),
+                    e.parameters().iter().map(|e| e.inner()).collect(),
+                    &e.ty(),
+                ));
             }
             Arc::new(lir::Type::new(
                 name,
@@ -672,41 +653,36 @@ pub(crate) fn convert(
                 parameters,
                 lir::InnerType::Meet(inner),
             ))
-        }),
-        mir::Type::Refinement(primary, refinement) => Box::pin(async move {
+        }
+        mir::Type::Refinement(primary, refinement) => {
             let primary = convert(
                 primary.name(),
                 primary.documentation(),
                 primary.parameters().iter().map(|e| e.inner()).collect(),
-                &primary.ty().await,
-            )
-            .await;
+                &primary.ty(),
+            );
             let refinement = convert(
                 refinement.name(),
                 refinement.documentation(),
                 refinement.parameters().iter().map(|e| e.inner()).collect(),
-                &refinement.ty().await,
-            )
-            .await;
+                &refinement.ty(),
+            );
             Arc::new(lir::Type::new(
                 name,
                 documentation,
                 parameters,
                 lir::InnerType::Refinement(primary, refinement),
             ))
-        }),
-        mir::Type::List(terms) => Box::pin(async move {
+        }
+        mir::Type::List(terms) => {
             let mut inner = Vec::new();
             for e in terms {
-                inner.push(
-                    convert(
-                        e.name(),
-                        e.documentation(),
-                        e.parameters().iter().map(|e| e.inner()).collect(),
-                        &e.ty().await,
-                    )
-                    .await,
-                )
+                inner.push(convert(
+                    e.name(),
+                    e.documentation(),
+                    e.parameters().iter().map(|e| e.inner()).collect(),
+                    &e.ty(),
+                ))
             }
 
             Arc::new(lir::Type::new(
@@ -715,14 +691,12 @@ pub(crate) fn convert(
                 parameters,
                 lir::InnerType::List(inner),
             ))
-        }),
-        mir::Type::Nothing => Box::pin(async move {
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                Vec::default(),
-                lir::InnerType::Nothing,
-            ))
-        }),
+        }
+        mir::Type::Nothing => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            Vec::default(),
+            lir::InnerType::Nothing,
+        )),
     }
 }

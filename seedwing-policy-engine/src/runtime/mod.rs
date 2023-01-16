@@ -400,10 +400,10 @@ impl World {
     }
 
     pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
-        let ty = handle.ty().await;
+        let ty = handle.ty();
         let name = handle.name();
         let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
-        let converted = lir::convert(name, handle.documentation(), parameters, &ty).await;
+        let converted = lir::convert(name, handle.documentation(), parameters, &ty);
         self.types.insert(path, converted);
     }
 

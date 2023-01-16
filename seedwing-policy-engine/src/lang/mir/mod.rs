@@ -71,12 +71,12 @@ impl TypeHandle {
         self.ty.borrow_mut().replace(ty);
     }
 
-    pub async fn define_from(&self, ty: Arc<TypeHandle>) {
+    pub fn define_from(&self, ty: Arc<TypeHandle>) {
         let inbound = ty.ty.borrow_mut().as_ref().cloned().unwrap();
         self.ty.borrow_mut().replace(inbound);
     }
 
-    pub async fn ty(&self) -> Arc<Located<mir::Type>> {
+    pub fn ty(&self) -> Arc<Located<mir::Type>> {
         self.ty.borrow_mut().as_ref().unwrap().clone()
     }
 
@@ -89,8 +89,8 @@ pub enum Type {
     Anything,
     Primordial(PrimordialType),
     Bound(Arc<TypeHandle>, Bindings),
-    Argument(Located<String>),
-    Const(Located<ValueType>),
+    Argument(String),
+    Const(ValueType),
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
     Join(Vec<Arc<TypeHandle>>),
@@ -238,7 +238,7 @@ impl World {
         );
     }
 
-    pub(crate) async fn define(
+    pub(crate) fn define(
         &mut self,
         path: TypeName,
         ty: &Located<hir::Type>,
@@ -246,12 +246,12 @@ impl World {
         log::info!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
-            handle.define_from(converted).await;
+            handle.define_from(converted);
         }
         Ok(())
     }
 
-    pub(crate) async fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
+    pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
         log::info!("define function {}", path);
         let runtime_type = Located::new(
             mir::Type::Primordial(PrimordialType::Function(path.clone(), func.clone())),
@@ -263,17 +263,11 @@ impl World {
         }
     }
 
-    fn convert<'c>(
-        &'c self,
-        ty: &'c Located<hir::Type>,
-    ) -> Result<Arc<TypeHandle>, BuildError> {
+    fn convert<'c>(&'c self, ty: &'c Located<hir::Type>) -> Result<Arc<TypeHandle>, BuildError> {
         match &**ty {
-            hir::Type::Anything => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::Anything, ty.location()))
-                ))
-            },
+            hir::Type::Anything => Ok(Arc::new(
+                TypeHandle::new(None).with(Located::new(mir::Type::Anything, ty.location())),
+            )),
             hir::Type::Ref(inner, arguments) => {
                 let primary_type = self.types[&(inner.inner())].clone();
 
@@ -295,30 +289,20 @@ impl World {
                         bindings.bind(name.inner(), self.convert(arg)?)
                     }
 
-                    Ok(Arc::new(
-                        TypeHandle::new(None)
-                            .with(Located::new(
-                                mir::Type::Bound(primary_type, bindings),
-                                ty.location(),
-                            ))
-                    ))
+                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                        mir::Type::Bound(primary_type, bindings),
+                        ty.location(),
+                    ))))
                 }
-            },
-            hir::Type::Parameter(name) => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Argument(name.clone()),
-                            name.location(),
-                        ))
-                ))
-            },
-            hir::Type::Const(inner) => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::Const(inner.clone()), ty.location()))
-                ))
-            },
+            }
+            hir::Type::Parameter(name) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                mir::Type::Argument(name.inner()),
+                name.location(),
+            )))),
+            hir::Type::Const(inner) => Ok(Arc::new(
+                TypeHandle::new(None)
+                    .with(Located::new(mir::Type::Const(inner.inner()), ty.location())),
+            )),
             hir::Type::Object(inner) => {
                 let mut fields = Vec::new();
 
@@ -329,71 +313,51 @@ impl World {
                     )));
                 }
 
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Object(ObjectType::new(fields)),
-                            ty.location(),
-                        ))
-                ))
-            },
-            hir::Type::Expr(inner) => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Expr(Arc::new(inner.clone())),
-                            ty.location(),
-                        ))
-                ))
-            },
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Object(ObjectType::new(fields)),
+                    ty.location(),
+                ))))
+            }
+            hir::Type::Expr(inner) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                mir::Type::Expr(Arc::new(inner.clone())),
+                ty.location(),
+            )))),
             hir::Type::Join(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
                 Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::Join(inner), ty.location()))
+                    TypeHandle::new(None).with(Located::new(mir::Type::Join(inner), ty.location())),
                 ))
-            },
+            }
             hir::Type::Meet(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
                 Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::Meet(inner), ty.location()))
+                    TypeHandle::new(None).with(Located::new(mir::Type::Meet(inner), ty.location())),
                 ))
-            },
+            }
             hir::Type::Refinement(primary, refinement) => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Refinement(
-                                self.convert(&**primary)?,
-                                self.convert(&**refinement)?,
-                            ),
-                            ty.location(),
-                        ))
-                ))
-            },
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Refinement(self.convert(&**primary)?, self.convert(&**refinement)?),
+                    ty.location(),
+                ))))
+            }
             hir::Type::List(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
                 Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::List(inner), ty.location()))
+                    TypeHandle::new(None).with(Located::new(mir::Type::List(inner), ty.location())),
                 ))
-            },
-            hir::Type::Nothing => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(mir::Type::Nothing, ty.location()))
-                ))
-            },
+            }
+            hir::Type::Nothing => Ok(Arc::new(
+                TypeHandle::new(None).with(Located::new(mir::Type::Nothing, ty.location())),
+            )),
         }
     }
 
