@@ -1,0 +1,63 @@
+/// Pattern matching for Kafka authorization created by OpaAuthorizer
+
+pattern request = {
+  input: {
+    action: action,
+    requestContext: requestContext,
+  }
+}
+
+pattern action = {
+  logIfAllowed?: boolean,
+  logIfDenied?: boolean,
+  operation: operation,
+  resourcePattern: resourcePattern,
+  resourceReferenceCount?: integer,
+}
+
+pattern operation = "ALL" || "ALTER" || "ALTER_CONFIGS" || "ANY" || "CLUSTER_ACTION" || "CREATE" || "DELETE" || "DESCRIBE" || "DESCRIBE_CONFIGS" || "IDEMPOTENT_WRITE" || "READ" || "UNKNOWN" || "WRITE"
+
+pattern resourcePattern = {
+    name: string,
+    patternType?: patternType,
+    resourceType?: resourceType,
+    unknown?: boolean,
+}
+
+pattern patternType = "ANY" || "LITERAL" || "MATCH" || "PREFIXED" || "UNKNOWN"
+
+pattern resourceType = "ANY" || "CLUSTER" || "DELEGATION_TOKEN" || "GROUP" || "TOPIC" || "TRANSACTIONAL_ID" || "UNKNOWN"
+
+pattern requestContext = {
+  clientAddress: string,
+  clientInformation: clientInformation,
+  connectionId: string,
+  header: header,
+  listenerName: string,
+  principal: principal,
+  securityProtocol?: securityProtocol,
+}
+
+pattern clientInformation =  {
+  softwareName?: string,
+  softwareVersion?: string,
+}
+
+pattern header = {
+  headerVersion?: integer,
+  headerName?: headerName,
+}
+
+pattern headerName = {
+  clientId?: string,
+  correlationId?: integer,
+  requestApiKey?: integer,
+  requestApiVersion?: integer,
+}
+
+pattern principal = {
+  name?: string,
+  principalType?: string,
+}
+
+pattern securityProtocol = "PLAINTEXT" || "SASL_PLAINTEXT" || "SASL_SSL" || "SSL"
