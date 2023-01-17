@@ -72,34 +72,39 @@ impl<'w> Htmlifier<'w> {
             InnerType::Bound(primary, bindings) => {
                 html.push_str("<span>");
                 self.html_of_ty(html, primary.clone(), world);
-                html.push_str("&lt;");
-                for (i, param) in primary.parameters().iter().enumerate() {
-                    let bound = bindings.get(param);
-                    if let Some(bound) = bound {
-                        self.html_of_ty(html, bound.clone(), world);
-                        if i + 1 < bindings.len() {
-                            html.push_str(", ");
+                if !&primary.parameters().is_empty() {
+                    html.push_str("&lt;");
+                    for (i, param) in primary.parameters().iter().enumerate() {
+                        let bound = bindings.get(param);
+                        if let Some(bound) = bound {
+                            self.html_of_ty(html, bound.clone(), world);
+                            if i + 1 < bindings.len() {
+                                html.push_str(", ");
+                            }
+                        } else {
+                            html.push_str("missing");
                         }
-                    } else {
-                        html.push_str("missing");
                     }
+                    html.push_str("&gt;");
                 }
-                html.push_str("&gt;");
                 html.push_str("</span>");
             }
             InnerType::Ref(slot, bindings) => {
                 let ty = world.get_by_slot(*slot);
                 if let Some(ty) = ty {
                     html.push_str("<span>");
+                    let has_params = ! ty.parameters().is_empty();
                     self.html_of_ty(html, ty, world);
-                    html.push_str("&lt;");
-                    for (i, arg) in bindings.iter().enumerate() {
-                        self.html_of_ty(html, arg.clone(), world);
-                        if i + 1 < bindings.len() {
-                            html.push_str(", ");
+                    if has_params {
+                        html.push_str("&lt;");
+                        for (i, arg) in bindings.iter().enumerate() {
+                            self.html_of_ty(html, arg.clone(), world);
+                            if i + 1 < bindings.len() {
+                                html.push_str(", ");
+                            }
                         }
+                        html.push_str("&gt;");
                     }
-                    html.push_str("&gt;");
                     html.push_str("</span>");
                 }
             }

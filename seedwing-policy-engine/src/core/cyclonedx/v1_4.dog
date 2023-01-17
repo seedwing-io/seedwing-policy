@@ -85,6 +85,9 @@ pattern component = {
   cpe?: string,
   purl?: string,
   swid?: iso::swid::tag,
+  pedigree?: {
+    ancestors: list::All<component>,
+  },
 
 
 }
@@ -99,5 +102,4 @@ pattern license = {
     encoding?: "base64",
     content: string,
   },
-
 }
