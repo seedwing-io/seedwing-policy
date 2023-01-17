@@ -5,8 +5,8 @@ use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialType};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::TypeName;
 use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
+use crate::runtime::{TypeName, World};
 use crate::value::{Object, RationaleResult, RuntimeValue};
 use serde::Serialize;
 use std::any::Any;
@@ -68,7 +68,8 @@ impl Type {
         self: &'v Arc<Self>,
         value: Rc<RuntimeValue>,
         bindings: &'v Bindings,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+        world: &'v World,
+    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
@@ -80,9 +81,20 @@ impl Type {
                     Output::Identity,
                 ))
             }),
+            InnerType::Ref(slot, bindings) => Box::pin(async move {
+                if let Some(ty) = world.get_by_slot(*slot) {
+                    let bindings = (ty.parameters(), bindings, world).into();
+                    ty.evaluate(value, &bindings, world).await
+                } else {
+                    Err(RuntimeError::NoSuchTypeSlot(*slot))
+                }
+            }),
+            InnerType::Bound(ty, bindings) => {
+                Box::pin(async move { ty.evaluate(value, bindings, world).await })
+            }
             InnerType::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
-                    bound.evaluate(value.clone(), bindings).await
+                    bound.evaluate(value.clone(), bindings, world).await
                 } else {
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
@@ -167,7 +179,7 @@ impl Type {
                     }
                 }),
                 PrimordialType::Function(name, func) => Box::pin(async move {
-                    let mut result = func.call(value.clone(), bindings).await?;
+                    let mut result = func.call(value.clone(), bindings, world).await?;
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
@@ -202,20 +214,21 @@ impl Type {
                         if let Some(ref field_value) = obj.get(field.name()) {
                             result.insert(
                                 field.name(),
-                                field.ty().evaluate(field_value.clone(), bindings).await?,
+                                field
+                                    .ty()
+                                    .evaluate(field_value.clone(), bindings, world)
+                                    .await?,
                             );
-                        } else {
-                            if !field.optional() {
-                                result.insert(
-                                    field.name(),
-                                    EvaluationResult::new(
-                                        None,
-                                        field.ty(),
-                                        Rationale::MissingField(field.name()),
-                                        Output::None,
-                                    ),
-                                );
-                            }
+                        } else if !field.optional() {
+                            result.insert(
+                                field.name(),
+                                EvaluationResult::new(
+                                    None,
+                                    field.ty(),
+                                    Rationale::MissingField(field.name()),
+                                    Output::None,
+                                ),
+                            );
                         }
                     }
                     Ok(EvaluationResult::new(
@@ -256,7 +269,7 @@ impl Type {
             InnerType::Join(terms) => Box::pin(async move {
                 let mut result = Vec::new();
                 for e in terms {
-                    result.push(e.evaluate(value.clone(), bindings).await?);
+                    result.push(e.evaluate(value.clone(), bindings, world).await?);
                 }
 
                 Ok(EvaluationResult::new(
@@ -269,7 +282,7 @@ impl Type {
             InnerType::Meet(terms) => Box::pin(async move {
                 let mut result = Vec::new();
                 for e in terms {
-                    result.push(e.evaluate(value.clone(), bindings).await?);
+                    result.push(e.evaluate(value.clone(), bindings, world).await?);
                 }
 
                 Ok(EvaluationResult::new(
@@ -280,14 +293,14 @@ impl Type {
                 ))
             }),
             InnerType::Refinement(primary, refinement) => Box::pin(async move {
-                let mut result = primary.evaluate(value.clone(), bindings).await?;
+                let mut result = primary.evaluate(value.clone(), bindings, world).await?;
 
                 if !result.satisfied() {
                     return Ok(result);
                 }
 
                 if let Some(output) = result.output() {
-                    let refinement_result = refinement.evaluate(output, bindings).await?;
+                    let refinement_result = refinement.evaluate(output, bindings, world).await?;
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
@@ -308,7 +321,7 @@ impl Type {
                     if list_value.len() == terms.len() {
                         let mut result = Vec::new();
                         for (term, element) in terms.iter().zip(list_value.iter()) {
-                            result.push(term.evaluate(element.clone(), bindings).await?);
+                            result.push(term.evaluate(element.clone(), bindings, world).await?);
                         }
                         return Ok(EvaluationResult::new(
                             Some(value.clone()),
@@ -325,9 +338,9 @@ impl Type {
                     Output::None,
                 ))
             }),
-            InnerType::Bound(primary, bindings) => {
-                Box::pin(async move { primary.evaluate(value, bindings).await })
-            }
+            //InnerType::Bound(primary, bindings) => {
+            //Box::pin(async move { primary.evaluate(value, bindings).await })
+            //}
             InnerType::Nothing => Box::pin(async move {
                 Ok(EvaluationResult::new(
                     Some(value.clone()),
@@ -345,6 +358,7 @@ pub enum InnerType {
     Anything,
     Primordial(PrimordialType),
     Bound(Arc<Type>, Bindings),
+    Ref(usize, Vec<Arc<Type>>),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
@@ -376,7 +390,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<Type>)> {
         self.bindings.iter()
     }
 
@@ -386,6 +400,36 @@ impl Bindings {
 
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
+    }
+}
+
+impl From<(Vec<String>, &Vec<Arc<Type>>, &World)> for Bindings {
+    fn from((parameters, arguments, world): (Vec<String>, &Vec<Arc<Type>>, &World)) -> Self {
+        let mut bindings = Self::new();
+        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+            if let InnerType::Ref(slot, unresolved_bindings) = &arg.inner {
+                if let Some(resolved_type) = world.get_by_slot(*slot) {
+                    if resolved_type.parameters().is_empty() {
+                        bindings.bind(param.clone(), resolved_type.clone())
+                    } else {
+                        let resolved_bindings =
+                            (resolved_type.parameters(), unresolved_bindings, world).into();
+                        bindings.bind(
+                            param.clone(),
+                            Arc::new(Type::new(
+                                resolved_type.name(),
+                                resolved_type.documentation(),
+                                resolved_type.parameters(),
+                                InnerType::Bound(resolved_type, resolved_bindings),
+                            )),
+                        )
+                    }
+                }
+            } else {
+                bindings.bind(param.clone(), arg.clone())
+            }
+        }
+        bindings
     }
 }
 
@@ -404,7 +448,8 @@ impl Debug for InnerType {
             }
             InnerType::List(inner) => write!(f, "[{:?}]", inner),
             InnerType::Argument(name) => write!(f, "{:?}", name),
-            InnerType::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
+            InnerType::Ref(slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
             InnerType::Nothing => write!(f, "nothing"),
         }
     }
@@ -483,7 +528,7 @@ impl ValueType {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
+    ) -> Pin<Box<dyn Future<Output=bool> + 'e>> {
         match (self, &other) {
             (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
             (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
@@ -552,6 +597,7 @@ pub(crate) fn convert(
             parameters,
             lir::InnerType::Primordial(primordial.clone()),
         )),
+        /*
         mir::Type::Bound(primary, mir_bindings) => {
             let primary = convert(
                 primary.name(),
@@ -576,6 +622,25 @@ pub(crate) fn convert(
                 documentation,
                 parameters,
                 lir::InnerType::Bound(primary, bindings),
+            ))
+        }
+         */
+        mir::Type::Ref(slot, bindings) => {
+            let mut lir_bindings = Vec::default();
+            for e in bindings {
+                lir_bindings.push(convert(
+                    e.name(),
+                    e.documentation(),
+                    e.parameters().iter().map(|e| e.inner()).collect(),
+                    &e.ty(),
+                ));
+            }
+
+            Arc::new(lir::Type::new(
+                None,
+                None,
+                parameters,
+                lir::InnerType::Ref(*slot, lir_bindings),
             ))
         }
         mir::Type::Argument(name) => Arc::new(lir::Type::new(

@@ -135,7 +135,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let path_segments = TypeName::from(path.clone());
                 let path_segments = path_segments.segments();
 
-                let html = Htmlifier::new("/policy/".into(), &world);
+                let html = Htmlifier::new("/policy/".into(), &*world);
 
                 renderer.render(
                     "type",
@@ -145,7 +145,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                         path,
                         parameters: ty.parameters(),
                         documentation: ty.documentation().unwrap_or_default(),
-                        definition: html.html_of(ty),
+                        definition: html.html_of(ty, &*world),
                     },
                 )
             }

@@ -2,8 +2,8 @@ use crate::core::{json, Function, FunctionEvaluationResult};
 use crate::lang::lir::Type;
 use crate::lang::lir::{Bindings, InnerType};
 use crate::package::Package;
-use crate::runtime::PackagePath;
 use crate::runtime::{Output, RuntimeError};
+use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -40,12 +40,13 @@ impl Function for Set {
         &'v self,
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
+        world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(pattern) = bindings.get(PATTERN) {
                 if let InnerType::List(terms) = pattern.inner() {
                     let set = Type::new(None, None, Vec::default(), InnerType::Join(terms.clone()));
-                    let result = Arc::new(set).evaluate(input, bindings).await?;
+                    let result = Arc::new(set).evaluate(input, bindings, world).await?;
                     if result.satisfied() {
                         Ok((Output::Identity, vec![result]).into())
                     } else {

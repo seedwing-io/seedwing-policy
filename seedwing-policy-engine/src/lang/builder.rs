@@ -31,8 +31,9 @@ impl Builder {
     }
 
     pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
-        let mir = self.hir.lower().await?;
-        mir.lower().await
+        let mir = self.hir.lower()?;
+        let runtime = mir.lower()?;
+        Ok(runtime)
     }
 
     pub fn source_cache(&self) -> &SourceCache {

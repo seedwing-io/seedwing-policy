@@ -1,7 +1,7 @@
 use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type, ValueType};
 use seedwing_policy_engine::lang::PrimordialType;
 use seedwing_policy_engine::runtime;
-use seedwing_policy_engine::runtime::TypeName;
+use seedwing_policy_engine::runtime::{TypeName, World};
 use std::sync::Arc;
 
 #[allow(dead_code)]
@@ -15,9 +15,9 @@ impl<'w> Htmlifier<'w> {
         Self { root, world }
     }
 
-    pub fn html_of(&self, ty: Arc<Type>) -> String {
+    pub fn html_of(&self, ty: Arc<Type>, world: &World) -> String {
         let mut html = String::new();
-        self.html_of_ty_inner(&mut html, ty);
+        self.html_of_ty_inner(&mut html, ty, world);
         html
     }
 
@@ -27,15 +27,15 @@ impl<'w> Htmlifier<'w> {
         html.push_str(format!("<a href='{}'>{}</a>", href, name).as_str());
     }
 
-    fn html_of_ty(&self, html: &mut String, ty: Arc<Type>) {
+    fn html_of_ty(&self, html: &mut String, ty: Arc<Type>, world: &World) {
         if let Some(name) = ty.name() {
             self.a(html, name);
         } else {
-            self.html_of_ty_inner(html, ty);
+            self.html_of_ty_inner(html, ty, world);
         }
     }
 
-    fn html_of_ty_inner(&self, html: &mut String, ty: Arc<Type>) {
+    fn html_of_ty_inner(&self, html: &mut String, ty: Arc<Type>, world: &World) {
         match ty.inner() {
             InnerType::Anything => {
                 html.push_str("<span>");
@@ -71,12 +71,12 @@ impl<'w> Htmlifier<'w> {
             },
             InnerType::Bound(primary, bindings) => {
                 html.push_str("<span>");
-                self.html_of_ty(html, primary.clone());
+                self.html_of_ty(html, primary.clone(), world);
                 html.push_str("&lt;");
                 for (i, param) in primary.parameters().iter().enumerate() {
                     let bound = bindings.get(param);
                     if let Some(bound) = bound {
-                        self.html_of_ty(html, bound.clone());
+                        self.html_of_ty(html, bound.clone(), world);
                         if i + 1 < bindings.len() {
                             html.push_str(", ");
                         }
@@ -86,6 +86,22 @@ impl<'w> Htmlifier<'w> {
                 }
                 html.push_str("&gt;");
                 html.push_str("</span>");
+            }
+            InnerType::Ref(slot, bindings) => {
+                let ty = world.get_by_slot(*slot);
+                if let Some(ty) = ty {
+                    html.push_str("<span>");
+                    self.html_of_ty(html, ty, world);
+                    html.push_str("&lt;");
+                    for (i, arg) in bindings.iter().enumerate() {
+                        self.html_of_ty(html, arg.clone(), world);
+                        if i + 1 < bindings.len() {
+                            html.push_str(", ");
+                        }
+                    }
+                    html.push_str("&gt;");
+                    html.push_str("</span>");
+                }
             }
             InnerType::Argument(arg) => {
                 html.push_str(arg.as_str());
@@ -110,7 +126,7 @@ impl<'w> Htmlifier<'w> {
                 }
             },
             InnerType::Object(object) => {
-                self.html_of_object(html, object);
+                self.html_of_object(html, object, world);
             }
             InnerType::Expr(_) => {
                 todo!()
@@ -118,7 +134,7 @@ impl<'w> Htmlifier<'w> {
             InnerType::Join(terms) => {
                 html.push_str("<span>");
                 for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone());
+                    self.html_of_ty(html, term.clone(), world);
                     if i + 1 < terms.len() {
                         html.push_str(" || ");
                     }
@@ -128,7 +144,7 @@ impl<'w> Htmlifier<'w> {
             InnerType::Meet(terms) => {
                 html.push_str("<span>");
                 for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone());
+                    self.html_of_ty(html, term.clone(), world);
                     if i + 1 < terms.len() {
                         html.push_str(" && ");
                     }
@@ -137,16 +153,16 @@ impl<'w> Htmlifier<'w> {
             }
             InnerType::Refinement(primary, refinement) => {
                 html.push_str("<span>");
-                self.html_of_ty(html, primary.clone());
+                self.html_of_ty(html, primary.clone(), world);
                 html.push('(');
-                self.html_of_ty(html, refinement.clone());
+                self.html_of_ty(html, refinement.clone(), world);
                 html.push(')');
                 html.push_str("</span>");
             }
             InnerType::List(terms) => {
                 html.push_str("<span>[ ");
                 for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone());
+                    self.html_of_ty(html, term.clone(), world);
                     if i + 1 < terms.len() {
                         html.push_str(", ");
                     }
@@ -161,17 +177,17 @@ impl<'w> Htmlifier<'w> {
         }
     }
 
-    fn html_of_object(&self, html: &mut String, object: &ObjectType) {
+    fn html_of_object(&self, html: &mut String, object: &ObjectType, world: &World) {
         html.push_str("<span>");
         html.push('{');
         for f in object.fields() {
             html.push_str("<div>");
             html.push_str(f.name().as_str());
             if f.optional() {
-                html.push_str("?");
+                html.push('?');
             }
             html.push_str(": ");
-            self.html_of_ty(html, f.ty());
+            self.html_of_ty(html, f.ty(), world);
             html.push_str("</div>");
         }
         html.push('}');

@@ -1,6 +1,6 @@
 use crate::lang::hir::Type;
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -59,5 +59,6 @@ pub trait Function: Sync + Send + Debug {
         &'v self,
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
+        world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
 }

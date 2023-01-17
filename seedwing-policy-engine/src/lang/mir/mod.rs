@@ -88,7 +88,8 @@ impl TypeHandle {
 pub enum Type {
     Anything,
     Primordial(PrimordialType),
-    Bound(Arc<TypeHandle>, Bindings),
+    Ref(usize, Vec<Arc<TypeHandle>>),
+    //Bound(Arc<TypeHandle>, Bindings),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
@@ -115,7 +116,8 @@ impl Debug for Type {
             }
             Type::List(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
-            Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
+            Type::Ref(slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
+            //Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
             Type::Nothing => write!(f, "nothing"),
         }
     }
@@ -201,41 +203,60 @@ macro_rules! primordial_type {
 
 #[derive(Debug)]
 pub struct World {
-    types: HashMap<TypeName, Arc<TypeHandle>>,
+    type_slots: Vec<Arc<TypeHandle>>,
+    types: HashMap<TypeName, usize>,
 }
 
 impl World {
     pub(crate) fn new() -> Self {
-        let mut initial_types = HashMap::new();
+        //let mut initial_types = HashMap::new();
 
-        primordial_type!(initial_types, "integer", PrimordialType::Integer);
-        primordial_type!(initial_types, "string", PrimordialType::String);
-        primordial_type!(initial_types, "boolean", PrimordialType::Boolean);
-        primordial_type!(initial_types, "decimal", PrimordialType::Decimal);
+        //primordial_type!(initial_types, "integer", PrimordialType::Integer);
+        //primordial_type!(initial_types, "string", PrimordialType::String);
+        //primordial_type!(initial_types, "boolean", PrimordialType::Boolean);
+        //primordial_type!(initial_types, "decimal", PrimordialType::Decimal);
 
-        Self {
-            types: initial_types,
-        }
+        let mut this = Self {
+            type_slots: vec![],
+            types: Default::default(),
+        };
+
+        this.define_primordial("integer", PrimordialType::Integer);
+        this.define_primordial("string", PrimordialType::String);
+        this.define_primordial("boolean", PrimordialType::Boolean);
+        this.define_primordial("decimal", PrimordialType::Decimal);
+
+        this
+    }
+
+    fn define_primordial(&mut self, name: &str, ty: PrimordialType) {
+        let name = TypeName::new(None, name.into());
+
+        let ty = Arc::new(TypeHandle::new_with(
+            Some(name.clone()),
+            Located::new(mir::Type::Primordial(ty), 0..0),
+        ));
+
+        self.type_slots.push(ty);
+        self.types.insert(name, self.type_slots.len() - 1);
     }
 
     pub(crate) fn known_world(&self) -> Vec<TypeName> {
         self.types.keys().cloned().collect()
     }
 
-    pub(crate) async fn declare(
+    pub(crate) fn declare(
         &mut self,
         path: TypeName,
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
-        self.types.insert(
-            path.clone(),
-            Arc::new(
-                TypeHandle::new(Some(path))
-                    .with_parameters(parameters)
-                    .with_documentation(documentation),
-            ),
-        );
+        self.type_slots.push(Arc::new(
+            TypeHandle::new(Some(path.clone()))
+                .with_parameters(parameters)
+                .with_documentation(documentation),
+        ));
+        self.types.insert(path, self.type_slots.len() - 1);
     }
 
     pub(crate) fn define(
@@ -246,7 +267,8 @@ impl World {
         log::info!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
-            handle.define_from(converted);
+            //handle.define_from(converted);
+            self.type_slots[*handle].define_from(converted);
         }
         Ok(())
     }
@@ -259,7 +281,7 @@ impl World {
         );
 
         if let Some(handle) = self.types.get_mut(&path) {
-            handle.define(Arc::new(runtime_type));
+            self.type_slots[*handle].define(Arc::new(runtime_type));
         }
     }
 
@@ -269,7 +291,34 @@ impl World {
                 TypeHandle::new(None).with(Located::new(mir::Type::Anything, ty.location())),
             )),
             hir::Type::Ref(inner, arguments) => {
-                let primary_type = self.types[&(inner.inner())].clone();
+                let primary_type_handle = self.types[&(inner.inner())];
+                if arguments.is_empty() {
+                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                        mir::Type::Ref(primary_type_handle, Vec::default()),
+                        inner.location(),
+                    ))))
+                } else {
+                    let primary_type = &self.type_slots[primary_type_handle];
+                    let parameter_names = primary_type.parameters();
+
+                    if parameter_names.len() != arguments.len() {
+                        return Err(BuildError::ArgumentMismatch(
+                            String::new().into(),
+                            arguments[0].location().span(),
+                        ));
+                    }
+
+                    let mut bindings = Vec::new();
+
+                    for (_name, arg) in parameter_names.iter().zip(arguments.iter()) {
+                        bindings.push(self.convert(arg)?)
+                    }
+                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                        mir::Type::Ref(primary_type_handle, bindings),
+                        inner.location(),
+                    ))))
+                }
+                /*
 
                 if arguments.is_empty() {
                     Ok(primary_type)
@@ -294,6 +343,7 @@ impl World {
                         ty.location(),
                     ))))
                 }
+                 */
             }
             hir::Type::Parameter(name) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                 mir::Type::Argument(name.inner()),
@@ -361,11 +411,11 @@ impl World {
         }
     }
 
-    pub async fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+    pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
         let mut world = runtime::World::new();
 
-        for (path, handle) in self.types {
-            world.add(path, handle).await;
+        for (slot, ty) in self.type_slots.iter().enumerate() {
+            world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
         }
 
         Ok(world)

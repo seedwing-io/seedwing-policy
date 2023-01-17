@@ -1,8 +1,8 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::package::Package;
-use crate::runtime::PackagePath;
 use crate::runtime::{Output, RuntimeError};
+use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use ariadne::Cache;
 use std::cell::RefCell;
@@ -32,6 +32,7 @@ impl Function for PEM {
         &'v self,
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
+        world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let mut bytes = Vec::new();

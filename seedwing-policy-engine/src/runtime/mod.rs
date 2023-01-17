@@ -132,6 +132,7 @@ pub enum RuntimeError {
     Lock,
     InvalidState,
     NoSuchType(TypeName),
+    NoSuchTypeSlot(usize),
 }
 
 #[cfg(test)]
@@ -345,7 +346,7 @@ mod test {
                         "name": "Jim",
                         "age": 49,
                     }
-                )
+                ),
             )
             .await
             .unwrap()
@@ -359,7 +360,7 @@ mod test {
                         "name": "Bob",
                         "age": 42,
                     }
-                )
+                ),
             )
             .await
             .unwrap()
@@ -373,7 +374,7 @@ mod test {
                         "name": "Jim",
                         "age": 53,
                     }
-                )
+                ),
             )
             .await
             .unwrap()
@@ -383,7 +384,8 @@ mod test {
 
 #[derive(Clone, Debug)]
 pub struct World {
-    types: HashMap<TypeName, Arc<Type>>,
+    types: HashMap<TypeName, usize>,
+    type_slots: Vec<Arc<Type>>,
 }
 
 impl Default for World {
@@ -396,15 +398,25 @@ impl World {
     pub fn new() -> Self {
         Self {
             types: Default::default(),
+            type_slots: Default::default(),
         }
     }
 
-    pub(crate) async fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
+    pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Type>> {
+        if slot < self.type_slots.len() {
+            Some(self.type_slots[slot].clone())
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
         let ty = handle.ty();
         let name = handle.name();
         let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
         let converted = lir::convert(name, handle.documentation(), parameters, &ty);
-        self.types.insert(path, converted);
+        self.type_slots.push(converted);
+        self.types.insert(path, self.type_slots.len() - 1);
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
@@ -414,10 +426,11 @@ impl World {
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Rc::new(value.into());
         let path = TypeName::from(path.into());
-        let ty = self.types.get(&path);
-        if let Some(ty) = ty {
+        let slot = self.types.get(&path);
+        if let Some(slot) = slot {
+            let ty = self.type_slots[*slot].clone();
             let bindings = Bindings::default();
-            ty.evaluate(value.clone(), &bindings).await
+            ty.evaluate(value.clone(), &bindings, self).await
         } else {
             Err(RuntimeError::NoSuchType(path))
         }
@@ -427,8 +440,9 @@ impl World {
         let name = name.into();
         let path = TypeName::from(name);
 
-        if let Some(ty) = self.types.get(&path) {
-            return Some(Component::Type(ty.clone()));
+        if let Some(slot) = self.types.get(&path) {
+            let ty = self.type_slots[*slot].clone();
+            return Some(Component::Type(ty));
         }
 
         let mut module_handle = ModuleHandle::new();

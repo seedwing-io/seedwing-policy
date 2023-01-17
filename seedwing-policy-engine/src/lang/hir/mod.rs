@@ -306,7 +306,7 @@ impl World {
         self.packages.insert(package.path(), package);
     }
 
-    pub async fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
+    pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
         let mut core_units = Vec::new();
 
         let mut errors = Vec::new();
@@ -337,9 +337,7 @@ impl World {
             return Err(errors);
         }
 
-        Lowerer::new(&mut self.units, &mut self.packages)
-            .lower()
-            .await
+        Lowerer::new(&mut self.units, &mut self.packages).lower()
     }
 }
 
@@ -356,7 +354,7 @@ impl<'b> Lowerer<'b> {
         Self { units, packages }
     }
 
-    pub async fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+    pub fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         let mut world = mir::World::new();
         let mut errors = Vec::new();
@@ -471,26 +469,22 @@ impl<'b> Lowerer<'b> {
 
             for ty in unit.types() {
                 let name = unit_path.type_name(ty.name().inner());
-                world
-                    .declare(name, ty.documentation.clone(), ty.parameters())
-                    .await;
+                world.declare(name, ty.documentation.clone(), ty.parameters());
             }
         }
 
         for (path, package) in self.packages.iter() {
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
-                world
-                    .declare(
-                        path,
-                        func.documentation(),
-                        func.parameters()
-                            .iter()
-                            .cloned()
-                            .map(|p| Located::new(p, 0..0))
-                            .collect(),
-                    )
-                    .await;
+                world.declare(
+                    path,
+                    func.documentation(),
+                    func.parameters()
+                        .iter()
+                        .cloned()
+                        .map(|p| Located::new(p, 0..0))
+                        .collect(),
+                );
             }
         }
 

@@ -1,6 +1,7 @@
 use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::runtime::World;
 use crate::runtime::{Output, RuntimeError};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
@@ -21,13 +22,18 @@ impl Function for None {
         &'v self,
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
+        world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(list) = input.try_get_list() {
                 let pattern = bindings.get(PATTERN).unwrap();
                 let mut supporting = Vec::new();
                 for item in list {
-                    supporting.push(pattern.evaluate(item.clone(), &Default::default()).await?);
+                    supporting.push(
+                        pattern
+                            .evaluate(item.clone(), &Default::default(), world)
+                            .await?,
+                    );
                 }
 
                 if supporting.iter().all(|e| !e.satisfied()) {
