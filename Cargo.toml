@@ -2,4 +2,6 @@
 members = [
   "seedwing-policy-engine",
   "seedwing-policy-server",
+  "seedwing-policy-dog2wasm",
+  "seedwing-policy-wasm",
 ]
