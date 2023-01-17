@@ -1,7 +1,6 @@
 use crate::core::Function;
 use crate::lang::hir::MemberQualifier;
 use crate::lang::mir::TypeHandle;
-use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialType};
 use crate::runtime::rationale::Rationale;
@@ -12,14 +11,141 @@ use serde::Serialize;
 use std::any::Any;
 use std::borrow::Borrow;
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+
+#[derive(Serialize, Debug, Clone)]
+pub enum Expr {
+    SelfLiteral(),
+    Value(ValueType),
+    Accessor(Arc<Expr>, String),
+    Field(Arc<Expr>, Arc<Expr>),
+    /* self.len */
+    Function(String, Arc<Expr>),
+    /* len(self) */
+    Add(Arc<Expr>, Arc<Expr>),
+    Subtract(Arc<Expr>, Arc<Expr>),
+    Multiply(Arc<Expr>, Arc<Expr>),
+    Divide(Arc<Expr>, Arc<Expr>),
+    LessThan(Arc<Expr>, Arc<Expr>),
+    LessThanEqual(Arc<Expr>, Arc<Expr>),
+    GreaterThan(Arc<Expr>, Arc<Expr>),
+    GreaterThanEqual(Arc<Expr>, Arc<Expr>),
+    Equal(Arc<Expr>, Arc<Expr>),
+    NotEqual(Arc<Expr>, Arc<Expr>),
+    Not(Arc<Expr>),
+    LogicalAnd(Arc<Expr>, Arc<Expr>),
+    LogicalOr(Arc<Expr>, Arc<Expr>),
+}
+
+pub type ExprFuture =
+    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
+
+impl Expr {
+    #[allow(clippy::let_and_return)]
+    pub fn evaluate(&self, value: Rc<RuntimeValue>) -> ExprFuture {
+        let this = self.clone();
+
+        Box::pin(async move {
+            match &this {
+                Expr::SelfLiteral() => Ok(value.clone()),
+                Expr::Value(ref inner) => Ok(Rc::new(inner.into())),
+                Expr::Accessor(_, _) => todo!(),
+                Expr::Field(_, _) => todo!(),
+                Expr::Function(_, _) => todo!(),
+                Expr::Add(_, _) => todo!(),
+                Expr::Subtract(_, _) => todo!(),
+                Expr::Multiply(_, _) => todo!(),
+                Expr::Divide(_, _) => todo!(),
+                Expr::LessThan(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Less) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                Expr::LessThanEqual(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Less | Ordering::Equal) =
+                        (*lhs).partial_cmp(&(*rhs))
+                    {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                Expr::GreaterThan(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Greater) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                Expr::GreaterThanEqual(lhs, rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Greater | Ordering::Equal) =
+                        (*lhs).partial_cmp(&(*rhs))
+                    {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                Expr::Equal(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(true.into()))
+                    } else {
+                        Ok(Rc::new(false.into()))
+                    };
+
+                    result
+                }
+                Expr::NotEqual(ref lhs, ref rhs) => {
+                    let lhs = lhs.clone().evaluate(value.clone()).await?;
+                    let rhs = rhs.clone().evaluate(value.clone()).await?;
+
+                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
+                        Ok(Rc::new(false.into()))
+                    } else {
+                        Ok(Rc::new(true.into()))
+                    };
+
+                    result
+                }
+                Expr::Not(_) => todo!(),
+                Expr::LogicalAnd(_, _) => todo!(),
+                Expr::LogicalOr(_, _) => todo!(),
+            }
+        })
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct Type {
@@ -65,7 +191,7 @@ impl Type {
         value: Rc<RuntimeValue>,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
@@ -358,7 +484,7 @@ pub enum InnerType {
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
-    Expr(Arc<Located<Expr>>),
+    Expr(Arc<Expr>),
     Join(Vec<Arc<Type>>),
     Meet(Vec<Arc<Type>>),
     Refinement(Arc<Type>, Arc<Type>),
@@ -386,7 +512,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
         self.bindings.iter()
     }
 
@@ -466,11 +592,7 @@ impl Display for Field {
 
 impl Field {
     pub fn new(name: String, ty: Arc<Type>, optional: bool) -> Self {
-        Self {
-            name,
-            ty,
-            optional,
-        }
+        Self { name, ty, optional }
     }
 
     pub fn name(&self) -> String {
@@ -522,7 +644,7 @@ impl ValueType {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output=bool> + 'e>> {
+    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
         match (self, &other) {
             (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
             (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
@@ -677,7 +799,7 @@ pub(crate) fn convert(
             name,
             documentation,
             parameters,
-            lir::InnerType::Expr(expr.clone()),
+            lir::InnerType::Expr(Arc::new(expr.lower())),
         )),
         mir::Type::Join(terms) => {
             let mut inner = Vec::new();

@@ -1,8 +1,7 @@
 use crate::core::Function;
-use crate::lang::hir::MemberQualifier;
+use crate::lang::hir::{Expr, MemberQualifier};
 use crate::lang::lir;
 use crate::lang::lir::ValueType;
-use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{Located, SourceLocation};
 use crate::lang::PrimordialType;
 use crate::lang::{hir, mir};

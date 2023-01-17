@@ -1,16 +1,78 @@
 use crate::core::Function;
 use crate::lang::lir::ValueType;
-use crate::lang::mir;
-use crate::lang::parser::expr::Expr;
-use crate::lang::parser::{CompilationUnit, Located, PolicyParser, SourceLocation};
+use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
+use crate::lang::{lir, mir};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, PackagePath, RuntimeError, TypeName};
 use crate::value::RuntimeValue;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
 use std::sync::Arc;
+
+#[derive(Serialize, Debug, Clone)]
+pub enum Expr {
+    SelfLiteral(#[serde(skip)] Location),
+    /* self */
+    Value(Located<ValueType>),
+    Add(Box<Located<Expr>>, Box<Located<Expr>>),
+    Subtract(Box<Located<Expr>>, Box<Located<Expr>>),
+    Multiply(Box<Located<Expr>>, Box<Located<Expr>>),
+    Divide(Box<Located<Expr>>, Box<Located<Expr>>),
+    LessThan(Box<Located<Expr>>, Box<Located<Expr>>),
+    LessThanEqual(Box<Located<Expr>>, Box<Located<Expr>>),
+    GreaterThan(Box<Located<Expr>>, Box<Located<Expr>>),
+    GreaterThanEqual(Box<Located<Expr>>, Box<Located<Expr>>),
+    Equal(Box<Located<Expr>>, Box<Located<Expr>>),
+    NotEqual(Box<Located<Expr>>, Box<Located<Expr>>),
+    Not(Box<Located<Expr>>),
+    LogicalAnd(Box<Located<Expr>>, Box<Located<Expr>>),
+    LogicalOr(Box<Located<Expr>>, Box<Located<Expr>>),
+}
+
+impl Expr {
+    pub fn lower(&self) -> lir::Expr {
+        match self {
+            Expr::SelfLiteral(_) => lir::Expr::SelfLiteral(),
+            Expr::Value(val) => lir::Expr::Value(val.inner()),
+            Expr::Add(lhs, rhs) => lir::Expr::Add(Arc::new(lhs.lower()), Arc::new(rhs.lower())),
+            Expr::Subtract(lhs, rhs) => {
+                lir::Expr::Subtract(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::Multiply(lhs, rhs) => {
+                lir::Expr::Multiply(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::Divide(lhs, rhs) => {
+                lir::Expr::Divide(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::LessThan(lhs, rhs) => {
+                lir::Expr::LessThan(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::LessThanEqual(lhs, rhs) => {
+                lir::Expr::LessThanEqual(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::GreaterThan(lhs, rhs) => {
+                lir::Expr::GreaterThan(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::GreaterThanEqual(lhs, rhs) => {
+                lir::Expr::GreaterThanEqual(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::Equal(lhs, rhs) => lir::Expr::Equal(Arc::new(lhs.lower()), Arc::new(rhs.lower())),
+            Expr::NotEqual(lhs, rhs) => {
+                lir::Expr::NotEqual(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::Not(term) => lir::Expr::Not(Arc::new(term.lower())),
+            Expr::LogicalAnd(lhs, rhs) => {
+                lir::Expr::LogicalAnd(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+            Expr::LogicalOr(lhs, rhs) => {
+                lir::Expr::LogicalOr(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct TypeDefn {

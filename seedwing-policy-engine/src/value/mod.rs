@@ -2,7 +2,6 @@ use crate::core::Function;
 use crate::lang::lir;
 use crate::lang::lir::{Field, InnerType};
 use crate::lang::mir::TypeHandle;
-use crate::lang::parser::expr::Expr;
 use crate::lang::parser::Located;
 use crate::runtime::RuntimeError;
 use serde::Serialize;

@@ -4,7 +4,6 @@ use crate::core::Function;
 use crate::lang::hir::MemberQualifier;
 use crate::lang::lir::{Bindings, Field, ObjectType, Type};
 use crate::lang::mir::TypeHandle;
-use crate::lang::parser::expr::Expr;
 use crate::lang::parser::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
 };

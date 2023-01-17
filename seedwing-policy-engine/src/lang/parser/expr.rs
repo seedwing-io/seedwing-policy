@@ -1,5 +1,5 @@
-use crate::lang::hir::Type;
-use crate::lang::lir::{ValueType};
+use crate::lang::hir::{Expr, Type};
+use crate::lang::lir::ValueType;
 use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::RuntimeError;
 use crate::value::RuntimeValue;
@@ -11,135 +11,6 @@ use std::cmp::Ordering;
 use std::future::{ready, Future};
 use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::Arc;
-
-#[derive(Serialize, Debug, Clone)]
-pub enum Expr {
-    SelfLiteral(#[serde(skip)] Location),
-    /* self */
-    Value(Located<ValueType>),
-    Accessor(Arc<Located<Expr>>, Located<String>),
-    Field(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    /* self.len */
-    Function(Located<String>, Arc<Located<Expr>>),
-    /* len(self) */
-    Add(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    Subtract(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    Multiply(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    Divide(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    LessThan(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    LessThanEqual(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    GreaterThan(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    GreaterThanEqual(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    Equal(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    NotEqual(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    Not(Arc<Located<Expr>>),
-    LogicalAnd(Arc<Located<Expr>>, Arc<Located<Expr>>),
-    LogicalOr(Arc<Located<Expr>>, Arc<Located<Expr>>),
-}
-
-pub type ExprFuture =
-    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
-
-impl Located<Expr> {
-    #[allow(clippy::let_and_return)]
-    pub fn evaluate(self: &Arc<Self>, value: Rc<RuntimeValue>) -> ExprFuture {
-        let this = self.clone();
-
-        Box::pin(async move {
-            match &this.inner {
-                Expr::SelfLiteral(_) => Ok(value.clone()),
-                Expr::Value(ref inner) => Ok(Rc::new((&inner.inner()).into())),
-                Expr::Accessor(_, _) => todo!(),
-                Expr::Field(_, _) => todo!(),
-                Expr::Function(_, _) => todo!(),
-                Expr::Add(_, _) => todo!(),
-                Expr::Subtract(_, _) => todo!(),
-                Expr::Multiply(_, _) => todo!(),
-                Expr::Divide(_, _) => todo!(),
-                Expr::LessThan(ref lhs, ref rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Less) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
-                    } else {
-                        Ok(Rc::new(false.into()))
-                    };
-
-                    result
-                }
-                Expr::LessThanEqual(ref lhs, ref rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Less | Ordering::Equal) =
-                        (*lhs).partial_cmp(&(*rhs))
-                    {
-                        Ok(Rc::new(true.into()))
-                    } else {
-                        Ok(Rc::new(false.into()))
-                    };
-
-                    result
-                }
-                Expr::GreaterThan(ref lhs, ref rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Greater) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
-                    } else {
-                        Ok(Rc::new(false.into()))
-                    };
-
-                    result
-                }
-                Expr::GreaterThanEqual(lhs, rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Greater | Ordering::Equal) =
-                        (*lhs).partial_cmp(&(*rhs))
-                    {
-                        Ok(Rc::new(true.into()))
-                    } else {
-                        Ok(Rc::new(false.into()))
-                    };
-
-                    result
-                }
-                Expr::Equal(ref lhs, ref rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
-                    } else {
-                        Ok(Rc::new(false.into()))
-                    };
-
-                    result
-                }
-                Expr::NotEqual(ref lhs, ref rhs) => {
-                    let lhs = lhs.clone().evaluate(value.clone()).await?;
-                    let rhs = rhs.clone().evaluate(value.clone()).await?;
-
-                    let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(false.into()))
-                    } else {
-                        Ok(Rc::new(true.into()))
-                    };
-
-                    result
-                }
-                Expr::Not(_) => todo!(),
-                Expr::LogicalAnd(_, _) => todo!(),
-                Expr::LogicalOr(_, _) => todo!(),
-            }
-        })
-    }
-}
 
 #[derive(Copy, Clone, Debug)]
 pub enum ExprError {
@@ -168,19 +39,13 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .padded()
         .map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(
-                    ValueType::Boolean(true),
-                    span.clone(),
-                )),
+                Expr::Value(Located::new(ValueType::Boolean(true), span.clone())),
                 span,
             )
         })
         .or(just("false").padded().map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(
-                    ValueType::Boolean(false),
-                    span.clone(),
-                )),
+                Expr::Value(Located::new(ValueType::Boolean(false), span.clone())),
                 span,
             )
         }))
@@ -218,10 +83,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .padded()
         .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(
-                    ValueType::String(x),
-                    span.clone(),
-                )),
+                Expr::Value(Located::new(ValueType::String(x), span.clone())),
                 span,
             )
         })
@@ -229,38 +91,8 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
 
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     just("self").padded().map_with_span(|v, span: SourceSpan| {
-        Located::new(
-            Expr::SelfLiteral(Location::from(span.clone())),
-            span,
-        )
+        Located::new(Expr::SelfLiteral(Location::from(span.clone())), span)
     })
-}
-
-pub fn field_expr() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
-    text::ident()
-        .map_with_span(Located::new)
-        .then(op(":").padded().ignored())
-        .then(expr())
-        .map(|((field_name, _colon), expr)| {
-            let primary_location = field_name.location();
-            let expr_self = Located::new(
-                Expr::Accessor(
-                    Arc::new(Located::new(
-                        Expr::SelfLiteral(primary_location.clone()),
-                        primary_location.clone(),
-                    )),
-                    field_name,
-                ),
-                primary_location.clone(),
-            );
-
-            let field_location = primary_location.span().start()..expr.span().end();
-
-            Located::new(
-                Expr::Field(Arc::new(expr_self), Arc::new(expr)),
-                field_location,
-            )
-        })
 }
 
 pub fn atom() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
@@ -293,10 +125,7 @@ pub fn logical_or(
         .then(op("||").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
-            Located::new(
-                Expr::LogicalOr(Arc::new(lhs), Arc::new(rhs)),
-                span,
-            )
+            Located::new(Expr::LogicalOr(Box::new(lhs), Box::new(rhs)), span)
         })
 }
 
@@ -307,10 +136,7 @@ pub fn logical_and(
         .then(op("&&").then(expr).repeated())
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
-            Located::new(
-                Expr::LogicalAnd(Arc::new(lhs), Arc::new(rhs)),
-                span,
-            )
+            Located::new(Expr::LogicalAnd(Box::new(lhs), Box::new(rhs)), span)
         })
 }
 
@@ -329,21 +155,19 @@ pub fn relational_expr(
                 .or(op("<=").map_with_span(|_, span| {
                     Located::new(Expr::LessThanEqual as fn(_, _) -> _, span)
                 }))
-                .or(op("<").map_with_span(|_, span| {
-                    Located::new(Expr::LessThan as fn(_, _) -> _, span)
-                }))
+                .or(op("<")
+                    .map_with_span(|_, span| Located::new(Expr::LessThan as fn(_, _) -> _, span)))
                 .or(op("==")
                     .map_with_span(|_, span| Located::new(Expr::Equal as fn(_, _) -> _, span)))
-                .or(op("!=").map_with_span(|_, span| {
-                    Located::new(Expr::NotEqual as fn(_, _) -> _, span)
-                }))
+                .or(op("!=")
+                    .map_with_span(|_, span| Located::new(Expr::NotEqual as fn(_, _) -> _, span)))
                 .then(expr)
                 .or_not(),
         )
         .map(|(lhs, rhs)| {
             if let Some((op, rhs)) = rhs {
                 let span = op.span().start()..rhs.span().end;
-                Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
+                Located::new(op(Box::new(lhs), Box::new(rhs)), span)
             } else {
                 lhs
             }
@@ -357,15 +181,14 @@ pub fn additive_expr(
         .then(
             op("+")
                 .map_with_span(|_, span| Located::new(Expr::Add as fn(_, _) -> _, span))
-                .or(op("-").map_with_span(|_, span| {
-                    Located::new(Expr::Subtract as fn(_, _) -> _, span)
-                }))
+                .or(op("-")
+                    .map_with_span(|_, span| Located::new(Expr::Subtract as fn(_, _) -> _, span)))
                 .then(multiplicative_expr(expr))
                 .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {
             let span = lhs.span().start()..rhs.span().end;
-            Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
+            Located::new(op(Box::new(lhs), Box::new(rhs)), span)
         })
 }
 
@@ -376,15 +199,14 @@ pub fn multiplicative_expr(
         .then(
             op("*")
                 .map_with_span(|_, span| Located::new(Expr::Multiply as fn(_, _) -> _, span))
-                .or(op("/").map_with_span(|_, span| {
-                    Located::new(Expr::Divide as fn(_, _) -> _, span)
-                }))
+                .or(op("/")
+                    .map_with_span(|_, span| Located::new(Expr::Divide as fn(_, _) -> _, span)))
                 .then(atom())
                 .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {
             let span = lhs.span().start()..rhs.span().end;
-            Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
+            Located::new(op(Box::new(lhs), Box::new(rhs)), span)
         })
 }
 

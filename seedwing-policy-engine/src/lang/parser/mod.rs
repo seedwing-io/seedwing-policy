@@ -109,8 +109,8 @@ pub struct Located<T> {
 
 impl<T: Serialize> Serialize for Located<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         self.inner.serialize(serializer)
     }
@@ -267,11 +267,11 @@ impl PolicyParser {
         source: Src,
         stream: S,
     ) -> Result<CompilationUnit, Vec<ParserError>>
-        where
-            Self: Sized,
-            Iter: Iterator<Item=(ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
-            Src: Into<SourceLocation> + Clone,
-            S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+    where
+        Self: Sized,
+        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+        Src: Into<SourceLocation> + Clone,
+        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
     {
         let tokens = lexer().parse(stream)?;
         let tokens = remove_comments(&tokens);
@@ -335,15 +335,16 @@ fn remove_comments(tokens: &Vec<(ParserInput, SourceSpan)>) -> Vec<(ParserInput,
     filtered_tokens
 }
 
-pub fn lexer() -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error=ParserError> + Clone {
+pub fn lexer(
+) -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error = ParserError> + Clone {
     any().map_with_span(|l, span| (l, span)).repeated()
 }
 
-fn op(op: &str) -> impl Parser<ParserInput, &str, Error=ParserError> + Clone {
+fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {
     just(op).padded()
 }
 
-pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserError> + Clone {
+pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
     just("use")
         .padded()
         .ignored()
@@ -355,7 +356,7 @@ pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error=ParserErr
         })
 }
 
-pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error=ParserError> + Clone {
+pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
     just("as")
         .padded()
         .ignored()
@@ -365,9 +366,9 @@ pub fn as_clause() -> impl Parser<ParserInput, Located<String>, Error=ParserErro
 
 pub fn compilation_unit<S>(
     source: S,
-) -> impl Parser<ParserInput, CompilationUnit, Error=ParserError> + Clone
-    where
-        S: Into<SourceLocation> + Clone,
+) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone
+where
+    S: Into<SourceLocation> + Clone,
 {
     use_statement()
         .padded()
