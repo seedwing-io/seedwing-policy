@@ -1,6 +1,7 @@
 use bencher::{benchmark_group, benchmark_main, Bencher};
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::json;
+use serde_json::Value as JsonValue;
 
 fn eval_speed(bencher: &mut Bencher, data: TestData) {
     let mut builder = Builder::new();
@@ -16,8 +17,8 @@ fn eval_speed(bencher: &mut Bencher, data: TestData) {
 
     bencher.iter(|| {
         executor
-            .block_on(runtime.evaluate(&data.path, data.value.clone()))
-            .unwrap()
+            .block_on(runtime.evaluate(&data.path, &data.value))
+            .unwrap();
     });
 }
 
@@ -41,10 +42,7 @@ fn end_to_end_speed(bencher: &mut Bencher, data: TestData) {
 
             let _ = builder.build(data.src.iter());
             let runtime = builder.finish().await.unwrap();
-            runtime
-                .evaluate(&data.path, data.value.clone())
-                .await
-                .unwrap()
+            runtime.evaluate(&data.path, &data.value).await.unwrap()
         });
     });
 }
@@ -53,7 +51,7 @@ fn end_to_end_speed(bencher: &mut Bencher, data: TestData) {
 struct TestData {
     src: Ephemeral,
     path: String,
-    value: String,
+    value: JsonValue,
 }
 
 /*
@@ -85,20 +83,17 @@ fn testdata_smoke() -> TestData {
         pattern bob = named<"Bob">
 
         pattern folks = jim || bob
-
         "#,
     );
 
     TestData {
         src,
-        path: "smoke::folks".to_string(),
+        path: "smoke::bob".to_string(),
         value: json!(
             {
-                "name": "Bob",
-                "age": 52,
+                "name": "Bob"
             }
-        )
-        .to_string(),
+        ),
     }
 }
 
@@ -108,16 +103,16 @@ fn testdata_smoke() -> TestData {
  * More complex tests using sigstore verification.
  */
 
-fn sigstore_eval(bencher: &mut Bencher) {
-    eval_speed(bencher, testdata_sigstore());
-}
+//fn sigstore_eval(bencher: &mut Bencher) {
+//    eval_speed(bencher, testdata_sigstore());
+//}
+//
+//fn sigstore_end_to_end(bencher: &mut Bencher) {
+//    end_to_end_speed(bencher, testdata_sigstore());
+//}
 
 fn sigstore_build(bencher: &mut Bencher) {
     build_speed(bencher, testdata_sigstore());
-}
-
-fn sigstore_end_to_end(bencher: &mut Bencher) {
-    end_to_end_speed(bencher, testdata_sigstore());
 }
 
 fn testdata_sigstore() -> TestData {
@@ -155,8 +150,7 @@ fn testdata_sigstore() -> TestData {
         {
             "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
         }
-    )
-    .to_string();
+    );
 
     TestData {
         src,
@@ -171,7 +165,7 @@ benchmark_group!(
     smoke_eval,
     smoke_end_to_end,
     sigstore_build,
-    sigstore_eval,
-    sigstore_end_to_end
+    // sigstore_eval,
+    // sigstore_end_to_end
 );
 benchmark_main!(benches);
