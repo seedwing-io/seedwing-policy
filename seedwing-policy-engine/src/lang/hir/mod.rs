@@ -313,6 +313,7 @@ impl World {
         };
         world.add_package(crate::core::pattern::package());
         world.add_package(crate::core::list::package());
+        world.add_package(crate::core::string::package());
         world.add_package(crate::core::base64::package());
         world.add_package(crate::core::json::package());
         #[cfg(feature = "sigstore")]

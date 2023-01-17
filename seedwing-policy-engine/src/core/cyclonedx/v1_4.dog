@@ -22,10 +22,28 @@ pattern tool = {
   externalReferences?: list::All<external-reference>,
 }
 
-pattern hash = {
-  alg: "MD5" || "SHA-1" || "SHA-256" || "SHA-384" || "SHA-512" || "SHA3-256" || "SHA3-384" || "SHA3-512" || "BLAKE2b-256" || "BLAKE2b-384" || "BLAKE2b-512" || "BLAKE3",
-  content: string,
-}
+/// A hash attached to a CycloneDX SBOM.
+///
+/// Example input:
+/// ```
+/// {
+///   "alg": "SHA3-512",
+///   "content": "6ed81f58d9039e56d393165bd26c998584e364f7975e33f5c3008ac10d67ed190edcd196c5ce1554e23c4e1271f8aed631e07c3ea0de59a3457891d188e71b67"
+/// }
+/// ```
+pattern hash =
+    cyclonedx::hash::md5
+    || cyclonedx::hash::sha-1
+    || cyclonedx::hash::sha-256
+    || cyclonedx::hash::sha-384
+    || cyclonedx::hash::sha-512
+    || cyclonedx::hash::sha3-256
+    || cyclonedx::hash::sha3-384
+    || cyclonedx::hash::sha3-512
+    || {
+      alg: "BLAKE2b-256" || "BLAKE2b-384" || "BLAKE2b-512" || "BLAKE3",
+      content: string,
+    }
 
 pattern external-reference = {
   url: string,

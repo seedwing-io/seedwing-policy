@@ -24,11 +24,7 @@ use std::sync::Arc;
 pub enum Expr {
     SelfLiteral(),
     Value(ValueType),
-    Accessor(Arc<Expr>, String),
-    Field(Arc<Expr>, Arc<Expr>),
-    /* self.len */
     Function(String, Arc<Expr>),
-    /* len(self) */
     Add(Arc<Expr>, Arc<Expr>),
     Subtract(Arc<Expr>, Arc<Expr>),
     Multiply(Arc<Expr>, Arc<Expr>),
@@ -56,8 +52,6 @@ impl Expr {
             match &this {
                 Expr::SelfLiteral() => Ok(value.clone()),
                 Expr::Value(ref inner) => Ok(Rc::new(inner.into())),
-                Expr::Accessor(_, _) => todo!(),
-                Expr::Field(_, _) => todo!(),
                 Expr::Function(_, _) => todo!(),
                 Expr::Add(_, _) => todo!(),
                 Expr::Subtract(_, _) => todo!(),

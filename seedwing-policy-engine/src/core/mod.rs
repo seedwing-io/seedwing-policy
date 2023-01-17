@@ -19,6 +19,7 @@ pub mod pattern;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
 pub mod spdx;
+pub mod string;
 pub mod x509;
 
 #[derive(Debug)]

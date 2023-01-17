@@ -1,0 +1,6 @@
+Function that produces the length of an input string, if it is a string.
+
+Example input:
+```
+"bob"
+```

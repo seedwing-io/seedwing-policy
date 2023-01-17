@@ -1,0 +1,40 @@
+
+pattern md5 = {
+  alg: "MD5",
+  content: string::Length( $(self == 32) )
+}
+
+pattern sha-1 = {
+  alg: "SHA-1",
+  content: string::Length( $(self == 40) )
+}
+
+pattern sha-256 = {
+  alg: "SHA-256",
+  content: string::Length( $(self == 64) )
+}
+
+pattern sha-384 = {
+  alg: "SHA-384",
+  content: string::Length( $(self == 96) )
+}
+
+pattern sha-512 = {
+  alg: "SHA-512",
+  content: string::Length( $(self == 128) )
+}
+
+pattern sha3-256 = {
+  alg: "SHA3-256",
+  content: string::Length( $(self == 64) )
+}
+
+pattern sha3-384 = {
+  alg: "SHA3-384",
+  content: string::Length( $(self == 96) )
+}
+
+pattern sha3-512 = {
+  alg: "SHA3-512",
+  content: string::Length( $(self == 128) )
+}

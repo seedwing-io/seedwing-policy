@@ -1,4 +1,4 @@
-use seedwing_policy_engine::lang::lir::{InnerType, ObjectType, Type, ValueType};
+use seedwing_policy_engine::lang::lir::{Expr, InnerType, ObjectType, Type, ValueType};
 use seedwing_policy_engine::lang::PrimordialType;
 use seedwing_policy_engine::runtime;
 use seedwing_policy_engine::runtime::{TypeName, World};
@@ -93,7 +93,7 @@ impl<'w> Htmlifier<'w> {
                 let ty = world.get_by_slot(*slot);
                 if let Some(ty) = ty {
                     html.push_str("<span>");
-                    let has_params = ! ty.parameters().is_empty();
+                    let has_params = !ty.parameters().is_empty();
                     self.html_of_ty(html, ty, world);
                     if has_params {
                         html.push_str("&lt;");
@@ -133,8 +133,10 @@ impl<'w> Htmlifier<'w> {
             InnerType::Object(object) => {
                 self.html_of_object(html, object, world);
             }
-            InnerType::Expr(_) => {
-                todo!()
+            InnerType::Expr(expr) => {
+                html.push_str( "$(");
+                self.html_of_expr(html, expr);
+                html.push_str( ")");
             }
             InnerType::Join(terms) => {
                 html.push_str("<span>");
@@ -197,5 +199,81 @@ impl<'w> Htmlifier<'w> {
         }
         html.push('}');
         html.push_str("</span>");
+    }
+
+    fn html_of_expr(&self, html: &mut String, expr: &Arc<Expr>) {
+        match &**expr {
+            Expr::SelfLiteral() => {
+                html.push_str( "self")
+            }
+            Expr::Value(val) => {
+                match val {
+                    ValueType::Null => {
+                        html.push_str( "null");
+                    }
+                    ValueType::String(inner) => {
+                        html.push_str( format!( "\"{}\"", inner).as_str());
+                    }
+                    ValueType::Integer(inner) => {
+                        html.push_str( format!( "{}", inner).as_str());
+                    }
+                    ValueType::Decimal(inner) => {
+                        html.push_str( format!( "{}", inner).as_str());
+                    }
+                    ValueType::Boolean(inner) => {
+                        html.push_str( format!( "{}", inner).as_str());
+                    }
+                    ValueType::List(_) => {}
+                    ValueType::Octets(_) => {}
+                }
+            }
+            Expr::Function(_, _) => {}
+            Expr::Add(_, _) => {}
+            Expr::Subtract(_, _) => {}
+            Expr::Multiply(_, _) => {}
+            Expr::Divide(_, _) => {}
+            Expr::LessThan(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" &lt; ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::LessThanEqual(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" &lt;= ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::GreaterThan(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" &gt; ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::GreaterThanEqual(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" &gt;= ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::Equal(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" == ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::NotEqual(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" != ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::Not(_) => {}
+            Expr::LogicalAnd(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" &amp;&amp; ");
+                self.html_of_expr(html, rhs);
+            }
+            Expr::LogicalOr(lhs, rhs) => {
+                self.html_of_expr(html, lhs);
+                html.push_str(" || ");
+                self.html_of_expr(html, rhs);
+            }
+        }
+
     }
 }

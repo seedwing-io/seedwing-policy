@@ -135,6 +135,12 @@ impl From<i64> for RuntimeValue {
     }
 }
 
+impl From<usize> for RuntimeValue {
+    fn from(inner: usize) -> Self {
+        Self::Integer(inner as _)
+    }
+}
+
 impl From<f64> for RuntimeValue {
     fn from(inner: f64) -> Self {
         Self::Decimal(inner)

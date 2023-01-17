@@ -164,9 +164,20 @@ impl<'r> Rationalizer<'r> {
                             //html.push_str( "function was satisfied");
                             //html.push_str("</div>");
                         }
-                        Output::Transform(_output) => {
+                        Output::Transform(output) => {
                             html.push_str("<div class='function'>");
-                            html.push_str("and produced a value...");
+                            html.push_str("and produced a value");
+
+                            let output_json = output.as_json();
+                            let output_json = serde_json::to_string_pretty(&output_json).unwrap();
+                            let output_json = output_json.replace('<', "&lt;");
+                            let output_json = output_json.replace('>', "&gt;");
+                            html.push_str("<div class='output'>");
+                            html.push_str("<pre>");
+                            html.push_str(output_json.as_str());
+                            html.push_str("</pre>");
+                            html.push_str("</div>");
+
                             html.push_str("</div>");
                         }
                     }
