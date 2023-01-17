@@ -1,5 +1,5 @@
 use crate::lang::hir::Type;
-use crate::lang::lir::{ValueType, ID_COUNTER};
+use crate::lang::lir::{ValueType};
 use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
 use crate::runtime::RuntimeError;
 use crate::value::RuntimeValue;
@@ -14,22 +14,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Serialize, Debug, Clone)]
-pub struct Expr {
-    pub(crate) id: u64,
-    inner: InnerExpr,
-}
-
-impl Expr {
-    pub fn new(inner: InnerExpr) -> Self {
-        Self {
-            id: ID_COUNTER.fetch_add(1, core::sync::atomic::Ordering::Relaxed),
-            inner,
-        }
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub enum InnerExpr {
+pub enum Expr {
     SelfLiteral(#[serde(skip)] Location),
     /* self */
     Value(Located<ValueType>),
@@ -62,17 +47,17 @@ impl Located<Expr> {
         let this = self.clone();
 
         Box::pin(async move {
-            match &this.inner.inner {
-                InnerExpr::SelfLiteral(_) => Ok(value.clone()),
-                InnerExpr::Value(ref inner) => Ok(Rc::new((&inner.inner()).into())),
-                InnerExpr::Accessor(_, _) => todo!(),
-                InnerExpr::Field(_, _) => todo!(),
-                InnerExpr::Function(_, _) => todo!(),
-                InnerExpr::Add(_, _) => todo!(),
-                InnerExpr::Subtract(_, _) => todo!(),
-                InnerExpr::Multiply(_, _) => todo!(),
-                InnerExpr::Divide(_, _) => todo!(),
-                InnerExpr::LessThan(ref lhs, ref rhs) => {
+            match &this.inner {
+                Expr::SelfLiteral(_) => Ok(value.clone()),
+                Expr::Value(ref inner) => Ok(Rc::new((&inner.inner()).into())),
+                Expr::Accessor(_, _) => todo!(),
+                Expr::Field(_, _) => todo!(),
+                Expr::Function(_, _) => todo!(),
+                Expr::Add(_, _) => todo!(),
+                Expr::Subtract(_, _) => todo!(),
+                Expr::Multiply(_, _) => todo!(),
+                Expr::Divide(_, _) => todo!(),
+                Expr::LessThan(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -84,7 +69,7 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::LessThanEqual(ref lhs, ref rhs) => {
+                Expr::LessThanEqual(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -98,7 +83,7 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::GreaterThan(ref lhs, ref rhs) => {
+                Expr::GreaterThan(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -110,7 +95,7 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::GreaterThanEqual(lhs, rhs) => {
+                Expr::GreaterThanEqual(lhs, rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -124,7 +109,7 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::Equal(ref lhs, ref rhs) => {
+                Expr::Equal(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -136,7 +121,7 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::NotEqual(ref lhs, ref rhs) => {
+                Expr::NotEqual(ref lhs, ref rhs) => {
                     let lhs = lhs.clone().evaluate(value.clone()).await?;
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
@@ -148,9 +133,9 @@ impl Located<Expr> {
 
                     result
                 }
-                InnerExpr::Not(_) => todo!(),
-                InnerExpr::LogicalAnd(_, _) => todo!(),
-                InnerExpr::LogicalOr(_, _) => todo!(),
+                Expr::Not(_) => todo!(),
+                Expr::LogicalAnd(_, _) => todo!(),
+                Expr::LogicalOr(_, _) => todo!(),
             }
         })
     }
@@ -183,19 +168,19 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .padded()
         .map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(
+                Expr::Value(Located::new(
                     ValueType::Boolean(true),
                     span.clone(),
-                ))),
+                )),
                 span,
             )
         })
         .or(just("false").padded().map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(
+                Expr::Value(Located::new(
                     ValueType::Boolean(false),
                     span.clone(),
-                ))),
+                )),
                 span,
             )
         }))
@@ -207,7 +192,7 @@ pub fn integer_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
             Located::new(ValueType::Integer(s.parse::<i64>().unwrap()), span)
         })
         .padded()
-        .map_with_span(|value, span| Located::new(Expr::new(InnerExpr::Value(value)), span))
+        .map_with_span(|value, span| Located::new(Expr::Value(value), span))
 }
 
 pub fn decimal_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
@@ -222,7 +207,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
                 )
             },
         )
-        .map_with_span(|value, span| Located::new(Expr::new(InnerExpr::Value(value)), span))
+        .map_with_span(|value, span| Located::new(Expr::Value(value), span))
 }
 
 pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
@@ -233,10 +218,10 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .padded()
         .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(
-                Expr::new(InnerExpr::Value(Located::new(
+                Expr::Value(Located::new(
                     ValueType::String(x),
                     span.clone(),
-                ))),
+                )),
                 span,
             )
         })
@@ -245,7 +230,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     just("self").padded().map_with_span(|v, span: SourceSpan| {
         Located::new(
-            Expr::new(InnerExpr::SelfLiteral(Location::from(span.clone()))),
+            Expr::SelfLiteral(Location::from(span.clone())),
             span,
         )
     })
@@ -259,20 +244,20 @@ pub fn field_expr() -> impl Parser<ParserInput, Located<Expr>, Error = ParserErr
         .map(|((field_name, _colon), expr)| {
             let primary_location = field_name.location();
             let expr_self = Located::new(
-                Expr::new(InnerExpr::Accessor(
+                Expr::Accessor(
                     Arc::new(Located::new(
-                        Expr::new(InnerExpr::SelfLiteral(primary_location.clone())),
+                        Expr::SelfLiteral(primary_location.clone()),
                         primary_location.clone(),
                     )),
                     field_name,
-                )),
+                ),
                 primary_location.clone(),
             );
 
             let field_location = primary_location.span().start()..expr.span().end();
 
             Located::new(
-                Expr::new(InnerExpr::Field(Arc::new(expr_self), Arc::new(expr))),
+                Expr::Field(Arc::new(expr_self), Arc::new(expr)),
                 field_location,
             )
         })
@@ -309,7 +294,7 @@ pub fn logical_or(
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
             Located::new(
-                Expr::new(InnerExpr::LogicalOr(Arc::new(lhs), Arc::new(rhs))),
+                Expr::LogicalOr(Arc::new(lhs), Arc::new(rhs)),
                 span,
             )
         })
@@ -323,7 +308,7 @@ pub fn logical_and(
         .foldl(|lhs, (_op, rhs)| {
             let span = lhs.span().start()..rhs.span().end();
             Located::new(
-                Expr::new(InnerExpr::LogicalAnd(Arc::new(lhs), Arc::new(rhs))),
+                Expr::LogicalAnd(Arc::new(lhs), Arc::new(rhs)),
                 span,
             )
         })
@@ -336,21 +321,21 @@ pub fn relational_expr(
         .then(
             op(">=")
                 .map_with_span(|_, span| {
-                    Located::new(InnerExpr::GreaterThanEqual as fn(_, _) -> _, span)
+                    Located::new(Expr::GreaterThanEqual as fn(_, _) -> _, span)
                 })
                 .or(op(">").map_with_span(|_, span| {
-                    Located::new(InnerExpr::GreaterThan as fn(_, _) -> _, span)
+                    Located::new(Expr::GreaterThan as fn(_, _) -> _, span)
                 }))
                 .or(op("<=").map_with_span(|_, span| {
-                    Located::new(InnerExpr::LessThanEqual as fn(_, _) -> _, span)
+                    Located::new(Expr::LessThanEqual as fn(_, _) -> _, span)
                 }))
                 .or(op("<").map_with_span(|_, span| {
-                    Located::new(InnerExpr::LessThan as fn(_, _) -> _, span)
+                    Located::new(Expr::LessThan as fn(_, _) -> _, span)
                 }))
                 .or(op("==")
-                    .map_with_span(|_, span| Located::new(InnerExpr::Equal as fn(_, _) -> _, span)))
+                    .map_with_span(|_, span| Located::new(Expr::Equal as fn(_, _) -> _, span)))
                 .or(op("!=").map_with_span(|_, span| {
-                    Located::new(InnerExpr::NotEqual as fn(_, _) -> _, span)
+                    Located::new(Expr::NotEqual as fn(_, _) -> _, span)
                 }))
                 .then(expr)
                 .or_not(),
@@ -358,7 +343,7 @@ pub fn relational_expr(
         .map(|(lhs, rhs)| {
             if let Some((op, rhs)) = rhs {
                 let span = op.span().start()..rhs.span().end;
-                Located::new(Expr::new(op(Arc::new(lhs), Arc::new(rhs))), span)
+                Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
             } else {
                 lhs
             }
@@ -371,16 +356,16 @@ pub fn additive_expr(
     multiplicative_expr(expr.clone())
         .then(
             op("+")
-                .map_with_span(|_, span| Located::new(InnerExpr::Add as fn(_, _) -> _, span))
+                .map_with_span(|_, span| Located::new(Expr::Add as fn(_, _) -> _, span))
                 .or(op("-").map_with_span(|_, span| {
-                    Located::new(InnerExpr::Subtract as fn(_, _) -> _, span)
+                    Located::new(Expr::Subtract as fn(_, _) -> _, span)
                 }))
                 .then(multiplicative_expr(expr))
                 .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {
             let span = lhs.span().start()..rhs.span().end;
-            Located::new(Expr::new(op(Arc::new(lhs), Arc::new(rhs))), span)
+            Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
         })
 }
 
@@ -390,16 +375,16 @@ pub fn multiplicative_expr(
     atom()
         .then(
             op("*")
-                .map_with_span(|_, span| Located::new(InnerExpr::Multiply as fn(_, _) -> _, span))
+                .map_with_span(|_, span| Located::new(Expr::Multiply as fn(_, _) -> _, span))
                 .or(op("/").map_with_span(|_, span| {
-                    Located::new(InnerExpr::Divide as fn(_, _) -> _, span)
+                    Located::new(Expr::Divide as fn(_, _) -> _, span)
                 }))
                 .then(atom())
                 .repeated(),
         )
         .foldl(|lhs, (op, rhs)| {
             let span = lhs.span().start()..rhs.span().end;
-            Located::new(Expr::new(op(Arc::new(lhs), Arc::new(rhs))), span)
+            Located::new(op(Arc::new(lhs), Arc::new(rhs)), span)
         })
 }
 

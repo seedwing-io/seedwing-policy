@@ -21,11 +21,8 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-pub(crate) static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
-
 #[derive(Debug, Serialize)]
 pub struct Type {
-    pub(crate) id: u64,
     name: Option<TypeName>,
     documentation: Option<String>,
     parameters: Vec<String>,
@@ -40,7 +37,6 @@ impl Type {
         inner: InnerType,
     ) -> Self {
         Self {
-            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name,
             documentation,
             parameters,
@@ -457,7 +453,6 @@ impl Debug for InnerType {
 
 #[derive(Serialize, Debug)]
 pub struct Field {
-    pub(crate) id: u64,
     name: String,
     ty: Arc<Type>,
     optional: bool,
@@ -472,7 +467,6 @@ impl Display for Field {
 impl Field {
     pub fn new(name: String, ty: Arc<Type>, optional: bool) -> Self {
         Self {
-            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name,
             ty,
             optional,

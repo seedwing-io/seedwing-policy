@@ -54,64 +54,6 @@ impl Printer {
 }
 
 #[derive(Debug, Clone)]
-pub enum Rationale {
-    //TypeHandle(Arc<>),
-    Type(Arc<lir::Type>),
-    Field(Arc<lir::Field>),
-    Expr(Arc<Located<Expr>>),
-}
-
-impl Rationale {
-    pub fn id(&self) -> u64 {
-        match self {
-            Rationale::Type(t) => t.id,
-            Rationale::Field(f) => f.id,
-            Rationale::Expr(e) => e.id,
-        }
-    }
-
-    pub fn description(&self) -> Option<String> {
-        match self {
-            Rationale::Type(t) => t.name().map(|inner| inner.as_type_str()),
-            Rationale::Field(f) => Some(f.name()),
-            Rationale::Expr(_) => Some("expression".into()),
-        }
-    }
-}
-
-impl Hash for Rationale {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id().hash(state)
-    }
-}
-
-impl PartialEq<Self> for Rationale {
-    fn eq(&self, other: &Self) -> bool {
-        self.id().eq(&other.id())
-    }
-}
-
-impl Eq for Rationale {}
-
-impl From<Arc<lir::Type>> for Rationale {
-    fn from(inner: Arc<lir::Type>) -> Self {
-        Self::Type(inner)
-    }
-}
-
-impl From<Arc<lir::Field>> for Rationale {
-    fn from(inner: Arc<lir::Field>) -> Self {
-        Self::Field(inner)
-    }
-}
-
-impl From<Arc<Located<Expr>>> for Rationale {
-    fn from(inner: Arc<Located<Expr>>) -> Self {
-        Self::Expr(inner)
-    }
-}
-
-#[derive(Debug, Clone)]
 pub enum RationaleResult {
     None,
     Same(Rc<RuntimeValue>),
