@@ -1,9 +1,9 @@
-use bencher::{benchmark_group, benchmark_main, Bencher};
+use criterion::{criterion_group, criterion_main, Criterion};
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::json;
 use serde_json::Value as JsonValue;
 
-fn eval_speed(bencher: &mut Bencher, data: TestData) {
+fn eval_speed(bencher: &mut Criterion, data: TestData) {
     let mut builder = Builder::new();
 
     let _ = builder.build(data.src.iter());
@@ -15,40 +15,47 @@ fn eval_speed(bencher: &mut Bencher, data: TestData) {
 
     let runtime = executor.block_on(builder.finish()).unwrap();
 
-    bencher.iter(|| {
-        executor
-            .block_on(runtime.evaluate(&data.path, &data.value))
-            .unwrap();
+    bencher.bench_function(&format!("{} eval", data.id), |b| {
+        b.iter(|| {
+            executor
+                .block_on(runtime.evaluate(&data.path, &data.value))
+                .unwrap();
+        })
     });
 }
 
-fn build_speed(bencher: &mut Bencher, data: TestData) {
-    bencher.iter(|| {
-        let mut builder = Builder::new();
-        let _ = builder.build(data.src.clone().iter());
+fn build_speed(bencher: &mut Criterion, data: TestData) {
+    bencher.bench_function(&format!("{} build", data.id), |b| {
+        b.iter(|| {
+            let mut builder = Builder::new();
+            let _ = builder.build(data.src.clone().iter());
+        })
     });
 }
 
-fn end_to_end_speed(bencher: &mut Bencher, data: TestData) {
+fn end_to_end_speed(bencher: &mut Criterion, data: TestData) {
     let executor = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
 
-    bencher.iter(|| {
-        let data = data.clone();
-        executor.block_on(async move {
-            let mut builder = Builder::new();
+    bencher.bench_function(&format!("{} end 2 end", data.id), |b| {
+        b.iter(|| {
+            let data = data.clone();
+            executor.block_on(async move {
+                let mut builder = Builder::new();
 
-            let _ = builder.build(data.src.iter());
-            let runtime = builder.finish().await.unwrap();
-            runtime.evaluate(&data.path, &data.value).await.unwrap()
-        });
+                let _ = builder.build(data.src.iter());
+                let runtime = builder.finish().await.unwrap();
+                runtime.evaluate(&data.path, &data.value).await.unwrap()
+            });
+        })
     });
 }
 
 #[derive(Clone)]
 struct TestData {
+    id: &'static str,
     src: Ephemeral,
     path: String,
     value: JsonValue,
@@ -59,15 +66,15 @@ struct TestData {
  *
  * Basic tests with small in-memory examples.
  */
-fn smoke_eval(bencher: &mut Bencher) {
+fn smoke_eval(bencher: &mut Criterion) {
     eval_speed(bencher, testdata_smoke());
 }
 
-fn smoke_build(bencher: &mut Bencher) {
+fn smoke_build(bencher: &mut Criterion) {
     build_speed(bencher, testdata_smoke());
 }
 
-fn smoke_end_to_end(bencher: &mut Bencher) {
+fn smoke_end_to_end(bencher: &mut Criterion) {
     end_to_end_speed(bencher, testdata_smoke());
 }
 
@@ -87,6 +94,7 @@ fn testdata_smoke() -> TestData {
     );
 
     TestData {
+        id: "smoke",
         src,
         path: "smoke::bob".to_string(),
         value: json!(
@@ -103,15 +111,15 @@ fn testdata_smoke() -> TestData {
  * More complex tests using sigstore verification.
  */
 
-//fn sigstore_eval(bencher: &mut Bencher) {
+//fn sigstore_eval(bencher: &mut Criterion) {
 //    eval_speed(bencher, testdata_sigstore());
 //}
 //
-//fn sigstore_end_to_end(bencher: &mut Bencher) {
+//fn sigstore_end_to_end(bencher: &mut Criterion) {
 //    end_to_end_speed(bencher, testdata_sigstore());
 //}
 
-fn sigstore_build(bencher: &mut Bencher) {
+fn sigstore_build(bencher: &mut Criterion) {
     build_speed(bencher, testdata_sigstore());
 }
 
@@ -153,13 +161,14 @@ fn testdata_sigstore() -> TestData {
     );
 
     TestData {
+        id: "sigstore",
         src,
         path: "foo::bar::signed-thing".to_string(),
         value,
     }
 }
 
-benchmark_group!(
+criterion_group!(
     benches,
     smoke_build,
     smoke_eval,
@@ -168,4 +177,4 @@ benchmark_group!(
     // sigstore_eval,
     // sigstore_end_to_end
 );
-benchmark_main!(benches);
+criterion_main!(benches);

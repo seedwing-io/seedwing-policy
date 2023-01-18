@@ -24,7 +24,7 @@ default = ["sigstore"]
 sigstore = ["dep:sigstore"]
 
 [dev-dependencies]
-bencher = "0.1"
+criterion = "0.4"
 tokio = { version = "1.24", features = ["rt"] }
 actix-rt = "2.7.0"
 
