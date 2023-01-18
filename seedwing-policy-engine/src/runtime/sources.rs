@@ -48,8 +48,10 @@ impl Directory {
                     if let Ok(path) = path.strip_prefix::<&Path>(&self.dir) {
                         let mut src = String::new();
                         if let Some(part) = path.parent() {
-                            src.push_str(&*part.to_string_lossy());
-                            src.push('/');
+                            if part.is_dir() {
+                                src.push_str(&*part.to_string_lossy());
+                                src.push('/');
+                            }
                         }
                         src.push_str(name.strip_suffix(".dog").unwrap());
                         if let Ok(mut file) = File::open(e.path()) {
