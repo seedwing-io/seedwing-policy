@@ -195,24 +195,45 @@ impl World {
         }
     }
 
-    pub fn emit(&self) -> Result<wasm_ast::module::Module, RuntimeError> {
-        let mut builder = wasm_ast::module::Module::builder();
-        for r#type in self.types.iter() {}
-        use wasm_ast::{
-            Expression, Function, NumberType, NumericInstruction, ResultType, TypeIndex, ValueType,
+    pub fn emit(&self) -> Result<wasm_encoder::Module, RuntimeError> {
+        use wasm_encoder::{
+            CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
+            TypeSection, ValType,
         };
 
-        let locals: ResultType = vec![ValueType::I32, ValueType::F32].into();
-        let body: Expression = vec![
-            32u32.into(),
-            2u32.into(),
-            NumericInstruction::Multiply(NumberType::I32).into(),
-        ]
-        .into();
-        let function = Function::new(0, locals.clone(), body.clone());
+        let mut module = Module::new();
+        for r#type in self.types.iter() {}
 
-        builder.add_function(function);
-        Ok(builder.build())
+        // Encode the type section.
+        let mut types = TypeSection::new();
+        let params = vec![ValType::I32, ValType::I32];
+        let results = vec![ValType::I32];
+        types.function(params, results);
+        module.section(&types);
+
+        // Encode the function section.
+        let mut functions = FunctionSection::new();
+        let type_index = 0;
+        functions.function(type_index);
+        module.section(&functions);
+
+        // Encode the export section.
+        let mut exports = ExportSection::new();
+        exports.export("f", ExportKind::Func, 0);
+        module.section(&exports);
+
+        // Encode the code section.
+        let mut codes = CodeSection::new();
+        let locals = vec![];
+        let mut f = Function::new(locals);
+        f.instruction(&Instruction::LocalGet(0));
+        f.instruction(&Instruction::LocalGet(1));
+        f.instruction(&Instruction::I32Add);
+        f.instruction(&Instruction::End);
+        codes.function(&f);
+        module.section(&codes);
+
+        Ok(module)
     }
 
     pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
@@ -758,5 +779,6 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
         let module = runtime.emit().unwrap();
+        println!("Module: {:?}", module.finish());
     }
 }
