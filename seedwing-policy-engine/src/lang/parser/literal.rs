@@ -1,7 +1,7 @@
 use crate::lang::hir::Type;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{Located, ParserError, ParserInput, SourceSpan};
-use chumsky::primitive::{filter, just};
+use chumsky::primitive::{choice, filter, just};
 use chumsky::text::TextParser;
 use chumsky::{text, Parser};
 
@@ -29,6 +29,15 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<ValueType>, Error =
         )
 }
 
+pub fn boolean_literal() -> impl Parser<ParserInput, Located<ValueType>, Error = ParserError> + Clone
+{
+    choice((
+        just("true").map(|_| ValueType::Boolean(true)),
+        just("false").map(|_| ValueType::Boolean(false)),
+    ))
+    .map_with_span(|x, span: SourceSpan| Located::new(x, span))
+}
+
 pub fn string_literal() -> impl Parser<ParserInput, Located<ValueType>, Error = ParserError> + Clone
 {
     just('"')
@@ -44,4 +53,16 @@ pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = Par
         .padded()
         .ignored()
         .map_with_span(|_, span| Located::new(Type::Anything, span))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_boolean() {
+        assert!(boolean_literal().parse("true").is_ok());
+        assert!(boolean_literal().parse("false").is_ok());
+        assert!(boolean_literal().parse("foo").is_err());
+    }
 }

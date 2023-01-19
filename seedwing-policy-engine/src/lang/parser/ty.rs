@@ -4,7 +4,7 @@ use crate::lang::hir::{Field, MemberQualifier, ObjectType, Type, TypeDefn};
 use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::expr;
 use crate::lang::parser::literal::{
-    anything_literal, decimal_literal, integer_literal, string_literal,
+    anything_literal, boolean_literal, decimal_literal, integer_literal, string_literal,
 };
 use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
@@ -259,6 +259,7 @@ pub fn logical_and(
 pub fn const_type() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     decimal_literal()
         .or(integer_literal())
+        .or(boolean_literal())
         .or(string_literal())
         .map(|v| {
             let location = v.location();
