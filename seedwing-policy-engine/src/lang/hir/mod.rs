@@ -373,6 +373,7 @@ impl World {
         let mut core_units = Vec::new();
 
         let mut errors = Vec::new();
+        println!("LOWERING MIR");
 
         for pkg in self.packages.values() {
             for (source, stream) in pkg.source_iter() {
@@ -400,6 +401,7 @@ impl World {
             return Err(errors);
         }
 
+        println!("LOWERING");
         Lowerer::new(&mut self.units, &mut self.packages).lower()
     }
 }

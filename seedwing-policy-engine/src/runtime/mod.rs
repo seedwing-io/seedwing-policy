@@ -195,45 +195,56 @@ impl World {
         }
     }
 
-    pub fn emit(&self) -> Result<wasm_encoder::Module, RuntimeError> {
+    pub fn emit<P: Into<String>>(&self, path: P) -> Result<wasm_encoder::Module, RuntimeError> {
         use wasm_encoder::{
             CodeSection, ExportKind, ExportSection, Function, FunctionSection, Instruction, Module,
             TypeSection, ValType,
         };
 
-        let mut module = Module::new();
-        for r#type in self.types.iter() {}
+        let path = TypeName::from(path.into());
+        let slot = self.types.get(&path);
+        if let Some(slot) = slot {
+            let ty = self.type_slots[*slot].clone();
+            let bindings = Bindings::default();
 
-        // Encode the type section.
-        let mut types = TypeSection::new();
-        let params = vec![ValType::I32, ValType::I32];
-        let results = vec![ValType::I32];
-        types.function(params, results);
-        module.section(&types);
+            println!("TYPE ({:#?}): {:#?}", path, ty);
 
-        // Encode the function section.
-        let mut functions = FunctionSection::new();
-        let type_index = 0;
-        functions.function(type_index);
-        module.section(&functions);
+            //ty.evaluate(value.clone(), &bindings, self).await
+            let mut module = Module::new();
 
-        // Encode the export section.
-        let mut exports = ExportSection::new();
-        exports.export("f", ExportKind::Func, 0);
-        module.section(&exports);
+            // Encode the type section.
+            let mut types = TypeSection::new();
+            let params = vec![ValType::I32, ValType::I32];
+            let results = vec![ValType::I32];
+            types.function(params, results);
+            module.section(&types);
 
-        // Encode the code section.
-        let mut codes = CodeSection::new();
-        let locals = vec![];
-        let mut f = Function::new(locals);
-        f.instruction(&Instruction::LocalGet(0));
-        f.instruction(&Instruction::LocalGet(1));
-        f.instruction(&Instruction::I32Add);
-        f.instruction(&Instruction::End);
-        codes.function(&f);
-        module.section(&codes);
+            // Encode the function section.
+            let mut functions = FunctionSection::new();
+            let type_index = 0;
+            functions.function(type_index);
+            module.section(&functions);
 
-        Ok(module)
+            // Encode the export section.
+            let mut exports = ExportSection::new();
+            exports.export("f", ExportKind::Func, 0);
+            module.section(&exports);
+
+            // Encode the code section.
+            let mut codes = CodeSection::new();
+            let locals = vec![];
+            let mut f = Function::new(locals);
+            f.instruction(&Instruction::LocalGet(0));
+            f.instruction(&Instruction::LocalGet(1));
+            f.instruction(&Instruction::I32Add);
+            f.instruction(&Instruction::End);
+            codes.function(&f);
+            module.section(&codes);
+
+            Ok(module)
+        } else {
+            Err(RuntimeError::NoSuchType(path))
+        }
     }
 
     pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
@@ -753,32 +764,5 @@ mod test {
             .await
             .unwrap()
             .satisfied());
-    }
-
-    #[actix_rt::test]
-    async fn emit_wasm() {
-        let src = Ephemeral::new(
-            "foo::bar",
-            r#"
-        pattern bob = {
-            name: "Bob",
-            age: $(self > 48),
-        }
-
-        pattern jim = {
-            name: "Jim",
-            age: $(self > 52),
-        }
-
-        pattern folks = bob || jim
-
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let module = runtime.emit().unwrap();
-        println!("Module: {:?}", module.finish());
     }
 }

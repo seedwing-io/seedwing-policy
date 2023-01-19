@@ -32,6 +32,7 @@ impl Builder {
 
     pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
         let mir = self.hir.lower()?;
+        println!("HIR LOWERED");
         let runtime = mir.lower()?;
         Ok(runtime)
     }

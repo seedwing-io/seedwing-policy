@@ -19,6 +19,7 @@ use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
+use wasm_encoder::TypeSection;
 
 #[derive(Serialize, Debug, Clone)]
 pub enum Expr {
@@ -260,6 +261,7 @@ impl Type {
                 PrimordialType::Boolean => Box::pin(async move {
                     let mut locked_value = (*value).borrow();
 
+                    println!("LOCKED VALUE: {:?}", locked_value);
                     if locked_value.is_boolean() {
                         Ok(EvaluationResult::new(
                             Some(value.clone()),
