@@ -362,12 +362,19 @@ impl Object {
         serde_json::Value::Object(inner)
     }
 
-    pub fn get(&self, name: String) -> Option<Rc<RuntimeValue>> {
-        self.fields.get(&name).cloned()
+    pub fn get<N>(&self, name: N) -> Option<Rc<RuntimeValue>>
+    where
+        N: AsRef<str>,
+    {
+        self.fields.get(name.as_ref()).cloned()
     }
 
-    pub fn set(&mut self, name: String, value: RuntimeValue) {
-        self.fields.insert(name, Rc::new(value));
+    pub fn set<N, V>(&mut self, name: N, value: V)
+    where
+        N: Into<String>,
+        V: Into<RuntimeValue>,
+    {
+        self.fields.insert(name.into(), Rc::new(value.into()));
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<RuntimeValue>)> {

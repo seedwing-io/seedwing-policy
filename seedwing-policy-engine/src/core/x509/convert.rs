@@ -16,12 +16,12 @@ impl From<&X509Certificate<'_>> for RuntimeValue {
     fn from(cert: &X509Certificate) -> Self {
         let mut obj = Object::new();
 
-        obj.set("version".into(), cert.version.0.into());
-        obj.set("serial".into(), cert.raw_serial_as_string().into());
-        obj.set("subject".into(), (&cert.subject).into());
-        obj.set("subject-pki".into(), (&cert.subject_pki).into());
-        obj.set("issuer".into(), (&cert.issuer).into());
-        obj.set("extensions".into(), cert.extensions().into());
+        obj.set("version", cert.version.0);
+        obj.set("serial", cert.raw_serial_as_string());
+        obj.set("subject", &cert.subject);
+        obj.set("subject-pki", &cert.subject_pki);
+        obj.set("issuer", &cert.issuer);
+        obj.set("extensions", cert.extensions());
 
         obj.into()
     }
@@ -79,11 +79,11 @@ impl From<&AttributeTypeAndValue<'_>> for RuntimeValue {
     fn from(attr: &AttributeTypeAndValue<'_>) -> Self {
         let mut obj = Object::new();
 
-        obj.set("oid".into(), attr.attr_type().into());
+        obj.set("oid", attr.attr_type());
         if let Ok(data) = from_utf8(attr.attr_value().data) {
-            obj.set("value".into(), data.into())
+            obj.set("value", data)
         } else {
-            obj.set("value".into(), attr.attr_value().data.into())
+            obj.set("value", attr.attr_value().data)
         }
 
         obj.into()
@@ -106,8 +106,8 @@ impl From<&Oid<'_>> for RuntimeValue {
 impl From<&Any<'_>> for RuntimeValue {
     fn from(any: &Any<'_>) -> Self {
         let mut obj = Object::new();
-        obj.set("header".into(), (&any.header).into());
-        obj.set("data".into(), any.data.into());
+        obj.set("header", (&any.header));
+        obj.set("data", any.data);
         obj.into()
     }
 }
@@ -115,7 +115,7 @@ impl From<&Any<'_>> for RuntimeValue {
 impl From<&Header<'_>> for RuntimeValue {
     fn from(header: &Header<'_>) -> Self {
         let mut obj = Object::new();
-        obj.set("class".into(), (&header.class()).into());
+        obj.set("class", &header.class());
         obj.into()
     }
 }
@@ -163,13 +163,13 @@ impl TryFrom<&ParsedExtension<'_>> for RuntimeValue {
             //ParsedExtension::PolicyMappings(_) => {}
             ParsedExtension::SubjectAlternativeName(name) => {
                 let mut obj = Object::new();
-                obj.set("subjectAlternativeName".into(), name.into());
+                obj.set("subjectAlternativeName", name);
                 Ok(obj.into())
             }
             //ParsedExtension::IssuerAlternativeName(_) => {}
             ParsedExtension::BasicConstraints(basic) => {
                 let mut obj = Object::new();
-                obj.set("CA".into(), basic.ca.into());
+                obj.set("CA", basic.ca);
                 Ok(obj.into())
             }
             //ParsedExtension::NameConstraints(_) => {}
@@ -208,7 +208,7 @@ impl From<&GeneralName<'_>> for RuntimeValue {
             GeneralName::OtherName(_, _) => todo!(),
             GeneralName::RFC822Name(name) => {
                 let mut obj = Object::new();
-                obj.set("rfc822".into(), (*name).into());
+                obj.set("rfc822", *name);
                 obj.into()
             }
             GeneralName::DNSName(_) => todo!(),
@@ -226,9 +226,9 @@ impl From<&SubjectPublicKeyInfo<'_>> for RuntimeValue {
     fn from(value: &SubjectPublicKeyInfo<'_>) -> Self {
         let mut obj = Object::new();
 
-        obj.set("public-key".into(), (&value.subject_public_key).into());
-        obj.set("algorithm".into(), (&value.algorithm).into());
-        obj.set("raw".into(), value.raw.into());
+        obj.set("public-key", &value.subject_public_key);
+        obj.set("algorithm", &value.algorithm);
+        obj.set("raw", value.raw);
 
         obj.into()
     }
@@ -244,9 +244,9 @@ impl From<&AlgorithmIdentifier<'_>> for RuntimeValue {
     fn from(value: &AlgorithmIdentifier<'_>) -> Self {
         let mut obj = Object::new();
 
-        obj.set("oid".into(), (&value.algorithm).into());
+        obj.set("oid", &value.algorithm);
         obj.set(
-            "parameters".into(),
+            "parameters",
             value
                 .parameters
                 .as_ref()
