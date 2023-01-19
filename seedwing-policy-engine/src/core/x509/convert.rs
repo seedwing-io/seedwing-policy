@@ -1,22 +1,53 @@
 use crate::value::{Object, RuntimeValue};
+use std::rc::Rc;
 use std::str::from_utf8;
 use x509_parser::certificate::X509Certificate;
-use x509_parser::der_parser::asn1_rs::Any;
+use x509_parser::der_parser::asn1_rs::{Any, BitString};
 use x509_parser::der_parser::ber::{Class, Header};
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::{GeneralName, X509Extension};
 use x509_parser::prelude::{ParsedExtension, SubjectAlternativeName};
-use x509_parser::x509::{AttributeTypeAndValue, RelativeDistinguishedName, X509Name};
+use x509_parser::x509::{
+    AlgorithmIdentifier, AttributeTypeAndValue, RelativeDistinguishedName, SubjectPublicKeyInfo,
+    X509Name,
+};
 
 impl From<&X509Certificate<'_>> for RuntimeValue {
     fn from(cert: &X509Certificate) -> Self {
         let mut obj = Object::new();
 
         obj.set("version".into(), cert.version.0.into());
+        obj.set("serial".into(), cert.raw_serial_as_string().into());
+        obj.set("subject".into(), (&cert.subject).into());
+        obj.set("subject-pki".into(), (&cert.subject_pki).into());
         obj.set("issuer".into(), (&cert.issuer).into());
         obj.set("extensions".into(), cert.extensions().into());
 
         obj.into()
+    }
+}
+
+impl From<&[X509Certificate<'_>]> for RuntimeValue {
+    fn from(bundle: &[X509Certificate<'_>]) -> Self {
+        let mut seq: Vec<RuntimeValue> = Vec::with_capacity(bundle.len());
+
+        for cert in bundle {
+            seq.push(cert.into());
+        }
+
+        seq.into()
+    }
+}
+
+impl From<&[&X509Certificate<'_>]> for RuntimeValue {
+    fn from(bundle: &[&X509Certificate<'_>]) -> Self {
+        let mut seq: Vec<RuntimeValue> = Vec::with_capacity(bundle.len());
+
+        for cert in bundle {
+            seq.push((*cert).into());
+        }
+
+        seq.into()
     }
 }
 
@@ -136,7 +167,11 @@ impl TryFrom<&ParsedExtension<'_>> for RuntimeValue {
                 Ok(obj.into())
             }
             //ParsedExtension::IssuerAlternativeName(_) => {}
-            //ParsedExtension::BasicConstraints(_) => {}
+            ParsedExtension::BasicConstraints(basic) => {
+                let mut obj = Object::new();
+                obj.set("CA".into(), basic.ca.into());
+                Ok(obj.into())
+            }
             //ParsedExtension::NameConstraints(_) => {}
             //ParsedExtension::PolicyConstraints(_) => {}
             //ParsedExtension::ExtendedKeyUsage(_) => {}
@@ -184,5 +219,41 @@ impl From<&GeneralName<'_>> for RuntimeValue {
             GeneralName::IPAddress(_) => todo!(),
             GeneralName::RegisteredID(_) => todo!(),
         }
+    }
+}
+
+impl From<&SubjectPublicKeyInfo<'_>> for RuntimeValue {
+    fn from(value: &SubjectPublicKeyInfo<'_>) -> Self {
+        let mut obj = Object::new();
+
+        obj.set("public-key".into(), (&value.subject_public_key).into());
+        obj.set("algorithm".into(), (&value.algorithm).into());
+        obj.set("raw".into(), value.raw.into());
+
+        obj.into()
+    }
+}
+
+impl From<&BitString<'_>> for RuntimeValue {
+    fn from(value: &BitString<'_>) -> Self {
+        RuntimeValue::Octets(value.data.to_vec())
+    }
+}
+
+impl From<&AlgorithmIdentifier<'_>> for RuntimeValue {
+    fn from(value: &AlgorithmIdentifier<'_>) -> Self {
+        let mut obj = Object::new();
+
+        obj.set("oid".into(), (&value.algorithm).into());
+        obj.set(
+            "parameters".into(),
+            value
+                .parameters
+                .as_ref()
+                .map(|p| p.into())
+                .unwrap_or(RuntimeValue::Null),
+        );
+
+        obj.into()
     }
 }
