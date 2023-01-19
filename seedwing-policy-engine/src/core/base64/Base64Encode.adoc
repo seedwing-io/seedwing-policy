@@ -1,0 +1,1 @@
+Applies Base64 encoding on octet input, resulting in a base64 encoded string.
