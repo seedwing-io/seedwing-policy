@@ -44,12 +44,21 @@ pattern connection_id<T> = {
   }
 }
 
-pattern principal_name<T> = {
+pattern principal<NAME, TYPE> = {
   input: {
     requestContext: {
       principal: {
-        name: T
+        name: NAME,
+        principalType: TYPE,
       }
+    }
+  }
+}
+
+pattern security_protocol<PROTO> = {
+  input: {
+    requestContext: {
+      securityProtocol: PROTO
     }
   }
 }
@@ -88,8 +97,8 @@ pattern requestContext = {
   connectionId: string,
   header: header,
   listenerName: string,
-  principal: principal,
-  securityProtocol?: securityProtocol,
+  principal: principalData,
+  securityProtocol?: any_security_protocol,
 }
 
 pattern clientInformation =  {
@@ -109,9 +118,9 @@ pattern headerName = {
   requestApiVersion?: integer,
 }
 
-pattern principal = {
+pattern principalData = {
   name?: string,
   principalType?: string,
 }
 
-pattern securityProtocol = "PLAINTEXT" || "SASL_PLAINTEXT" || "SASL_SSL" || "SSL"
+pattern any_security_protocol = "PLAINTEXT" || "SASL_PLAINTEXT" || "SASL_SSL" || "SSL"
