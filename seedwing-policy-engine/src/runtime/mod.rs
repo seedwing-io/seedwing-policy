@@ -30,10 +30,13 @@ use std::task::ready;
 pub mod cache;
 pub mod rationale;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {
+    #[error("type ({2}) not found (@ {0}:{1:?})")]
     TypeNotFound(SourceLocation, SourceSpan, String),
+    #[error("failed to parse (@ {0}): {1}")]
     Parser(SourceLocation, ParserError),
+    #[error("argument mismatch (@ {0}:{1:?})")]
     ArgumentMismatch(SourceLocation, SourceSpan),
 }
 
@@ -126,11 +129,15 @@ impl EvaluationResult {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum RuntimeError {
+    #[error("lock")]
     Lock,
+    #[error("invalid state")]
     InvalidState,
+    #[error("no such type: {0}")]
     NoSuchType(TypeName),
+    #[error("no such type slot: {0}")]
     NoSuchTypeSlot(usize),
 }
 

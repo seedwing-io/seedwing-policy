@@ -39,7 +39,7 @@ impl<'c> ErrorPrinter<'c> {
                         format!("unexpected character found {}", inner.found().unwrap())
                     }
                     SimpleReason::Unclosed { span, delimiter } => {
-                        format!("unclosed delimeter {}", delimiter)
+                        format!("unclosed delimiter {}", delimiter)
                     }
                     SimpleReason::Custom(inner) => inner.clone(),
                 },
