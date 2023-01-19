@@ -1,0 +1,9 @@
+[package]
+name = "seedwing-policy-wasmgen"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+tokio = "1.21"
+wasm-encoder = "0.21"
+seedwing-policy-engine = { path = "../seedwing-policy-engine" }
