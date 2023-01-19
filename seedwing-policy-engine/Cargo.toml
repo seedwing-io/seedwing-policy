@@ -13,6 +13,7 @@ serde = { version = "1.0.152", features = [ "rc", "derive"] }
 serde_json = { version = "1.0.89", features = [ "float_roundtrip", "arbitrary_precision"] }
 log = "0.4.17"
 futures-util = "0.3.25"
+thiserror = "1"
 
 # functions
 sigstore = { version = "0.6.0", optional = true }
