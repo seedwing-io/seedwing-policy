@@ -27,12 +27,18 @@ pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) ->
 }
  */
 
+#[derive(serde::Deserialize)]
+pub struct PolicyQuery {
+    opa: Option<bool>,
+}
+
 #[post("/policy/{path:.*}")]
 pub async fn evaluate(
     req: HttpRequest,
     world: web::Data<World>,
     path: web::Path<String>,
     mut body: Payload,
+    params: web::Query<PolicyQuery>,
 ) -> HttpResponse {
     let mut content = BytesMut::new();
     while let Some(Ok(bit)) = body.next().await {
@@ -51,10 +57,16 @@ pub async fn evaluate(
                 let rationale = Rationalizer::new(&result);
                 let rationale = rationale.rationale();
 
-                if result.satisfied() {
-                    HttpResponse::Ok().body(rationale)
+                if let Some(true) = params.opa {
+                    // OPA result format
+                    let satisfied = result.satisfied();
+                    HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
                 } else {
-                    HttpResponse::NotAcceptable().body(rationale)
+                    if result.satisfied() {
+                        HttpResponse::Ok().body(rationale)
+                    } else {
+                        HttpResponse::NotAcceptable().body(rationale)
+                    }
                 }
             }
             Err(err) => {

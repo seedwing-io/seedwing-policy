@@ -14,6 +14,7 @@ pub mod base64;
 pub mod cyclonedx;
 pub mod iso;
 pub mod json;
+pub mod kafka;
 pub mod list;
 pub mod pattern;
 #[cfg(feature = "sigstore")]

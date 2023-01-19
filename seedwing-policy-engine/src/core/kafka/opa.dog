@@ -1,0 +1,126 @@
+/// Pattern matching for Kafka authorization created by OpaAuthorizer
+
+pattern operation<T> = {
+  input: {
+    action: {
+      operation: T
+    }
+  }
+}
+
+pattern resource_type<T> = {
+  input: {
+    action: {
+      resourcePattern: {
+        resourceType: T
+      }
+    }
+  }
+}
+
+pattern resource_name<T> = {
+  input: {
+    action: {
+      resourcePattern: {
+        name: T
+      }
+    }
+  }
+}
+
+pattern client_address<T> = {
+  input: {
+    requestContext: {
+      clientAddress: T
+    }
+  }
+}
+
+pattern connection_id<T> = {
+  input: {
+    requestContext: {
+      connectionId: T
+    }
+  }
+}
+
+pattern principal<NAME, TYPE> = {
+  input: {
+    requestContext: {
+      principal: {
+        name: NAME,
+        principalType: TYPE,
+      }
+    }
+  }
+}
+
+pattern security_protocol<PROTO> = {
+  input: {
+    requestContext: {
+      securityProtocol: PROTO
+    }
+  }
+}
+
+pattern request = {
+  input: {
+    action: action,
+    requestContext: requestContext,
+  }
+}
+
+pattern action = {
+  logIfAllowed?: boolean,
+  logIfDenied?: boolean,
+  operation: any_operation,
+  resourcePattern: resourcePattern,
+  resourceReferenceCount?: integer,
+}
+
+pattern any_operation = "ALL" || "ALTER" || "ALTER_CONFIGS" || "ANY" || "CLUSTER_ACTION" || "CREATE" || "DELETE" || "DESCRIBE" || "DESCRIBE_CONFIGS" || "IDEMPOTENT_WRITE" || "READ" || "UNKNOWN" || "WRITE"
+
+pattern resourcePattern = {
+    name: string,
+    patternType?: patternType,
+    resourceType?: resourceType,
+    unknown?: boolean,
+}
+
+pattern patternType = "ANY" || "LITERAL" || "MATCH" || "PREFIXED" || "UNKNOWN"
+
+pattern resourceType = "ANY" || "CLUSTER" || "DELEGATION_TOKEN" || "GROUP" || "TOPIC" || "TRANSACTIONAL_ID" || "UNKNOWN"
+
+pattern requestContext = {
+  clientAddress: string,
+  clientInformation: clientInformation,
+  connectionId: string,
+  header: header,
+  listenerName: string,
+  principal: principalData,
+  securityProtocol?: any_security_protocol,
+}
+
+pattern clientInformation =  {
+  softwareName?: string,
+  softwareVersion?: string,
+}
+
+pattern header = {
+  headerVersion?: integer,
+  headerName?: headerName,
+}
+
+pattern headerName = {
+  clientId?: string,
+  correlationId?: integer,
+  requestApiKey?: integer,
+  requestApiVersion?: integer,
+}
+
+pattern principalData = {
+  name?: string,
+  principalType?: string,
+}
+
+pattern any_security_protocol = "PLAINTEXT" || "SASL_PLAINTEXT" || "SASL_SSL" || "SSL"
