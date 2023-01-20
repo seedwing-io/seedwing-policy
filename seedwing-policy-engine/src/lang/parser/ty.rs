@@ -23,6 +23,7 @@ use std::ops::Deref;
 pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
     filter(|c: &char| (c.is_alphanumeric()) || *c == '@' || *c == '_' || *c == '-')
         .repeated()
+        .at_least(1)
         .collect()
         .padded()
         .map_with_span(Located::new)
@@ -527,8 +528,6 @@ mod test {
             .unwrap()
             .inner();
 
-        println!("{:?}", ty);
-
         assert!(matches!(ty, Type::Object(_)));
 
         if let Type::Object(ty) = ty {
@@ -596,6 +595,26 @@ mod test {
             .inner();
 
         println!("{:?}", ty);
+    }
+
+    #[test]
+    fn list_trailing_comma() {
+        let ty = type_expr(Default::default())
+            .then_ignore(end())
+            .parse(
+                r#"
+                [ integer, integer, integer, ]
+        "#,
+            )
+            .unwrap()
+            .inner();
+
+        println!("{:?}", ty);
+        assert!(matches!(ty, Type::List(_)));
+
+        if let Type::List(inner) = ty {
+            assert_eq!(inner.len(), 3);
+        }
     }
 
     #[test]
