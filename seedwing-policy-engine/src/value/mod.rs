@@ -174,6 +174,12 @@ impl From<&[u8]> for RuntimeValue {
 
 impl From<Vec<RuntimeValue>> for RuntimeValue {
     fn from(inner: Vec<RuntimeValue>) -> Self {
+        Self::List(inner.into_iter().map(Rc::new).collect())
+    }
+}
+
+impl From<&[RuntimeValue]> for RuntimeValue {
+    fn from(inner: &[RuntimeValue]) -> Self {
         Self::List(inner.iter().map(|e| Rc::new(e.clone())).collect())
     }
 }
@@ -212,6 +218,19 @@ impl Display for RuntimeValue {
 }
 
 impl RuntimeValue {
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Self::Null => "null",
+            Self::String(_) => "string",
+            Self::Integer(_) => "integer",
+            Self::Decimal(_) => "decimal",
+            Self::Boolean(_) => "boolean",
+            Self::Object(_) => "object",
+            Self::List(_) => "list",
+            Self::Octets(_) => "octets",
+        }
+    }
+
     pub fn as_json(&self) -> serde_json::Value {
         match self {
             Self::Null => serde_json::Value::Null,
@@ -238,6 +257,14 @@ impl RuntimeValue {
                 serde_json::Value::String(octets)
             }
         }
+    }
+
+    pub fn with_iter<I, T>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<RuntimeValue>,
+    {
+        RuntimeValue::List(iter.into_iter().map(|e| Rc::new(e.into())).collect())
     }
 }
 
@@ -340,7 +367,7 @@ pub struct Object {
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (name, value) in &self.fields {
-            writeln!(f, "{}: <<value>>", name)?;
+            writeln!(f, "{}: <<{}>>", name, value.type_name())?;
         }
 
         Ok(())
