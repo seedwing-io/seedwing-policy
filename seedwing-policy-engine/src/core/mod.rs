@@ -18,6 +18,7 @@ pub mod kafka;
 pub mod list;
 pub mod maven;
 pub mod pattern;
+pub mod pem;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
 pub mod spdx;
