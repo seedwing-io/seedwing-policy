@@ -4,6 +4,7 @@ use crate::lang::lir::{Field, InnerType};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::Located;
 use crate::runtime::RuntimeError;
+use indexmap::IndexMap;
 use serde::Serialize;
 use serde_json::{json, Map, Number};
 use std::any::Any;
@@ -333,7 +334,7 @@ impl RuntimeValue {
 #[derive(Serialize, Debug, Clone, Default)]
 pub struct Object {
     #[serde(skip)]
-    fields: HashMap<String, Rc<RuntimeValue>>,
+    fields: IndexMap<String, Rc<RuntimeValue>>,
 }
 
 impl Display for Object {
