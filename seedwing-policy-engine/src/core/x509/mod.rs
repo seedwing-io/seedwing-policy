@@ -11,6 +11,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
+use x509_parser::parse_x509_certificate;
 use x509_parser::pem::Pem;
 use x509_parser::x509::X509Version;
 
@@ -19,6 +20,7 @@ pub mod convert;
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["x509"]));
     pkg.register_function("PEM".into(), PEM);
+    pkg.register_function("DER".into(), DER);
     pkg.register_source("oid".into(), include_str!("oid.dog"));
     pkg
 }
@@ -60,6 +62,33 @@ impl Function for PEM {
                 Ok(Output::None.into())
             } else {
                 Ok(Output::Transform(Rc::new(certs.into())).into())
+            }
+        })
+    }
+}
+
+/// Decode a single DER encoded X.509 certificate
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
+pub struct DER;
+
+impl Function for DER {
+    fn call<'v>(
+        &'v self,
+        input: Rc<RuntimeValue>,
+        bindings: &'v Bindings,
+        world: &'v World,
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+        Box::pin(async move {
+            let bytes = if let Some(inner) = input.try_get_octets() {
+                inner
+            } else {
+                return Ok(Output::None.into());
+            };
+
+            match parse_x509_certificate(&bytes) {
+                Ok((_, cert)) => Ok(Output::Transform(Rc::new((&cert).into())).into()),
+                Err(_) => Ok(Output::None.into()),
             }
         })
     }
