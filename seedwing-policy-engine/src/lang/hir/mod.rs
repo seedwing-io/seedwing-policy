@@ -294,7 +294,7 @@ impl Field {
 
 pub struct World {
     units: Vec<CompilationUnit>,
-    packages: HashMap<PackagePath, Package>,
+    packages: Vec<Package>,
     source_cache: SourceCache,
 }
 
@@ -323,6 +323,8 @@ impl World {
         world.add_package(crate::core::spdx::package());
         world.add_package(crate::core::iso::package());
         world.add_package(crate::core::kafka::package());
+
+        world.add_package(crate::core::maven::package());
 
         world
     }
@@ -367,7 +369,7 @@ impl World {
     }
 
     pub fn add_package(&mut self, package: Package) {
-        self.packages.insert(package.path(), package);
+        self.packages.push(package);
     }
 
     pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
@@ -375,7 +377,7 @@ impl World {
 
         let mut errors = Vec::new();
 
-        for pkg in self.packages.values() {
+        for pkg in &self.packages {
             for (source, stream) in pkg.source_iter() {
                 log::info!("loading {}", source);
                 self.source_cache.add(source.clone(), stream.clone().into());
@@ -407,14 +409,11 @@ impl World {
 
 struct Lowerer<'b> {
     units: &'b mut Vec<CompilationUnit>,
-    packages: &'b mut HashMap<PackagePath, Package>,
+    packages: &'b mut Vec<Package>,
 }
 
 impl<'b> Lowerer<'b> {
-    pub fn new(
-        units: &'b mut Vec<CompilationUnit>,
-        packages: &'b mut HashMap<PackagePath, Package>,
-    ) -> Self {
+    pub fn new(units: &'b mut Vec<CompilationUnit>, packages: &'b mut Vec<Package>) -> Self {
         Self { units, packages }
     }
 
@@ -483,8 +482,8 @@ impl<'b> Lowerer<'b> {
 
         //world.push("int".into());
 
-        for (path, package) in self.packages.iter() {
-            let package_path = path;
+        for package in self.packages.iter() {
+            let package_path = package.path();
 
             known_world.extend_from_slice(
                 &package
@@ -537,7 +536,8 @@ impl<'b> Lowerer<'b> {
             }
         }
 
-        for (path, package) in self.packages.iter() {
+        for package in self.packages.iter() {
+            let path = package.path();
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
                 world.declare(
@@ -556,7 +556,8 @@ impl<'b> Lowerer<'b> {
             return Err(errors);
         }
 
-        for (path, package) in self.packages.iter() {
+        for package in self.packages.iter() {
+            let path = package.path();
             for (fn_name, func) in package.functions() {
                 let path = path.type_name(fn_name);
                 world.define_function(path, func);

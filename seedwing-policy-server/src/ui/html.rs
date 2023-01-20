@@ -134,9 +134,9 @@ impl<'w> Htmlifier<'w> {
                 self.html_of_object(html, object, world);
             }
             InnerType::Expr(expr) => {
-                html.push_str( "$(");
+                html.push_str("$(");
                 self.html_of_expr(html, expr);
-                html.push_str( ")");
+                html.push(')');
             }
             InnerType::Join(terms) => {
                 html.push_str("<span>");
@@ -203,30 +203,26 @@ impl<'w> Htmlifier<'w> {
 
     fn html_of_expr(&self, html: &mut String, expr: &Arc<Expr>) {
         match &**expr {
-            Expr::SelfLiteral() => {
-                html.push_str( "self")
-            }
-            Expr::Value(val) => {
-                match val {
-                    ValueType::Null => {
-                        html.push_str( "null");
-                    }
-                    ValueType::String(inner) => {
-                        html.push_str( format!( "\"{}\"", inner).as_str());
-                    }
-                    ValueType::Integer(inner) => {
-                        html.push_str( format!( "{}", inner).as_str());
-                    }
-                    ValueType::Decimal(inner) => {
-                        html.push_str( format!( "{}", inner).as_str());
-                    }
-                    ValueType::Boolean(inner) => {
-                        html.push_str( format!( "{}", inner).as_str());
-                    }
-                    ValueType::List(_) => {}
-                    ValueType::Octets(_) => {}
+            Expr::SelfLiteral() => html.push_str("self"),
+            Expr::Value(val) => match val {
+                ValueType::Null => {
+                    html.push_str("null");
                 }
-            }
+                ValueType::String(inner) => {
+                    html.push_str(format!("\"{}\"", inner).as_str());
+                }
+                ValueType::Integer(inner) => {
+                    html.push_str(format!("{}", inner).as_str());
+                }
+                ValueType::Decimal(inner) => {
+                    html.push_str(format!("{}", inner).as_str());
+                }
+                ValueType::Boolean(inner) => {
+                    html.push_str(format!("{}", inner).as_str());
+                }
+                ValueType::List(_) => {}
+                ValueType::Octets(_) => {}
+            },
             Expr::Function(_, _) => {}
             Expr::Add(_, _) => {}
             Expr::Subtract(_, _) => {}
@@ -274,6 +270,5 @@ impl<'w> Htmlifier<'w> {
                 self.html_of_expr(html, rhs);
             }
         }
-
     }
 }

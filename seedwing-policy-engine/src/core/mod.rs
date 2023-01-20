@@ -16,6 +16,7 @@ pub mod iso;
 pub mod json;
 pub mod kafka;
 pub mod list;
+pub mod maven;
 pub mod pattern;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;

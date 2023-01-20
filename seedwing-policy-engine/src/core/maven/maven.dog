@@ -1,0 +1,8 @@
+
+pattern coordinates = {
+  groupId: string,
+  artifactId: string,
+  version: string,
+  packaging: string,
+  classifier?: string,
+}

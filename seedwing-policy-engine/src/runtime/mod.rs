@@ -667,7 +667,11 @@ impl PackagePath {
     }
 
     pub fn type_name(&self, name: String) -> TypeName {
-        TypeName::new(Some(self.clone()), name)
+        if self.path.is_empty() {
+            TypeName::new(None, name)
+        } else {
+            TypeName::new(Some(self.clone()), name)
+        }
     }
 
     pub fn as_package_str(&self) -> String {

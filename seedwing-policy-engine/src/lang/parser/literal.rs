@@ -35,7 +35,7 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<ValueType>, Error =
         just("true").map(|_| ValueType::Boolean(true)),
         just("false").map(|_| ValueType::Boolean(false)),
     ))
-    .map_with_span(|x, span: SourceSpan| Located::new(x, span))
+    .map_with_span(Located::new)
 }
 
 pub fn string_literal() -> impl Parser<ParserInput, Located<ValueType>, Error = ParserError> + Clone

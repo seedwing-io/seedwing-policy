@@ -1,0 +1,7 @@
+Convert a Maven coordinate string into a `coordinates` object.
+
+Example input:
+
+```
+"org.quarkus:quarkus:2.3"
+```

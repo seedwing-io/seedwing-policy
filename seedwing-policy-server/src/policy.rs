@@ -61,12 +61,10 @@ pub async fn evaluate(
                     // OPA result format
                     let satisfied = result.satisfied();
                     HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
+                } else if result.satisfied() {
+                    HttpResponse::Ok().body(rationale)
                 } else {
-                    if result.satisfied() {
-                        HttpResponse::Ok().body(rationale)
-                    } else {
-                        HttpResponse::NotAcceptable().body(rationale)
-                    }
+                    HttpResponse::NotAcceptable().body(rationale)
                 }
             }
             Err(err) => {

@@ -40,7 +40,10 @@ impl Package {
     pub fn source_iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {
         self.sources.iter().map(|src| {
             let mut source = self.path.as_package_str();
-            source.push_str("::");
+            if !source.is_empty() && !src.name.as_str().is_empty() {
+                // only add :: if both sides are not empty.
+                source.push_str("::");
+            }
             source.push_str(src.name.as_str());
 
             let stream = src.content.into();
