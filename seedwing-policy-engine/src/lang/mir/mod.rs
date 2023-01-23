@@ -94,7 +94,6 @@ pub enum Type {
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
     List(Vec<Arc<TypeHandle>>),
-    Chain(Vec<Arc<TypeHandle>>),
     Nothing,
 }
 
@@ -107,7 +106,6 @@ impl Debug for Type {
             Type::Object(inner) => write!(f, "{:?}", inner),
             Type::Expr(inner) => write!(f, "$({:?})", inner),
             Type::List(inner) => write!(f, "[{:?}]", inner),
-            Type::Chain(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
             Type::Ref(sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
             //Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
@@ -403,12 +401,20 @@ impl World {
                 ))))
             }
             hir::Type::Chain(terms) => {
+                let primary_type_handle = self.types[&(String::from("lang::Chain").into())];
+
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
+
+                let mut bindings = Vec::new();
+                bindings.push(Arc::new(
+                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                ));
+
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Chain(inner),
+                    mir::Type::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }

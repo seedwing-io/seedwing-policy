@@ -1,0 +1,1 @@
+Parameterized pattern that passes the input value to the first member of the chain, and its output to eh next, and so on and so forth.

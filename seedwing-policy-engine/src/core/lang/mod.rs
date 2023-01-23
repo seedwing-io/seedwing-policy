@@ -1,4 +1,5 @@
 use crate::core::lang::and::And;
+use crate::core::lang::chain::Chain;
 use crate::core::lang::or::Or;
 use crate::core::lang::refine::Refine;
 use crate::core::lang::traverse::Traverse;
@@ -19,6 +20,7 @@ use std::str::from_utf8;
 use std::sync::Arc;
 
 mod and;
+mod chain;
 mod or;
 mod refine;
 mod traverse;
@@ -29,5 +31,6 @@ pub fn package() -> Package {
     pkg.register_function("Or".into(), Or);
     pkg.register_function("Refine".into(), Refine);
     pkg.register_function("Traverse".into(), Traverse);
+    pkg.register_function("Chain".into(), Chain);
     pkg
 }

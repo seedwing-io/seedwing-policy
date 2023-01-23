@@ -20,6 +20,7 @@ pub enum SyntacticSugar {
     Or,
     Refine,
     Traverse,
+    Chain,
 }
 
 impl From<TypeName> for SyntacticSugar {
@@ -28,6 +29,8 @@ impl From<TypeName> for SyntacticSugar {
             "lang::And" => Self::And,
             "lang::Or" => Self::Or,
             "lang::Refine" => Self::Refine,
+            "lang::Traverse" => Self::Traverse,
+            "lang::Chain" => Self::Chain,
             _ => Self::None,
         }
     }

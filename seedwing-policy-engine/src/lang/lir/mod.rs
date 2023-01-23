@@ -197,44 +197,20 @@ impl Type {
                     Output::Identity,
                 ))
             }),
-            InnerType::Chain(terms) => Box::pin(async move {
-                let input = value.clone();
-                let mut rationale = Vec::new();
-                let mut cur = value;
-                let mut cur_output = Output::None;
-                for term in terms {
-                    let result = term.evaluate(cur.clone(), bindings, world).await?;
-
-                    rationale.push(result.clone());
-
-                    match result.raw_output() {
-                        Output::None => {
-                            return Ok(EvaluationResult::new(
-                                Some(cur.clone()),
-                                self.clone(),
-                                Rationale::Chain(rationale),
-                                Output::None,
-                            ));
-                        }
-                        Output::Identity => { /* keep trucking */ }
-                        Output::Transform(val) => {
-                            cur_output = Output::Transform(cur.clone());
-                            cur = val.clone()
-                        }
-                    }
-                }
-
-                Ok(EvaluationResult::new(
-                    Some(input),
-                    self.clone(),
-                    Rationale::Chain(rationale),
-                    cur_output,
-                ))
-            }),
             InnerType::Ref(sugar, slot, bindings) => Box::pin(async move {
                 if let Some(ty) = world.get_by_slot(*slot) {
                     let bindings = (ty.parameters(), bindings, world).into();
-                    ty.evaluate(value, &bindings, world).await
+                    let result = ty.evaluate(value.clone(), &bindings, world).await?;
+                    if let SyntacticSugar::Chain = sugar {
+                        Ok(EvaluationResult::new(
+                            Some(value.clone()),
+                            self.clone(),
+                            result.rationale().clone(),
+                            result.raw_output().clone(),
+                        ))
+                    } else {
+                        Ok(result)
+                    }
                 } else {
                     Err(RuntimeError::NoSuchTypeSlot(*slot))
                 }
@@ -464,7 +440,6 @@ pub enum InnerType {
     Object(ObjectType),
     Expr(Arc<Expr>),
     List(Vec<Arc<Type>>),
-    Chain(Vec<Arc<Type>>),
     Nothing,
 }
 
@@ -543,7 +518,6 @@ impl Debug for InnerType {
             InnerType::Argument(name) => write!(f, "{:?}", name),
             InnerType::Ref(sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
             InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
-            InnerType::Chain(terms) => write!(f, "{:?}", terms),
             InnerType::Nothing => write!(f, "nothing"),
         }
     }
@@ -745,24 +719,6 @@ pub(crate) fn convert(
             parameters,
             lir::InnerType::Expr(Arc::new(expr.lower())),
         )),
-        mir::Type::Chain(terms) => {
-            let mut inner = Vec::new();
-            for e in terms {
-                inner.push(convert(
-                    e.name(),
-                    e.documentation(),
-                    e.parameters().iter().map(|e| e.inner()).collect(),
-                    &e.ty(),
-                ))
-            }
-
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Chain(inner),
-            ))
-        }
         mir::Type::List(terms) => {
             let mut inner = Vec::new();
             for e in terms {
