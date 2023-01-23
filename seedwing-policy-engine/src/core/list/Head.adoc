@@ -1,0 +1,37 @@
+Get the head section of a list.
+
+For instance, this pattern:
+
+[source,subs=normal]
+----
+pattern split = list::Head<2>({
+  head: [1, 2],
+  main: [3, 4, 5],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`
+
+The logic is greedy, it tries to fill the `head` section first:
+
+[source,subs=normal]
+----
+pattern split = list::Head<3>({
+  head: [1, 2],
+  main: [],
+})
+----
+
+Would match the input: `[1, 2]`
+
+It is also possible to just get one item, omitting the binding:
+
+[source,subs=normal]
+----
+pattern split = list::Head({
+  head: [1],
+  main: [2, 3, 4, 5],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`

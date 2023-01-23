@@ -178,6 +178,12 @@ impl From<Vec<RuntimeValue>> for RuntimeValue {
     }
 }
 
+impl From<Vec<Rc<RuntimeValue>>> for RuntimeValue {
+    fn from(value: Vec<Rc<RuntimeValue>>) -> Self {
+        Self::List(value)
+    }
+}
+
 impl From<&[RuntimeValue]> for RuntimeValue {
     fn from(inner: &[RuntimeValue]) -> Self {
         Self::List(inner.iter().map(|e| Rc::new(e.clone())).collect())
