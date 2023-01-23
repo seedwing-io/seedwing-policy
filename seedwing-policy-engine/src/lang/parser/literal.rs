@@ -55,6 +55,13 @@ pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = Par
         .map_with_span(|_, span| Located::new(Type::Anything, span))
 }
 
+pub fn self_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+    just("self")
+        .padded()
+        .ignored()
+        .map_with_span(|_, span| Located::new(Type::Anything, span))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

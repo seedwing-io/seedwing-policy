@@ -5,8 +5,7 @@ use std::collections::HashMap;
 pub enum Rationale {
     Anything,
     Nothing,
-    Join(Vec<EvaluationResult>),
-    Meet(Vec<EvaluationResult>),
+    Chain(Vec<EvaluationResult>),
     Object(HashMap<String, EvaluationResult>),
     List(Vec<EvaluationResult>),
     NotAnObject,
@@ -25,8 +24,6 @@ impl Rationale {
         match self {
             Rationale::Anything => true,
             Rationale::Nothing => false,
-            Rationale::Join(terms) => terms.iter().any(|e| e.satisfied()),
-            Rationale::Meet(terms) => terms.iter().all(|e| e.satisfied()),
             Rationale::Object(fields) => fields.values().all(|e| e.satisfied()),
             Rationale::List(items) => items.iter().all(|e| e.satisfied()),
             Rationale::NotAnObject => false,
@@ -37,6 +34,7 @@ impl Rationale {
             Rationale::Primordial(val) => *val,
             Rationale::Expression(val) => *val,
             Rationale::Function(val, _) => *val,
+            Rationale::Chain(terms) => terms.iter().all(|e| e.satisfied()),
             Rationale::Refinement(primary, refinement) => {
                 if !primary.satisfied() {
                     false

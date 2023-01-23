@@ -19,6 +19,7 @@ pub enum SyntacticSugar {
     And,
     Or,
     Refine,
+    Traverse,
 }
 
 impl From<TypeName> for SyntacticSugar {

@@ -39,6 +39,30 @@ pattern signers = lang::Or<[ "bob", "jim" ]>
 pattern quux = foo || bar || baz
 
 
+/// A pattern defining via traversal.
+///
+/// Example input:
+///
+/// ```
+/// {
+///   "foo": "bob"
+/// }
+/// ```
+pattern shallow = self.foo
+
+/// A pattern defining via traversal.
+///
+/// Example input:
+///
+/// ```
+/// {
+///   "foo": {
+///     "bar": "bob"
+///   }
+/// }
+/// ```
+pattern deep = self.foo.bar("bob")
+
 
 /// Something signed by bob.
 ///

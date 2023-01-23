@@ -136,13 +136,21 @@ impl<'w> Htmlifier<'w> {
                     }
                 }
                 SyntacticSugar::Refine => {
-                    let primary = &bindings[0];
-                    let refinement = &bindings[1];
+                    let refinement = &bindings[0];
                     html.push_str("<span>");
-                    self.html_of_ty(html, primary.clone(), world);
                     html.push('(');
                     self.html_of_ty(html, refinement.clone(), world);
                     html.push(')');
+                    html.push_str("</span>");
+                }
+                SyntacticSugar::Traverse => {
+                    let step = &bindings[0];
+                    html.push_str("<span>");
+                    html.push('.');
+                    //self.html_of_ty(html, step.clone(), world);
+                    if let InnerType::Const(ValueType::String(step)) = step.inner() {
+                        html.push_str(step.as_str())
+                    }
                     html.push_str("</span>");
                 }
             },
@@ -185,6 +193,13 @@ impl<'w> Htmlifier<'w> {
                     }
                 }
                 html.push_str(" ]</span>");
+            }
+            InnerType::Chain(terms) => {
+                html.push_str("<span>");
+                for term in terms.iter() {
+                    self.html_of_ty(html, term.clone(), world);
+                }
+                html.push_str("</span>");
             }
             InnerType::Nothing => {
                 html.push_str("<span>");

@@ -1,0 +1,1 @@
+Pattern which produces the result of traversing to the named field of an input object.

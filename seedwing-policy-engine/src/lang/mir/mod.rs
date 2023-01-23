@@ -94,6 +94,7 @@ pub enum Type {
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
     List(Vec<Arc<TypeHandle>>),
+    Chain(Vec<Arc<TypeHandle>>),
     Nothing,
 }
 
@@ -106,6 +107,7 @@ impl Debug for Type {
             Type::Object(inner) => write!(f, "{:?}", inner),
             Type::Expr(inner) => write!(f, "$({:?})", inner),
             Type::List(inner) => write!(f, "[{:?}]", inner),
+            Type::Chain(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
             Type::Ref(sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
             //Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
@@ -377,13 +379,36 @@ impl World {
                     ty.location(),
                 ))))
             }
-            hir::Type::Refinement(primary, refinement) => {
+            hir::Type::Refinement(refinement) => {
                 let primary_type_handle = self.types[&(String::from("lang::Refine").into())];
 
-                let bindings = vec![self.convert(&**primary)?, self.convert(&**refinement)?];
+                let bindings = vec![self.convert(&**refinement)?];
 
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
+                    ty.location(),
+                ))))
+            }
+            hir::Type::Traverse(step) => {
+                let primary_type_handle = self.types[&(String::from("lang::Traverse").into())];
+
+                let bindings = vec![Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Const(ValueType::String(step.inner())),
+                    step.location(),
+                )))];
+
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Ref(SyntacticSugar::Traverse, primary_type_handle, bindings),
+                    ty.location(),
+                ))))
+            }
+            hir::Type::Chain(terms) => {
+                let mut inner = Vec::new();
+                for e in terms {
+                    inner.push(self.convert(e)?)
+                }
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Chain(inner),
                     ty.location(),
                 ))))
             }

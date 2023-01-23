@@ -1,6 +1,7 @@
 use crate::core::lang::and::And;
 use crate::core::lang::or::Or;
 use crate::core::lang::refine::Refine;
+use crate::core::lang::traverse::Traverse;
 use crate::core::{json, Function, FunctionEvaluationResult};
 use crate::lang::lir::Type;
 use crate::lang::lir::{Bindings, InnerType};
@@ -20,11 +21,13 @@ use std::sync::Arc;
 mod and;
 mod or;
 mod refine;
+mod traverse;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["lang"]));
     pkg.register_function("And".into(), And);
     pkg.register_function("Or".into(), Or);
     pkg.register_function("Refine".into(), Refine);
+    pkg.register_function("Traverse".into(), Traverse);
     pkg
 }

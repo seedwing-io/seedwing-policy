@@ -63,32 +63,10 @@ impl<'r> Rationalizer<'r> {
 
     pub fn supported_by(html: &mut String, result: &EvaluationResult) {
         match result.rationale() {
-            Rationale::Anything => {}
+            Rationale::Anything => {
+                html.push_str("<div>anything is satisfied by anything</div>");
+            }
             Rationale::Nothing => {}
-            Rationale::Join(terms) => {
-                html.push_str("<div class='join'>");
-                if result.rationale().satisfied() {
-                    html.push_str("<div class='reason'>because at least one was satisfied:</div>");
-                } else {
-                    html.push_str("<div class='reason'>because none were satisfied:</div>");
-                }
-                terms.iter().for_each(|e| {
-                    Self::rationale_inner(html, e);
-                });
-                html.push_str("</div>");
-            }
-            Rationale::Meet(terms) => {
-                html.push_str("<div class='meet'>");
-                if result.rationale().satisfied() {
-                    html.push_str("<div class='reason'>because all were satisfied:</div>");
-                } else {
-                    html.push_str("<div class='reason'>because not all were satisfied:</div>");
-                }
-                terms.iter().for_each(|e| {
-                    Self::rationale_inner(html, e);
-                });
-                html.push_str("</div>");
-            }
             Rationale::Object(fields) => {
                 html.push_str("<div class='object'>");
                 if result.rationale().satisfied() {
@@ -126,6 +104,24 @@ impl<'r> Rationalizer<'r> {
                     html.push_str(
                         "<div class='reason'>because not all members were satisfied:</div>",
                     );
+                }
+                for element in terms {
+                    if result.satisfied() {
+                        html.push_str("<div class='element satisfied'>");
+                    } else {
+                        html.push_str("<div class='element unsatisfied'>");
+                    }
+                    Self::rationale_inner(html, element);
+                    html.push_str("</div>");
+                }
+                html.push_str("</div>");
+            }
+            Rationale::Chain(terms) => {
+                html.push_str("<div class='chain'>");
+                if result.rationale().satisfied() {
+                    html.push_str("<div class='reason'>because the chain was satisfied:</div>");
+                } else {
+                    html.push_str("<div class='reason'>because the chain was not satisfied:</div>");
                 }
                 for element in terms {
                     if result.satisfied() {

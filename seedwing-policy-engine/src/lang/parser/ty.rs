@@ -4,7 +4,8 @@ use crate::lang::hir::{Field, MemberQualifier, ObjectType, Type, TypeDefn};
 use crate::lang::lir::ValueType;
 use crate::lang::parser::expr::expr;
 use crate::lang::parser::literal::{
-    anything_literal, boolean_literal, decimal_literal, integer_literal, string_literal,
+    anything_literal, boolean_literal, decimal_literal, integer_literal, self_literal,
+    string_literal,
 };
 use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
@@ -13,6 +14,7 @@ use crate::lang::parser::{
 use crate::lang::SyntacticSugar;
 use crate::runtime::{PackageName, PackagePath, TypeName};
 use crate::value::RuntimeValue;
+use chumsky::chain::Chain;
 use chumsky::prelude::*;
 use chumsky::text::Character;
 use chumsky::Parser;
@@ -118,7 +120,7 @@ pub fn doc_comment() -> impl Parser<ParserInput, String, Error = ParserError> + 
             }
 
             if let Some(line) = line.strip_prefix(prefix.as_ref().unwrap()) {
-                docs.push_str(line.trim_start());
+                docs.push_str(line);
             } else {
                 docs.push_str(line.trim_start());
             }
@@ -165,7 +167,38 @@ pub fn type_expr(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     recursive(|expr| {
-        parenthesized_expr(expr.clone()).or(logical_or(expr, visible_parameters.clone()))
+        parenthesized_expr(expr.clone())
+            .or(logical_or(expr.clone(), visible_parameters.clone()))
+            .then(postfix(expr.clone()).repeated())
+            .map_with_span(|(primary, postfix), span| {
+                if postfix.is_empty() {
+                    primary
+                } else {
+                    let mut terms = Vec::new();
+                    terms.push(primary);
+
+                    for each in postfix {
+                        match each {
+                            Postfix::Refinement(refinement) => {
+                                if let Some(refinement) = refinement {
+                                    terms.push(Located::new(
+                                        Type::Refinement(Box::new(refinement.clone())),
+                                        refinement.location(),
+                                    ));
+                                }
+                            }
+                            Postfix::Traversal(step) => {
+                                terms.push(Located::new(
+                                    Type::Traverse(step.clone()),
+                                    step.location(),
+                                ));
+                            }
+                        }
+                    }
+
+                    Located::new(Type::Chain(terms), span)
+                }
+            })
     })
 }
 
@@ -278,22 +311,36 @@ pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error = ParserError>
         .map_with_span(|((_, expr), y), span| Located::new(Type::Expr(expr), span))
 }
 
+pub enum Postfix {
+    Refinement(Option<Located<Type>>),
+    Traversal(Located<String>),
+}
+
+pub fn postfix(
+    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+) -> impl Parser<ParserInput, Postfix, Error = ParserError> + Clone {
+    refinement(expr.clone()).or(traversal(expr.clone()))
+}
+
 pub fn refinement(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
+) -> impl Parser<ParserInput, Postfix, Error = ParserError> + Clone {
     just("(")
         .padded()
         .ignored()
         .then(expr.or_not())
         .then(just(")").padded().ignored())
-        .map_with_span(|((_, ty), _), span| {
-            if let Some(ty) = ty {
-                let loc = ty.location();
-                Located::new(ty.inner(), loc)
-            } else {
-                Located::new(Type::Anything, span)
-            }
-        })
+        .map(move |((_, refinement), _)| Postfix::Refinement(refinement))
+}
+
+pub fn traversal(
+    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+) -> impl Parser<ParserInput, Postfix, Error = ParserError> + Clone {
+    just(".")
+        .padded()
+        .ignored()
+        .then(field_name())
+        .map_with_span(move |(_, step), span| Postfix::Traversal(step))
 }
 
 pub fn list_ty(
@@ -323,18 +370,11 @@ pub fn ty(
     expr_ty()
         //.or( parser_function())
         .or(anything_literal())
+        .or(self_literal())
         .or(list_ty(expr.clone()))
         .or(const_type())
         .or(object_type(expr.clone()))
         .or(type_ref(expr.clone(), visible_parameters))
-        .then(refinement(expr).or_not())
-        .map_with_span(|(ty, refinement), span| {
-            if let Some(refinement) = refinement {
-                Located::new(Type::Refinement(Box::new(ty), Box::new(refinement)), span)
-            } else {
-                ty
-            }
-        })
 }
 
 pub fn type_arguments(
@@ -452,6 +492,13 @@ mod test {
         assert_eq!(&*ty.name().inner(), "bob");
     }
 
+    #[test]
+    fn parse_ty_defn_with_traversal() {
+        let ty = type_definition()
+            .parse("pattern bob = person.first_name(\"bob\").last_name")
+            .unwrap()
+            .inner();
+    }
     /*
     #[test]
     fn parse_ty_ref() {

@@ -93,6 +93,11 @@ impl TypeDefn {
     }
 
     pub fn set_documentation(&mut self, doc: Option<String>) {
+        /*
+        if doc.is_some() {
+            println!("STASH DOCS on {} {}", self.name.inner(), doc.as_ref().unwrap());
+        }
+         */
         self.documentation = doc
     }
 
@@ -127,8 +132,11 @@ pub enum Type {
     Expr(Located<Expr>),
     Join(Vec<Located<Type>>),
     Meet(Vec<Located<Type>>),
-    Refinement(Box<Located<Type>>, Box<Located<Type>>),
     List(Vec<Located<Type>>),
+    // postfix
+    Chain(Vec<Located<Type>>),
+    Traverse(Located<String>),
+    Refinement(Box<Located<Type>>),
     Nothing,
 }
 
@@ -152,13 +160,10 @@ impl Type {
             Type::Expr(_) => Vec::default(),
             Type::Join(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Meet(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
-            Type::Refinement(primary, refinement) => primary
-                .referenced_types()
-                .iter()
-                .chain(refinement.referenced_types().iter())
-                .cloned()
-                .collect(),
+            Type::Refinement(refinement) => refinement.referenced_types(),
             Type::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Type::Chain(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Type::Traverse(_) => Vec::default(),
             Type::Nothing => Vec::default(),
             Type::Parameter(_) => Vec::default(),
         }
@@ -189,13 +194,16 @@ impl Type {
             Type::Meet(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Refinement(primary, refinement) => {
-                primary.qualify_types(types);
+            Type::Refinement(refinement) => {
                 refinement.qualify_types(types);
             }
             Type::List(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
+            Type::Chain(terms) => {
+                terms.iter_mut().for_each(|e| e.qualify_types(types));
+            }
+            Type::Traverse(_) => {}
             Type::Nothing => {}
             Type::Parameter(_) => {}
         }
@@ -212,9 +220,11 @@ impl Debug for Type {
             Type::Meet(terms) => write!(f, "Meet({:?})", terms),
             Type::Nothing => write!(f, "Nothing"),
             Type::Object(obj) => write!(f, "{:?}", obj),
-            Type::Refinement(fn_name, ty) => write!(f, "{:?}({:?})", fn_name, ty),
+            Type::Refinement(ty) => write!(f, "({:?})", ty),
             Type::List(ty) => write!(f, "[{:?}]", ty),
-            Type::Expr(expr) => write!(f, "#({:?})", expr),
+            Type::Expr(expr) => write!(f, "$({:?})", expr),
+            Type::Chain(terms) => write!(f, "{:?}", terms),
+            Type::Traverse(step) => write!(f, ".{}", step.inner()),
             Type::Parameter(name) => write!(f, "{:?}", name),
         }
     }
