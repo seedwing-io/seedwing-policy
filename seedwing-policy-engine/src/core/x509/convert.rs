@@ -5,7 +5,7 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::asn1_rs::{Any, BitString};
 use x509_parser::der_parser::ber::{Class, Header};
 use x509_parser::der_parser::Oid;
-use x509_parser::extensions::{GeneralName, X509Extension};
+use x509_parser::extensions::{ExtendedKeyUsage, GeneralName, KeyUsage, X509Extension};
 use x509_parser::prelude::{ParsedExtension, SubjectAlternativeName};
 use x509_parser::x509::{
     AlgorithmIdentifier, AttributeTypeAndValue, RelativeDistinguishedName, SubjectPublicKeyInfo,
@@ -158,7 +158,11 @@ impl TryFrom<&ParsedExtension<'_>> for RuntimeValue {
             //ParsedExtension::ParseError { .. } => {}
             //ParsedExtension::AuthorityKeyIdentifier(_) => {}
             //ParsedExtension::SubjectKeyIdentifier(_) => {}
-            //ParsedExtension::KeyUsage(_) => {}
+            ParsedExtension::KeyUsage(key_usage) => {
+                let mut obj = Object::new();
+                obj.set("keyUsage", key_usage);
+                Ok(obj.into())
+            }
             //ParsedExtension::CertificatePolicies(_) => {}
             //ParsedExtension::PolicyMappings(_) => {}
             ParsedExtension::SubjectAlternativeName(name) => {
@@ -174,7 +178,11 @@ impl TryFrom<&ParsedExtension<'_>> for RuntimeValue {
             }
             //ParsedExtension::NameConstraints(_) => {}
             //ParsedExtension::PolicyConstraints(_) => {}
-            //ParsedExtension::ExtendedKeyUsage(_) => {}
+            ParsedExtension::ExtendedKeyUsage(extended_key_usage) => {
+                let mut obj = Object::new();
+                obj.set("extendedKeyUsage", extended_key_usage);
+                Ok(obj.into())
+            }
             //ParsedExtension::CRLDistributionPoints(_) => {}
             //ParsedExtension::InhibitAnyPolicy(_) => {}
             //ParsedExtension::AuthorityInfoAccess(_) => {}
@@ -211,7 +219,11 @@ impl From<&GeneralName<'_>> for RuntimeValue {
                 obj.set("rfc822", *name);
                 obj.into()
             }
-            GeneralName::DNSName(_) => todo!(),
+            GeneralName::DNSName(name) => {
+                let mut obj = Object::new();
+                obj.set("DNS", *name);
+                obj.into()
+            }
             GeneralName::X400Address(_) => todo!(),
             GeneralName::DirectoryName(_) => todo!(),
             GeneralName::EDIPartyName(_) => todo!(),
@@ -255,5 +267,57 @@ impl From<&AlgorithmIdentifier<'_>> for RuntimeValue {
         );
 
         obj.into()
+    }
+}
+
+impl From<&KeyUsage> for RuntimeValue {
+    fn from(value: &KeyUsage) -> Self {
+        let mut result = Vec::new();
+
+        if value.digital_signature() {
+            result.push(Rc::new("Digital Signature".into()));
+        }
+        if value.non_repudiation() {
+            result.push(Rc::new("Non Repudiation".into()));
+        }
+        if value.key_encipherment() {
+            result.push(Rc::new("Key Encipherment".into()));
+        }
+        if value.data_encipherment() {
+            result.push(Rc::new("Data Encipherment".into()));
+        }
+        if value.key_agreement() {
+            result.push(Rc::new("Key Agreement".into()));
+        }
+        if value.key_cert_sign() {
+            result.push(Rc::new("Key Cert Sign".into()));
+        }
+        if value.crl_sign() {
+            result.push(Rc::new("CRL Sign".into()));
+        }
+        if value.encipher_only() {
+            result.push(Rc::new("Encipher Only".into()));
+        }
+        if value.decipher_only() {
+            result.push(Rc::new("Decipher Only".into()));
+        }
+
+        RuntimeValue::List(result)
+    }
+}
+
+impl From<&ExtendedKeyUsage<'_>> for RuntimeValue {
+    fn from(value: &ExtendedKeyUsage<'_>) -> Self {
+        let mut result = Object::new();
+
+        result.set("any", value.any);
+        result.set("serverAuth", value.server_auth);
+        result.set("clientAuth", value.client_auth);
+        result.set("codeSigning", value.code_signing);
+        result.set("emailProtection", value.email_protection);
+        result.set("timeStamping", value.time_stamping);
+        result.set("ocspSigning", value.ocsp_signing);
+
+        RuntimeValue::Object(result)
     }
 }
