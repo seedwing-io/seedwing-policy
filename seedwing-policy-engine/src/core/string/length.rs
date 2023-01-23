@@ -79,6 +79,8 @@ mod test {
             .evaluate("test::ten", json!("abcdefghijklmnop"))
             .await;
 
+        println!("result --> {:?}", result);
+
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(!result.unwrap().satisfied())
     }

@@ -14,12 +14,31 @@ pub mod mir;
 pub mod parser;
 
 #[derive(Debug, Clone, Serialize)]
+pub enum SyntacticSugar {
+    None,
+    And,
+    Or,
+    Refine,
+}
+
+impl From<TypeName> for SyntacticSugar {
+    fn from(name: TypeName) -> Self {
+        match name.as_type_str().as_str() {
+            "lang::And" => Self::And,
+            "lang::Or" => Self::Or,
+            "lang::Refine" => Self::Refine,
+            _ => Self::None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub enum PrimordialType {
     Integer,
     Decimal,
     Boolean,
     String,
-    Function(TypeName, #[serde(skip)] Arc<dyn Function>),
+    Function(SyntacticSugar, TypeName, #[serde(skip)] Arc<dyn Function>),
 }
 
 impl Hash for PrimordialType {
@@ -29,7 +48,7 @@ impl Hash for PrimordialType {
             PrimordialType::Decimal => "decimal".hash(state),
             PrimordialType::Boolean => "boolean".hash(state),
             PrimordialType::String => "string".hash(state),
-            PrimordialType::Function(name, _) => name.hash(state),
+            PrimordialType::Function(_, name, _) => name.hash(state),
         }
     }
 }
@@ -41,7 +60,7 @@ impl PartialEq for PrimordialType {
             (Self::Decimal, Self::Decimal) => true,
             (Self::Boolean, Self::Boolean) => true,
             (Self::String, Self::String) => true,
-            (Self::Function(lhs, _), Self::Function(rhs, _)) => lhs.eq(rhs),
+            (Self::Function(_, lhs, _), Self::Function(_, rhs, _)) => lhs.eq(rhs),
             _ => false,
         }
     }

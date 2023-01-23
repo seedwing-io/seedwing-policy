@@ -1,5 +1,5 @@
 use seedwing_policy_engine::lang::lir::{Expr, InnerType, ObjectType, Type, ValueType};
-use seedwing_policy_engine::lang::PrimordialType;
+use seedwing_policy_engine::lang::{PrimordialType, SyntacticSugar};
 use seedwing_policy_engine::runtime;
 use seedwing_policy_engine::runtime::{TypeName, World};
 use std::sync::Arc;
@@ -63,7 +63,7 @@ impl<'w> Htmlifier<'w> {
                     html.push_str("string");
                     html.push_str("</span>");
                 }
-                PrimordialType::Function(_type_name, _) => {
+                PrimordialType::Function(sugar, _type_name, _) => {
                     html.push_str("<span>");
                     html.push_str("built-in function");
                     html.push_str("</span>");
@@ -89,25 +89,63 @@ impl<'w> Htmlifier<'w> {
                 }
                 html.push_str("</span>");
             }
-            InnerType::Ref(slot, bindings) => {
-                let ty = world.get_by_slot(*slot);
-                if let Some(ty) = ty {
-                    html.push_str("<span>");
-                    let has_params = !ty.parameters().is_empty();
-                    self.html_of_ty(html, ty, world);
-                    if has_params {
-                        html.push_str("&lt;");
-                        for (i, arg) in bindings.iter().enumerate() {
-                            self.html_of_ty(html, arg.clone(), world);
-                            if i + 1 < bindings.len() {
-                                html.push_str(", ");
+            InnerType::Ref(sugar, slot, bindings) => match sugar {
+                SyntacticSugar::None => {
+                    let ty = world.get_by_slot(*slot);
+                    if let Some(ty) = ty {
+                        html.push_str("<span>");
+                        let has_params = !ty.parameters().is_empty();
+                        self.html_of_ty(html, ty, world);
+                        if has_params {
+                            html.push_str("&lt;");
+                            for (i, arg) in bindings.iter().enumerate() {
+                                self.html_of_ty(html, arg.clone(), world);
+                                if i + 1 < bindings.len() {
+                                    html.push_str(", ");
+                                }
+                            }
+                            html.push_str("&gt;");
+                        }
+                        html.push_str("</span>");
+                    }
+                }
+                SyntacticSugar::And => {
+                    let terms = &bindings[0];
+                    if let InnerType::List(terms) = terms.inner() {
+                        html.push_str("<span>");
+                        for (i, term) in terms.iter().enumerate() {
+                            self.html_of_ty(html, term.clone(), world);
+                            if i + 1 < terms.len() {
+                                html.push_str(" && ");
                             }
                         }
-                        html.push_str("&gt;");
+                        html.push_str("</span>");
                     }
+                }
+                SyntacticSugar::Or => {
+                    let terms = &bindings[0];
+                    if let InnerType::List(terms) = terms.inner() {
+                        html.push_str("<span>");
+                        for (i, term) in terms.iter().enumerate() {
+                            self.html_of_ty(html, term.clone(), world);
+                            if i + 1 < terms.len() {
+                                html.push_str(" || ");
+                            }
+                        }
+                        html.push_str("</span>");
+                    }
+                }
+                SyntacticSugar::Refine => {
+                    let primary = &bindings[0];
+                    let refinement = &bindings[1];
+                    html.push_str("<span>");
+                    self.html_of_ty(html, primary.clone(), world);
+                    html.push('(');
+                    self.html_of_ty(html, refinement.clone(), world);
+                    html.push(')');
                     html.push_str("</span>");
                 }
-            }
+            },
             InnerType::Argument(arg) => {
                 html.push_str(arg.as_str());
             }
@@ -137,34 +175,6 @@ impl<'w> Htmlifier<'w> {
                 html.push_str("$(");
                 self.html_of_expr(html, expr);
                 html.push(')');
-            }
-            InnerType::Join(terms) => {
-                html.push_str("<span>");
-                for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone(), world);
-                    if i + 1 < terms.len() {
-                        html.push_str(" || ");
-                    }
-                }
-                html.push_str("</span>");
-            }
-            InnerType::Meet(terms) => {
-                html.push_str("<span>");
-                for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone(), world);
-                    if i + 1 < terms.len() {
-                        html.push_str(" && ");
-                    }
-                }
-                html.push_str("</span>");
-            }
-            InnerType::Refinement(primary, refinement) => {
-                html.push_str("<span>");
-                self.html_of_ty(html, primary.clone(), world);
-                html.push('(');
-                self.html_of_ty(html, refinement.clone(), world);
-                html.push(')');
-                html.push_str("</span>");
             }
             InnerType::List(terms) => {
                 html.push_str("<span>[ ");

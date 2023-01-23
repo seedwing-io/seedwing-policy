@@ -186,25 +186,25 @@ mod test {
             // Single-line comment, yay
             pattern signed-thing = {
                 digest: sigstore::SHA256(
-                    n<1>::{
+                    list::Any<{
                         apiVersion: "0.0.1",
                         spec: {
                             signature: {
                                 publicKey: {
                                     content: base64::Base64(
-                                        x509::PEM( n<1>::{
+                                        x509::PEM( list::Any<{
                                             version: 2,
-                                            extensions: n<1>::{
-                                                subjectAlternativeName: n<1>::{
+                                            extensions: list::Any<{
+                                                subjectAlternativeName: list::Any<{
                                                     rfc822: "bob@mcwhirter.org",
-                                                }
-                                            }
-                                        } )
+                                                }>
+                                            }>
+                                        }> )
                                     )
                                 }
                             }
                         }
-                    }
+                    }>
                 )
             }
         "#,
@@ -213,6 +213,7 @@ mod test {
         let mut builder = Builder::new();
 
         let result = builder.build(src.iter());
+        println!("---> {:?}", result);
         let runtime = builder.finish().await.unwrap();
 
         let value = json!(

@@ -1,0 +1,1 @@
+Parameterized pattern that the input value satisifies all members of the list parameters.

@@ -1,4 +1,22 @@
 
+pattern furry = {
+  furry: true
+}
+
+pattern loving = {
+  loving: true
+}
+
+/// Something that is a furry loving dog.
+///
+/// ```
+/// {
+///   "furry": true,
+///   "loving": true,
+/// }
+/// ```
+pattern dog = furry && loving
+
 pattern foo = {
   foo: integer
 }
@@ -13,7 +31,7 @@ pattern baz = {
   baz: integer
 }
 
-pattern signers = pattern::Set<[ "bob", "jim" ]>
+pattern signers = lang::Or<[ "bob", "jim" ]>
 
 
 /// It could be a foo
@@ -33,24 +51,24 @@ pattern quux = foo || bar || baz
 /// ```
 pattern signed-thing = {
     digest: sigstore::SHA256(
-        n<1>::{
+        list::Any<{
             apiVersion: "0.0.1",
             spec: {
                 signature: {
                     publicKey: {
                         content: base64::Base64(
-                            x509::PEM( n<1>::{
+                            x509::PEM( list::Any<{
                                 version: 2,
-                                extensions: n<1>::{
-                                    subjectAlternativeName: n<1>::{
+                                extensions: list::Any<{
+                                    subjectAlternativeName: list::Any<{
                                         rfc822: "bob@mcwhirter.org",
-                                    }
-                                }
-                            } )
+                                    }>
+                                }>
+                            }> )
                         )
                     }
                 }
             }
-        }
+        }>
     )
 }

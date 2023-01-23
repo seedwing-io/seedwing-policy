@@ -1,1 +1,0 @@
-Treat the list parameter as a set of patterns, and evaluate the input as matching any of the patterns.

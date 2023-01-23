@@ -1,7 +1,7 @@
 use crate::core::Function;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
-use crate::lang::{lir, mir};
+use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, PackagePath, RuntimeError, TypeName};
@@ -120,7 +120,7 @@ impl TypeDefn {
 #[derive(Clone)]
 pub enum Type {
     Anything,
-    Ref(Located<TypeName>, Vec<Located<Type>>),
+    Ref(SyntacticSugar, Located<TypeName>, Vec<Located<Type>>),
     Parameter(Located<String>),
     Const(Located<ValueType>),
     Object(ObjectType),
@@ -144,7 +144,7 @@ impl Type {
     pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
         match self {
             Type::Anything => Vec::default(),
-            Type::Ref(inner, arguuments) => once(inner.clone())
+            Type::Ref(_, inner, arguuments) => once(inner.clone())
                 .chain(arguuments.iter().flat_map(|e| e.referenced_types()))
                 .collect(),
             Type::Const(_) => Vec::default(),
@@ -167,7 +167,7 @@ impl Type {
     pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
         match self {
             Type::Anything => {}
-            Type::Ref(ref mut name, arguments) => {
+            Type::Ref(_, ref mut name, arguments) => {
                 if !name.is_qualified() {
                     // it's a simple single-word name, needs qualifying, perhaps.
                     if let Some(Some(qualified)) = types.get(&name.name()) {
@@ -206,7 +206,7 @@ impl Debug for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Type::Anything => write!(f, "Anything"),
-            Type::Ref(r, args) => write!(f, "{:?}<{:?}>", r, args),
+            Type::Ref(_, r, args) => write!(f, "{:?}<{:?}>", r, args),
             Type::Const(value) => write!(f, "{:?}", value),
             Type::Join(terms) => write!(f, "Join({:?})", terms),
             Type::Meet(terms) => write!(f, "Meet({:?})", terms),
@@ -311,7 +311,7 @@ impl World {
             packages: Default::default(),
             source_cache: Default::default(),
         };
-        world.add_package(crate::core::pattern::package());
+        world.add_package(crate::core::lang::package());
         world.add_package(crate::core::list::package());
         world.add_package(crate::core::string::package());
         world.add_package(crate::core::base64::package());

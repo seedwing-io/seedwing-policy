@@ -1,0 +1,1 @@
+Pattern which applies the first parameter pattern, and if successful, applies the second the output of the first.

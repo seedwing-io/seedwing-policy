@@ -1,10 +1,10 @@
 use crate::core::Function;
 use crate::lang::hir::{Expr, MemberQualifier};
-use crate::lang::lir;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{Located, SourceLocation};
 use crate::lang::PrimordialType;
 use crate::lang::{hir, mir};
+use crate::lang::{lir, SyntacticSugar};
 use crate::runtime;
 use crate::runtime::TypeName;
 use crate::runtime::{BuildError, RuntimeError};
@@ -87,15 +87,12 @@ impl TypeHandle {
 pub enum Type {
     Anything,
     Primordial(PrimordialType),
-    Ref(usize, Vec<Arc<TypeHandle>>),
+    Ref(SyntacticSugar, usize, Vec<Arc<TypeHandle>>),
     //Bound(Arc<TypeHandle>, Bindings),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
     Expr(Arc<Located<Expr>>),
-    Join(Vec<Arc<TypeHandle>>),
-    Meet(Vec<Arc<TypeHandle>>),
-    Refinement(Arc<TypeHandle>, Arc<TypeHandle>),
     List(Vec<Arc<TypeHandle>>),
     Nothing,
 }
@@ -108,14 +105,9 @@ impl Debug for Type {
             Type::Const(inner) => write!(f, "{:?}", inner),
             Type::Object(inner) => write!(f, "{:?}", inner),
             Type::Expr(inner) => write!(f, "$({:?})", inner),
-            Type::Join(terms) => write!(f, "||({:?})", terms),
-            Type::Meet(terms) => write!(f, "&&({:?})", terms),
-            Type::Refinement(primary, refinement) => {
-                write!(f, "{:?}({:?})", primary, refinement)
-            }
             Type::List(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
-            Type::Ref(slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
+            Type::Ref(sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
             //Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
             Type::Nothing => write!(f, "nothing"),
         }
@@ -275,7 +267,11 @@ impl World {
     pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
         log::info!("define function {}", path);
         let runtime_type = Located::new(
-            mir::Type::Primordial(PrimordialType::Function(path.clone(), func.clone())),
+            mir::Type::Primordial(PrimordialType::Function(
+                SyntacticSugar::from(path.clone()),
+                path.clone(),
+                func.clone(),
+            )),
             0..0,
         );
 
@@ -289,11 +285,11 @@ impl World {
             hir::Type::Anything => Ok(Arc::new(
                 TypeHandle::new(None).with(Located::new(mir::Type::Anything, ty.location())),
             )),
-            hir::Type::Ref(inner, arguments) => {
+            hir::Type::Ref(sugar, inner, arguments) => {
                 let primary_type_handle = self.types[&(inner.inner())];
                 if arguments.is_empty() {
                     Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                        mir::Type::Ref(primary_type_handle, Vec::default()),
+                        mir::Type::Ref(sugar.clone(), primary_type_handle, Vec::default()),
                         inner.location(),
                     ))))
                 } else {
@@ -313,36 +309,10 @@ impl World {
                         bindings.push(self.convert(arg)?)
                     }
                     Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                        mir::Type::Ref(primary_type_handle, bindings),
+                        mir::Type::Ref(sugar.clone(), primary_type_handle, bindings),
                         inner.location(),
                     ))))
                 }
-                /*
-
-                if arguments.is_empty() {
-                    Ok(primary_type)
-                } else {
-                    let parameter_names = primary_type.parameters();
-
-                    if parameter_names.len() != arguments.len() {
-                        return Err(BuildError::ArgumentMismatch(
-                            String::new().into(),
-                            arguments[0].location().span(),
-                        ));
-                    }
-
-                    let mut bindings = Bindings::new();
-
-                    for (name, arg) in parameter_names.iter().zip(arguments.iter()) {
-                        bindings.bind(name.inner(), self.convert(arg)?)
-                    }
-
-                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                        mir::Type::Bound(primary_type, bindings),
-                        ty.location(),
-                    ))))
-                }
-                 */
             }
             hir::Type::Parameter(name) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                 mir::Type::Argument(name.inner()),
@@ -376,22 +346,44 @@ impl World {
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
-                Ok(Arc::new(
-                    TypeHandle::new(None).with(Located::new(mir::Type::Join(inner), ty.location())),
-                ))
+
+                let primary_type_handle = self.types[&(String::from("lang::Or").into())];
+
+                let mut bindings = Vec::new();
+                bindings.push(Arc::new(
+                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                ));
+
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
+                    ty.location(),
+                ))))
             }
             hir::Type::Meet(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
-                Ok(Arc::new(
-                    TypeHandle::new(None).with(Located::new(mir::Type::Meet(inner), ty.location())),
-                ))
+
+                let primary_type_handle = self.types[&(String::from("lang::And").into())];
+
+                let mut bindings = Vec::new();
+                bindings.push(Arc::new(
+                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                ));
+
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Ref(SyntacticSugar::And, primary_type_handle, bindings),
+                    ty.location(),
+                ))))
             }
             hir::Type::Refinement(primary, refinement) => {
+                let primary_type_handle = self.types[&(String::from("lang::Refine").into())];
+
+                let bindings = vec![self.convert(&**primary)?, self.convert(&**refinement)?];
+
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Refinement(self.convert(&**primary)?, self.convert(&**refinement)?),
+                    mir::Type::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }

@@ -10,6 +10,7 @@ use crate::lang::parser::{
     op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
     SourceLocation, SourceSpan, Use,
 };
+use crate::lang::SyntacticSugar;
 use crate::runtime::{PackageName, PackagePath, TypeName};
 use crate::value::RuntimeValue;
 use chumsky::prelude::*;
@@ -295,60 +296,10 @@ pub fn refinement(
         })
 }
 
-pub fn qualified_list(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
-) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    member_qualifier()
-        .then(expr)
-        .map_with_span(|(qualifier, ty), span| {
-            match &*qualifier {
-                MemberQualifier::All => Located::new(
-                    Type::Ref(
-                        Located::new(String::from("list::All").into(), span.clone()),
-                        vec![ty],
-                    ),
-                    span,
-                ),
-                MemberQualifier::Any => Located::new(
-                    Type::Ref(
-                        Located::new(String::from("list::Any").into(), span.clone()),
-                        vec![ty],
-                    ),
-                    span,
-                ),
-                MemberQualifier::None => Located::new(
-                    Type::Ref(
-                        Located::new(String::from("list::None").into(), span.clone()),
-                        vec![ty],
-                    ),
-                    span,
-                ),
-                MemberQualifier::N(count) => {
-                    let count_loc = count.location();
-                    let count = Located::new(
-                        Type::Const(Located::new(
-                            ValueType::Integer(count.inner() as _),
-                            count_loc,
-                        )),
-                        span.clone(),
-                    );
-                    Located::new(
-                        Type::Ref(
-                            Located::new(String::from("list::Some").into(), span.clone()),
-                            vec![count, ty],
-                        ),
-                        span,
-                    )
-                }
-            }
-            //Located::new(Type::MemberQualifier(qualifier, Box::new(ty)), span)
-        })
-}
-
 pub fn list_ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    qualified_list(expr.clone()).or(list_literal(expr))
+    list_literal(expr)
 }
 
 pub fn list_literal(
@@ -421,7 +372,11 @@ pub fn type_ref(
                 Located::new(Type::Parameter(Located::new(name.name(), span)), loc)
             } else {
                 Located::new(
-                    Type::Ref(Located::new(name.inner(), loc.clone()), arguments),
+                    Type::Ref(
+                        SyntacticSugar::None,
+                        Located::new(name.inner(), loc.clone()),
+                        arguments,
+                    ),
                     loc,
                 )
             }

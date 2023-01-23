@@ -2,7 +2,7 @@ use crate::core::Function;
 use crate::lang::hir::MemberQualifier;
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::Located;
-use crate::lang::{lir, mir, PrimordialType};
+use crate::lang::{lir, mir, PrimordialType, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
 use crate::runtime::{TypeName, World};
@@ -197,7 +197,7 @@ impl Type {
                     Output::Identity,
                 ))
             }),
-            InnerType::Ref(slot, bindings) => Box::pin(async move {
+            InnerType::Ref(sugar, slot, bindings) => Box::pin(async move {
                 if let Some(ty) = world.get_by_slot(*slot) {
                     let bindings = (ty.parameters(), bindings, world).into();
                     ty.evaluate(value, &bindings, world).await
@@ -294,7 +294,7 @@ impl Type {
                         ))
                     }
                 }),
-                PrimordialType::Function(name, func) => Box::pin(async move {
+                PrimordialType::Function(_, name, func) => Box::pin(async move {
                     let mut result = func.call(value.clone(), bindings, world).await?;
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
@@ -382,56 +382,6 @@ impl Type {
                     ))
                 }
             }),
-            InnerType::Join(terms) => Box::pin(async move {
-                let mut result = Vec::new();
-                for e in terms {
-                    result.push(e.evaluate(value.clone(), bindings, world).await?);
-                }
-
-                Ok(EvaluationResult::new(
-                    Some(value.clone()),
-                    self.clone(),
-                    Rationale::Join(result),
-                    Output::Identity,
-                ))
-            }),
-            InnerType::Meet(terms) => Box::pin(async move {
-                let mut result = Vec::new();
-                for e in terms {
-                    result.push(e.evaluate(value.clone(), bindings, world).await?);
-                }
-
-                Ok(EvaluationResult::new(
-                    Some(value.clone()),
-                    self.clone(),
-                    Rationale::Meet(result),
-                    Output::Identity,
-                ))
-            }),
-            InnerType::Refinement(primary, refinement) => Box::pin(async move {
-                let mut result = primary.evaluate(value.clone(), bindings, world).await?;
-
-                if !result.satisfied() {
-                    return Ok(result);
-                }
-
-                if let Some(output) = result.output() {
-                    let refinement_result = refinement.evaluate(output, bindings, world).await?;
-                    Ok(EvaluationResult::new(
-                        Some(value.clone()),
-                        self.clone(),
-                        Rationale::Refinement(Box::new(result), Some(Box::new(refinement_result))),
-                        Output::None,
-                    ))
-                } else {
-                    Ok(EvaluationResult::new(
-                        Some(value.clone()),
-                        self.clone(),
-                        Rationale::Refinement(Box::new(result), None),
-                        Output::None,
-                    ))
-                }
-            }),
             InnerType::List(terms) => Box::pin(async move {
                 if let Some(list_value) = value.try_get_list() {
                     if list_value.len() == terms.len() {
@@ -474,14 +424,11 @@ pub enum InnerType {
     Anything,
     Primordial(PrimordialType),
     Bound(Arc<Type>, Bindings),
-    Ref(usize, Vec<Arc<Type>>),
+    Ref(SyntacticSugar, usize, Vec<Arc<Type>>),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
     Expr(Arc<Expr>),
-    Join(Vec<Arc<Type>>),
-    Meet(Vec<Arc<Type>>),
-    Refinement(Arc<Type>, Arc<Type>),
     List(Vec<Arc<Type>>),
     Nothing,
 }
@@ -523,7 +470,7 @@ impl From<(Vec<String>, &Vec<Arc<Type>>, &World)> for Bindings {
     fn from((parameters, arguments, world): (Vec<String>, &Vec<Arc<Type>>, &World)) -> Self {
         let mut bindings = Self::new();
         for (param, arg) in parameters.iter().zip(arguments.iter()) {
-            if let InnerType::Ref(slot, unresolved_bindings) = &arg.inner {
+            if let InnerType::Ref(sugar, slot, unresolved_bindings) = &arg.inner {
                 if let Some(resolved_type) = world.get_by_slot(*slot) {
                     if resolved_type.parameters().is_empty() {
                         bindings.bind(param.clone(), resolved_type.clone())
@@ -557,14 +504,9 @@ impl Debug for InnerType {
             InnerType::Const(inner) => write!(f, "{:?}", inner),
             InnerType::Object(inner) => write!(f, "{:?}", inner),
             InnerType::Expr(inner) => write!(f, "$({:?})", inner),
-            InnerType::Join(terms) => write!(f, "||({:?})", terms),
-            InnerType::Meet(terms) => write!(f, "&&({:?})", terms),
-            InnerType::Refinement(primary, refinement) => {
-                write!(f, "{:?}({:?})", primary, refinement)
-            }
             InnerType::List(inner) => write!(f, "[{:?}]", inner),
             InnerType::Argument(name) => write!(f, "{:?}", name),
-            InnerType::Ref(slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerType::Ref(sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
             InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
             InnerType::Nothing => write!(f, "nothing"),
         }
@@ -707,35 +649,7 @@ pub(crate) fn convert(
             parameters,
             lir::InnerType::Primordial(primordial.clone()),
         )),
-        /*
-        mir::Type::Bound(primary, mir_bindings) => {
-            let primary = convert(
-                primary.name(),
-                primary.documentation(),
-                primary.parameters().iter().map(|e| e.inner()).collect(),
-                &primary.ty(),
-            );
-            let mut bindings = Bindings::new();
-            for (key, value) in mir_bindings.iter() {
-                bindings.bind(
-                    key.clone(),
-                    convert(
-                        value.name(),
-                        value.documentation(),
-                        value.parameters().iter().map(|e| e.inner()).collect(),
-                        &value.ty(),
-                    ),
-                )
-            }
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Bound(primary, bindings),
-            ))
-        }
-         */
-        mir::Type::Ref(slot, bindings) => {
+        mir::Type::Ref(sugar, slot, bindings) => {
             let mut lir_bindings = Vec::default();
             for e in bindings {
                 lir_bindings.push(convert(
@@ -750,7 +664,7 @@ pub(crate) fn convert(
                 None,
                 None,
                 parameters,
-                lir::InnerType::Ref(*slot, lir_bindings),
+                lir::InnerType::Ref(sugar.clone(), *slot, lir_bindings),
             ))
         }
         mir::Type::Argument(name) => Arc::new(lir::Type::new(
@@ -795,60 +709,6 @@ pub(crate) fn convert(
             parameters,
             lir::InnerType::Expr(Arc::new(expr.lower())),
         )),
-        mir::Type::Join(terms) => {
-            let mut inner = Vec::new();
-            for e in terms {
-                inner.push(convert(
-                    e.name(),
-                    e.documentation(),
-                    e.parameters().iter().map(|e| e.inner()).collect(),
-                    &e.ty(),
-                ));
-            }
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Join(inner),
-            ))
-        }
-        mir::Type::Meet(terms) => {
-            let mut inner = Vec::new();
-            for e in terms {
-                inner.push(convert(
-                    e.name(),
-                    e.documentation(),
-                    e.parameters().iter().map(|e| e.inner()).collect(),
-                    &e.ty(),
-                ));
-            }
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Meet(inner),
-            ))
-        }
-        mir::Type::Refinement(primary, refinement) => {
-            let primary = convert(
-                primary.name(),
-                primary.documentation(),
-                primary.parameters().iter().map(|e| e.inner()).collect(),
-                &primary.ty(),
-            );
-            let refinement = convert(
-                refinement.name(),
-                refinement.documentation(),
-                refinement.parameters().iter().map(|e| e.inner()).collect(),
-                &refinement.ty(),
-            );
-            Arc::new(lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Refinement(primary, refinement),
-            ))
-        }
         mir::Type::List(terms) => {
             let mut inner = Vec::new();
             for e in terms {
