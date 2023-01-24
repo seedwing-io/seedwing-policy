@@ -166,38 +166,39 @@ pub fn type_expr(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     recursive(|expr| {
-        parenthesized_expr(expr.clone())
-            .or(logical_or(expr.clone(), visible_parameters.clone()))
-            .then(postfix(expr.clone()).repeated())
-            .map_with_span(|(primary, postfix), span| {
-                if postfix.is_empty() {
-                    primary
-                } else {
-                    let mut terms = Vec::new();
-                    terms.push(primary);
+        parenthesized_expr(expr.clone()).or(logical_or(expr.clone(), visible_parameters.clone()))
+        /*
+        .then(postfix(expr.clone()).repeated())
+        .map_with_span(|(primary, postfix), span| {
+            if postfix.is_empty() {
+                primary
+            } else {
+                let mut terms = Vec::new();
+                terms.push(primary);
 
-                    for each in postfix {
-                        match each {
-                            Postfix::Refinement(refinement) => {
-                                if let Some(refinement) = refinement {
-                                    terms.push(Located::new(
-                                        Type::Refinement(Box::new(refinement.clone())),
-                                        refinement.location(),
-                                    ));
-                                }
-                            }
-                            Postfix::Traversal(step) => {
+                for each in postfix {
+                    match each {
+                        Postfix::Refinement(refinement) => {
+                            if let Some(refinement) = refinement {
                                 terms.push(Located::new(
-                                    Type::Traverse(step.clone()),
-                                    step.location(),
+                                    Type::Refinement(Box::new(refinement.clone())),
+                                    refinement.location(),
                                 ));
                             }
                         }
+                        Postfix::Traversal(step) => {
+                            terms.push(Located::new(
+                                Type::Traverse(step.clone()),
+                                step.location(),
+                            ));
+                        }
                     }
-
-                    Located::new(Type::Chain(terms), span)
                 }
-            })
+
+                Located::new(Type::Chain(terms), span)
+            }
+        })
+         */
     })
 }
 
@@ -367,13 +368,37 @@ pub fn ty(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     expr_ty()
-        //.or( parser_function())
-        //.or(anything_literal())
-        //.or(self_literal())
         .or(list_ty(expr.clone()))
         .or(const_type())
         .or(object_type(expr.clone()))
-        .or(type_ref(expr, visible_parameters))
+        .or(type_ref(expr.clone(), visible_parameters))
+        .then(postfix(expr).repeated())
+        .map_with_span(|(primary, postfix), span| {
+            if postfix.is_empty() {
+                primary
+            } else {
+                let mut terms = Vec::new();
+                terms.push(primary);
+
+                for each in postfix {
+                    match each {
+                        Postfix::Refinement(refinement) => {
+                            if let Some(refinement) = refinement {
+                                terms.push(Located::new(
+                                    Type::Refinement(Box::new(refinement.clone())),
+                                    refinement.location(),
+                                ));
+                            }
+                        }
+                        Postfix::Traversal(step) => {
+                            terms.push(Located::new(Type::Traverse(step.clone()), step.location()));
+                        }
+                    }
+                }
+
+                Located::new(Type::Chain(terms), span)
+            }
+        })
 }
 
 pub fn type_arguments(
@@ -480,7 +505,9 @@ pub fn field_definition(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::lang::builder::Builder;
     use crate::lang::parser::compilation_unit;
+    use crate::runtime::sources::Ephemeral;
 
     #[test]
     fn parse_ty_name() {
@@ -652,5 +679,48 @@ mod test {
             .unwrap();
 
         println!("{:?}", unit);
+    }
+
+    #[test]
+    fn parse_identifiers_including_specials() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern self-foo = integer
+            pattern foo = self-foo
+            pattern anything = self-foo
+            pattern bar = self
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        builder.build(src.iter()).unwrap();
+    }
+
+    #[test]
+    fn parse_postfix_and_logicals() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern cheese = {
+               gouda: {
+                 name: anything
+               }
+            }
+
+            pattern sandwich = {
+              ham: {
+                name: anything
+              }
+            }
+
+            pattern mix = cheese.gouda.name("bob") && sandwich.ham.name("terry")
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        builder.build(src.iter()).unwrap();
     }
 }
