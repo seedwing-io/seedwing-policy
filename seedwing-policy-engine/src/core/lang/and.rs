@@ -53,3 +53,132 @@ impl Function for And {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lang::builder::Builder;
+    use crate::runtime::sources::Ephemeral;
+    use serde_json::json;
+
+    #[actix_rt::test]
+    async fn call_matching_both_arms() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern left = {
+              first_name: "bob",
+            }
+
+            pattern right = {
+              last_name: "mcw",
+            }
+            pattern test-and = left && right
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime.evaluate("test::test-and", json!(
+            {
+                "first_name": "bob",
+                "last_name": "mcw"
+            }
+        )).await;
+        assert!(result.unwrap().satisfied())
+    }
+
+    #[actix_rt::test]
+    async fn call_matching_only_left_arm() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern left = {
+              first_name: "bob",
+            }
+
+            pattern right = {
+              last_name: "mcw",
+            }
+            pattern test-and = left && right
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime.evaluate("test::test-and", json!(
+            {
+                "first_name": "bob"
+            }
+        )).await;
+        assert!(!result.unwrap().satisfied())
+    }
+
+    #[actix_rt::test]
+    async fn call_matching_only_right_arm() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern left = {
+              first_name: "bob",
+            }
+
+            pattern right = {
+              last_name: "mcw",
+            }
+            pattern test-and = left && right
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime.evaluate("test::test-and", json!(
+            {
+                "last_name": "mcw"
+            }
+        )).await;
+        assert!(!result.unwrap().satisfied())
+    }
+
+    #[actix_rt::test]
+    async fn call_matching_no_arms() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern left = {
+              first_name: "bob",
+            }
+
+            pattern right = {
+              last_name: "mcw",
+            }
+            pattern test-and = left && right
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime.evaluate("test::test-and", json!(
+            {
+                "first_name": "jim",
+                "last_name": "crossley"
+            }
+        )).await;
+        assert!(!result.unwrap().satisfied())
+    }
+}

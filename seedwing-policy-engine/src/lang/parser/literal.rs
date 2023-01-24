@@ -48,6 +48,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<ValueType>, Error = 
         .map_with_span(|((_, x), _), span: SourceSpan| Located::new(ValueType::String(x), span))
 }
 
+/*
 pub fn anything_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
     just("anything")
         .padded()
@@ -61,6 +62,7 @@ pub fn self_literal() -> impl Parser<ParserInput, Located<Type>, Error = ParserE
         .ignored()
         .map_with_span(|_, span| Located::new(Type::Anything, span))
 }
+ */
 
 #[cfg(test)]
 mod test {
