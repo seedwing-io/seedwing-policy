@@ -86,7 +86,7 @@ impl Function for DER {
                 return Ok(Output::None.into());
             };
 
-            match parse_x509_certificate(&bytes) {
+            match parse_x509_certificate(bytes) {
                 Ok((_, cert)) => Ok(Output::Transform(Rc::new((&cert).into())).into()),
                 Err(_) => Ok(Output::None.into()),
             }

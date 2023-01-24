@@ -82,12 +82,17 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::test-and", json!(
-            {
-                "first_name": "bob",
-                "last_name": "mcw"
-            }
-        )).await;
+        let result = runtime
+            .evaluate(
+                "test::test-and",
+                json!(
+                    {
+                        "first_name": "bob",
+                        "last_name": "mcw"
+                    }
+                ),
+            )
+            .await;
         assert!(result.unwrap().satisfied())
     }
 
@@ -113,11 +118,16 @@ mod test {
 
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::test-and", json!(
-            {
-                "first_name": "bob"
-            }
-        )).await;
+        let result = runtime
+            .evaluate(
+                "test::test-and",
+                json!(
+                    {
+                        "first_name": "bob"
+                    }
+                ),
+            )
+            .await;
         assert!(!result.unwrap().satisfied())
     }
 
@@ -143,11 +153,16 @@ mod test {
 
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::test-and", json!(
-            {
-                "last_name": "mcw"
-            }
-        )).await;
+        let result = runtime
+            .evaluate(
+                "test::test-and",
+                json!(
+                    {
+                        "last_name": "mcw"
+                    }
+                ),
+            )
+            .await;
         assert!(!result.unwrap().satisfied())
     }
 
@@ -173,12 +188,17 @@ mod test {
 
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::test-and", json!(
-            {
-                "first_name": "jim",
-                "last_name": "crossley"
-            }
-        )).await;
+        let result = runtime
+            .evaluate(
+                "test::test-and",
+                json!(
+                    {
+                        "first_name": "jim",
+                        "last_name": "crossley"
+                    }
+                ),
+            )
+            .await;
         assert!(!result.unwrap().satisfied())
     }
 }

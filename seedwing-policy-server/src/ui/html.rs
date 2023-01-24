@@ -63,7 +63,7 @@ impl<'w> Htmlifier<'w> {
                     html.push_str("string");
                     html.push_str("</span>");
                 }
-                PrimordialType::Function(sugar, _type_name, _) => {
+                PrimordialType::Function(_sugar, _type_name, _) => {
                     html.push_str("<span>");
                     html.push_str("built-in function");
                     html.push_str("</span>");

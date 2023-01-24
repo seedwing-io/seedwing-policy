@@ -349,10 +349,9 @@ impl World {
 
                 let primary_type_handle = self.types[&(String::from("lang::Or").into())];
 
-                let mut bindings = Vec::new();
-                bindings.push(Arc::new(
+                let bindings = vec![Arc::new(
                     TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
-                ));
+                )];
 
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
@@ -367,10 +366,9 @@ impl World {
 
                 let primary_type_handle = self.types[&(String::from("lang::And").into())];
 
-                let mut bindings = Vec::new();
-                bindings.push(Arc::new(
+                let bindings = vec![Arc::new(
                     TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
-                ));
+                )];
 
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Ref(SyntacticSugar::And, primary_type_handle, bindings),
@@ -408,10 +406,9 @@ impl World {
                     inner.push(self.convert(e)?)
                 }
 
-                let mut bindings = Vec::new();
-                bindings.push(Arc::new(
+                let bindings = vec![Arc::new(
                     TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
-                ));
+                )];
 
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),

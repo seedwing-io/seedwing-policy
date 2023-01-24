@@ -180,6 +180,15 @@ impl Type {
         self.parameters.clone()
     }
 
+    /// Attempt to retrieve a const-ish value from this type.
+    pub fn try_get_resolved_value(&self) -> Option<ValueType> {
+        if let InnerType::Const(val) = &self.inner {
+            Some(val.clone())
+        } else {
+            None
+        }
+    }
+
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Rc<RuntimeValue>,

@@ -40,7 +40,7 @@ impl Function for Refine {
                 }
             }
 
-            return Ok((Output::None, rationale).into());
+            Ok((Output::None, rationale).into())
         })
     }
 }

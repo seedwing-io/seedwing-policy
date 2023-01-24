@@ -122,7 +122,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                     return response.finish();
                 }
                 let path_segments = PackagePath::from(path.clone());
-                let breadcrumbs = path_segments.clone().into();
+                let breadcrumbs = path_segments.into();
 
                 renderer.render(
                     "module",
@@ -145,7 +145,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                     return response.finish();
                 }
                 let path_segments = TypeName::from(path.clone());
-                let breadcrumbs = (path_segments.clone(), ty.parameters()).into();
+                let breadcrumbs = (path_segments, ty.parameters()).into();
 
                 let html = Htmlifier::new("/policy/".into(), &*world);
 
