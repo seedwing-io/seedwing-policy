@@ -16,7 +16,7 @@ impl<'c> ErrorPrinter<'c> {
         Self { cache }
     }
 
-    pub fn display(&self, errors: Vec<BuildError>) {
+    pub fn display(&self, errors: &[BuildError]) {
         for error in errors {
             let source_id = error.source_location();
             let span = error.span();
@@ -28,7 +28,7 @@ impl<'c> ErrorPrinter<'c> {
             )
             .with_label(Label::new(full_span).with_message(match error {
                 BuildError::ArgumentMismatch(_, _) => {
-                    format!("Argument mismatch")
+                    format!("argument mismatch")
                 }
                 BuildError::TypeNotFound(_, _, name) => {
                     format!("type not found: {}", name)
@@ -46,6 +46,8 @@ impl<'c> ErrorPrinter<'c> {
             }))
             .finish();
 
+            // unfortunately we cannot render to a string (stream, or any write) as the writer in
+            // consumed in the process.
             report.print(self.cache);
         }
     }
