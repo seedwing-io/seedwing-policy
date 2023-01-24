@@ -2,6 +2,7 @@ use actix_web::http::header;
 use actix_web::{get, web, HttpResponse};
 use handlebars::Handlebars;
 
+pub mod breadcrumbs;
 pub mod html;
 pub mod rationale;
 

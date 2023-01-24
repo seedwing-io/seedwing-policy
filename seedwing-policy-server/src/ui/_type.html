@@ -81,6 +81,18 @@
 </style>
 
 <h1 class="pf-c-title pf-m-4xl">
+  <span><a href="/policy/">Policies</a> | </span>
+  {{#each breadcrumbs.crumbs}}
+  {{#if this.link}}
+    <span><a href="{{this.link}}">{{this.text}}</a>::</span>
+  {{else}}
+    <span>{{this.text}}</span>
+  {{/if}}
+  {{/each}}
+</h1>
+
+<!--
+<h1 class="pf-c-title pf-m-4xl">
   {{#if path_segments}}
   {{#each path_segments}}
   <span>{{this}} :: </span>
@@ -89,6 +101,7 @@
   [Root]
   {{/if}}
 </h1>
+-->
 
 <div class="pf-m-gutter pf-l-grid pf-m-all-12-col-on-sm pf-m-all-6-col-on-md">
   <div class="pf-l-grid__item">

@@ -9,6 +9,7 @@ use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 //use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
+use crate::ui::breadcrumbs::Breadcrumbs;
 use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
@@ -121,11 +122,12 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                     return response.finish();
                 }
                 let path_segments = PackagePath::from(path.clone());
-                let path_segments = path_segments.segments();
+                let breadcrumbs = path_segments.clone().into();
+
                 renderer.render(
                     "module",
                     &ModuleRenderContext {
-                        path_segments,
+                        breadcrumbs,
                         url_path,
                         path,
                         module,
@@ -143,14 +145,14 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                     return response.finish();
                 }
                 let path_segments = TypeName::from(path.clone());
-                let path_segments = path_segments.segments();
+                let breadcrumbs = (path_segments.clone(), ty.parameters()).into();
 
                 let html = Htmlifier::new("/policy/".into(), &*world);
 
                 renderer.render(
                     "type",
                     &TypeRenderContext {
-                        path_segments,
+                        breadcrumbs,
                         url_path,
                         path,
                         parameters: ty.parameters(),
@@ -178,7 +180,7 @@ const MODULE_HTML: &str = include_str!("ui/_module.html");
 
 #[derive(Serialize)]
 pub struct ModuleRenderContext {
-    path_segments: Vec<String>,
+    breadcrumbs: Breadcrumbs,
     url_path: String,
     path: String,
     module: ModuleHandle,
@@ -186,7 +188,7 @@ pub struct ModuleRenderContext {
 
 #[derive(Serialize)]
 pub struct TypeRenderContext {
-    path_segments: Vec<String>,
+    breadcrumbs: Breadcrumbs,
     url_path: String,
     path: String,
     definition: String,

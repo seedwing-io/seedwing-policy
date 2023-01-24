@@ -1,6 +1,18 @@
 {{#> layout }}
 
 <h1 class="pf-c-title pf-m-4xl">
+  <span><a href="/policy/">Policies</a> | </span>
+  {{#each breadcrumbs.crumbs}}
+  {{#if this.link}}
+  <span><a href="{{this.link}}">{{this.text}}</a>::</span>
+  {{else}}
+  <span>{{this.text}}</span>
+  {{/if}}
+  {{/each}}
+</h1>
+
+<!--
+<h1 class="pf-c-title pf-m-4xl">
   {{#if path_segments}}
     {{#each path_segments}}
       <span>{{this}} :: </span>
@@ -9,6 +21,7 @@
     [Root]
   {{/if}}
 </h1>
+-->
 
 {{#with module.modules as |modules|}}
 {{#if modules}}

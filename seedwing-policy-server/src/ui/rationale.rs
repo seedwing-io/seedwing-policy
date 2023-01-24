@@ -38,6 +38,7 @@ impl<'r> Rationalizer<'r> {
             html.push_str("</div>");
 
             if let Some(name) = result.ty().name() {
+                html.push_str("<div>");
                 if result.satisfied() {
                     html.push_str(
                         format!("<div>Type <code>{}</code> was satisfied</div>", name).as_str(),
@@ -47,6 +48,27 @@ impl<'r> Rationalizer<'r> {
                         format!("<div>Type <code>{}</code> was not satisfied</div>", name).as_str(),
                     );
                 }
+                match result.rationale() {
+                    Rationale::Anything => {}
+                    Rationale::Nothing => {}
+                    Rationale::Chain(_) => {}
+                    Rationale::Object(_) => {}
+                    Rationale::List(_) => {}
+                    Rationale::NotAnObject => {}
+                    Rationale::NotAList => {}
+                    Rationale::MissingField(_) => {}
+                    Rationale::InvalidArgument(_) => {}
+                    Rationale::Const(_) => {}
+                    Rationale::Primordial(_) => {}
+                    Rationale::Expression(_) => {}
+                    Rationale::Function(_, inner) => {
+                        for each in inner {
+                            Self::rationale_inner(html, each);
+                        }
+                    }
+                    Rationale::Refinement(_, _) => {}
+                }
+                html.push_str("</div>");
             } else if result.satisfied() {
                 html.push_str("<div>was satisfied</div>");
             } else {
