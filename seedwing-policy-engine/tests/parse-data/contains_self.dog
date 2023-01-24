@@ -1,0 +1,4 @@
+/// Test case for having a name which contains the string "self"
+
+pattern foo = self-signed
+pattern self-signed = {}

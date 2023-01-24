@@ -31,8 +31,10 @@ pub struct Directory {
 }
 
 impl Directory {
-    pub fn new(dir: PathBuf) -> Self {
-        Self { dir }
+    pub fn new<P: AsRef<Path>>(dir: P) -> Self {
+        Self {
+            dir: dir.as_ref().to_path_buf(),
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {

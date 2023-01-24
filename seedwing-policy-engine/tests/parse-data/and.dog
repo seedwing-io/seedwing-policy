@@ -1,0 +1,5 @@
+pattern foo-bar = foo && bar
+
+pattern foo = {}
+
+pattern bar = {}
