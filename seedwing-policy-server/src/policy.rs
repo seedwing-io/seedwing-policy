@@ -14,20 +14,6 @@ use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, Type
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
 
-/*
-pub async fn policy(world: web::Data<World>, req: HttpRequest, body: Payload) -> impl Responder {
-    if req.method() == Method::POST {
-        return evaluate(world, req, body).await;
-    }
-
-    if req.method() == Method::GET {
-        return display(world, req).await;
-    }
-
-    HttpResponse::NotAcceptable().finish()
-}
- */
-
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
     opa: Option<bool>,
@@ -133,7 +119,6 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                         module,
                     },
                 )
-                //renderer.render_template(MODULE_HTML, &RenderContext { path, payload: pkg })
             }
             Component::Type(ty) => {
                 if original_path.ends_with('/') {

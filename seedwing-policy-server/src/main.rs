@@ -6,6 +6,8 @@ use actix_web::{web, App, HttpServer};
 use env_logger::Builder;
 use log::LevelFilter;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
+use static_files::Resource;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -14,7 +16,9 @@ use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
-use crate::ui::{index, ui_asset};
+use crate::ui::{documentation, index, ui_asset};
+
+include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -58,16 +62,18 @@ async fn main() -> std::io::Result<()> {
     match result {
         Ok(world) => {
             let server = HttpServer::new(move || {
+                let raw_docs = generate();
+
                 App::new()
                     .app_data(web::Data::new(world.clone()))
+                    .app_data(web::Data::new(Documentation(raw_docs)))
                     .service(ui_asset)
                     .service(index)
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
                     .service(evaluate)
-                //.default_service(web::to(policy))
-                //.route( "/policy/{path:.*}")
+                    .service(documentation)
             });
             log::info!("starting up at http://{}:{}/", bind, port);
 
@@ -79,3 +85,5 @@ async fn main() -> std::io::Result<()> {
         }
     }
 }
+
+pub struct Documentation(pub HashMap<&'static str, Resource>);

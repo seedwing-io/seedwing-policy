@@ -1,0 +1,31 @@
+{{#> layout }}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/asciidoctor.js"
+        integrity="sha512-04RTC/SU4Iti5IOWoDmtHEYGF5d3W/XfFlh1FIn4wtJDWdNqO93Vuw1LmgjRpME6exV2SwmI53iGjXQibp3Fjg=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+
+<div class="pf-m-gutter pf-l-grid pf-m-all-12-col-on-lg pf-m-all-12-col-on-sm pf-m-all-6-col-on-md">
+  <div class="pf-l-grid__item">
+    <div class="pf-c-panel">
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__main-body">
+          <div id="documentation" class="adoc" style="display:none">{{content}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready( function() {
+    var adoc = Asciidoctor();
+    var documentation = $("#documentation").text();
+    var converted = adoc.convert( documentation, { "safe": "safe" }  );
+    $("#documentation").html(converted);
+    $("#documentation").show();
+  } )
+</script>
+
+
+{{/layout}}
