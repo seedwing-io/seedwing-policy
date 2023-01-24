@@ -49,7 +49,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     if !errors.is_empty() {
-        ErrorPrinter::new(builder.source_cache()).display(errors);
+        ErrorPrinter::new(builder.source_cache()).display(&errors);
         exit(-1)
     }
 
@@ -74,7 +74,7 @@ async fn main() -> std::io::Result<()> {
             server.bind((bind, port))?.run().await
         }
         Err(errors) => {
-            ErrorPrinter::new(builder.source_cache()).display(errors);
+            ErrorPrinter::new(builder.source_cache()).display(&errors);
             exit(-2);
         }
     }
