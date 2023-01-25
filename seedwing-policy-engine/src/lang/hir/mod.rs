@@ -314,6 +314,14 @@ impl Default for World {
     }
 }
 
+impl Clone for World {
+    fn clone(&self) -> Self {
+        let mut h = World::new();
+        h.packages = self.packages.clone();
+        h
+    }
+}
+
 impl World {
     pub fn new() -> Self {
         let mut world = Self {

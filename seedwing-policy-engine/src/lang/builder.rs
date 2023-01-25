@@ -4,6 +4,7 @@ use crate::runtime;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
 
+#[derive(Clone)]
 pub struct Builder {
     hir: hir::World,
 }

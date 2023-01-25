@@ -1,10 +1,12 @@
 mod cli;
+mod playground;
 mod policy;
 mod ui;
 
 use actix_web::{web, App, HttpServer};
 use env_logger::Builder;
 use log::LevelFilter;
+use playground::PlaygroundState;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
 use static_files::Resource;
 use std::collections::HashMap;
@@ -37,6 +39,7 @@ async fn main() -> std::io::Result<()> {
     let mut errors = Vec::new();
 
     let mut builder = PolicyBuilder::new();
+    let mut sources = Vec::new();
     if let Some(directories) = matches.get_many::<String>("dir") {
         for dir in directories {
             let dir = PathBuf::from(dir);
@@ -44,11 +47,14 @@ async fn main() -> std::io::Result<()> {
                 log::error!("Unable to open directory: {}", dir.to_string_lossy());
                 exit(-3);
             }
-            let src = Directory::new(dir);
-            //log::info!("loading policies from {}", dir);
-            if let Err(result) = builder.build(src.iter()) {
-                errors.extend_from_slice(&*result);
-            }
+            sources.push(Directory::new(dir));
+        }
+    }
+
+    //log::info!("loading policies from {}", dir);
+    for source in sources.iter() {
+        if let Err(result) = builder.build(source.iter()) {
+            errors.extend_from_slice(&*result);
         }
     }
 
@@ -67,6 +73,10 @@ async fn main() -> std::io::Result<()> {
                 App::new()
                     .app_data(web::Data::new(world.clone()))
                     .app_data(web::Data::new(Documentation(raw_docs)))
+                    .app_data(web::Data::new(PlaygroundState::new(
+                        builder.clone(),
+                        sources.clone(),
+                    )))
                     .service(ui_asset)
                     .service(index)
                     .service(display_root_no_slash)
@@ -74,6 +84,10 @@ async fn main() -> std::io::Result<()> {
                     .service(display_component)
                     .service(evaluate)
                     .service(documentation)
+                    .service(playground::display)
+                    .service(playground::display_root_no_slash)
+                    .service(playground::evaluate)
+                    .service(playground::compile)
             });
             log::info!("starting up at http://{}:{}/", bind, port);
 

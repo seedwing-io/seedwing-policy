@@ -25,7 +25,7 @@ impl Ephemeral {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Directory {
     dir: PathBuf,
 }
