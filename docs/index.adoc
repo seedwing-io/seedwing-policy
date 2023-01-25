@@ -1,9 +1,34 @@
 == Seedwing
 
+`Seedwing-Policy` is a type/pattern/function-based _policy engine_ which can be embedded in another process, or accessed over REST APIs.
+The general idea of a policy engine is that a consumer requiring a decision presents the information they have available, and the policy engine inspects the information, possibly transforming or augmenting it, to provide a decision as to if the inputs represent compliance or violation of the policy.
+
+Additionally, Seedwing provides detailed explanations of the decision process.
+
+image::images/example-decision-explanation.png[Example decision explanation]
+
+The Seedwing engine includes link:/policy/[core patterns] to assist in policy authoring.
+Some examples include:
+
+* Sigstore
+* x509
+* CycloneDX
+* SPDX
+* Maven
+* Base64
+
 === Language
+
+Policies are defined in terms of _patterns_ which match input value types.
+Generally the inputs may be JSON or other handy serialized formats.
+The patterns are defined in a format-agnostic way using the _Dogma_ policy language.
 
 For more information about the *Dogma* policy language, please reference to the link:language/[Language Reference].
 
 === Engine
+
+The core policy engine is simply a Rust library, which can be embedded or used by other processes as needed.
+The engine includes the parsing and compiling of the Dogma language into executable policies.
+
 
 === Server

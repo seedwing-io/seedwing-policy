@@ -24,25 +24,6 @@ pub async fn index() -> HttpResponse {
     }
 }
 
-/*
-#[get("/_ui/{asset}")]
-pub async fn ui_asset(path: web::Path<String>) -> HttpResponse {
-    match &*path.into_inner() {
-        "logo.png" => {
-            let mut response = HttpResponse::Ok();
-            response.insert_header((header::CONTENT_TYPE, "image/png"));
-            response.body(LOGO_SVG)
-        }
-        "adoc.css" => {
-            let mut response = HttpResponse::Ok();
-            response.insert_header((header::CONTENT_TYPE, "text/css"));
-            response.body(ADOC_CSS)
-        }
-        _ => HttpResponse::NotFound().finish(),
-    }
-}
- */
-
 #[get("/docs{path:.*}")]
 pub async fn documentation(
     req: HttpRequest,
@@ -55,7 +36,19 @@ pub async fn documentation(
         return response.finish();
     }
 
+
     let mut path: String = path.strip_prefix('/').unwrap_or(&*path).into();
+
+    // special case for .png images
+    if path.ends_with(".png") {
+        if let Some(image) = docs.0.get(path.as_str()) {
+            let mut response = HttpResponse::Ok();
+            response.insert_header((header::CONTENT_TYPE, "image/png"));
+            return response.body(image.data);
+        } else {
+            return HttpResponse::InternalServerError().finish()
+        }
+    }
 
     let doc = docs.0.get(path.as_str());
 
