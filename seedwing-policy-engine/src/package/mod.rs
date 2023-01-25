@@ -5,11 +5,13 @@ use crate::runtime::PackagePath;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct PackageSource {
     name: String,
     content: &'static str,
 }
 
+#[derive(Clone)]
 pub struct Package {
     path: PackagePath,
     functions: HashMap<String, Arc<dyn Function>>,
