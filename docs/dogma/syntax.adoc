@@ -279,3 +279,85 @@ pattern patched-software = {
 }
 ```
 
+==== Traversals
+
+A traversal looks not unlike dot-notation in object-oriented languages to navigate within an object.
+When combining patterns, traversals provide a terser way of specifying details for small portions of a larger type.
+
+
+For instance, if we have a `versioned` type as before:
+
+```
+pattern versioned = {
+  version: string || {
+    major: integer,
+    minor: integer,
+    patch?: integer,
+  }
+}
+```
+
+We can use traversals to apply additional patterns when mixed with `&&` to match all things that both match `versioned` _and_ contain the optional `patch` field.
+
+```
+pattern patched = versioned && self.version.patch
+```
+
+===== The `self` keyword
+
+Within a traversal, the `self` keyword once again refers to the input value.
+Navigation to deeper levels uses the dot (`.`) and nested field names.
+If traversing does not succeed, it is considered to fail matching.
+Traversals (and all types) are combinable with _refinements_ described below.
+
+==== Refinements
+
+While the above simply tested for the existance of a given field, sometimes we want to *refine* the acceptability of a field.
+
+The _refinement_ construct allows applying additional patterns to the value _at that point in the evaluation_.
+Refinements are specified using parentheses as a postfix to any other type.
+
+Within the parentheses, any pattern can be specified to further restrict viable values.
+
+If we want to match `versioned` items where the `major` field has more constraints than simply `integer`, we could write combining pattern, without having to recopy the entire `versioned` pattern:
+
+```
+pattern version-nine = versioned && self.version.major(9)
+```
+
+This also demonstrates that the `self.version.major` is not only testing for existance, but after being evaluated, the input value under consideration is the result of having made the traversal.
+
+Refinements are also useful when working with _functions_, described below.
+
+==== Functions
+
+_Functions_ are another construct that effectively work as types.
+Unlike simpler pattern types, the output of the function can be not only the identity (or failure), but can be a different transformed value.
+
+Like traversals, the function construct takes the input value under consideration as an implicit argument, does *whatever it wants to do*, and produces a result, which roughly boils down to:
+
+* Identity: the same value that came in popped out the far side
+* Transform: the value that came in was transformed/replaced with a different value on the far side
+* None: the value that came in failed to produce the identity or a transformed value, thus the function fails to match.
+
+Within the core library is, for instance, a `Base64` function, which expects a `string` input, and if it can successfully decode the string as a base64 entity, produces the decoded _octets_ as the output.
+
+```
+pattern base64encoded = Base64
+```
+
+This pattern would accept the following JSON as valid input:
+
+```json
+"U2VlZHdpbmcgaXMgYXdlc29tZSE="
+```
+
+And the output would be octets underlying `Seedwing is awesome!`.
+
+Functions can be refined using the parenthesis notation described above:
+
+```
+pattern base64-seedwing = Base64("Seedwing is awesome!")
+```
+
+This pattern will only accept the input of `U2VlZHdpbmcgaXMgYXdlc29tZSE=` and all other base64-encoded strings will fail.

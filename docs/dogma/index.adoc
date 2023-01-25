@@ -1,4 +1,4 @@
 == Dogma Policy Language
 
 * link:foundational-concepts[Foundational Concepts]
-* link:basic-syntax[Basic Syntax]
+* link:syntax[Syntax]
