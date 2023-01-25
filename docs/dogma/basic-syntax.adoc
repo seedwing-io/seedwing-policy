@@ -1,5 +1,6 @@
 :toc:
 :toc-placement!:
+:toclevels: 4
 toc::[]
 
 == Basic Syntax
@@ -8,10 +9,11 @@ toc::[]
 
 In general, patterns are authored in plaintext UTF-8 files with the suffix of `.dog`.
 
-=== Line Delimiters & Whitespace
+=== Delimiters & Whitespace
 
 First, Dogma does not require a semicolon (`;`) or any other statement-ending marker.
 Line delimeters are non-notable.
+Trailing commas are allowed in any comma-delimited sequence.
 Generally, whitespace is also non-notable and does not affect the definition of a pattern.
 
 === File Structure
@@ -50,7 +52,6 @@ policies/
 ```
 
 The `productization/build.dog` fill will contain policies that end up in the `productization::build::` package, while the `src/deploy.dog` will result in policies existing in the package of `src::deploy::`.
-
 
 === `use` statements
 
@@ -103,6 +104,7 @@ It's turtles all the way down, until you reach the _primordial_ types and patter
 The simplest pattern is one that match a primordial _type_.
 
 ```
+pattern all-the-things = anything
 pattern a-string = string
 pattern some-integer = integer
 pattern true-or-false = boolean
@@ -120,3 +122,160 @@ When the answer is "exactly this one string" or "this exact number", then using 
 pattern bob-and-only-bob = "bob"
 pattern the-number-forty-two = 42
 ```
+
+==== Object-shaped Patterns
+
+Patterns that match object-shaped input values (useful for applying policy to a JSON object) are defined using `{` and `}` with field patterns within.
+
+A field pattern includes a field name (without quotes, unlike JSON), a colon (`:`) and the field's own pattern to match against the input field value.
+
+If the field name has a suffix of `?`, the field is considered _optional_.
+If an optional field is not present, the containing object-shaped pattern may continue to satisfy and result in a positive decision.
+If an option field _is_ present, then it *must* match the specified target pattern.
+
+A simple object pattern that matches any object that has at least a single field named `version`:
+
+```
+pattern versioned = {
+  version: anything
+}
+```
+
+The above specifies that to match, the input value must have a the `version` field, but that field can be _anything_; a string, a piece of chalk, a mustache, whatever.
+
+Object patterns do not fail if additional fields are submitted in the input value.
+
+For instance, the `versioned` pattern will succeed even if the input data is this JSON:
+
+```json
+{
+  "name": "seedwing-policy-server",
+  "version": "8.2.0",
+  "authors": [ "bob", "ulf", "jim", "jens" ]
+}
+```
+
+Of course, field-level patterns can also specify more distinct patterns than simply `anything`.
+Additionally, they may specify as many fields as necessary.
+Since object-shaped patterns are patterns, nesting is fully supported.
+
+```
+pattern versioned = {
+  version: {
+    major: integer,
+    minor: integer,
+    patch?: integer,
+  }
+}
+```
+
+This pattern would match this input:
+
+```json
+{
+  "name": "seedwing-policy-server",
+  "version": {
+    "major": 8,
+    "minor": 2,
+    "patch": 0
+  }
+}
+```
+
+and this input
+
+```json
+{
+  "name": "seedwing-policy-server",
+  "version": {
+    "major": 8,
+    "minor": 2
+  }
+}
+```
+
+but it would not match
+
+```json
+{
+  "name": "seedwing-policy-server",
+  "version": {
+    "major": 8,
+    "minor": 2,
+    "patch": "of course I patch my stuff"
+  }
+}
+```
+
+==== Logical Expressions
+
+Given that a pattern only worries about the bits of an input that it can decide upon, it's useful to combine multiple patterns to each separately evaluate their subset of the input.
+
+If we had two distinct patterns:
+
+```
+pattern named = {
+  name: string,
+}
+
+pattern versioned = {
+  version: {
+    major: integer,
+    minor: integer,
+    patch?: integer,
+  }
+}
+```
+
+We can construct a pattern that ensures that *both* patterns are satisfied by the same input value:
+
+```
+pattern named-and-versions = named && versioned
+```
+
+Likewise, we can construct a pattern that could be satisfied by matching at least one of several distinct patterns.
+
+Rewriting the `versioned` pattern, we could support an object-shaped version input, or a simple string:
+
+```
+pattern versioned = {
+  version: string || {
+    major: integer,
+    minor: integer,
+    patch?: integer,
+  }
+}
+```
+
+==== Expression Types
+
+Some patterns need to match _uncountable sets_.
+This includes things such as "all numbers greater than 42".
+It would be impossible to construct a concrete set of all numbers greater than *42*.
+
+_Expression types_ allow for defining types using basic arithmetic expressions.
+
+NOTE: The expression langauge may grow or shrink; we are still iterating.
+
+Expression types are denoted by the `$(` prefix and the `)` suffix.
+
+===== The `self` keyword
+
+Within an expression type, the `self` keyword refers to the input value.
+
+```
+pattern alpha-sofware = {
+  version: {
+    major: $(self < 1),
+    minor: integer,
+    patch?: integer,
+  }
+}
+
+pattern patched-software = {
+  version: {
+    patch: $(self > 0)
+  }
+}
+```
+
