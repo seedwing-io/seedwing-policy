@@ -1,3 +1,7 @@
+:toc:
+:toc-placement!:
+toc::[]
+
 == Frequently Asked Questions
 
 === Why Seedwing?
