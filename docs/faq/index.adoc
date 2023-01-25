@@ -1,0 +1,16 @@
+== Frequently Asked Questions
+
+=== Why Seedwing?
+
+A _seedwing_ is used by the seeds of plants such as _maple trees_ to help disperse their seeds and help them safely reach the ground so that they can grow up to be successful trees.
+
+It seemed appropriate.
+
+=== Who is behind the project?
+
+The project was conceived at Red Hat.
+It is open-source and contributions are always welcomed.
+
+=== What is the license?
+
+All components of Seedwing are licensed under the Apache License version 2.

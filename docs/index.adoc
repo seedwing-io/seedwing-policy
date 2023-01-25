@@ -10,12 +10,14 @@ image::images/example-decision-explanation.png[Example decision explanation]
 The Seedwing engine includes link:/policy/[core patterns] to assist in policy authoring.
 Some examples include:
 
-* Sigstore
-* x509
-* CycloneDX
-* SPDX
-* Maven
-* Base64
+* link:/policy/sigstore[Sigstore]
+* link:/policy/x509[x509]
+* link:/policy/cyclonedx[CycloneDX]
+* link:/policy/spdx[SPDX]
+* link:/policy/maven[Maven]
+* link:/policy/base64[Base64]
+
+There is also a link:faq/[FAQ].
 
 === Language
 
