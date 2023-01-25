@@ -30,5 +30,21 @@ For more information about the *Dogma* policy language, please reference to the 
 The core policy engine is simply a Rust library, which can be embedded or used by other processes as needed.
 The engine includes the parsing and compiling of the Dogma language into executable policies.
 
+```rust
+let result = world.evaluate( policy_path, input_value ).await;
+```
 
 === Server
+
+The Seedwing Policy Server embeds the engine and provides a REST endpoint for every suitable policy.
+Consumers may simply POST JSON to a given policy's endpoint and receive a decision via HTTP response codes.
+
+==== Experimentation
+
+The server includes a human-friendly user-interface to access each suitable policy also.
+This includes the documentation and definition of the policy, linking to other policies where applicable.
+Additionally, example experimental data may be submitted through a form to interactively experiment with a given policy and understand the explanation provided.
+
+==== Playground
+
+An link:/playground[interactive playground] is also provided by the server for working with parameterized policies or learning useful policy patterns.

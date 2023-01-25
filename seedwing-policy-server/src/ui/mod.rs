@@ -36,7 +36,6 @@ pub async fn documentation(
         return response.finish();
     }
 
-
     let mut path: String = path.strip_prefix('/').unwrap_or(&*path).into();
 
     // special case for .png images
@@ -46,7 +45,7 @@ pub async fn documentation(
             response.insert_header((header::CONTENT_TYPE, "image/png"));
             return response.body(image.data);
         } else {
-            return HttpResponse::InternalServerError().finish()
+            return HttpResponse::InternalServerError().finish();
         }
     }
 

@@ -20,7 +20,7 @@ impl Ephemeral {
         }
     }
 
-    pub fn iter(self) -> impl Iterator<Item=(SourceLocation, String)> {
+    pub fn iter(self) -> impl Iterator<Item = (SourceLocation, String)> {
         once((self.source.clone(), self.content))
     }
 }
@@ -37,7 +37,7 @@ impl Directory {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(SourceLocation, String)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {
         WalkDir::new(&self.dir)
             .into_iter()
             .filter_map(|entry| entry.ok())
