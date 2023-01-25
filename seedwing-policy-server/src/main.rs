@@ -26,14 +26,28 @@ include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    Builder::new()
-        .filter_level(LevelFilter::Warn)
-        .filter_module("seedwing_policy_server", LevelFilter::max())
-        .filter_module("seedwing_policy_engine", LevelFilter::max())
-        .init();
+
 
     let command = cli();
     let matches = command.get_matches();
+
+    let log_level: String = matches.get_one("log").cloned().unwrap();
+    let filter = match log_level.as_str() {
+        "debug" => LevelFilter::Debug,
+        "trace" => LevelFilter::Trace,
+        "info" => LevelFilter::Info,
+        "warn" => LevelFilter::Warn,
+        "error" => LevelFilter::Error,
+        _ => {
+            LevelFilter::Info
+        }
+    };
+
+    Builder::new()
+        .filter_level(LevelFilter::Warn)
+        .filter_module("seedwing_policy_server", filter )
+        .filter_module("seedwing_policy_engine", filter )
+        .init();
 
     let bind: String = matches.get_one("bind").cloned().unwrap();
     let port: u16 = matches.get_one("port").cloned().unwrap();

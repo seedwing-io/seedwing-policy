@@ -93,11 +93,6 @@ impl TypeDefn {
     }
 
     pub fn set_documentation(&mut self, doc: Option<String>) {
-        /*
-        if doc.is_some() {
-            println!("STASH DOCS on {} {}", self.name.inner(), doc.as_ref().unwrap());
-        }
-         */
         self.documentation = doc
     }
 

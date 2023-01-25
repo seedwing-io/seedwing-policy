@@ -116,7 +116,7 @@ impl<'w> Htmlifier<'w> {
                         for (i, term) in terms.iter().enumerate() {
                             self.html_of_ty(html, term.clone(), world);
                             if i + 1 < terms.len() {
-                                html.push_str(" && ");
+                                html.push_str("\n  && ");
                             }
                         }
                         html.push_str("</span>");
@@ -129,7 +129,7 @@ impl<'w> Htmlifier<'w> {
                         for (i, term) in terms.iter().enumerate() {
                             self.html_of_ty(html, term.clone(), world);
                             if i + 1 < terms.len() {
-                                html.push_str(" || ");
+                                html.push_str("\n  || ");
                             }
                         }
                         html.push_str("</span>");

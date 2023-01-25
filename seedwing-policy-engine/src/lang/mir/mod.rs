@@ -242,6 +242,10 @@ impl World {
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
+        if documentation.is_none() {
+            log::warn!("{} is not documented", path.as_type_str());
+        }
+
         self.type_slots.push(Arc::new(
             TypeHandle::new(Some(path.clone()))
                 .with_parameters(parameters)
@@ -255,7 +259,7 @@ impl World {
         path: TypeName,
         ty: &Located<hir::Type>,
     ) -> Result<(), BuildError> {
-        log::info!("define type {}", path);
+        log::debug!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
             //handle.define_from(converted);
@@ -265,7 +269,7 @@ impl World {
     }
 
     pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
-        log::info!("define function {}", path);
+        log::debug!("define function {}", path);
         let runtime_type = Located::new(
             mir::Type::Primordial(PrimordialType::Function(
                 SyntacticSugar::from(path.clone()),
@@ -432,6 +436,8 @@ impl World {
 
     pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
         let mut world = runtime::World::new();
+
+        log::info!("Compiling {} patterns", self.types.len());
 
         for (slot, ty) in self.type_slots.iter().enumerate() {
             world.add(ty.name.as_ref().unwrap().clone(), ty.clone());

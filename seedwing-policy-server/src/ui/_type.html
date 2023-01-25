@@ -78,15 +78,21 @@
     margin-bottom: 1em;
   }
 
+
+
+
+
+
+
 </style>
 
 <h1 class="pf-c-title pf-m-4xl">
   <span><a href="/policy/">Policies</a> | </span>
   {{#each breadcrumbs.crumbs}}
   {{#if this.link}}
-    <span><a href="{{this.link}}">{{this.text}}</a>::</span>
+  <span><a href="{{this.link}}">{{this.text}}</a>::</span>
   {{else}}
-    <span>{{this.text}}</span>
+  <span>{{this.text}}</span>
   {{/if}}
   {{/each}}
 </h1>
@@ -107,10 +113,22 @@
   <div class="pf-l-grid__item">
     <div class="pf-c-panel">
       <div class="pf-c-panel__main">
+        <div class="pf-c-panel__header">Documentation</div>
+        <hr class="pf-c-divider"/>
         <div class="pf-c-panel__main-body">
           <div id="documentation" class="adoc">{{documentation}}</div>
-          <hr class="pf-c-divider"/>
-          <div id="type-definition"><pre>{{&definition}}</pre></div>
+        </div>
+      </div>
+    </div>
+    <hr class="pf-c-divider"/>
+    <div class="pf-c-panel">
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__header">Definition</div>
+        <hr class="pf-c-divider"/>
+        <div class="pf-c-panel__main-body">
+          <div id="type-definition">
+            <pre>{{&definition}}</pre>
+          </div>
         </div>
       </div>
     </div>
@@ -225,6 +243,12 @@
       } )
     } )
   });
+
+
+
+
+
+
 
 
 </script>
