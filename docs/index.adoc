@@ -19,13 +19,13 @@ Some examples include:
 
 There is also a link:faq/[FAQ].
 
-=== Language
+=== Dogman Policy Language
 
 Policies are defined in terms of _patterns_ which match input value types.
 Generally the inputs may be JSON or other handy serialized formats.
 The patterns are defined in a format-agnostic way using the _Dogma_ policy language.
 
-For more information about the *Dogma* policy language, please reference to the link:language/[Language Reference].
+For more information about the *Dogma* policy language, please reference to the link:dogma/[Dogma Language Reference].
 
 === Engine
 

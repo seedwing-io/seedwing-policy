@@ -38,7 +38,6 @@ pub async fn documentation(
 
     let mut path: String = path.strip_prefix('/').unwrap_or(&*path).into();
 
-    // special case for .png images
     if path.ends_with(".png") {
         if let Some(image) = docs.0.get(path.as_str()) {
             let mut response = HttpResponse::Ok();
@@ -59,13 +58,15 @@ pub async fn documentation(
             path.push_str("index.adoc");
             docs.0.get(path.as_str())
         } else {
-            path.push_str("/index.adoc");
-            if docs.0.get(path.as_str()).is_some() {
+            let mut possible_redirect = path.clone();
+            possible_redirect.push_str("/index.adoc");
+            if docs.0.get(possible_redirect.as_str()).is_some() {
                 let mut response = HttpResponse::TemporaryRedirect();
                 response.insert_header((header::LOCATION, format!("{}/", req.path())));
                 return response.finish();
             } else {
-                None
+                path.push_str(".adoc");
+                docs.0.get(path.as_str())
             }
         }
     } else {

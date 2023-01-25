@@ -1,0 +1,76 @@
+
+== Foundational Concepts
+
+=== Pattern Matching
+
+In general, Seedwing treats a policy as a pattern-matching exercise.
+The requester presents structured data representing what they know to the policy engine for a decision.
+The engine attempts to match the provided data with a pattern that describes what shape, format or other qualities that the data should exhibit in order to be considered "in compliance".
+
+=== Policies, Patterns, Types, Functions and Expressions
+
+The core constructs of policies authored in *Dogma* are:
+
+* Patterns
+* Types
+* Functions
+* Expressions
+
+==== Policies
+
+A "policy" is simply an _application_ of a pattern towards a decision that results in a relatively boolean outcome.
+Within Dogma, there is no actual concrete "policy" construct.
+Policies are used in a variety of ways.
+Simple schema-validation is a policy that defines what a compliant well-formed document should look like.
+Gate-checks in the course of a software pipeline represent another policy that defines what is acceptable to progress beyond a particular point of the pipeline.
+
+=== Patterns
+
+The base construct within Dogma is the _pattern_.
+In general, a pattern describes, in varying degrees of detail, the range of acceptable inputs.
+Any input that does not match the pattern is considered to not comply with the pattern.
+Patterns are defined in terms of _types_, _functions_, and _expressions_.
+
+=== Types
+
+A _type_ construct in Dogma defines the structure or content of valid input values.
+
+Similar to many programming languages, general _primordial_ types are defined, including:
+
+* strings
+* integers
+* decimals
+* booleans
+* octets
+
+Additionally, a policy author can define new structured types that are object- or list-shaped, where each component is recursively defined to be of a type.
+
+When an input value is presented to a type, the type acts not unlike a function, accepting the value, and either passing it back as the output upon match, or passing along nothing if it fails to match.
+
+=== Functions
+
+A _function_ can also be considered a kind of type if you squint hard enough from far enough away, since they are also presented with an input value and pass along an output value if successful.
+The primary difference is that functions are written in Rust, not Dogma, and they may pass along completely different values as output.
+
+For instance, a function link:/policy/base64/Base64[Base64] accepts a string input, and if that input can be successfully decoded as a base64 input, the output value is _the decoded value_.
+
+=== Expressions
+
+_Expression_ constructs in Dogma may actually appear in two different contexts.
+
+==== Type Expressions
+
+_Type expressions_ are when two or more patterns are combined using algebraic *_and_* or *_or_* operators (`&&` and `||`).
+In the case of `&&`, the entire expression is only satisfied if _all_ component terms are satisfied.
+For `||`, the entire expression is satisified if _any_ component term is satisfied.
+
+In Dogma, due to desiring to have as much knowledge as possible regarding the decision process, *short-circuiting* is not performed.
+All terms are always evaluated for a given input, even if a decision can be made before completion.
+
+==== Expression Types
+
+Confusingly, the other context of expression is _expression types_.
+Expression types define a satisfiable type purely as an expression against the input value.
+Generally these are limited to use for numeric comparisons.
+
+
