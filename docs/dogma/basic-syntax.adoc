@@ -4,7 +4,7 @@
 
 In general, patterns are authored in plaintext UTF-8 files with the suffix of `.dog`.
 
-=== Line Delimeters & Whitespace
+=== Line Delimiters & Whitespace
 
 First, Dogma does not require a semicolon (`;`) or any other statement-ending marker.
 Line delimeters are non-notable.
