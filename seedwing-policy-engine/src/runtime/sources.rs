@@ -20,7 +20,7 @@ impl Ephemeral {
         }
     }
 
-    pub fn iter(self) -> impl Iterator<Item = (SourceLocation, String)> {
+    pub fn iter(self) -> impl Iterator<Item=(SourceLocation, String)> {
         once((self.source.clone(), self.content))
     }
 }
@@ -37,7 +37,7 @@ impl Directory {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (SourceLocation, String)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item=(SourceLocation, String)> + '_ {
         WalkDir::new(&self.dir)
             .into_iter()
             .filter_map(|entry| entry.ok())
@@ -50,10 +50,13 @@ impl Directory {
                     if let Ok(path) = path.strip_prefix::<&Path>(&self.dir) {
                         let mut src = String::new();
                         if let Some(part) = path.parent() {
-                            src.push_str(&*part.to_string_lossy());
-                            src.push('/');
+                            if !part.to_string_lossy().is_empty() {
+                                src.push_str(&*part.to_string_lossy());
+                                src.push('/');
+                            }
                         }
                         src.push_str(name.strip_suffix(".dog").unwrap());
+                        println!("SOURCE {}", src);
                         if let Ok(mut file) = File::open(e.path()) {
                             let mut content = String::new();
                             file.read_to_string(&mut content);
