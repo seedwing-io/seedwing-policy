@@ -1,0 +1,118 @@
+== Basic Syntax
+
+=== `.dog` Files
+
+In general, patterns are authored in plaintext UTF-8 files with the suffix of `.dog`.
+
+=== Line Delimeters & Whitespace
+
+First, Dogma does not require a semicolon (`;`) or any other statement-ending marker.
+Line delimeters are non-notable.
+Generally, whitespace is also non-notable and does not affect the definition of a pattern.
+
+=== File Structure
+
+There are two primary top-level "statements" in the Dogma language:
+
+* `use` statements, which import other patterns into visible scope.
+* `pattern` definitions
+
+The general structure of a given `.dog` file is as follows:
+
+```
+use ...
+use ...
+use ...
+
+pattern ...
+pattern ...
+```
+
+=== Directory Structure
+
+When a directory is provided as a policy library, the directory will be traversed and all files with the extension of `.dog` will be parsed, compiled and made available as evaluatable policies.
+
+From the root library directory, the organizational structure of the directories is reflected in both the names of the policies, and the URLs through which they are exposed if using the `seedwing-policy-server`.
+
+For instance, if the directory `./policies/` is used as the root and contains the following structure:
+
+```
+policies/
+  productization/
+    build.dog
+    promote.dog
+  sre/
+    deploy.dog
+```
+
+The `productization/build.dog` fill will contain policies that end up in the `productization::build::` package, while the `src/deploy.dog` will result in policies existing in the package of `src::deploy::`.
+
+
+=== `use` statements
+
+The `use` statement brings other packages into visible scope.
+The usage of `use` statements is not required, as all patterns are always addressable using their fully-qualified package-prefixed names.
+The `use` statement allows importing as a simple name (assuming no conflicts), or importing as a _different_ name to avoid conflicts.
+
+NOTE: Currently only full patterns can be imported using `use` statements, not packages.
+
+==== Simple `use`
+
+The simplest `use` statement brings a type into visible scope for use by its simple name.
+
+```
+use list::All
+use sre::deploy::allowed
+```
+
+Within a pattern defined in the same file, referencing these two imports is possible using purely their tail-end simple name of `All` and `allowed`.
+
+==== The `use ... as ...` variant
+
+In the even a policy author wants to `use` two different patterns that share a simple name, an `as ...` suffix is allowed to rename the pattern _in this file only_.
+
+```
+use productization::build::allowed as build-allowed
+use productization::promote::allowed as promote-allowed
+```
+
+These two patterns can now be used unambiguous as `build-allowed` and `promote-allowed`.
+
+=== Patterns
+
+Patterns define named type patterns that ultimately end up being policies.
+
+Patterns are defined using the `pattern` keyword, followed by the name of the pattern, followed by an equal sign (`=`) and then the definition of the pattern.
+
+[NOTE]
+====
+Patterns and functions can be quite flexibly named.
+They may include alphanumeric characters, underscores (`_`) and dashes (`-`).
+Functions, by convention, start with a capital letter, while pattern identifiers start with a lowercase letter.
+====
+
+Every pattern is built up from other patterns.
+It's turtles all the way down, until you reach the _primordial_ types and patterns.
+
+==== Simple Primordial value-based Patterns
+
+The simplest pattern is one that match a primordial _type_.
+
+```
+pattern a-string = string
+pattern some-integer = integer
+pattern true-or-false = boolean
+```
+
+In all three cases, these simple patterns really only define an *alias* to the right-hand-side of the pattern definition.
+
+==== Simple Primordial pattern-based Patterns
+
+One step beyond specifying that a pattern matches _all_ integers, string or booleans is restricting which set of integers, strings and booleans it may match.
+
+When the answer is "exactly this one string" or "this exact number", then using value-esque primordial patterns is useful.
+
+```
+pattern bob-and-only-bob = "bob"
+pattern the-number-forty-two = 42
+```
