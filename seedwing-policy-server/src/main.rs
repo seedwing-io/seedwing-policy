@@ -4,6 +4,7 @@ mod policy;
 mod ui;
 
 use actix_web::{web, App, HttpServer};
+use actix_web_static_files::ResourceFiles;
 use env_logger::Builder;
 use log::LevelFilter;
 use playground::PlaygroundState;
@@ -18,9 +19,10 @@ use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
-use crate::ui::{documentation, index, ui_asset};
+use crate::ui::{documentation, index};
 
-include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
+include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -68,7 +70,8 @@ async fn main() -> std::io::Result<()> {
     match result {
         Ok(world) => {
             let server = HttpServer::new(move || {
-                let raw_docs = generate();
+                let raw_docs = generate_docs();
+                let assets = generate_assets();
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
@@ -77,7 +80,7 @@ async fn main() -> std::io::Result<()> {
                         builder.clone(),
                         sources.clone(),
                     )))
-                    .service(ui_asset)
+                    .service(ResourceFiles::new("/assets", assets))
                     .service(index)
                     .service(display_root_no_slash)
                     .service(display_root)

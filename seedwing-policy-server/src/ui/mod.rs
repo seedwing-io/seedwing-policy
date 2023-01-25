@@ -24,6 +24,7 @@ pub async fn index() -> HttpResponse {
     }
 }
 
+/*
 #[get("/_ui/{asset}")]
 pub async fn ui_asset(path: web::Path<String>) -> HttpResponse {
     match &*path.into_inner() {
@@ -40,6 +41,7 @@ pub async fn ui_asset(path: web::Path<String>) -> HttpResponse {
         _ => HttpResponse::NotFound().finish(),
     }
 }
+ */
 
 #[get("/docs{path:.*}")]
 pub async fn documentation(
@@ -112,9 +114,6 @@ pub async fn documentation(
 pub struct DocumentationContext {
     content: String,
 }
-
-pub(crate) const LOGO_SVG: &[u8] = include_bytes!("logo.png");
-pub(crate) const ADOC_CSS: &[u8] = include_bytes!("adoc.css");
 
 pub(crate) const DOCUMENTATION_HTML: &str = include_str!("_documentation.html");
 pub(crate) const LAYOUT_HTML: &str = include_str!("_layout.html");
