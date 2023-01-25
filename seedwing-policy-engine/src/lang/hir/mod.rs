@@ -337,6 +337,7 @@ impl World {
         world.add_package(crate::core::iso::package());
         world.add_package(crate::core::kafka::package());
         world.add_package(crate::core::pem::package());
+        world.add_package(crate::core::net::package());
 
         world.add_package(crate::core::maven::package());
 

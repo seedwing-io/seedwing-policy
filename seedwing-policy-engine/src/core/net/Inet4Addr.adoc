@@ -1,0 +1,24 @@
+Parameterized pattern that matches Ipv4 addresses and address ranges.
+
+An empty input string does *not* match.
+
+For instance:
+
+```
+pattern allowed = net::Inet4Addr<"10.0.0.0/16">
+```
+
+Would match
+
+```
+10.0.0.1
+```
+
+but would not match
+
+```
+10.1.0.1
+```
+
+
+
