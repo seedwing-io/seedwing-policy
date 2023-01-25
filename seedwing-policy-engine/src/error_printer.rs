@@ -5,6 +5,7 @@ use ariadne::{Cache, Label, Report, ReportKind, Source};
 use chumsky::error::SimpleReason;
 use std::collections::HashSet;
 use std::fmt::{Debug, Display};
+use std::io;
 use std::ops::Range;
 
 pub struct ErrorPrinter<'c> {
@@ -16,7 +17,7 @@ impl<'c> ErrorPrinter<'c> {
         Self { cache }
     }
 
-    pub fn display(&self, errors: &[BuildError]) {
+    pub fn write_to<W: io::Write>(&self, errors: &[BuildError], mut w: &mut W) {
         for error in errors {
             let source_id = error.source_location();
             let span = error.span();
@@ -46,9 +47,11 @@ impl<'c> ErrorPrinter<'c> {
             }))
             .finish();
 
-            // unfortunately we cannot render to a string (stream, or any write) as the writer in
-            // consumed in the process.
-            report.print(self.cache);
+            report.write(self.cache, &mut w);
         }
+    }
+
+    pub fn display(&self, errors: &[BuildError]) {
+        self.write_to(errors, &mut std::io::stdout().lock())
     }
 }
