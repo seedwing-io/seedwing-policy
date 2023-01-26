@@ -19,7 +19,7 @@ Generally, whitespace is also non-notable and does not affect the definition of 
 === Comments
 
 Single-line comments are supported using `//` and elide everything until the end of the line.
-Documentation comments may be applied to patterns using `///` and should be marked up using AsciiDoc format.
+Documentation comments may be applied to patterns using `///` and should be marked up using https://asciidoc.org/[AsciiDoc] format.
 
 === File Structure
 
@@ -41,7 +41,7 @@ pattern ...
 
 === Directory Structure
 
-When a directory is provided as a policy library, the directory will be traversed and all files with the extension of `.dog` will be parsed, compiled and made available as evaluatable policies.
+When a directory is provided as a policy library, the directory will be traversed and all files with the extension of `.dog` will be parsed, compiled, and made available as evaluatable policies.
 
 From the root library directory, the organizational structure of the directories is reflected in both the names of the policies, and the URLs through which they are exposed if using the `seedwing-policy-server`.
 
@@ -56,7 +56,7 @@ policies/
     deploy.dog
 ```
 
-The `productization/build.dog` fill will contain policies that end up in the `productization::build::` package, while the `src/deploy.dog` will result in policies existing in the package of `src::deploy::`.
+The `productization/build.dog` file will contain policies that end up in the `productization::build::` package, while the `sre/deploy.dog` will result in policies existing in the package of `sre::deploy::`.
 
 === `use` statements
 
@@ -106,7 +106,7 @@ It's turtles all the way down, until you reach the _primordial_ types and patter
 
 ==== Simple Primordial type-based Patterns
 
-The simplest pattern is one that match a primordial _type_.
+The simplest pattern is one that match a link:./primordial[primordial] _type_.
 
 ```
 pattern all-the-things = anything
@@ -211,6 +211,43 @@ but it would not match
   }
 }
 ```
+
+==== List-based Patterns
+
+List-based patterns are dependent on the content and the _sequence_ of items contained within the input value.
+
+A list pattern is constructed using `[` and `]`, with a sequence of types denoting which patterns each term should satisfy.
+
+Just as with strings matching a specific sequence of characters, a list pattern matches a sequence of items, aligned to the terms within the pattern.
+
+[NOTE]
+====
+Lists may be somewhat counter-intuitive if you're familiar with type syntax from other languages
+
+For instance, `pattern list-of-numbers = [ integer ]` actually only defines a pattern that matches a list with exactly a single integer value.
+====
+
+If an input value is expected to contain three strings, in a given order, the relevant pattern might look like:
+
+```
+pattern list-of-names = [ "bob", "ulf", "jim" ]
+```
+
+This would then match
+
+```json
+[ "bob", "ulf", "jim" ]
+```
+
+But it would not match a permutation of that input:
+
+```json
+[ "jim", "ulf", "bob"]
+```
+
+Lists as primary patterns may not represent a large amount of functionality, but they are useful when working with parameterized items, described below.
+
+There are link:/policy/list/[core language functions] available to work with lists in a more comprehensive way.
 
 ==== Logical Expressions
 
@@ -369,3 +406,35 @@ pattern base64-seedwing = Base64("Seedwing is awesome!")
 ```
 
 This pattern will only accept the input of `U2VlZHdpbmcgaXMgYXdlc29tZSE=` and all other base64-encoded strings will fail.
+
+=== Parameterized Patterns
+
+So far all patterns have been standalone and independent, other than the components that comprise them.
+
+Patterns may be written in a parameterized style, to allow specialization _at the site of usage_ rather than at the point of definition.
+
+Parameters are defined using `<` and `>` after the name of the pattern when defining it, and once again arguments are passed to patterns using the same notation when used.
+
+An example:
+
+```
+pattern named<NAME> = {
+  name: NAME
+}
+
+pattern named-bob-or-jim = named<"bob"> || named<"jim">
+```
+
+Parameters can be _any type or pattern_; they are not required to be value-esque types or patterns.
+
+For instance, the logical `||` operator is actually syntactic sugar for `lang::Or<TERMS>`.
+
+This next two patterns are semantically and implementationally identical:
+
+```
+pattern sugared = something-borrowed || something-blue
+
+pattern unsugared = lang::Or<[ something-borrowed, something-blue ]>
+```
+
+Here we finally discover where *lists* (described above) become useful.

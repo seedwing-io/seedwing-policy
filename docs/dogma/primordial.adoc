@@ -1,0 +1,80 @@
+
+== Primordial Types & Values
+
+At the core of every pattern ultimately lies _primordials_.
+They can be viewed as the foundational atoms from which all else grows.
+
+The primordial types are:
+
+* boolean
+* string
+* integer
+* decimal
+
+=== The `boolean` type
+
+The `boolean` primordial matches any boolean value; either `true` or `false`.
+
+NOTE: This is dependent on the input value serialization method used. In YAML, the string `no` can occasionally be interpreted as `false`.
+
+This pattern denotes that a field must contain a boolean value:
+
+```
+pattern dog = {
+  trained: boolean
+}
+```
+
+In addition to specifying the general `boolean` type, the values of `true` and `false` may also be used, to restrict acceptable inputs to exactly match `true` or `false`.
+
+```
+pattern trained-dog = {
+  trained: true
+}
+```
+
+=== The `string` Type
+
+The `string` primordial type matches any string as input.
+
+For instance, this pattern `named` will match any string:
+
+```
+pattern named = string
+```
+
+Any actual string value in a pattern represents a string that _exactly_ matches the string.
+
+For example, this pattern `named-bob` will only match the string `"bob"`:
+
+```
+pattern named-bob = "bob"
+```
+
+=== The `integer` type
+
+The `integer` primordial matches any integral value, signed or unsigned.
+
+```
+pattern numeric = integer
+```
+
+A specific integer value may be used to match _exactly_ that specific value.
+
+```
+pattern old-enough-to-retire = 65
+```
+
+=== The `decimal` type
+
+The `decimal` primordial matches any number that involves a decimal component.
+
+```
+pattern weight-of-dog = decimal
+```
+
+As with the other primordials, decimal _values_ can be used to denote a requirement on that particular value.
+
+```
+pattern heavy-dog = 80.2
+```
