@@ -27,25 +27,21 @@ impl Function for Or {
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(terms) = bindings.get(TERMS) {
                 if let InnerType::List(terms) = terms.inner() {
-                    let mut satisified = false;
                     let mut rationale = Vec::new();
                     for term in terms {
                         let result = term.evaluate(input.clone(), bindings, world).await?;
                         if result.satisfied() {
-                            satisified = true
+                            rationale.push(result);
+                            return Ok((Output::Identity, rationale).into());
                         }
-                        rationale.push(result)
+                        rationale.push(result);
                     }
 
-                    if satisified {
-                        return Ok((Output::Identity, rationale).into());
-                    } else {
-                        return Ok((Output::None, rationale).into());
-                    }
+                    return Ok((Output::None, rationale).into());
                 }
             }
 

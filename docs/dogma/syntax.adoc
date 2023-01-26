@@ -16,6 +16,11 @@ Line delimeters are non-notable.
 Trailing commas are allowed in any comma-delimited sequence.
 Generally, whitespace is also non-notable and does not affect the definition of a pattern.
 
+=== Comments
+
+Single-line comments are supported using `//` and elide everything until the end of the line.
+Documentation comments may be applied to patterns using `///` and should be marked up using AsciiDoc format.
+
 === File Structure
 
 There are two primary top-level "statements" in the Dogma language:
