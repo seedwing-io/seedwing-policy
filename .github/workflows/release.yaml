@@ -1,0 +1,111 @@
+name: release
+
+on:
+  # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
+  # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
+  tags:
+    - "v*"
+
+jobs:
+
+  init:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{steps.version.outputs.version}}
+      prerelease: ${{steps.state.outputs.prerelease}}
+    steps:
+      - name: Evaluate state
+        id: state
+        run: |
+          test -z "${{github.head_ref}}" && (echo 'do-publish=true' >> $GITHUB_OUTPUT)
+          if [[ "${{ github.event.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo release=true >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.ref }}" =~ ^refs/tags/v.*$ ]]; then
+              echo prerelease=true >> $GITHUB_OUTPUT
+          fi
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "main" ] && VERSION=latest
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+
+  # check that our CI would pass
+  ci:
+    uses: ./.github/workflows/ci.yaml
+
+
+  # now do the actual (release) builds
+  build:
+    needs: [ ci ]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        run: cargo build --release
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: binary-linux-amd64
+          path: target/release/seedwing-policy-server
+          if-no-files-found: error
+
+
+  publish:
+    needs: [ init, build ]
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install convco
+        run: |
+          curl -sLO https://github.com/convco/convco/releases/download/v0.3.15/convco-ubuntu.zip
+          unzip convco-ubuntu.zip
+          chmod a+x convco
+          sudo mv convco /usr/local/bin
+
+      - name: Generate changelog
+        run: |
+          OPTS=""
+          if [[ "${{ needs.init.outputs.prerelease }}" == "true" ]]; then
+            OPTS="${OPTS} --max-patches=1"
+          fi
+          convco changelog -s --max-majors=1 --max-minors=1 ${OPTS} > /tmp/changelog.md
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: binary-linux-amd64
+
+      - name: Display downloaded content
+        run: ls -R
+
+      - name: Stage release
+        run: |
+          mkdir -p staging
+          cp -p seedwing-policy-server staging/seedwing-policy-server-linux-amd64
+
+      - name: Display staging area
+        run: ls -R staging
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.init.outputs.version }}
+        run: |
+          OPTS=""
+          if [[ "${{ needs.init.outputs.prerelease }}" == "true" ]]; then
+            OPTS="${OPTS} -p"
+          fi
+          gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} $(find staging -type f)
