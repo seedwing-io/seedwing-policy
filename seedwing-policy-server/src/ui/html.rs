@@ -157,11 +157,16 @@ impl<'w> Htmlifier<'w> {
                     let terms = &bindings[0];
                     if let InnerType::List(terms) = terms.inner() {
                         html.push_str("<span>");
-                        //html.push('.');
-                        //self.html_of_ty(html, step.clone(), world);
-                        //if let InnerType::Const(ValueType::String(step)) = step.inner() {
-                        //html.push_str(step.as_str())
-                        //}
+                        for term in terms {
+                            self.html_of_ty(html, term.clone(), world);
+                        }
+                        html.push_str("</span>");
+                    }
+                }
+                SyntacticSugar::Not => {
+                    let terms = &bindings[0];
+                    if let InnerType::List(terms) = terms.inner() {
+                        html.push_str("<span>!");
                         for term in terms {
                             self.html_of_ty(html, term.clone(), world);
                         }

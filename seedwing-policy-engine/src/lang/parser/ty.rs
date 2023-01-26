@@ -333,15 +333,20 @@ pub fn ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    parenthesized_expr(expr.clone())
-        .or(expr_ty())
-        .or(list_ty(expr.clone()))
-        .or(const_type())
-        .or(object_type(expr.clone()))
-        .or(type_ref(expr.clone(), visible_parameters))
-        .then(postfix(expr).repeated())
-        .map_with_span(|(primary, postfix), span| {
-            if postfix.is_empty() {
+    just("!")
+        .padded()
+        .or_not()
+        .then(
+            parenthesized_expr(expr.clone())
+                .or(expr_ty())
+                .or(list_ty(expr.clone()))
+                .or(const_type())
+                .or(object_type(expr.clone()))
+                .or(type_ref(expr.clone(), visible_parameters))
+                .then(postfix(expr).repeated()),
+        )
+        .map_with_span(|(not, (primary, postfix)), span| {
+            let core = if postfix.is_empty() {
                 primary
             } else {
                 let mut terms = Vec::new();
@@ -364,6 +369,12 @@ pub fn ty(
                 }
 
                 Located::new(Type::Chain(terms), span)
+            };
+
+            if not.is_some() {
+                Located::new(Type::Not(Box::new(core.clone())), core.location())
+            } else {
+                core
             }
         })
 }

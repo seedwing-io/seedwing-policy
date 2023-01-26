@@ -132,6 +132,7 @@ pub enum Type {
     Chain(Vec<Located<Type>>),
     Traverse(Located<String>),
     Refinement(Box<Located<Type>>),
+    Not(Box<Located<Type>>),
     Nothing,
 }
 
@@ -158,6 +159,7 @@ impl Type {
             Type::Refinement(refinement) => refinement.referenced_types(),
             Type::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Chain(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Type::Not(inner) => inner.referenced_types(),
             Type::Traverse(_) => Vec::default(),
             Type::Nothing => Vec::default(),
             Type::Parameter(_) => Vec::default(),
@@ -198,6 +200,7 @@ impl Type {
             Type::Chain(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
+            Type::Not(inner) => inner.qualify_types(types),
             Type::Traverse(_) => {}
             Type::Nothing => {}
             Type::Parameter(_) => {}
@@ -220,6 +223,7 @@ impl Debug for Type {
             Type::Expr(expr) => write!(f, "$({:?})", expr),
             Type::Chain(terms) => write!(f, "{:?}", terms),
             Type::Traverse(step) => write!(f, ".{}", step.inner()),
+            Type::Not(inner) => write!(f, "!{:?}", inner),
             Type::Parameter(name) => write!(f, "{:?}", name),
         }
     }

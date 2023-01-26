@@ -21,6 +21,7 @@ pub enum SyntacticSugar {
     Refine,
     Traverse,
     Chain,
+    Not,
 }
 
 impl From<TypeName> for SyntacticSugar {
@@ -31,6 +32,7 @@ impl From<TypeName> for SyntacticSugar {
             "lang::Refine" => Self::Refine,
             "lang::Traverse" => Self::Traverse,
             "lang::Chain" => Self::Chain,
+            "lang::Not" => Self::Not,
             _ => Self::None,
         }
     }

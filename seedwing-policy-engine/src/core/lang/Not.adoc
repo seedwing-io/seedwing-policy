@@ -1,0 +1,1 @@
+Parameterized pattern that fails if the input value satisfies the parameter pattern.

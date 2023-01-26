@@ -4,7 +4,7 @@ An empty input list *does* match this pattern.
 
 For instance, this pattern:
 
-```json
+```
 pattern only-numbers = list::All<integer>
 ```
 

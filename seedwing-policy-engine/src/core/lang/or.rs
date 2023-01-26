@@ -27,7 +27,7 @@ impl Function for Or {
         input: Rc<RuntimeValue>,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(terms) = bindings.get(TERMS) {
                 if let InnerType::List(terms) = terms.inner() {

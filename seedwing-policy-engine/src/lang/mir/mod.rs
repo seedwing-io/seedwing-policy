@@ -345,6 +345,16 @@ impl World {
                 mir::Type::Expr(Arc::new(inner.clone())),
                 ty.location(),
             )))),
+            hir::Type::Not(inner) => {
+                let primary_type_handle = self.types[&(String::from("lang::Not").into())];
+
+                let bindings = vec![self.convert(inner)?];
+
+                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                    mir::Type::Ref(SyntacticSugar::Not, primary_type_handle, bindings),
+                    ty.location(),
+                ))))
+            }
             hir::Type::Join(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
