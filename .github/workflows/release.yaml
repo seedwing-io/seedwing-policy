@@ -72,8 +72,11 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Install cargo-auditable
+        run: cargo install cargo-auditable
+
       - name: Build
-        run: cargo build --release
+        run: cargo auditable build --release
 
       - name: Rename binary
         run: cp -pv target/release/seedwing-policy-server${{ matrix.exe }} target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
