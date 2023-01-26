@@ -236,10 +236,10 @@
       value_path = $("#value_path").val();
         
       path = "{{eval_path}}/" + $("#value_path").val();
-      body = {
+      body = JSON.stringify({
           policy: policy_body,
           value: value_body,
-      };
+      });
 
       $.post(
         path,

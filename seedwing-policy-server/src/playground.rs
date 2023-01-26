@@ -89,36 +89,47 @@ pub async fn evaluate(
     req: HttpRequest,
     state: web::Data<PlaygroundState>,
     path: web::Path<String>,
-    body: web::Form<EvaluateRequest>,
+    mut body: Payload,
 ) -> HttpResponse {
-    match serde_json::from_str::<serde_json::Value>(&body.value) {
-        Ok(payload) => match state.build(body.policy.as_bytes()) {
-            Ok(mut builder) => match builder.finish().await {
-                Ok(world) => {
-                    let value = RuntimeValue::from(&payload);
-                    let mut full_path = "playground::".to_string();
-                    full_path += &path.replace('/', "::");
+    let mut content = BytesMut::new();
+    while let Some(Ok(bit)) = body.next().await {
+        content.extend_from_slice(&bit);
+    }
+    match serde_json::from_slice::<EvaluateRequest>(&content) {
+        Ok(body) => match serde_json::from_str::<serde_json::Value>(&body.value) {
+            Ok(payload) => match state.build(body.policy.as_bytes()) {
+                Ok(mut builder) => match builder.finish().await {
+                    Ok(world) => {
+                        let value = RuntimeValue::from(&payload);
+                        let mut full_path = "playground::".to_string();
+                        full_path += &path.replace('/', "::");
 
-                    match world.evaluate(&*full_path, value).await {
-                        Ok(result) => {
-                            let rationale = Rationalizer::new(&result);
-                            let rationale = rationale.rationale();
+                        match world.evaluate(&*full_path, value).await {
+                            Ok(result) => {
+                                let rationale = Rationalizer::new(&result);
+                                let rationale = rationale.rationale();
 
-                            if result.satisfied() {
-                                HttpResponse::Ok().body(rationale)
-                            } else {
-                                HttpResponse::NotAcceptable().body(rationale)
+                                if result.satisfied() {
+                                    HttpResponse::Ok().body(rationale)
+                                } else {
+                                    HttpResponse::NotAcceptable().body(rationale)
+                                }
+                            }
+                            Err(err) => {
+                                log::error!("err {:?}", err);
+                                HttpResponse::InternalServerError().finish()
                             }
                         }
-                        Err(err) => {
-                            log::error!("err {:?}", err);
-                            HttpResponse::InternalServerError().finish()
-                        }
                     }
-                }
+                    Err(e) => {
+                        log::error!("err {:?}", e);
+                        HttpResponse::InternalServerError().finish()
+                    }
+                },
                 Err(e) => {
-                    log::error!("err {:?}", e);
-                    HttpResponse::InternalServerError().finish()
+                    log::error!("unable to parse [{:?}]", e);
+                    HttpResponse::BadRequest()
+                        .body(format!("Unable to parse POST'd input {}", req.path()))
                 }
             },
             Err(e) => {
