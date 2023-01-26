@@ -137,6 +137,12 @@ jobs:
           mkdir -p staging
           cp -pv ~/download/*/seedwing-policy-server-* staging/
 
+      - name: Create SBOM of the project
+        run: |
+          cargo install cyclonedx
+          cargo cyclonedx --all --format xml
+          cp seedwing-policy-server/bom.xml staging/project-sbom.xml
+
       - name: Display staging area
         run: ls -R staging
 
@@ -149,4 +155,6 @@ jobs:
           if [[ "${{ needs.init.outputs.prerelease }}" == "true" ]]; then
             OPTS="${OPTS} -p"
           fi
-          gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} $(find staging -type f)
+          gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} \
+            $(find staging -type f) \
+            
