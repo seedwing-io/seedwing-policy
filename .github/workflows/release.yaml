@@ -7,6 +7,12 @@ on:
     tags:
       - "v*"
 
+
+permissions:
+  contents: write # for creating a release
+  metadata: read
+
+
 jobs:
 
   init:
