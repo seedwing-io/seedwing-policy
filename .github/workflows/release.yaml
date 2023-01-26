@@ -1,10 +1,11 @@
 name: release
 
 on:
-  # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
-  # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
-  tags:
-    - "v*"
+  push:
+    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
+    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
+    tags:
+      - "v*"
 
 jobs:
 
