@@ -115,7 +115,7 @@ pattern some-integer = integer
 pattern true-or-false = boolean
 ```
 
-In all three cases, these simple patterns really only define an *alias* to the right-hand-side of the pattern definition.
+In all four cases, these simple patterns really only define an *alias* to the right-hand-side of the pattern definition.
 
 ==== Simple Primordial value-based Patterns
 

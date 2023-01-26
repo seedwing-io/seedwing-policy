@@ -38,7 +38,7 @@ let result = world.evaluate( policy_path, input_value ).await;
 
 === Server
 
-The Seedwing Policy Server embeds the engine and provides a REST endpoint for every suitable policy.
+The link:server/[Seedwing Policy Server] embeds the engine and provides a REST endpoint for every suitable policy.
 Consumers may simply POST JSON to a given policy's endpoint and receive a decision via HTTP response codes.
 
 ==== Experimentation
