@@ -141,7 +141,7 @@ jobs:
 
       - name: Create SBOM of the project
         run: |
-          cargo install cyclonedx
+          cargo install cargo-cyclonedx
           cargo cyclonedx --all --format xml
           cp seedwing-policy-server/bom.xml staging/project-sbom.xml
 
@@ -153,7 +153,7 @@ jobs:
           sudo mv syft /usr/local/bin
 
       - name: Create SBOMs for binaries
-        # this step still create SBOMs for binaries, based on the information embedded by `cargo auditable build`
+        # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
         run: |
           for i in $(ls staging/seedwing-policy-server*); do
             syft ${i} --format cyclonedx-xml > ${i}.sbom.xml
