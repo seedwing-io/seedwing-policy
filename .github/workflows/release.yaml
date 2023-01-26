@@ -11,6 +11,8 @@ on:
 permissions:
   contents: write # for creating a release
 
+env:
+  SYFT_VERSION: "0.68.1"
 
 jobs:
 
@@ -142,6 +144,20 @@ jobs:
           cargo install cyclonedx
           cargo cyclonedx --all --format xml
           cp seedwing-policy-server/bom.xml staging/project-sbom.xml
+
+      - name: Fetch syft binary
+        run: |
+          curl -sL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz" -o syft.tar.gz
+          tar xzf syft.tar.gz
+          chmod a+x syft
+          sudo mv syft /usr/local/bin
+
+      - name: Create SBOMs for binaries
+        # this step still create SBOMs for binaries, based on the information embedded by `cargo auditable build`
+        run: |
+          for i in $(ls staging/seedwing-policy-server*); do
+            syft ${i} --format cyclonedx-xml > ${i}.sbom.xml
+          done
 
       - name: Display staging area
         run: ls -R staging
