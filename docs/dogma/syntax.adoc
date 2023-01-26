@@ -104,7 +104,7 @@ Functions, by convention, start with a capital letter, while pattern identifiers
 Every pattern is built up from other patterns.
 It's turtles all the way down, until you reach the _primordial_ types and patterns.
 
-==== Simple Primordial value-based Patterns
+==== Simple Primordial type-based Patterns
 
 The simplest pattern is one that match a primordial _type_.
 
@@ -117,7 +117,7 @@ pattern true-or-false = boolean
 
 In all three cases, these simple patterns really only define an *alias* to the right-hand-side of the pattern definition.
 
-==== Simple Primordial pattern-based Patterns
+==== Simple Primordial value-based Patterns
 
 One step beyond specifying that a pattern matches _all_ integers, string or booleans is restricting which set of integers, strings and booleans it may match.
 
@@ -251,6 +251,9 @@ pattern versioned = {
   }
 }
 ```
+
+Short-circuiting applies to `||`, as a success is a success.
+Short-circuiting does not apply to `&&`, so that all viable failures can be detected early, instead of piece-meal.
 
 ==== Expression Types
 

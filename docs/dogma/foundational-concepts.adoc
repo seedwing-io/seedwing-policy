@@ -67,8 +67,8 @@ _Type expressions_ are when two or more patterns are combined using algebraic *_
 In the case of `&&`, the entire expression is only satisfied if _all_ component terms are satisfied.
 For `||`, the entire expression is satisified if _any_ component term is satisfied.
 
-In Dogma, due to desiring to have as much knowledge as possible regarding the decision process, *short-circuiting* is not performed.
-All terms are always evaluated for a given input, even if a decision can be made before completion.
+Short-circuiting applies to `||`, as a success is a success.
+Short-circuiting does not apply to `&&`, so that all viable failures can be detected early, instead of piece-meal.
 
 ==== Expression Types
 
