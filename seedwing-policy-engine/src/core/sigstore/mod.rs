@@ -4,6 +4,8 @@ use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use futures_util::future::join_all;
 use futures_util::{FutureExt, TryFutureExt};
 use sigstore::rekor::apis::configuration::Configuration;
@@ -54,7 +56,7 @@ impl Function for SHA256 {
                         entries_api::get_log_entry_by_uuid(&configuration, uuid.as_str()).map(
                             |entry| {
                                 if let Ok(entry) = entry {
-                                    let body = base64::decode(entry.body);
+                                    let body = STANDARD.decode(entry.body);
                                     if let Ok(body) = body {
                                         let body: Result<serde_json::Value, _> =
                                             serde_json::from_slice(&*body);

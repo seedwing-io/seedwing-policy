@@ -6,7 +6,8 @@ use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use ariadne::Cache;
 use base64::alphabet::STANDARD;
-use base64::engine::fast_portable::{FastPortable, NO_PAD};
+use base64::engine::general_purpose::STANDARD_NO_PAD as PEM_ENGINE;
+use base64::Engine;
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
@@ -25,8 +26,6 @@ pub fn package() -> Package {
 #[derive(Debug)]
 pub struct AsCertificate;
 
-const PEM_ENGINE: FastPortable = FastPortable::from(&STANDARD, NO_PAD);
-
 impl Function for AsCertificate {
     fn call<'v>(
         &'v self,
@@ -41,7 +40,7 @@ impl Function for AsCertificate {
                 return Ok(Output::None.into());
             };
 
-            let contents = base64::encode_engine(&bytes, &PEM_ENGINE);
+            let contents = PEM_ENGINE.encode(&bytes);
             // allocate a bit more than we actually need
             let mut result = String::with_capacity(contents.len() + 128);
 
