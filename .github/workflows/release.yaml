@@ -76,7 +76,7 @@ jobs:
         run: cargo build --release
 
       - name: Rename binary
-        run: cp target/release/seedwing-policy-server${{ matrix.exe }} target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
+        run: cp -pv target/release/seedwing-policy-server${{ matrix.exe }} target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
 
       - uses: actions/upload-artifact@v3
         with:
