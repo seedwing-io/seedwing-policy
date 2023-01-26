@@ -78,7 +78,12 @@ jobs:
       - name: Build
         run: cargo auditable build --release
 
+      - name: List output
+        shell: bash
+        run: ls -l target/release/
+
       - name: Rename binary
+        shell: bash
         run: cp -pv target/release/seedwing-policy-server${{ matrix.exe }} target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
 
       - uses: actions/upload-artifact@v3
