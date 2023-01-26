@@ -91,7 +91,7 @@ mod test {
         let result = runtime
             .evaluate("test::re", json!("bob subgenius dobbs"))
             .await;
-        assert!(!result.unwrap().satisfied())
+        assert!(!result.unwrap().satisfied());
     }
 
     #[actix_rt::test]
@@ -112,6 +112,6 @@ mod test {
         let result = runtime
             .evaluate("test::re", json!("bob subgenius dobbs"))
             .await;
-        assert!(!result.unwrap().satisfied())
+        assert!(!result.unwrap().satisfied());
     }
 }
