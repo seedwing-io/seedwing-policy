@@ -156,7 +156,7 @@ jobs:
         # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
         run: |
           for i in $(ls staging/seedwing-policy-server*); do
-            syft ${i} --format cyclonedx-xml > ${i}.sbom.xml
+            syft ${i} --output cyclonedx-xml > ${i}.sbom.xml
           done
 
       - name: Display staging area
