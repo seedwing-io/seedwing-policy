@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write # for creating a release
-  metadata: read
 
 
 jobs:
