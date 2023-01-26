@@ -19,7 +19,7 @@ Some examples include:
 
 There is also a link:faq/[FAQ].
 
-=== Dogman Policy Language
+=== Dogma Policy Language
 
 Policies are defined in terms of _patterns_ which match input value types.
 Generally the inputs may be JSON or other handy serialized formats.
