@@ -120,7 +120,7 @@ jobs:
       - name: Stage release
         run: |
           mkdir -p staging
-          cp -pv ~/download/*/seedwing-policy-server staging/
+          cp -pv ~/download/*/seedwing-policy-server-* staging/
 
       - name: Display staging area
         run: ls -R staging
