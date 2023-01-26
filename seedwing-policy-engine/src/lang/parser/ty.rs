@@ -165,41 +165,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
 pub fn type_expr(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    recursive(|expr| {
-        parenthesized_expr(expr.clone()).or(logical_or(expr.clone(), visible_parameters.clone()))
-        /*
-        .then(postfix(expr.clone()).repeated())
-        .map_with_span(|(primary, postfix), span| {
-            if postfix.is_empty() {
-                primary
-            } else {
-                let mut terms = Vec::new();
-                terms.push(primary);
-
-                for each in postfix {
-                    match each {
-                        Postfix::Refinement(refinement) => {
-                            if let Some(refinement) = refinement {
-                                terms.push(Located::new(
-                                    Type::Refinement(Box::new(refinement.clone())),
-                                    refinement.location(),
-                                ));
-                            }
-                        }
-                        Postfix::Traversal(step) => {
-                            terms.push(Located::new(
-                                Type::Traverse(step.clone()),
-                                step.location(),
-                            ));
-                        }
-                    }
-                }
-
-                Located::new(Type::Chain(terms), span)
-            }
-        })
-         */
-    })
+    recursive(|expr| logical_or(expr.clone(), visible_parameters.clone()))
 }
 
 pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error = ParserError> + Clone {
@@ -367,7 +333,8 @@ pub fn ty(
     expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    expr_ty()
+    parenthesized_expr(expr.clone())
+        .or(expr_ty())
         .or(list_ty(expr.clone()))
         .or(const_type())
         .or(object_type(expr.clone()))
@@ -716,6 +683,20 @@ mod test {
             }
 
             pattern mix = cheese.gouda.name("bob") && sandwich.ham.name("terry")
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        builder.build(src.iter()).unwrap();
+    }
+
+    #[test]
+    fn parse_parentheses() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern ulf = (true || false) && false || ( false && true )
         "#,
         );
 

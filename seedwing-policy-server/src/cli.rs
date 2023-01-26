@@ -20,10 +20,10 @@ pub fn cli() -> Command {
                 .default_value("8080"),
         )
         .arg(
-            Arg::new( "log")
+            Arg::new("log")
                 .long("log")
                 .value_name("level")
-                .default_value("info")
+                .default_value("info"),
         )
         .arg(Arg::new("dir").value_name("policy directory").num_args(1..))
 }

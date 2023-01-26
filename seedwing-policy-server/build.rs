@@ -3,10 +3,8 @@ use std::env;
 use std::path::Path;
 
 fn main() -> std::io::Result<()> {
-
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=docs/");
-
 
     let mut docs = resource_dir("../docs");
     docs.with_generated_filename(
