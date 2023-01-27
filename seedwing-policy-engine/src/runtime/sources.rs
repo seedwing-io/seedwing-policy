@@ -56,7 +56,6 @@ impl Directory {
                             }
                         }
                         src.push_str(name.strip_suffix(".dog").unwrap());
-                        println!("SOURCE {}", src);
                         if let Ok(mut file) = File::open(e.path()) {
                             let mut content = String::new();
                             file.read_to_string(&mut content);

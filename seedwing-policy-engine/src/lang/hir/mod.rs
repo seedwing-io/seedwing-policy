@@ -1,4 +1,5 @@
 use crate::core::Function;
+use crate::data::DataSource;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
 use crate::lang::{lir, mir, SyntacticSugar};
@@ -305,6 +306,7 @@ pub struct World {
     units: Vec<CompilationUnit>,
     packages: Vec<Package>,
     source_cache: SourceCache,
+    data_sources: Option<Vec<Box<dyn DataSource>>>,
 }
 
 impl Default for World {
@@ -327,6 +329,7 @@ impl World {
             units: Default::default(),
             packages: Default::default(),
             source_cache: Default::default(),
+            data_sources: Some(Default::default()),
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::list::package());
@@ -383,6 +386,12 @@ impl World {
         }
     }
 
+    pub fn data<D: DataSource + 'static>(&mut self, src: D) {
+        if let Some(mut ds) = self.data_sources.as_mut() {
+            ds.push(Box::new(src))
+        }
+    }
+
     fn add_compilation_unit(&mut self, unit: CompilationUnit) {
         self.units.push(unit)
     }
@@ -392,6 +401,10 @@ impl World {
     }
 
     pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
+        if let Some(ds) = self.data_sources.take() {
+            self.add_package(crate::core::data::package(ds));
+        }
+
         let mut core_units = Vec::new();
 
         let mut errors = Vec::new();

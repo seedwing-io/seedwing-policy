@@ -1,3 +1,4 @@
+use crate::data::DataSource;
 use crate::lang::parser::SourceLocation;
 use crate::lang::{hir, lir};
 use crate::runtime;
@@ -39,6 +40,10 @@ impl Builder {
 
     pub fn source_cache(&self) -> &SourceCache {
         self.hir.source_cache()
+    }
+
+    pub fn data<D: DataSource + 'static>(&mut self, src: D) {
+        self.hir.data(src)
     }
 }
 

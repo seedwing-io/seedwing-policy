@@ -25,5 +25,12 @@ pub fn cli() -> Command {
                 .value_name("level")
                 .default_value("info"),
         )
+        .arg(
+            Arg::new("data")
+                .long("data")
+                .short('d')
+                .value_name("data directory")
+                .num_args(0..),
+        )
         .arg(Arg::new("dir").value_name("policy directory").num_args(1..))
 }

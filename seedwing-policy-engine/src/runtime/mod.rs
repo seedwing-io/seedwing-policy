@@ -22,6 +22,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::mem;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -139,6 +140,10 @@ pub enum RuntimeError {
     NoSuchType(TypeName),
     #[error("no such type slot: {0}")]
     NoSuchTypeSlot(usize),
+    #[error("error parsing JSON file {0}: {1}")]
+    JsonError(PathBuf, serde_json::Error),
+    #[error("error reading file: {0}")]
+    FileUnreadable(PathBuf),
 }
 
 #[cfg(test)]

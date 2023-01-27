@@ -8,6 +8,7 @@ use actix_web_static_files::ResourceFiles;
 use env_logger::Builder;
 use log::LevelFilter;
 use playground::PlaygroundState;
+use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
 use static_files::Resource;
 use std::collections::HashMap;
@@ -73,6 +74,13 @@ async fn main() -> std::io::Result<()> {
     if !errors.is_empty() {
         ErrorPrinter::new(builder.source_cache()).display(&errors);
         exit(-1)
+    }
+
+    if let Some(directories) = matches.get_many::<String>("data") {
+        for each in directories {
+            log::info!("loading data from {:?}", each);
+            builder.data(DirectoryDataSource::new(each.into()));
+        }
     }
 
     let result = builder.finish().await;

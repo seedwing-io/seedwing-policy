@@ -595,6 +595,30 @@ impl From<&ValueType> for RuntimeValue {
     }
 }
 
+impl From<Rc<RuntimeValue>> for Type {
+    fn from(val: Rc<RuntimeValue>) -> Self {
+        Type::new(
+            None,
+            None,
+            Vec::default(),
+            match &*val {
+                RuntimeValue::Null => InnerType::Const(ValueType::Null),
+                RuntimeValue::String(inner) => InnerType::Const(ValueType::String(inner.clone())),
+                RuntimeValue::Integer(inner) => InnerType::Const(ValueType::Integer(*inner)),
+                RuntimeValue::Decimal(inner) => InnerType::Const(ValueType::Decimal(*inner)),
+                RuntimeValue::Boolean(inner) => InnerType::Const(ValueType::Boolean(*inner)),
+                RuntimeValue::Object(_) => {
+                    todo!()
+                }
+                RuntimeValue::List(_) => {
+                    todo!()
+                }
+                RuntimeValue::Octets(inner) => InnerType::Const(ValueType::Octets(inner.clone())),
+            },
+        )
+    }
+}
+
 impl ValueType {
     pub fn is_equal<'e>(
         &'e self,

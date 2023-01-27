@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 pub mod base64;
 pub mod cyclonedx;
+pub mod data;
 pub mod iso;
 pub mod json;
 pub mod kafka;
