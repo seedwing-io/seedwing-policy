@@ -35,6 +35,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     runs-on: ubuntu-22.04
     steps:
@@ -74,9 +75,21 @@ jobs:
           set -x
           buildah manifest inspect '${{ steps.build-image.outputs.image }}:${{ env.IMAGE_TAG }}'
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v2
+
+      - name: Check cosign
+        run: cosign version
+
       - name: Push to ghcr.io
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
           registry: ghcr.io/${{ github.actor }}
+
+      - name: Sign the images with GitHub OIDC Token
+        run: cosign sign --recursive ${TAGS}
+        env:
+          TAGS: ${{ steps.build-image.outputs.tags }}
+          COSIGN_EXPERIMENTAL: true
