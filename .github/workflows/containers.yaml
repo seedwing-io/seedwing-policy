@@ -70,11 +70,6 @@ jobs:
       - name: Check images created
         run: buildah images | grep '${{ env.IMAGE_NAME }}'
 
-      - name: Check manifest
-        run: |
-          set -x
-          buildah manifest inspect '${{ steps.build-image.outputs.image }}:${{ env.IMAGE_TAG }}'
-
       - name: Install cosign
         uses: sigstore/cosign-installer@v2
 
