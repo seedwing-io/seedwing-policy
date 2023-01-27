@@ -84,7 +84,11 @@ jobs:
           registry: ghcr.io/${{ github.actor }}
 
       - name: Sign the images with GitHub OIDC Token
-        run: cosign sign --recursive ${TAGS}
         env:
-          TAGS: ${{ steps.build-image.outputs.tags }}
           COSIGN_EXPERIMENTAL: true
+        run: |
+          # cosign wants to sign a digest, so let's evaluate that with the local image
+          imageDigest=$(podman inspect --format='{{.Digest}}' "${IMAGE_NAME}:${IMAGE_TAG}")
+          echo "Image Digest: ${imageDigest}"
+          # and then construct the full (pushed) name
+          cosign sign --recursive "ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${imageDigest}"
