@@ -20,10 +20,10 @@ on:
         type: string
         default: latest
       platforms:
-        description: The target platforms to build
+        description: The target platforms to build (like `linux/amd64, linux/arm64`)
         required: true
         type: string
-        default: "linux/amd64, linux/arm64"
+        default: "linux/amd64"
 
 env:
   IMAGE_NAME: seedwing-policy-server
