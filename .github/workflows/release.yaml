@@ -108,9 +108,12 @@ jobs:
     needs: [ init, ci ]
 
     uses: ./.github/workflows/containers.yaml
+    secrets: inherit
+
     with:
       imageTag: ${{ needs.init.outputs.version }}
-    secrets: inherit
+      # we limit this to amd64, in order to reduce build times for releases
+      platforms: "linux/amd64"
 
 
   publish:

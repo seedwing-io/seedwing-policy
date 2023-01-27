@@ -9,10 +9,9 @@ on:
         type: string
       platforms:
         description: The target platforms to build
-        required: true
         type: string
-        # we limit this to amd64, in order to reduce build times for releases
-        default: "linux/amd64"
+        required: true
+
   workflow_dispatch:
     inputs:
       imageTag:
