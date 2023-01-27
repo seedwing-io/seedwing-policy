@@ -1,22 +1,34 @@
 name: Containers
 
-
 on:
-  push:
-    # Run on the main branch
-    branches:
-      - main
-  # Also on PRs, just be careful not to publish anything
-  pull_request:
-  # Allow to be called from other workflows (like "release")
   workflow_call:
-  # But don't trigger on tags, as they are covered by the "release.yaml" workflow
-
+    inputs:
+      imageTag:
+        description: The image tag
+        required: true
+        type: string
+      platforms:
+        description: The target platforms to build
+        required: true
+        type: string
+        # we limit this to amd64, in order to reduce build times for releases
+        default: "linux/amd64"
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: The image tag
+        required: true
+        type: string
+        default: latest
+      platforms:
+        description: The target platforms to build
+        required: true
+        type: string
+        default: "linux/amd64, linux/arm64"
 
 env:
   IMAGE_NAME: seedwing-policy-server
-  IMAGE_TAG: latest
-
+  IMAGE_TAG: ${{ inputs.imageTag }}
 
 jobs:
   build-containers:
@@ -51,7 +63,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ env.IMAGE_TAG }}
-          platforms: linux/amd64, linux/arm64
+          platforms: ${{ inputs.platforms }}
           containerfiles: |
             ./Dockerfile
 
@@ -61,7 +73,7 @@ jobs:
       - name: Check manifest
         run: |
           set -x
-          buildah manifest inspect ${{ steps.build-image.outputs.image }}:${{ env.IMAGE_TAG }}
+          buildah manifest inspect '${{ steps.build-image.outputs.image }}:${{ env.IMAGE_TAG }}'
 
       - name: Push to ghcr.io
         uses: redhat-actions/push-to-registry@v2
