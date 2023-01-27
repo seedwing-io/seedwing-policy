@@ -93,4 +93,4 @@ jobs:
           imageDigest="${{ steps.push-images.outputs.imageDigest }}"
           echo "Image Digest: ${imageDigest}"
           # and then construct the full (pushed) name
-          cosign sign --recursive "ghcr.io/${{ github.actor }}/${{ env.IMAGE_NAME }}@${imageDigest}"
+          cosign sign --yes --recursive "ghcr.io/${{ github.actor }}/${{ env.IMAGE_NAME }}@${imageDigest}"
