@@ -91,4 +91,4 @@ jobs:
           imageDigest=$(podman inspect --format='{{.Digest}}' "${IMAGE_NAME}:${IMAGE_TAG}")
           echo "Image Digest: ${imageDigest}"
           # and then construct the full (pushed) name
-          cosign sign --recursive "ghcr.io/${{ github.actor }}/${IMAGE_NAME}:${imageDigest}"
+          cosign sign --recursive "ghcr.io/${{ github.actor }}/${IMAGE_NAME}@${imageDigest}"
