@@ -24,6 +24,7 @@ use crate::ui::{documentation, index};
 
 include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
+include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -90,6 +91,7 @@ async fn main() -> std::io::Result<()> {
             let server = HttpServer::new(move || {
                 let raw_docs = generate_docs();
                 let assets = generate_assets();
+                let ui = generate_npm_assets();
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
@@ -99,6 +101,7 @@ async fn main() -> std::io::Result<()> {
                         sources.clone(),
                     )))
                     .service(ResourceFiles::new("/assets", assets))
+                    .service(ResourceFiles::new("/ui", ui))
                     .service(index)
                     .service(display_root_no_slash)
                     .service(display_root)

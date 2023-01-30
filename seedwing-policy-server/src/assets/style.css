@@ -1,0 +1,10 @@
+
+/* automate the visibility of the spinner */
+
+.pf-c-button.pf-m-progress > .pf-c-button__progress {
+    visibility: collapse;
+}
+
+.pf-c-button.pf-m-progress.pf-m-in-progress > .pf-c-button__progress {
+    visibility: visible;
+}

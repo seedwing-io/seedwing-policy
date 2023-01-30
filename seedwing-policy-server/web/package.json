@@ -1,0 +1,14 @@
+{
+  "name": "seedwing-policy-server",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "clean": "rm -Rf dist",
+    "build": "bash ./copy-assets.sh"
+  },
+  "dependencies": {
+    "@asciidoctor/core": "^2.2.6",
+    "jquery": "^3.6.3",
+    "@patternfly/patternfly": "^4.222.4"
+  }
+}

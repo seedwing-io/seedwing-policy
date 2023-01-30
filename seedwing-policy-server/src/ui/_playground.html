@@ -1,31 +1,8 @@
 {{#> layout }}
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/asciidoctor.js"
-        integrity="sha512-04RTC/SU4Iti5IOWoDmtHEYGF5d3W/XfFlh1FIn4wtJDWdNqO93Vuw1LmgjRpME6exV2SwmI53iGjXQibp3Fjg=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
+<script src="/ui/asciidoctor/asciidoctor.js"></script>
 
 <style>
-  #type-definition {
-    font-size: 1em;
-  }
-  #type-definition pre {
-    margin-top: 1em;
-  }
-
-  #type-definition div {
-    margin-left: 1em;
-    border-left: 1px dotted #ccc;
-  }
-
-  #documentation {
-    margin-bottom: 1em;
-  }
-
-  #documentation h2 {
-    margin-top: 0;
-  }
-
   #rationale {
     font-size: 80%;
   }
@@ -42,13 +19,13 @@
   }
 
   #rationale_body div.field {
-      border-bottom: 1px dotted #ccc;
-      padding-bottom: 1ex;
-      background-color: inherit;
+    border-bottom: 1px dotted #ccc;
+    padding-bottom: 1ex;
+    background-color: inherit;
   }
 
   #rationale_body div.field-name {
-      background-color: inherit;
+    background-color: inherit;
   }
 
   #rationale_body div.satisfied {
@@ -86,30 +63,33 @@
 
 <div class="pf-m-gutter pf-l-grid pf-m-all-12-col-on-sm pf-m-all-6-col-on-md">
   <div class="pf-l-grid__item">
+    <div class="pf-c-toolbar">
+      <div class="pf-c-toolbar__content">
+        <div class="pf-c-toolbar__item">Policy</div>
+        <div class="pf-c-toolbar__item pf-m-align-right">
+          <button id="policy_post" class="pf-c-button pf-m-progress pf-m-secondary">
+                <span class="pf-c-button__progress">
+                  <span class="pf-c-spinner pf-m-md" role="progressbar" aria-label="Loading...">
+                    <span class="pf-c-spinner__clipper"></span>
+                    <span class="pf-c-spinner__lead-ball"></span>
+                    <span class="pf-c-spinner__tail-ball"></span>
+                  </span>
+                </span>
+            Compile
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="pf-c-panel">
-      <div class="pf-c-panel__header">Policy</div>
-      <hr class="pf-c-divider"/>
       <div class="pf-c-banner" id="policy_status">
         POST {{compile_path}}
       </div>
-      <hr class="pf-c-divider"/>
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
-          <form id="policy_form">
-            <textarea id="policy_body" style="resize: vertical; padding: 1ex; width: 100%; height: 23em; font-family: monospace;" placeholder="enter pattern definitions"></textarea>
-            <hr class="pf-c-divider" style="padding: 1ex 0"/>
-            <div style="height: 2em">
-              <button id="policy_post">Compile</button>
-              <svg
-                  class="pf-c-spinner pf-m-lg"
-                  role="progressbar"
-                  viewBox="0 0 100 100"
-                  aria-label="Loading..."
-                  id="spinner_policy"
-              >
-                <circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none"/>
-              </svg>
-            </div>
+          <form id="policy_form" class="pf-c-form">
+            <textarea id="policy_body" class="pf-c-form-control"
+                      style="resize: vertical; width: 100%; height: 23em; font-family: monospace;"
+                      placeholder="enter pattern definitions"></textarea>
           </form>
         </div>
       </div>
@@ -124,31 +104,36 @@
 
 
   <div class="pf-l-grid__item">
+    <div class="pf-c-toolbar">
+      <div class="pf-c-toolbar__content">
+        <div class="pf-c-toolbar__item">Value</div>
+        <div class="pf-c-toolbar__item pf-m-align-right">
+          <button id="value_post" class="pf-c-button pf-m-progress pf-m-secondary">
+                <span class="pf-c-button__progress">
+                  <span class="pf-c-spinner pf-m-md" role="progressbar" aria-label="Loading...">
+                    <span class="pf-c-spinner__clipper"></span>
+                    <span class="pf-c-spinner__lead-ball"></span>
+                    <span class="pf-c-spinner__tail-ball"></span>
+                  </span>
+                </span>
+            Evaluate
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="pf-c-panel">
-      <div class="pf-c-panel__header">Value</div>
-      <hr class="pf-c-divider"/>
       <div class="pf-c-banner" id="evaluate_status">
         POST {{eval_path}}
       </div>
-      <hr class="pf-c-divider"/>
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
-          <form id="value_form">
-            <textarea id="value_body" style="padding: 1ex; resize: vertical; width: 100%; height: 20em; font-family: monospace;" placeholder = "enter value to check against pattern"></textarea>
-            <hr class="pf-c-divider" style="padding: 1ex 0"/>
-            <div style="height: 4em">
-              <input id="value_path" style="padding: 1ex; width: 100%; font-family: monospace;" placeholder="enter pattern name" />
-              <button id="value_post" style="margin-top: 10px">Evaluate</button>
-              <svg
-                  class="pf-c-spinner pf-m-lg"
-                  role="progressbar"
-                  viewBox="0 0 100 100"
-                  aria-label="Loading..."
-                  id="spinner_value"
-              >
-                <circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none"/>
-              </svg>
-            </div>
+          <form id="value_form" class="pf-c-form">
+            <textarea id="value_body" class="pf-c-form-control"
+                      style="resize: vertical; width: 100%; height: 20em; font-family: monospace;"
+                      placeholder="enter value to check against pattern"></textarea>
+            <input id="value_path" class="pf-c-form-control"
+                   style="padding: 1ex; width: 100%; font-family: monospace;"
+                   placeholder="enter pattern name"/>
           </form>
         </div>
       </div>
@@ -166,110 +151,108 @@
 </div>
 
 
-<script>
-  $(document).ready( function() {
+<script defer>
 
+  //var adoc = Asciidoctor();
+  //var documentation = $("#documentation").text();
+  //var converted = adoc.convert( documentation, { "safe": "safe" }  );
+  //$("#documentation").html(converted);
 
-    //var adoc = Asciidoctor();
-    //var documentation = $("#documentation").text();
-    //var converted = adoc.convert( documentation, { "safe": "safe" }  );
-    //$("#documentation").html(converted);
+  //$("#documentation ul").addClass("pf-c-list");
 
-    //$("#documentation ul").addClass("pf-c-list");
+  $("#rationale").hide();
+  $("#compilation").hide();
 
-    $("#rationale").hide();
-    $("#compilation").hide();
-    $("#spinner_policy").hide();
-    $("#spinner_value").hide();
-
-    $("#policy_post").on("click", function(event) {
-      $("#policy_post").hide();
-      $("#spinner_policy").show();
-      $('#policy_status').removeClass("pf-m-gold");
-      $('#policy_status').removeClass("pf-m-green");
-      $('#policy_status').removeClass("pf-m-red");
-      $('#compile_body').html("");
-      event.preventDefault();
-      body = $("#policy_body").val();
-      $.post(
+  $("#policy_post").on("click", event => {
+    $("#policy_post")
+        .prop("disabled", true)
+        .addClass("pf-m-in-progress");
+    $('#policy_status').removeClass("pf-m-gold");
+    $('#policy_status').removeClass("pf-m-green");
+    $('#policy_status').removeClass("pf-m-red");
+    $('#compile_body').html("");
+    event.preventDefault();
+    const body = $("#policy_body").val();
+    $.post(
         "{{compile_path}}",
         body,
-        function(result) {
+        function (result) {
           $('#compile_body').html(result);
           $("#compilation").show();
           $('#policy_status').removeClass("pf-m-gold");
           $('#policy_status').removeClass("pf-m-red");
           $('#policy_status').addClass("pf-m-green");
         },
-      ).fail( function(arg) {
-          if (arg.status == 406) {
-            $('#compile_body').html(arg.responseText);
-            $("#compilation").show();
-            $('#policy_status').removeClass("pf-m-gold");
-            $('#policy_status').removeClass("pf-m-green");
-            $('#policy_status').addClass("pf-m-red");
-          } else {
-            $('#compile_body').html(arg.responseText);
-            $("#compilation").show();
-            $('#policy_status').removeClass("pf-m-green");
-            $('#policy_status').removeClass("pf-m-red");
-            $('#policy_status').addClass("pf-m-gold");
-          }
-      } ).always( function(arg) {
-        $("#spinner_policy").hide();
-        $("#policy_post").show();
-      } )
+    ).fail(function (arg) {
+      if (arg.status == 406) {
+        $('#compile_body').html(arg.responseText);
+        $("#compilation").show();
+        $('#policy_status').removeClass("pf-m-gold");
+        $('#policy_status').removeClass("pf-m-green");
+        $('#policy_status').addClass("pf-m-red");
+      } else {
+        $('#compile_body').html(arg.responseText);
+        $("#compilation").show();
+        $('#policy_status').removeClass("pf-m-green");
+        $('#policy_status').removeClass("pf-m-red");
+        $('#policy_status').addClass("pf-m-gold");
+      }
+    }).always(function (arg) {
+      $("#policy_post")
+          .prop("disabled", false)
+          .removeClass("pf-m-in-progress");
+    })
+  });
+
+  $("#value_post").on("click", event => {
+    $("#value_post")
+        .prop("disabled", true)
+        .addClass("pf-m-in-progress");
+    $("#rationale").hide();
+    $('#evaluate_status').removeClass("pf-m-gold");
+    $('#evaluate_status').removeClass("pf-m-green");
+    $('#evaluate_status').removeClass("pf-m-red");
+    $('#rationale_body').html("");
+
+    event.preventDefault();
+    const policy_body = $("#policy_body").val();
+    const value_body = $("#value_body").val();
+    const value_path = $("#value_path").val();
+
+    const path = "{{eval_path}}/" + $("#value_path").val();
+    const body = JSON.stringify({
+      policy: policy_body,
+      value: value_body,
     });
 
-    $("#value_post").on("click", function(event) {
-      $("#value_post").hide();
-      $("#rationale").hide();
-      $("#spinner_value").show();
-      $('#evaluate_status').removeClass("pf-m-gold");
-      $('#evaluate_status').removeClass("pf-m-green");
-      $('#evaluate_status').removeClass("pf-m-red");
-      $('#rationale_body').html("");
-
-      event.preventDefault();
-      policy_body = $("#policy_body").val();
-      value_body = $("#value_body").val();
-      value_path = $("#value_path").val();
-        
-      path = "{{eval_path}}/" + $("#value_path").val();
-      body = JSON.stringify({
-          policy: policy_body,
-          value: value_body,
-      });
-
-      $.post(
+    $.post(
         path,
         body,
-        function(result) {
+        function (result) {
           $('#rationale_body').html(result);
           $("#rationale").show();
           $('#evaluate_status').removeClass("pf-m-gold");
           $('#evaluate_status').removeClass("pf-m-red");
           $('#evaluate_status').addClass("pf-m-green");
         },
-      ).fail( function(arg) {
-          if (arg.status == 406) {
-            $('#rationale_body').html(arg.responseText);
-            $("#rationale").show();
-            $('#evaluate_status').removeClass("pf-m-gold");
-            $('#evaluate_status').removeClass("pf-m-green");
-            $('#evaluate_status').addClass("pf-m-red");
-          } else {
-            $('#evaluate_status').removeClass("pf-m-green");
-            $('#evaluate_status').removeClass("pf-m-red");
-            $('#evaluate_status').addClass("pf-m-gold");
-          }
-      } ).always( function(arg) {
-        $("#spinner_value").hide();
-        $("#value_post").show();
-      } )
+    ).fail(arg => {
+      if (arg.status == 406) {
+        $('#rationale_body').html(arg.responseText);
+        $("#rationale").show();
+        $('#evaluate_status').removeClass("pf-m-gold");
+        $('#evaluate_status').removeClass("pf-m-green");
+        $('#evaluate_status').addClass("pf-m-red");
+      } else {
+        $('#evaluate_status').removeClass("pf-m-green");
+        $('#evaluate_status').removeClass("pf-m-red");
+        $('#evaluate_status').addClass("pf-m-gold");
+      }
+    }).always(function (arg) {
+      $("#value_post")
+          .prop("disabled", false)
+          .removeClass("pf-m-in-progress");
     })
-  });
-
+  })
 
 </script>
 
