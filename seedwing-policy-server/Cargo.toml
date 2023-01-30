@@ -2,8 +2,12 @@
 name = "seedwing-policy-server"
 version = "0.1.0-alpha.1"
 edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/seedwing-io/seedwing-policy"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A server to evaluate and explore seedwing policies"
+categories = ["development-tools", "parser-implementations"]
+keywords = ["policy"]
 
 [dependencies]
 seedwing-policy-engine = { path = "../seedwing-policy-engine" }
