@@ -43,7 +43,7 @@ jobs:
       - name: Log in to ghcr.io
         uses: redhat-actions/podman-login@v1
         with:
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: "ghcr.io"
 
@@ -81,7 +81,7 @@ jobs:
         run: |
           podman push \
             "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
-            "ghcr.io/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
+            "ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
             --digestfile "${RUNNER_TEMP}/push.digest"
           echo "imageDigest=$(cat ${RUNNER_TEMP}/push.digest)" >> $GITHUB_OUTPUT
           rm ${RUNNER_TEMP}/push.digest
@@ -93,4 +93,4 @@ jobs:
           imageDigest="${{ steps.push-images.outputs.imageDigest }}"
           echo "Image Digest: ${imageDigest}"
           # and then construct the full (pushed) name
-          cosign sign --yes --recursive "ghcr.io/${{ github.actor }}/${{ env.IMAGE_NAME }}@${imageDigest}"
+          cosign sign --yes --recursive "ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@${imageDigest}"
