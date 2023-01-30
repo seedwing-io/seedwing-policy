@@ -1,4 +1,4 @@
-use static_files::resource_dir;
+use static_files::{resource_dir, NpmBuild};
 use std::env;
 use std::path::Path;
 
@@ -24,6 +24,12 @@ fn main() -> std::io::Result<()> {
         .with_module_name("generated_assets");
 
     assets.build()?;
+
+    NpmBuild::new("./web")
+        .install()?
+        .change_detection()
+        .to_resource_dir()
+        .build()?;
 
     Ok(())
 }

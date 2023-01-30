@@ -1,0 +1,10 @@
+{
+  "name": "seedwing-policy-server",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "asciidoctor": "^2.2.6",
+    "@patternfly/patternfly": "^4.222.4"
+  }
+}
