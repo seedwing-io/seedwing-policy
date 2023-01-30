@@ -16,9 +16,9 @@
 
 <script>
   $(document).ready( function() {
-    var adoc = Asciidoctor();
-    var documentation = $("#documentation").text();
-    var converted = adoc.convert( documentation, { "safe": "safe" }  );
+    const adoc = Asciidoctor();
+    const documentation = $("#documentation").text();
+    const converted = adoc.convert( documentation, { "safe": "safe" }  );
     $("#documentation").html(converted);
     $("#documentation").show();
   } )

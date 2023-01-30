@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "clean": "rm -Rf dist",
-    "copy": "mkdir -p dist && bash ./copy-assets.sh",
-    "build": "npm run clean && npm run copy"
+    "build": "bash ./copy-assets.sh"
   },
   "dependencies": {
     "@asciidoctor/core": "^2.2.6",
