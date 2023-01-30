@@ -604,6 +604,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cidr"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300bccc729b1ada84523246038aad61fead689ac362bb9d44beea6f6a188c34b"
+
+[[package]]
 name = "cipher"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2873,6 +2879,7 @@ dependencies = [
  "ariadne",
  "base64 0.21.0",
  "chumsky",
+ "cidr",
  "criterion",
  "futures-util",
  "indexmap",
