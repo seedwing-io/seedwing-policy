@@ -2,9 +2,14 @@
   "name": "seedwing-policy-server",
   "version": "0.0.1",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "clean": "rm -Rf dist",
+    "copy": "mkdir -p dist && bash ./copy-assets.sh",
+    "build": "npm run clean && npm run copy"
+  },
   "dependencies": {
-    "asciidoctor": "^2.2.6",
+    "@asciidoctor/core": "^2.2.6",
+    "jquery": "^3.6.3",
     "@patternfly/patternfly": "^4.222.4"
   }
 }
