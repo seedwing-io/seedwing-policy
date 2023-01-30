@@ -1,6 +1,7 @@
 FROM registry.access.redhat.com/ubi9/ubi:latest as builder
 
-RUN dnf install -y gcc gcc-c++ openssl openssl-devel
+RUN dnf install -y gcc gcc-c++ openssl openssl-devel npm
+RUN npm install --global yarn
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 
 ENV PATH "$PATH:/root/.cargo/bin"
