@@ -81,7 +81,7 @@ mod test {
 
         let value = json!([1, 2, 3, 4, 5, 42, 99]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(result.unwrap().satisfied())
@@ -104,7 +104,7 @@ mod test {
 
         let value = json!([1, 2, 3, 4, 5, 42, 99]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(result.unwrap().satisfied())
@@ -127,7 +127,7 @@ mod test {
 
         let value = json!([1, 2, 3, 4, 5, 99, 4, 2]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         assert!(!result.unwrap().satisfied())
     }
@@ -149,7 +149,7 @@ mod test {
 
         let value = json!([1, 2, 3, 4, 5, 99, 4, 2]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::None),))
         assert!(!result.unwrap().satisfied())
@@ -172,7 +172,7 @@ mod test {
 
         let value = json!([1, "taco", true, 2, 3, 4, 5, 42, 99, "Bob", 99.1]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(result.unwrap().satisfied())
@@ -195,7 +195,7 @@ mod test {
 
         let value = json!([1, "taco", true, 2, 3, 4, 5, 42, 99, "Bob", 99.1]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(result.unwrap().satisfied())
@@ -218,7 +218,7 @@ mod test {
 
         let value = json!([1, "taco", true, 2, 3, 4, 5, 99, "Bob", 99.1]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::None),))
         assert!(!result.unwrap().satisfied())
@@ -241,7 +241,7 @@ mod test {
 
         let value = json!([]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::None),))
         assert!(!result.unwrap().satisfied())
@@ -266,7 +266,7 @@ mod test {
 
         let value = json!([[[]]]);
 
-        let result = runtime.evaluate("test::test-any", value).await;
+        let result = runtime.evaluate("test::test-any", value, EvalContext::default()).await;
 
         //assert!(matches!(result, Ok(RationaleResult::None),))
         assert!(!result.unwrap().satisfied())

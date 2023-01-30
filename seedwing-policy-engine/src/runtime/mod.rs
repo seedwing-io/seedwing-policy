@@ -234,7 +234,7 @@ mod test {
             }
         );
 
-        let result = runtime.evaluate("foo::bar::signed-thing", value).await;
+        let result = runtime.evaluate("foo::bar::signed-thing", value, EvalContext::default()).await;
 
         assert!(result.unwrap().satisfied())
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
@@ -277,6 +277,7 @@ mod test {
                         "age": 52,
                     }
                 ),
+                EvalContext::default()
             )
             .await
             .unwrap()
@@ -313,6 +314,7 @@ mod test {
                         "age": 52,
                     }
                 ),
+                EvalContext::default(),
             )
             .await
             .unwrap()
@@ -352,6 +354,7 @@ mod test {
                         "age": 49,
                     }
                 ),
+                EvalContext::default(),
             )
             .await
             .unwrap()
@@ -366,6 +369,7 @@ mod test {
                         "age": 49,
                     }
                 ),
+                EvalContext::default(),
             )
             .await
             .unwrap()
@@ -380,6 +384,7 @@ mod test {
                         "age": 42,
                     }
                 ),
+                EvalContext::default(),
             )
             .await
             .unwrap()
@@ -394,6 +399,7 @@ mod test {
                         "age": 53,
                     }
                 ),
+                EvalContext::default(),
             )
             .await
             .unwrap()

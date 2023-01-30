@@ -97,6 +97,7 @@ mod test {
                         "last_name": "mcw"
                     }
                 ),
+                EvalContext::default()
             )
             .await;
         assert!(result.unwrap().satisfied())
@@ -132,6 +133,7 @@ mod test {
                         "first_name": "bob"
                     }
                 ),
+                EvalContext::default()
             )
             .await;
         assert!(!result.unwrap().satisfied())
@@ -167,6 +169,7 @@ mod test {
                         "last_name": "mcw"
                     }
                 ),
+                EvalContext::default()
             )
             .await;
         assert!(!result.unwrap().satisfied())
@@ -203,6 +206,7 @@ mod test {
                         "last_name": "crossley"
                     }
                 ),
+                EvalContext::default()
             )
             .await;
         assert!(!result.unwrap().satisfied())

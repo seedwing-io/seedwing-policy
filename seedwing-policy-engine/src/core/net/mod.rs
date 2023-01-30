@@ -173,6 +173,6 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        runtime.evaluate(path, json!(value)).await
+        runtime.evaluate(path, json!(value), EvalContext::default()).await
     }
 }
