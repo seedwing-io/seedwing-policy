@@ -329,7 +329,7 @@ impl World {
             units: Default::default(),
             packages: Default::default(),
             source_cache: Default::default(),
-            data_sources: Some(Default::default()),
+            data_sources: None,
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::list::package());
