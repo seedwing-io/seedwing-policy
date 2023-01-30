@@ -2873,7 +2873,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-engine"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 dependencies = [
  "actix-rt",
  "ariadne",
@@ -2896,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-server"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 dependencies = [
  "actix-web",
  "actix-web-static-files",
