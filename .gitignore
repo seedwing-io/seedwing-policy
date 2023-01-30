@@ -4,3 +4,5 @@ log
 .DS_Store
 tmp/
 bom.xml
+node_modules
+yarn.lock
