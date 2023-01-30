@@ -31,6 +31,10 @@ pub struct SHA256;
 const DOCUMENTATION: &str = include_str!("SHA256.adoc");
 
 impl Function for SHA256 {
+    fn order(&self) -> u8 {
+        // Reaching out to the network
+        200
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

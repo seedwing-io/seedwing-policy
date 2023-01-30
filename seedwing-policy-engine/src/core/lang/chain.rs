@@ -50,6 +50,9 @@ const TERMS: &str = "terms";
 pub struct Chain;
 
 impl Function for Chain {
+    fn order(&self) -> u8 {
+        128
+    }
     fn parameters(&self) -> Vec<String> {
         vec![TERMS.into()]
     }

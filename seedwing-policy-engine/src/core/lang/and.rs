@@ -14,6 +14,9 @@ const TERMS: &str = "terms";
 pub struct And;
 
 impl Function for And {
+    fn order(&self) -> u8 {
+        128
+    }
     fn parameters(&self) -> Vec<String> {
         vec![TERMS.into()]
     }

@@ -13,6 +13,9 @@ pub struct GAV;
 const DOCUMENTATION: &str = include_str!("GAV.adoc");
 
 impl Function for GAV {
+    fn order(&self) -> u8 {
+        128
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

@@ -15,6 +15,9 @@ const DOCUMENTATION: &str = include_str!("Head.adoc");
 pub struct Head;
 
 impl Function for Head {
+    fn order(&self) -> u8 {
+        128
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

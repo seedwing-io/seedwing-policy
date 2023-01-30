@@ -30,6 +30,9 @@ pub fn package() -> Package {
 pub struct PEM;
 
 impl Function for PEM {
+    fn order(&self) -> u8 {
+        128
+    }
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
@@ -73,6 +76,9 @@ impl Function for PEM {
 pub struct DER;
 
 impl Function for DER {
+    fn order(&self) -> u8 {
+        128
+    }
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,

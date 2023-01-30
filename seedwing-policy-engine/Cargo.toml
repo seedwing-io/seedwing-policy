@@ -31,6 +31,7 @@ cidr = "0.2.1"
 [features]
 default = ["sigstore"]
 sigstore = ["dep:sigstore"]
+debug = []
 
 [dev-dependencies]
 criterion = "0.4"

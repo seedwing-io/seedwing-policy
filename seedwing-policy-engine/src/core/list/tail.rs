@@ -14,6 +14,9 @@ const DOCUMENTATION: &str = include_str!("Tail.adoc");
 pub struct Tail;
 
 impl Function for Tail {
+    fn order(&self) -> u8 {
+        128
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

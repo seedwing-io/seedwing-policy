@@ -12,6 +12,9 @@ const DOCUMENTATION: &str = include_str!("Length.adoc");
 pub struct Length;
 
 impl Function for Length {
+    fn order(&self) -> u8 {
+        128
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

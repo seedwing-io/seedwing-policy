@@ -164,6 +164,10 @@ impl Type {
         }
     }
 
+    pub fn order(&self, world: &World) -> u8 {
+        self.inner.order(world)
+    }
+
     pub fn name(&self) -> Option<TypeName> {
         self.name.clone()
     }
@@ -450,6 +454,26 @@ pub enum InnerType {
     Expr(Arc<Expr>),
     List(Vec<Arc<Type>>),
     Nothing,
+}
+
+impl InnerType {
+    fn order(&self, world: &World) -> u8 {
+        match self {
+            Self::Anything => 128,
+            Self::Primordial(t) => t.order(),
+            Self::Bound(t, _) => t.order(world),
+            Self::Ref(_, slot, _) => world
+                .get_by_slot(*slot)
+                .map(|t| t.order(world))
+                .unwrap_or(128),
+            Self::Argument(s) => 2,
+            Self::Const(s) => 1,
+            Self::Object(o) => 64,
+            Self::Expr(e) => 128,
+            Self::List(l) => l.iter().map(|e| e.order(world)).max().unwrap_or(128),
+            Self::Nothing => 0,
+        }
+    }
 }
 
 #[derive(Serialize, Default, Debug)]

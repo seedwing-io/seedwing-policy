@@ -1,4 +1,3 @@
-use crate::core::Function;
 use crate::data::DataSource;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
@@ -345,6 +344,9 @@ impl World {
         world.add_package(crate::core::kafka::package());
         world.add_package(crate::core::pem::package());
         world.add_package(crate::core::net::package());
+
+        #[cfg(feature = "debug")]
+        world.add_package(crate::core::debug::package());
 
         world.add_package(crate::core::maven::package());
 

@@ -47,6 +47,17 @@ pub enum PrimordialType {
     Function(SyntacticSugar, TypeName, #[serde(skip)] Arc<dyn Function>),
 }
 
+impl PrimordialType {
+    fn order(&self) -> u8 {
+        match self {
+            Self::Function(_, _, f) => f.order(),
+            Self::String => 2,
+            Self::Decimal => 1,
+            _ => 0,
+        }
+    }
+}
+
 impl Hash for PrimordialType {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {

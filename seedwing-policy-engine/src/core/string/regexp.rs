@@ -14,6 +14,9 @@ const REGEXP: &str = "regexp";
 pub struct Regexp;
 
 impl Function for Regexp {
+    fn order(&self) -> u8 {
+        140
+    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

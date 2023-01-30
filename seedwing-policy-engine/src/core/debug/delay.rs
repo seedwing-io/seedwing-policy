@@ -1,24 +1,31 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType, ValueType};
+use crate::lang::lir::{Bindings, InnerType, Type, ValueType};
+use crate::package::Package;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
+use std::borrow::Borrow;
+use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
+use std::str::from_utf8;
+use std::thread::sleep;
+use std::time::Duration;
 
-const DOCUMENTATION: &str = include_str!("Traverse.adoc");
+const DOCUMENTATION: &str = include_str!("DelayMs.adoc");
 
-const STEP: &str = "step";
+const DELAY: &str = "delay";
 
 #[derive(Debug)]
-pub struct Traverse;
+pub struct DelayMs;
 
-impl Function for Traverse {
+impl Function for DelayMs {
     fn order(&self) -> u8 {
-        128
+        192
     }
     fn parameters(&self) -> Vec<String> {
-        vec![STEP.into()]
+        vec![DELAY.into()]
     }
 
     fn documentation(&self) -> Option<String> {
@@ -32,13 +39,9 @@ impl Function for Traverse {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(step) = bindings.get(STEP) {
-                if let InnerType::Const(ValueType::String(step)) = step.inner() {
-                    if let Some(input) = input.try_get_object() {
-                        if let Some(output) = input.get(step) {
-                            return Ok(Output::Transform(output).into());
-                        }
-                    }
+            if let Some(delay) = bindings.get(DELAY) {
+                if let Some(ValueType::Integer(val)) = delay.try_get_resolved_value() {
+                    sleep(Duration::from_millis(val as u64))
                 }
             }
 

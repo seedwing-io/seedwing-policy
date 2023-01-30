@@ -14,6 +14,9 @@ const REFINEMENT: &str = "refinement";
 pub struct Refine;
 
 impl Function for Refine {
+    fn order(&self) -> u8 {
+        128
+    }
     fn parameters(&self) -> Vec<String> {
         vec![REFINEMENT.into()]
     }

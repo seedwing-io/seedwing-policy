@@ -15,6 +15,9 @@ const DOCUMENTATION: &str = include_str!("Any.adoc");
 pub struct Any;
 
 impl Function for Any {
+    fn order(&self) -> u8 {
+        128
+    }
     fn parameters(&self) -> Vec<String> {
         vec![PATTERN.into()]
     }

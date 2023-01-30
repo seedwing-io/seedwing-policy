@@ -13,6 +13,8 @@ use std::sync::Arc;
 pub mod base64;
 pub mod cyclonedx;
 pub mod data;
+#[cfg(feature = "debug")]
+pub mod debug;
 pub mod iso;
 pub mod json;
 pub mod kafka;
@@ -53,6 +55,11 @@ impl From<(Output, Vec<EvaluationResult>)> for FunctionEvaluationResult {
 }
 
 pub trait Function: Sync + Send + Debug {
+    /// A number between 0 and u8::MAX indicating the evaluation order.
+    ///
+    /// 0 means the function is likely to be fast, 255 means likely to be slow.
+    fn order(&self) -> u8;
+
     fn documentation(&self) -> Option<String> {
         None
     }
