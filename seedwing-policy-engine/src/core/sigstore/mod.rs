@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
@@ -42,6 +42,7 @@ impl Function for SHA256 {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

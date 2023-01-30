@@ -4,19 +4,22 @@ use crate::ui::LAYOUT_HTML;
 use actix_web::http::header;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{get, post};
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
+use seedwing_policy_engine::lang::lir::EvalTrace;
 //use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use crate::ui::breadcrumbs::Breadcrumbs;
 use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
+use seedwing_policy_engine::lang::lir::EvalContext;
 
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
     opa: Option<bool>,
+    trace: Option<bool>,
 }
 
 #[post("/policy/{path:.*}")]
@@ -39,7 +42,11 @@ pub async fn evaluate(
         let value = RuntimeValue::from(result);
         let path = path.replace('/', "::");
 
-        match world.evaluate(&*path, value).await {
+        let mut trace = EvalTrace::Disabled;
+        if let Some(true) = params.trace {
+            trace = EvalTrace::Enabled;
+        }
+        match world.evaluate(&*path, value, EvalContext::new(trace)).await {
             Ok(result) => {
                 let rationale = Rationalizer::new(&result);
                 let rationale = rationale.rationale();

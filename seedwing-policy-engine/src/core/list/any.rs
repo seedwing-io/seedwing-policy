@@ -1,6 +1,6 @@
 use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
@@ -29,6 +29,7 @@ impl Function for Any {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -39,7 +40,7 @@ impl Function for Any {
                 for item in list {
                     supporting.push(
                         pattern
-                            .evaluate(item.clone(), &Default::default(), world)
+                            .evaluate(item.clone(), ctx, &Default::default(), world)
                             .await?,
                     );
                 }

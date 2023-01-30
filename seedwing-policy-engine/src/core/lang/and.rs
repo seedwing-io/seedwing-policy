@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType};
+use crate::lang::lir::{Bindings, EvalContext, InnerType};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -28,6 +28,7 @@ impl Function for And {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -39,7 +40,7 @@ impl Function for And {
                     let mut terms = terms.clone();
                     terms.sort_by(|a, b| a.order(world).cmp(&b.order(world)));
                     for term in terms {
-                        let result = term.evaluate(input.clone(), bindings, world).await?;
+                        let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
                         if !result.satisfied() {
                             satisified = false
                         }

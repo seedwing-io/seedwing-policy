@@ -1,8 +1,6 @@
-pub mod sources;
-
 use crate::core::Function;
 use crate::lang::hir::MemberQualifier;
-use crate::lang::lir::{Bindings, Field, ObjectType, Type};
+use crate::lang::lir::{Bindings, EvalContext, EvalTrace, Field, ObjectType, Type};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::{
     CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
@@ -27,9 +25,11 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::task::ready;
+use std::time::Duration;
 
 pub mod cache;
 pub mod rationale;
+pub mod sources;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {
@@ -84,6 +84,7 @@ pub struct EvaluationResult {
     ty: Arc<Type>,
     rationale: Rationale,
     output: Output,
+    trace: Option<TraceResult>,
 }
 
 impl EvaluationResult {
@@ -92,12 +93,14 @@ impl EvaluationResult {
         ty: Arc<Type>,
         rationale: Rationale,
         output: Output,
+        trace: Option<TraceResult>,
     ) -> Self {
         Self {
             input,
             ty,
             rationale,
             output,
+            trace,
         }
     }
 
@@ -127,6 +130,10 @@ impl EvaluationResult {
 
     pub fn raw_output(&self) -> &Output {
         &self.output
+    }
+
+    pub fn trace(&self) -> Option<TraceResult> {
+        self.trace
     }
 }
 
@@ -398,6 +405,7 @@ mod test {
 pub struct World {
     types: HashMap<TypeName, usize>,
     type_slots: Vec<Arc<Type>>,
+    trace: EvalTrace,
 }
 
 impl Default for World {
@@ -411,6 +419,7 @@ impl World {
         Self {
             types: Default::default(),
             type_slots: Default::default(),
+            trace: EvalTrace::Disabled,
         }
     }
 
@@ -431,10 +440,15 @@ impl World {
         self.types.insert(path, self.type_slots.len() - 1);
     }
 
+    pub(crate) fn trace(&self) -> &EvalTrace {
+        &self.trace
+    }
+
     pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
         &self,
         path: P,
         value: V,
+        mut ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Rc::new(value.into());
         let path = TypeName::from(path.into());
@@ -442,7 +456,7 @@ impl World {
         if let Some(slot) = slot {
             let ty = self.type_slots[*slot].clone();
             let bindings = Bindings::default();
-            ty.evaluate(value.clone(), &bindings, self).await
+            ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
         } else {
             Err(RuntimeError::NoSuchType(path))
         }
@@ -723,4 +737,16 @@ impl From<SourceLocation> for PackagePath {
 pub enum Component {
     Module(ModuleHandle),
     Type(Arc<Type>),
+}
+
+/// Tracing information such as evaluation time.
+#[derive(Debug, Clone, Copy)]
+pub struct TraceResult {
+    pub duration: Duration,
+}
+
+impl TraceResult {
+    pub fn new(duration: Duration) -> Self {
+        Self { duration }
+    }
 }

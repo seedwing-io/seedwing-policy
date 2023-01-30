@@ -1,6 +1,6 @@
 use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
@@ -23,6 +23,7 @@ impl Function for Some {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -38,7 +39,7 @@ impl Function for Some {
                 for item in list {
                     let item_result = pattern
                         .clone()
-                        .evaluate(item.clone(), &Default::default(), world)
+                        .evaluate(item.clone(), ctx, &Default::default(), world)
                         .await?;
 
                     supporting.push(item_result.clone());
@@ -46,7 +47,12 @@ impl Function for Some {
                     if !satisfied && item_result.satisfied() {
                         let count = supporting.iter().filter(|e| e.satisfied()).count();
                         let expected_result = expected_count
-                            .evaluate(Rc::new((count as i64).into()), &Default::default(), world)
+                            .evaluate(
+                                Rc::new((count as i64).into()),
+                                ctx,
+                                &Default::default(),
+                                world,
+                            )
                             .await?;
                         if expected_result.satisfied() {
                             satisfied = true

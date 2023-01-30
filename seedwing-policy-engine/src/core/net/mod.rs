@@ -2,12 +2,13 @@ use crate::{
     core::{Function, FunctionEvaluationResult},
     lang::lir::{Bindings, Type, ValueType},
     package::Package,
-    runtime::{rationale::Rationale, EvaluationResult, Output, PackagePath, RuntimeError, World},
+    runtime::{EvaluationResult, Output, PackagePath, rationale::Rationale, RuntimeError, World},
     value::RuntimeValue,
 };
 use cidr::*;
 use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
 use std::{net::Ipv4Addr, str::FromStr};
+use crate::lang::lir::EvalContext;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["net"]));
@@ -36,6 +37,7 @@ impl Function for Inet4Addr {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -61,6 +63,7 @@ impl Function for Inet4Addr {
                                                 address_pattern,
                                                 Rationale::InvalidArgument(e.to_string()),
                                                 Output::None,
+                                                None,
                                             )],
                                         ))
                                     }
@@ -76,6 +79,7 @@ impl Function for Inet4Addr {
                                     address_pattern,
                                     Rationale::InvalidArgument(e),
                                     Output::None,
+                                    None,
                                 )],
                             ));
                         }

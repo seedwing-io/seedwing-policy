@@ -1,5 +1,5 @@
 use crate::lang::hir::Type;
-use crate::lang::lir::Bindings;
+use crate::lang::lir::{Bindings, EvalContext, EvalTrace};
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
@@ -71,6 +71,7 @@ pub trait Function: Sync + Send + Debug {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;

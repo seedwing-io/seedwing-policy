@@ -4,7 +4,7 @@ use crate::lang::mir::TypeHandle;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialType, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError};
+use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError, TraceResult};
 use crate::runtime::{TypeName, World};
 use crate::value::{Object, RationaleResult, RuntimeValue};
 use serde::Serialize;
@@ -19,6 +19,7 @@ use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 #[derive(Serialize, Debug, Clone)]
 pub enum Expr {
@@ -196,9 +197,11 @@ impl Type {
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+        let trace = ctx.trace();
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
                 let mut locked_value = (*value).borrow();
@@ -208,18 +211,20 @@ impl Type {
                     self.clone(),
                     Rationale::Anything,
                     Output::Identity,
+                    trace.done(),
                 ))
             }),
             InnerType::Ref(sugar, slot, bindings) => Box::pin(async move {
                 if let Some(ty) = world.get_by_slot(*slot) {
                     let bindings = (ty.parameters(), bindings, world).into();
-                    let result = ty.evaluate(value.clone(), &bindings, world).await?;
+                    let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
                         Ok(EvaluationResult::new(
                             Some(value.clone()),
                             self.clone(),
                             result.rationale().clone(),
                             result.raw_output().clone(),
+                            trace.done(),
                         ))
                     } else {
                         Ok(result)
@@ -229,17 +234,18 @@ impl Type {
                 }
             }),
             InnerType::Bound(ty, bindings) => {
-                Box::pin(async move { ty.evaluate(value, bindings, world).await })
+                Box::pin(async move { ty.evaluate(value, ctx, bindings, world).await })
             }
             InnerType::Argument(name) => Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
-                    bound.evaluate(value.clone(), bindings, world).await
+                    bound.evaluate(value.clone(), ctx, bindings, world).await
                 } else {
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
                         Rationale::InvalidArgument(name.clone()),
                         Output::None,
+                        trace.done(),
                     ))
                 }
             }),
@@ -252,6 +258,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(true),
                             Output::Identity,
+                            trace.done(),
                         ))
                     } else {
                         Ok(EvaluationResult::new(
@@ -259,6 +266,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(false),
                             Output::None,
+                            trace.done(),
                         ))
                     }
                 }),
@@ -270,6 +278,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(true),
                             Output::Identity,
+                            trace.done(),
                         ))
                     } else {
                         Ok(EvaluationResult::new(
@@ -277,6 +286,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(false),
                             Output::None,
+                            trace.done(),
                         ))
                     }
                 }),
@@ -289,6 +299,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(true),
                             Output::Identity,
+                            trace.done(),
                         ))
                     } else {
                         Ok(EvaluationResult::new(
@@ -296,6 +307,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(false),
                             Output::None,
+                            trace.done(),
                         ))
                     }
                 }),
@@ -307,6 +319,7 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(true),
                             Output::Identity,
+                            trace.done(),
                         ))
                     } else {
                         Ok(EvaluationResult::new(
@@ -314,16 +327,18 @@ impl Type {
                             self.clone(),
                             Rationale::Primordial(false),
                             Output::None,
+                            trace.done(),
                         ))
                     }
                 }),
                 PrimordialType::Function(sugar, name, func) => Box::pin(async move {
-                    let mut result = func.call(value.clone(), bindings, world).await?;
+                    let mut result = func.call(value.clone(), ctx, bindings, world).await?;
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
                         Rationale::Function(result.output().is_some(), result.supporting()),
                         result.output(),
+                        trace.done(),
                     ))
                 }),
             },
@@ -335,6 +350,7 @@ impl Type {
                         self.clone(),
                         Rationale::Const(true),
                         Output::Identity,
+                        trace.done(),
                     ))
                 } else {
                     Ok(EvaluationResult::new(
@@ -342,6 +358,7 @@ impl Type {
                         self.clone(),
                         Rationale::Const(false),
                         Output::Identity,
+                        trace.done(),
                     ))
                 }
             }),
@@ -355,7 +372,7 @@ impl Type {
                                 field.name(),
                                 field
                                     .ty()
-                                    .evaluate(field_value.clone(), bindings, world)
+                                    .evaluate(field_value.clone(), ctx, bindings, world)
                                     .await?,
                             );
                         } else if !field.optional() {
@@ -366,6 +383,7 @@ impl Type {
                                     field.ty(),
                                     Rationale::MissingField(field.name()),
                                     Output::None,
+                                    trace.done(),
                                 ),
                             );
                         }
@@ -375,6 +393,7 @@ impl Type {
                         self.clone(),
                         Rationale::Object(result),
                         Output::Identity,
+                        trace.done(),
                     ))
                 } else {
                     Ok(EvaluationResult::new(
@@ -382,6 +401,7 @@ impl Type {
                         self.clone(),
                         Rationale::NotAnObject,
                         Output::None,
+                        trace.done(),
                     ))
                 }
             }),
@@ -395,6 +415,7 @@ impl Type {
                         self.clone(),
                         Rationale::Expression(true),
                         Output::Identity,
+                        trace.done(),
                     ))
                 } else {
                     Ok(EvaluationResult::new(
@@ -402,6 +423,7 @@ impl Type {
                         self.clone(),
                         Rationale::Expression(false),
                         Output::None,
+                        trace.done(),
                     ))
                 }
             }),
@@ -410,13 +432,15 @@ impl Type {
                     if list_value.len() == terms.len() {
                         let mut result = Vec::new();
                         for (term, element) in terms.iter().zip(list_value.iter()) {
-                            result.push(term.evaluate(element.clone(), bindings, world).await?);
+                            result
+                                .push(term.evaluate(element.clone(), ctx, bindings, world).await?);
                         }
                         return Ok(EvaluationResult::new(
                             Some(value.clone()),
                             self.clone(),
                             Rationale::List(result),
                             Output::Identity,
+                            trace.done(),
                         ));
                     }
                 }
@@ -425,6 +449,7 @@ impl Type {
                     self.clone(),
                     Rationale::NotAList,
                     Output::None,
+                    trace.done(),
                 ))
             }),
             //InnerType::Bound(primary, bindings) => {
@@ -436,6 +461,7 @@ impl Type {
                     self.clone(),
                     Rationale::Nothing,
                     Output::None,
+                    trace.done(),
                 ))
             }),
         }
@@ -800,5 +826,51 @@ pub(crate) fn convert(
             Vec::default(),
             lir::InnerType::Nothing,
         )),
+    }
+}
+
+#[derive(Debug)]
+pub struct EvalContext {
+    trace: EvalTrace,
+}
+
+impl Default for EvalContext {
+    fn default() -> Self {
+        Self {
+            trace: EvalTrace::Disabled,
+        }
+    }
+}
+
+impl EvalContext {
+    pub fn new(trace: EvalTrace) -> Self {
+        Self { trace }
+    }
+
+    pub fn trace(&self) -> TraceHandle {
+        match self.trace {
+            EvalTrace::Enabled => TraceHandle {
+                start: Some(Instant::now()),
+            },
+            EvalTrace::Disabled => TraceHandle { start: None },
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy)]
+pub enum EvalTrace {
+    Enabled,
+    Disabled,
+}
+
+#[derive(Clone, Debug, Copy)]
+pub struct TraceHandle {
+    start: Option<Instant>,
+}
+
+impl TraceHandle {
+    fn done(self) -> Option<TraceResult> {
+        self.start
+            .map(|start| TraceResult::new(Instant::now() - start))
     }
 }

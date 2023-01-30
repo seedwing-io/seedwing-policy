@@ -1,4 +1,4 @@
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{EvalContext, Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerType, Type, ValueType};
 use crate::package::Package;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
@@ -35,6 +35,7 @@ impl Function for DelayMs {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

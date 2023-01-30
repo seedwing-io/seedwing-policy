@@ -1,7 +1,7 @@
 use super::COUNT;
 use crate::core::list::split_fill;
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::future::Future;
@@ -28,6 +28,7 @@ impl Function for Tail {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -35,7 +36,7 @@ impl Function for Tail {
             if let Some(list) = input.try_get_list().cloned() {
                 let expected_count = bindings.get(COUNT);
                 let (mut tail, mut main) =
-                    split_fill(world, list.into_iter().rev(), expected_count).await?;
+                    split_fill(ctx, world, list.into_iter().rev(), expected_count).await?;
 
                 tail.reverse();
                 main.reverse();

@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType};
+use crate::lang::lir::{Bindings, EvalContext, InnerType};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -28,13 +28,14 @@ impl Function for Refine {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let mut rationale = Vec::new();
             if let Some(refinement) = bindings.get(REFINEMENT) {
-                let refinement_result = refinement.evaluate(input, bindings, world).await?;
+                let refinement_result = refinement.evaluate(input, ctx, bindings, world).await?;
                 rationale.push(refinement_result.clone());
                 if refinement_result.satisfied() {
                     return Ok((refinement_result.raw_output().clone(), rationale).into());

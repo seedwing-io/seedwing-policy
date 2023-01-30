@@ -7,6 +7,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
+use seedwing_policy_engine::lang::lir::EvalContext;
 use seedwing_policy_engine::runtime::sources::{Directory, Ephemeral};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
@@ -96,15 +97,18 @@ pub async fn evaluate(
         content.extend_from_slice(&bit);
     }
     match serde_json::from_slice::<EvaluateRequest>(&content) {
-        Ok(body) => match serde_json::from_str::<serde_json::Value>(&body.value) {
-            Ok(payload) => match state.build(body.policy.as_bytes()) {
-                Ok(mut builder) => match builder.finish().await {
-                    Ok(world) => {
-                        let value = RuntimeValue::from(&payload);
-                        let mut full_path = "playground::".to_string();
-                        full_path += &path.replace('/', "::");
+        Ok(body) => {
+            match serde_json::from_str::<serde_json::Value>(&body.value) {
+                Ok(payload) => {
+                    match state.build(body.policy.as_bytes()) {
+                        Ok(mut builder) => {
+                            match builder.finish().await {
+                                Ok(world) => {
+                                    let value = RuntimeValue::from(&payload);
+                                    let mut full_path = "playground::".to_string();
+                                    full_path += &path.replace('/', "::");
 
-                        match world.evaluate(&*full_path, value).await {
+                                    match world.evaluate(&*full_path, value, EvalContext::new(seedwing_policy_engine::lang::lir::EvalTrace::Enabled)).await {
                             Ok(result) => {
                                 let rationale = Rationalizer::new(&result);
                                 let rationale = rationale.rationale();
@@ -120,24 +124,27 @@ pub async fn evaluate(
                                 HttpResponse::InternalServerError().finish()
                             }
                         }
+                                }
+                                Err(e) => {
+                                    log::error!("err {:?}", e);
+                                    HttpResponse::InternalServerError().finish()
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("unable to parse [{:?}]", e);
+                            HttpResponse::BadRequest()
+                                .body(format!("Unable to parse POST'd input {}", req.path()))
+                        }
                     }
-                    Err(e) => {
-                        log::error!("err {:?}", e);
-                        HttpResponse::InternalServerError().finish()
-                    }
-                },
+                }
                 Err(e) => {
                     log::error!("unable to parse [{:?}]", e);
                     HttpResponse::BadRequest()
                         .body(format!("Unable to parse POST'd input {}", req.path()))
                 }
-            },
-            Err(e) => {
-                log::error!("unable to parse [{:?}]", e);
-                HttpResponse::BadRequest()
-                    .body(format!("Unable to parse POST'd input {}", req.path()))
             }
-        },
+        }
         Err(e) => {
             log::error!("unable to parse [{:?}]", e);
             HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))

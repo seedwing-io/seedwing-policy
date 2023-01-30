@@ -34,7 +34,7 @@
 */
 
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType};
+use crate::lang::lir::{Bindings, EvalContext, InnerType};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -64,6 +64,7 @@ impl Function for Chain {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -76,7 +77,7 @@ impl Function for Chain {
                     let mut cur_output = Output::None;
                     let mut last_output = Output::Identity;
                     for term in terms {
-                        let result = term.evaluate(cur.clone(), bindings, world).await?;
+                        let result = term.evaluate(cur.clone(), ctx, bindings, world).await?;
 
                         rationale.push(result.clone());
 

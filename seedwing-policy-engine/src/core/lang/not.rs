@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType};
+use crate::lang::lir::{Bindings, EvalContext, InnerType};
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -28,6 +28,7 @@ impl Function for Not {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -35,7 +36,7 @@ impl Function for Not {
             println!("A");
             if let Some(pattern) = bindings.get(PATTERN) {
                 println!("B");
-                let result = pattern.evaluate(input, bindings, world).await?;
+                let result = pattern.evaluate(input, ctx, bindings, world).await?;
                 println!("C {:?}", result);
                 if result.satisfied() {
                     println!("D");

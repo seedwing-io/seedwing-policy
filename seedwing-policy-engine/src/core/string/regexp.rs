@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, InnerType, ValueType};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use regex::Regex;
@@ -28,6 +28,7 @@ impl Function for Regexp {
     fn call<'v>(
         &'v self,
         input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

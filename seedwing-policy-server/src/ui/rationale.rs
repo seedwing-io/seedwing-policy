@@ -48,6 +48,7 @@ impl<'r> Rationalizer<'r> {
                         format!("<div>Type <code>{}</code> was not satisfied</div>", name).as_str(),
                     );
                 }
+
                 match result.rationale() {
                     Rationale::Anything => {}
                     Rationale::Nothing => {}
@@ -73,6 +74,16 @@ impl<'r> Rationalizer<'r> {
                 html.push_str("<div>was satisfied</div>");
             } else {
                 html.push_str("<div>was not satisfied</div>");
+            }
+
+            if let Some(trace) = result.trace() {
+                html.push_str(
+                    format!(
+                        "<div>Evaluation time: {} ns</div>",
+                        trace.duration.as_nanos()
+                    )
+                    .as_str(),
+                );
             }
 
             Self::supported_by(html, result);

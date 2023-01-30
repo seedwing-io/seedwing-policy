@@ -1,11 +1,13 @@
 use crate::{
     core::Function,
-    lang::lir::Type,
+    lang::lir::{EvalTrace, Type},
     package::Package,
     runtime::{PackagePath, RuntimeError, World},
     value::RuntimeValue,
 };
 use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
+
+use crate::lang::lir::EvalContext;
 
 pub mod all;
 pub mod any;
@@ -29,6 +31,7 @@ pub fn package() -> Package {
 }
 
 pub(crate) async fn split_fill<I>(
+    ctx: &mut EvalContext,
     world: &World,
     mut i: I,
     count: Option<Arc<Type>>,
@@ -42,7 +45,12 @@ where
         let satisfied = match &count {
             Some(expected_count) => {
                 let expected_result = expected_count
-                    .evaluate(Rc::new((greedy.len()).into()), &Default::default(), world)
+                    .evaluate(
+                        Rc::new((greedy.len()).into()),
+                        ctx,
+                        &Default::default(),
+                        world,
+                    )
                     .await?;
                 expected_result.satisfied()
             }
