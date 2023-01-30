@@ -127,6 +127,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install cyclonedx cli
+        run: |
+          curl -sLO https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.24.2/cyclonedx-linux-x64
+          sudo install cyclonedx-linux-x64 /usr/local/bin/cyclonedx
+          cyclonedx --version
+
       - name: Install convco
         run: |
           curl -sLO https://github.com/convco/convco/releases/download/v0.3.15/convco-ubuntu.zip
@@ -189,12 +195,12 @@ jobs:
 
       - name: Generate container SBOM
         run: |
-          syft ~/download/image.tar --output cyclonedx-xml --catalogers rpm,cargo-auditable > staging/container.sbom.xml
-          syft ~/download/image.tar --output cyclonedx-json --catalogers rpm,cargo-auditable > staging/container.sbom.json
+          syft ~/download/container/image.tar --output cyclonedx-xml --catalogers rpm,cargo-auditable > staging/container.sbom.xml
+          syft ~/download/container/image.tar --output cyclonedx-json --catalogers rpm,cargo-auditable > staging/container.sbom.json
 
       - name: Load container
         run: |
-          podman load ~/download/image.tar
+          podman load --input ~/download/container/image.tar
 
       - name: Push to ghcr.io
         id: push-images
@@ -225,7 +231,7 @@ jobs:
           cosign sign --attachment sbom ${IMAGE}
 
       - run: |
-          cp ~/download/image.tar staging/container.tar
+          cp ~/download/container/image.tar staging/container.tar
           xz staging/container.tar
 
       - name: Create Release
