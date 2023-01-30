@@ -8,6 +8,7 @@ repository = "https://github.com/seedwing-io/seedwing-policy"
 description = "A functional type system for implementing policy inspection, audit and enforcement"
 categories = ["development-tools", "parser-implementations"]
 keywords = ["policy"]
+readme = "../README.md"
 
 [dependencies]
 chumsky = "0.8.0"

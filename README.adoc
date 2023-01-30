@@ -1,5 +1,0 @@
-# Seedwing Policy
-
-image::https://github.com/seedwing-io/seedwing-policy/workflows/CI/badge.svg[]
-
-A functional type system for implementing policy inspection, audit and enforcement.
