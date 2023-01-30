@@ -76,6 +76,8 @@ impl<'r> Rationalizer<'r> {
                 html.push_str("<div>was not satisfied</div>");
             }
 
+            Self::supported_by(html, result);
+
             if let Some(trace) = result.trace() {
                 html.push_str(
                     format!(
@@ -85,8 +87,6 @@ impl<'r> Rationalizer<'r> {
                     .as_str(),
                 );
             }
-
-            Self::supported_by(html, result);
         } else {
             html.push_str("No input provided");
         }
