@@ -4,8 +4,8 @@ use crate::lang::lir::{Field, InnerType};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::Located;
 use crate::runtime::RuntimeError;
+use ::serde::Serialize;
 use indexmap::IndexMap;
-use serde::Serialize;
 use serde_json::{json, Map, Number};
 use std::any::Any;
 use std::borrow::Borrow;
@@ -20,6 +20,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 mod json;
+mod serde;
+mod yaml;
 
 struct Printer {
     indent: u8,
@@ -93,6 +95,10 @@ impl PartialEq<Self> for RuntimeValue {
             (Self::Integer(lhs), Self::Integer(rhs)) => lhs == rhs,
             (Self::Decimal(lhs), Self::Decimal(rhs)) => lhs == rhs,
             (Self::String(lhs), Self::String(rhs)) => lhs == rhs,
+            (Self::List(lhs), Self::List(rhs)) => lhs == rhs,
+            (Self::Octets(lhs), Self::Octets(rhs)) => lhs == rhs,
+            (Self::Object(lhs), Self::Object(rhs)) => lhs == rhs,
+            (Self::Null, Self::Null) => true,
             _ => false,
         }
     }
@@ -107,6 +113,9 @@ impl PartialOrd for RuntimeValue {
             (Self::Decimal(lhs), Self::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
             (Self::Integer(lhs), Self::Decimal(rhs)) => (*lhs as f64).partial_cmp(rhs),
             (Self::String(lhs), Self::String(rhs)) => lhs.partial_cmp(rhs),
+            (Self::List(lhs), Self::List(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Octets(lhs), Self::Octets(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Null, Self::Null) => Some(Ordering::Equal),
             _ => None,
         }
     }
@@ -364,7 +373,7 @@ impl RuntimeValue {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Default)]
+#[derive(Serialize, Debug, Clone, Default, PartialEq)]
 pub struct Object {
     #[serde(skip)]
     fields: IndexMap<String, Rc<RuntimeValue>>,
@@ -413,5 +422,51 @@ impl Object {
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<RuntimeValue>)> {
         self.fields.iter()
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    pub(crate) fn assert_yaml<F, E>(f: F)
+    where
+        F: FnOnce(&str) -> Result<RuntimeValue, E>,
+        E: std::error::Error,
+    {
+        let value: RuntimeValue = f(r#"
+foo: bar
+bar:
+  - 1
+  - "baz"
+  - true
+here:
+  comes: ~
+  1: foo
+
+"#)
+        .unwrap();
+        assert_eq!(
+            RuntimeValue::Object({
+                let mut o = Object::new();
+                o.set("bar", {
+                    let mut s = Vec::new();
+                    s.push(Rc::new(1i64.into()));
+                    s.push(Rc::new("baz".into()));
+                    s.push(Rc::new(true.into()));
+                    s
+                });
+                o.set("foo", "bar");
+                o.set("here", {
+                    let mut o = Object::new();
+                    o.set("comes", RuntimeValue::Null);
+                    o.set("1", "foo");
+                    o
+                });
+                o
+            }),
+            value
+        );
     }
 }
