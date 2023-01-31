@@ -165,7 +165,7 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<TypeDefn>, Error = 
 pub fn type_expr(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone {
-    recursive(|expr| logical_or(expr.clone(), visible_parameters.clone()))
+    recursive(|expr| logical_or(expr, visible_parameters.clone()))
 }
 
 pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error = ParserError> + Clone {
@@ -454,7 +454,7 @@ pub fn object_type(
 }
 
 pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
-    filter(|c: &char| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '@' )
+    filter(|c: &char| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '@')
         .map(Some)
         .chain::<char, Vec<_>, _>(
             filter(|c: &char| {
@@ -570,7 +570,7 @@ mod test {
             .unwrap()
             .inner();
 
-        println!("{:?}", ty);
+        println!("{ty:?}");
     }
 
     #[test]
@@ -587,7 +587,7 @@ mod test {
             .unwrap()
             .inner();
 
-        println!("{:?}", ty);
+        println!("{ty:?}");
     }
 
     #[test]
@@ -604,7 +604,7 @@ mod test {
             .unwrap()
             .inner();
 
-        println!("{:?}", ty);
+        println!("{ty:?}");
     }
 
     #[test]
@@ -619,7 +619,7 @@ mod test {
             .unwrap()
             .inner();
 
-        println!("{:?}", ty);
+        println!("{ty:?}");
         assert!(matches!(ty, Type::List(_)));
 
         if let Type::List(inner) = ty {
@@ -655,7 +655,7 @@ mod test {
             )
             .unwrap();
 
-        println!("{:?}", unit);
+        println!("{unit:?}");
     }
 
     #[test]

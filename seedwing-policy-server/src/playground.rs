@@ -36,14 +36,15 @@ impl PlaygroundState {
                 if let Err(e) = builder.build(Ephemeral::new("playground", s).iter()) {
                     log::error!("unable to build policy [{:?}]", e);
                     return Err(
-                        HttpResponse::BadRequest().body(format!("Compilation error: {:?}", e))
+                        HttpResponse::BadRequest().body(format!("Compilation error: {e:?}"))
                     );
                 }
             }
             Err(e) => {
                 log::error!("unable to parse [{:?}]", e);
-                return Err(HttpResponse::BadRequest()
-                    .body(format!("Unable to parse POST'd input {:?}", e)));
+                return Err(
+                    HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {e:?}"))
+                );
             }
         }
         Ok(builder)

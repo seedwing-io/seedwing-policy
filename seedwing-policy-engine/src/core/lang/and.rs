@@ -38,7 +38,7 @@ impl Function for And {
                     let mut satisified = true;
                     let mut rationale = Vec::new();
                     let mut terms = terms.clone();
-                    terms.sort_by(|a, b| a.order(world).cmp(&b.order(world)));
+                    terms.sort_by_key(|a| a.order(world));
                     for term in terms {
                         let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
                         if !result.satisfied() {
@@ -97,7 +97,7 @@ mod test {
                         "last_name": "mcw"
                     }
                 ),
-                EvalContext::default()
+                EvalContext::default(),
             )
             .await;
         assert!(result.unwrap().satisfied())
@@ -133,7 +133,7 @@ mod test {
                         "first_name": "bob"
                     }
                 ),
-                EvalContext::default()
+                EvalContext::default(),
             )
             .await;
         assert!(!result.unwrap().satisfied())
@@ -169,7 +169,7 @@ mod test {
                         "last_name": "mcw"
                     }
                 ),
-                EvalContext::default()
+                EvalContext::default(),
             )
             .await;
         assert!(!result.unwrap().satisfied())
@@ -206,7 +206,7 @@ mod test {
                         "last_name": "crossley"
                     }
                 ),
-                EvalContext::default()
+                EvalContext::default(),
             )
             .await;
         assert!(!result.unwrap().satisfied())

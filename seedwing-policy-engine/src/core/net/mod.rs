@@ -1,14 +1,14 @@
+use crate::lang::lir::EvalContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
     lang::lir::{Bindings, Type, ValueType},
     package::Package,
-    runtime::{EvaluationResult, Output, PackagePath, rationale::Rationale, RuntimeError, World},
+    runtime::{rationale::Rationale, EvaluationResult, Output, PackagePath, RuntimeError, World},
     value::RuntimeValue,
 };
 use cidr::*;
 use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
 use std::{net::Ipv4Addr, str::FromStr};
-use crate::lang::lir::EvalContext;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["net"]));
@@ -71,7 +71,7 @@ impl Function for Inet4Addr {
                             }
                         }
                         Err(e) => {
-                            let e = format!("error parsing Inet4Addr<\"{}\">: {}", range, e);
+                            let e = format!("error parsing Inet4Addr<\"{range}\">: {e}");
                             return Ok(FunctionEvaluationResult(
                                 Output::None,
                                 vec![EvaluationResult::new(
@@ -173,6 +173,8 @@ mod test {
         let result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        runtime.evaluate(path, json!(value), EvalContext::default()).await
+        runtime
+            .evaluate(path, json!(value), EvalContext::default())
+            .await
     }
 }

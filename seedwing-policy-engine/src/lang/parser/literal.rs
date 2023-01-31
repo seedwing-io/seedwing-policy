@@ -22,7 +22,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<ValueType>, Error =
         .map_with_span(
             |(integral, (_dot, decimal)): (String, (char, String)), span| {
                 Located::new(
-                    ValueType::Decimal(format!("{}.{}", integral, decimal).parse::<f64>().unwrap()),
+                    ValueType::Decimal(format!("{integral}.{decimal}").parse::<f64>().unwrap()),
                     span,
                 )
             },

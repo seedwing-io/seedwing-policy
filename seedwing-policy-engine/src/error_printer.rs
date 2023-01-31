@@ -28,19 +28,17 @@ impl<'c> ErrorPrinter<'c> {
                 span.start,
             )
             .with_label(Label::new(full_span).with_message(match error {
-                BuildError::ArgumentMismatch(_, _) => {
-                    format!("argument mismatch")
-                }
+                BuildError::ArgumentMismatch(_, _) => "argument mismatch".to_string(),
                 BuildError::TypeNotFound(_, _, name) => {
-                    format!("type not found: {}", name)
+                    format!("type not found: {name}")
                 }
                 BuildError::Parser(_, inner) => match inner.reason() {
                     SimpleReason::Unexpected => {
-                        println!("{:?}", inner);
+                        println!("{inner:?}");
                         format!("unexpected character found {}", inner.found().unwrap())
                     }
                     SimpleReason::Unclosed { span, delimiter } => {
-                        format!("unclosed delimiter {}", delimiter)
+                        format!("unclosed delimiter {delimiter}")
                     }
                     SimpleReason::Custom(inner) => inner.clone(),
                 },

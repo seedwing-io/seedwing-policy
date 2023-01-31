@@ -38,7 +38,7 @@ impl Function for Or {
                 if let InnerType::List(terms) = terms.inner() {
                     let mut rationale = Vec::new();
                     let mut terms = terms.clone();
-                    terms.sort_by(|a, b| a.order(world).cmp(&b.order(world)));
+                    terms.sort_by_key(|a| a.order(world));
                     for term in terms {
                         let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
                         if result.satisfied() {

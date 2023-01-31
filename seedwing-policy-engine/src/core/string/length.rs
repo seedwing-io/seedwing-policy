@@ -25,7 +25,7 @@ impl Function for Length {
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(value) = input.try_get_string() {
                 Ok(Output::Transform(Rc::new(value.len().into())).into())
@@ -58,7 +58,9 @@ mod test {
 
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::ten", json!("abcdefghij"), EvalContext::default()).await;
+        let result = runtime
+            .evaluate("test::ten", json!("abcdefghij"), EvalContext::default())
+            .await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(result.unwrap().satisfied())
@@ -80,10 +82,14 @@ mod test {
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime
-            .evaluate("test::ten", json!("abcdefghijklmnop"), EvalContext::default())
+            .evaluate(
+                "test::ten",
+                json!("abcdefghijklmnop"),
+                EvalContext::default(),
+            )
             .await;
 
-        println!("result --> {:?}", result);
+        println!("result --> {result:?}");
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(!result.unwrap().satisfied())
@@ -104,7 +110,9 @@ mod test {
 
         let runtime = builder.finish().await.unwrap();
 
-        let result = runtime.evaluate("test::ten", json!(10), EvalContext::default()).await;
+        let result = runtime
+            .evaluate("test::ten", json!(10), EvalContext::default())
+            .await;
 
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
         assert!(!result.unwrap().satisfied())

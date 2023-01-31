@@ -212,10 +212,10 @@ impl Display for RuntimeValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Null => write!(f, "<null>"),
-            Self::String(val) => write!(f, "{}", val),
-            Self::Integer(val) => write!(f, "{}", val),
-            Self::Decimal(val) => write!(f, "{}", val),
-            Self::Boolean(val) => write!(f, "{}", val),
+            Self::String(val) => write!(f, "{val}"),
+            Self::Integer(val) => write!(f, "{val}"),
+            Self::Decimal(val) => write!(f, "{val}"),
+            Self::Boolean(val) => write!(f, "{val}"),
             Self::Object(val) => Display::fmt(val, f),
             Self::List(val) => write!(f, "[ <<things>> ]"),
             Self::Octets(val) => write!(f, "[ <<octets>> ]"),
@@ -256,7 +256,7 @@ impl RuntimeValue {
                 let mut octets = String::new();
                 for chunk in val.chunks(16) {
                     for octet in chunk {
-                        octets.push_str(format!("{:02x} ", octet).as_str());
+                        octets.push_str(format!("{octet:02x} ").as_str());
                     }
                     //octets.push( '\n');
                 }

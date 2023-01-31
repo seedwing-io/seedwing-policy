@@ -225,7 +225,7 @@ mod test {
         let mut builder = Builder::new();
 
         let result = builder.build(src.iter());
-        println!("---> {:?}", result);
+        println!("---> {result:?}");
         let runtime = builder.finish().await.unwrap();
 
         let value = json!(
@@ -234,7 +234,9 @@ mod test {
             }
         );
 
-        let result = runtime.evaluate("foo::bar::signed-thing", value, EvalContext::default()).await;
+        let result = runtime
+            .evaluate("foo::bar::signed-thing", value, EvalContext::default())
+            .await;
 
         assert!(result.unwrap().satisfied())
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
@@ -574,7 +576,7 @@ impl TypeName {
     pub fn segments(&self) -> Vec<String> {
         let mut segments = Vec::new();
         if let Some(package) = &self.package {
-            segments.extend_from_slice(&*package.segments())
+            segments.extend_from_slice(&package.segments())
         }
 
         segments.push(self.name.clone());

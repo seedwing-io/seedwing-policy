@@ -24,7 +24,7 @@ impl<'w> Htmlifier<'w> {
     fn a(&self, html: &mut String, name: TypeName) {
         let href = name.as_type_str().replace("::", "/");
         let href = format!("{}{}", self.root, href);
-        html.push_str(format!("<a href='{}'>{}</a>", href, name).as_str());
+        html.push_str(format!("<a href='{href}'>{name}</a>").as_str());
     }
 
     fn html_of_ty(&self, html: &mut String, ty: Arc<Type>, world: &World) {
@@ -186,9 +186,9 @@ impl<'w> Htmlifier<'w> {
                     html.push_str(val.as_str());
                     html.push('"');
                 }
-                ValueType::Integer(val) => html.push_str(format!("{}", val).as_str()),
-                ValueType::Decimal(val) => html.push_str(format!("{}", val).as_str()),
-                ValueType::Boolean(val) => html.push_str(format!("{}", val).as_str()),
+                ValueType::Integer(val) => html.push_str(format!("{val}").as_str()),
+                ValueType::Decimal(val) => html.push_str(format!("{val}").as_str()),
+                ValueType::Boolean(val) => html.push_str(format!("{val}").as_str()),
                 ValueType::List(_val) => {
                     todo!()
                 }
@@ -239,6 +239,7 @@ impl<'w> Htmlifier<'w> {
         html.push_str("</span>");
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn html_of_expr(&self, html: &mut String, expr: &Arc<Expr>) {
         match &**expr {
             Expr::SelfLiteral() => html.push_str("self"),
@@ -247,16 +248,16 @@ impl<'w> Htmlifier<'w> {
                     html.push_str("null");
                 }
                 ValueType::String(inner) => {
-                    html.push_str(format!("\"{}\"", inner).as_str());
+                    html.push_str(format!("\"{inner}\"").as_str());
                 }
                 ValueType::Integer(inner) => {
-                    html.push_str(format!("{}", inner).as_str());
+                    html.push_str(format!("{inner}").as_str());
                 }
                 ValueType::Decimal(inner) => {
-                    html.push_str(format!("{}", inner).as_str());
+                    html.push_str(format!("{inner}").as_str());
                 }
                 ValueType::Boolean(inner) => {
-                    html.push_str(format!("{}", inner).as_str());
+                    html.push_str(format!("{inner}").as_str());
                 }
                 ValueType::List(_) => {}
                 ValueType::Octets(_) => {}

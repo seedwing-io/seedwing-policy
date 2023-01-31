@@ -41,11 +41,11 @@ impl<'r> Rationalizer<'r> {
                 html.push_str("<div>");
                 if result.satisfied() {
                     html.push_str(
-                        format!("<div>Type <code>{}</code> was satisfied</div>", name).as_str(),
+                        format!("<div>Type <code>{name}</code> was satisfied</div>").as_str(),
                     );
                 } else {
                     html.push_str(
-                        format!("<div>Type <code>{}</code> was not satisfied</div>", name).as_str(),
+                        format!("<div>Type <code>{name}</code> was not satisfied</div>").as_str(),
                     );
                 }
 
@@ -112,7 +112,7 @@ impl<'r> Rationalizer<'r> {
                 for (name, result) in fields {
                     if let Rationale::MissingField(_) = result.rationale() {
                         html.push_str("<div class='field unsatisfied'>");
-                        html.push_str(format!("field <code>{}</code> is missing", name).as_str());
+                        html.push_str(format!("field <code>{name}</code> is missing").as_str());
                         html.push_str("</div>");
                     } else {
                         if result.satisfied() {
@@ -174,10 +174,10 @@ impl<'r> Rationalizer<'r> {
                 html.push_str("<div>not a list</div>");
             }
             Rationale::MissingField(name) => {
-                html.push_str(format!("<div>missing field: {}</div>", name).as_str());
+                html.push_str(format!("<div>missing field: {name}</div>").as_str());
             }
             Rationale::InvalidArgument(name) => {
-                html.push_str(format!("<div>invalid argument: {}</div>", name).as_str());
+                html.push_str(format!("<div>invalid argument: {name}</div>").as_str());
             }
             Rationale::Const(_) => {}
             Rationale::Primordial(_) => {}

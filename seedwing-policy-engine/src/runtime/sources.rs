@@ -51,7 +51,7 @@ impl Directory {
                         let mut src = String::new();
                         if let Some(part) = path.parent() {
                             if !part.to_string_lossy().is_empty() {
-                                src.push_str(&*part.to_string_lossy());
+                                src.push_str(&part.to_string_lossy());
                                 src.push('/');
                             }
                         }

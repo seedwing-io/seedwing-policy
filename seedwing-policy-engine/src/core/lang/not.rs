@@ -37,7 +37,7 @@ impl Function for Not {
             if let Some(pattern) = bindings.get(PATTERN) {
                 println!("B");
                 let result = pattern.evaluate(input, ctx, bindings, world).await?;
-                println!("C {:?}", result);
+                println!("C {result:?}");
                 if result.satisfied() {
                     println!("D");
                     return Ok((Output::None, vec![result]).into());

@@ -1,4 +1,4 @@
-use crate::core::{Function, FunctionEvaluationResult, json};
+use crate::core::{json, Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
@@ -87,7 +87,9 @@ mod test {
 
         let value = serde_json::to_string(&value).unwrap();
 
-        let result = runtime.evaluate("test::test-json", value, EvalContext::default()).await;
+        let result = runtime
+            .evaluate("test::test-json", value, EvalContext::default())
+            .await;
 
         assert!(result.unwrap().satisfied())
         //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
@@ -112,7 +114,9 @@ mod test {
             I am not any valid JSON, dude, no, yes, true, false, ] {
         "#;
 
-        let result = runtime.evaluate("test::test-json", value, EvalContext::default()).await;
+        let result = runtime
+            .evaluate("test::test-json", value, EvalContext::default())
+            .await;
 
         //assert!(matches!(result, Ok(RationaleResult::None),))
         assert!(!result.unwrap().satisfied())

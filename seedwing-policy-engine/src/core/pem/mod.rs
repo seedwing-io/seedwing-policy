@@ -44,7 +44,7 @@ impl Function for AsCertificate {
                 return Ok(Output::None.into());
             };
 
-            let contents = PEM_ENGINE.encode(&bytes);
+            let contents = PEM_ENGINE.encode(bytes);
             // allocate a bit more than we actually need
             let mut result = String::with_capacity(contents.len() + 128);
 

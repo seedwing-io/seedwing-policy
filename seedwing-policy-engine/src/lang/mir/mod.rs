@@ -98,6 +98,7 @@ pub enum Type {
 }
 
 impl Debug for Type {
+    #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Type::Anything => write!(f, "anything"),
@@ -254,6 +255,7 @@ impl World {
         self.types.insert(path, self.type_slots.len() - 1);
     }
 
+    #[allow(clippy::result_large_err)]
     pub(crate) fn define(
         &mut self,
         path: TypeName,
@@ -274,7 +276,7 @@ impl World {
             mir::Type::Primordial(PrimordialType::Function(
                 SyntacticSugar::from(path.clone()),
                 path.clone(),
-                func.clone(),
+                func,
             )),
             0..0,
         );
@@ -284,6 +286,7 @@ impl World {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn convert<'c>(&'c self, ty: &'c Located<hir::Type>) -> Result<Arc<TypeHandle>, BuildError> {
         match &**ty {
             hir::Type::Anything => Ok(Arc::new(
@@ -392,7 +395,7 @@ impl World {
             hir::Type::Refinement(refinement) => {
                 let primary_type_handle = self.types[&(String::from("lang::Refine").into())];
 
-                let bindings = vec![self.convert(&**refinement)?];
+                let bindings = vec![self.convert(refinement)?];
 
                 Ok(Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),

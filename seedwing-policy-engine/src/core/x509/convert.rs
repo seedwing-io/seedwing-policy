@@ -95,7 +95,7 @@ impl From<&Oid<'_>> for RuntimeValue {
         let stringy = oid
             .as_bytes()
             .iter()
-            .map(|e| format!("{}", e))
+            .map(|e| format!("{e}"))
             .collect::<Vec<String>>()
             .join(".");
 

@@ -566,6 +566,7 @@ impl From<(Vec<String>, &Vec<Arc<Type>>, &World)> for Bindings {
 }
 
 impl Debug for InnerType {
+    #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             InnerType::Anything => write!(f, "anything"),

@@ -209,6 +209,7 @@ impl Type {
 }
 
 impl Debug for Type {
+    #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Type::Anything => write!(f, "Anything"),

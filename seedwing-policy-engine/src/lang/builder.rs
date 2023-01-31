@@ -50,10 +50,10 @@ impl Builder {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::lang::lir::EvalContext;
     use crate::runtime::sources::Ephemeral;
     use crate::value::RationaleResult;
     use serde_json::json;
-    use crate::lang::lir::EvalContext;
 
     #[actix_rt::test]
     async fn basic_smoke_test() {
@@ -85,7 +85,7 @@ mod test {
                         "age": 52,
                     }
                 ),
-                EvalContext::default()
+                EvalContext::default(),
             )
             .await;
 

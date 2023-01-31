@@ -64,7 +64,7 @@ impl Function for SHA256 {
                                     let body = STANDARD.decode(entry.body);
                                     if let Ok(body) = body {
                                         let body: Result<serde_json::Value, _> =
-                                            serde_json::from_slice(&*body);
+                                            serde_json::from_slice(&body);
                                         if let Ok(body) = body {
                                             let value: RuntimeValue = body.into();
                                             return Some(value);

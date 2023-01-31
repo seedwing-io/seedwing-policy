@@ -80,20 +80,22 @@ pub trait Function: Sync + Send + Debug {
 #[cfg(test)]
 mod test {
     use crate::lang::builder::Builder;
+    use crate::lang::lir::EvalContext;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvaluationResult;
     use serde_json::{json, Value};
-    use crate::lang::lir::EvalContext;
 
     pub(crate) async fn test_pattern(pattern: &str, value: Value) -> EvaluationResult {
         let src = format!("pattern test-pattern = {pattern}");
-        println!("{}", src);
+        println!("{src}");
         let src = Ephemeral::new("test", src);
 
         let mut builder = Builder::new();
         builder.build(src.iter()).unwrap();
         let runtime = builder.finish().await.unwrap();
-        let result = runtime.evaluate("test::test-pattern", value, EvalContext::default()).await;
+        let result = runtime
+            .evaluate("test::test-pattern", value, EvalContext::default())
+            .await;
 
         result.unwrap()
     }

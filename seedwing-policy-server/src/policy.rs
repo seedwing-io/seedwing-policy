@@ -4,17 +4,17 @@ use crate::ui::LAYOUT_HTML;
 use actix_web::http::header;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{get, post};
-use actix_web::{HttpRequest, HttpResponse, web};
+use actix_web::{web, HttpRequest, HttpResponse};
 use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::EvalTrace;
 //use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use crate::ui::breadcrumbs::Breadcrumbs;
+use seedwing_policy_engine::lang::lir::EvalContext;
 use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
-use seedwing_policy_engine::lang::lir::EvalContext;
 
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
@@ -111,7 +111,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
             Component::Module(module) => {
                 if !original_path.is_empty() && !original_path.ends_with('/') {
                     let mut response = HttpResponse::TemporaryRedirect();
-                    response.insert_header((header::LOCATION, format!("{}/", path)));
+                    response.insert_header((header::LOCATION, format!("{path}/")));
                     return response.finish();
                 }
                 let path_segments = PackagePath::from(path.clone());

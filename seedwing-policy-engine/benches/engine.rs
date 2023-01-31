@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
+use seedwing_policy_engine::lang::lir::EvalContext;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::json;
 use serde_json::Value as JsonValue;
-use seedwing_policy_engine::lang::lir::EvalContext;
 
 fn eval_speed(bencher: &mut Criterion, data: TestData) {
     let mut builder = Builder::new();
@@ -48,7 +48,10 @@ fn end_to_end_speed(bencher: &mut Criterion, data: TestData) {
 
                 let _ = builder.build(data.src.iter());
                 let runtime = builder.finish().await.unwrap();
-                runtime.evaluate(&data.path, &data.value, EvalContext::default()).await.unwrap()
+                runtime
+                    .evaluate(&data.path, &data.value, EvalContext::default())
+                    .await
+                    .unwrap()
             });
         })
     });

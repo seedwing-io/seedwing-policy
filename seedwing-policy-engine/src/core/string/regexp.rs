@@ -72,7 +72,11 @@ mod test {
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime
-            .evaluate("test::re", json!("bob dude mcwhirter"), EvalContext::default())
+            .evaluate(
+                "test::re",
+                json!("bob dude mcwhirter"),
+                EvalContext::default(),
+            )
             .await;
         assert!(result.unwrap().satisfied())
     }
@@ -93,7 +97,11 @@ mod test {
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime
-            .evaluate("test::re", json!("bob subgenius dobbs"), EvalContext::default())
+            .evaluate(
+                "test::re",
+                json!("bob subgenius dobbs"),
+                EvalContext::default(),
+            )
             .await;
         assert!(!result.unwrap().satisfied());
     }
@@ -114,7 +122,11 @@ mod test {
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime
-            .evaluate("test::re", json!("bob subgenius dobbs"), EvalContext::default())
+            .evaluate(
+                "test::re",
+                json!("bob subgenius dobbs"),
+                EvalContext::default(),
+            )
             .await;
         assert!(!result.unwrap().satisfied());
     }
