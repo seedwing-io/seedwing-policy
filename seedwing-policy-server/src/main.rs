@@ -68,7 +68,7 @@ async fn main() -> std::io::Result<()> {
     //log::info!("loading policies from {}", dir);
     for source in sources.iter() {
         if let Err(result) = builder.build(source.iter()) {
-            errors.extend_from_slice(&*result);
+            errors.extend_from_slice(&result);
         }
     }
 

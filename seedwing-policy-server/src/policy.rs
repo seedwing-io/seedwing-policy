@@ -36,7 +36,7 @@ pub async fn evaluate(
     }
 
     // todo: accomodate non-JSON using content-type headers.
-    let result: Result<serde_json::Value, _> = serde_json::from_slice(&*content);
+    let result: Result<serde_json::Value, _> = serde_json::from_slice(&content);
 
     if let Ok(result) = &result {
         let value = RuntimeValue::from(result);
@@ -139,7 +139,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let path_segments = TypeName::from(path.clone());
                 let breadcrumbs = (path_segments, ty.parameters()).into();
 
-                let html = Htmlifier::new("/policy/".into(), &*world);
+                let html = Htmlifier::new("/policy/".into(), &world);
 
                 renderer.render(
                     "type",
@@ -149,7 +149,7 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                         path,
                         parameters: ty.parameters(),
                         documentation: ty.documentation().unwrap_or_default(),
-                        definition: html.html_of(ty, &*world),
+                        definition: html.html_of(ty, &world),
                     },
                 )
             }
