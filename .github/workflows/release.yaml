@@ -223,12 +223,15 @@ jobs:
           # and then construct the full (pushed) name
           cosign sign --yes --recursive "ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@${imageDigest}"
 
-      - name: Attach container SBOM
+      - name: Attach container SBOM information
         env:
           IMAGE: "ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ needs.init.outputs.version }}"
         run: |
-          cosign attach sbom --sbom staging/container.sbom.xml --input-format xml --type cyclonedx ${IMAGE}
+          # attach and sign SBOM
+          cosign attach sbom --sbom staging/container.sbom.json --input-format json --type cyclonedx ${IMAGE}
           cosign sign --attachment sbom ${IMAGE}
+          # attach SBOM as attestation
+          cosign attest --yes --recursive  --type cyclonedx --predicate staging/container.sbom.json ${IMAGE}
 
       - run: |
           cp ~/download/container/image.tar staging/container.tar
