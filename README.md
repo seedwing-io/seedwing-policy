@@ -10,6 +10,13 @@ A functional type system for implementing policy inspection, audit and enforceme
 
 Seedwing Policy is guaranteed to compile on the latest stable Rust version at the time of release. It might compile with older versions.
 
+## Required packages
+### Fedora
+
+Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html), or run:
+
+`dnf install nodejs yarnpkg`
+
 ## License
 
 Apache License, Version 2.0 ([LICENSE](LICENSE))
