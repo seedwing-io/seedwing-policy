@@ -177,6 +177,12 @@ impl<'w> Htmlifier<'w> {
             InnerType::Argument(arg) => {
                 html.push_str(arg.as_str());
             }
+            InnerType::Deref(inner) => {
+                html.push_str("<span>");
+                html.push( '*');
+                self.html_of_ty(html, inner.clone(), world);
+                html.push_str("</span>");
+            }
             InnerType::Const(val) => match val {
                 ValueType::Null => {
                     html.push_str("null");

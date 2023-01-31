@@ -42,7 +42,7 @@ pub enum Expr {
 }
 
 pub type ExprFuture =
-    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
+Pin<Box<dyn Future<Output=Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
 
 impl Expr {
     #[allow(clippy::let_and_return)]
@@ -75,7 +75,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Less | Ordering::Equal) =
-                        (*lhs).partial_cmp(&(*rhs))
+                    (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Rc::new(true.into()))
                     } else {
@@ -101,7 +101,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Greater | Ordering::Equal) =
-                        (*lhs).partial_cmp(&(*rhs))
+                    (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Rc::new(true.into()))
                     } else {
@@ -200,7 +200,7 @@ impl Type {
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
         let trace = ctx.trace();
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
@@ -214,9 +214,80 @@ impl Type {
                     trace.done(),
                 ))
             }),
-            InnerType::Ref(sugar, slot, bindings) => Box::pin(async move {
+            InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
+                fn build_bindings<'b>(value: Rc<RuntimeValue>, ctx: &'b mut EvalContext, parameters: Vec<String>, arguments: &'b Vec<Arc<Type>>, world: &'b World) -> Pin<Box<dyn Future<Output=Result<Bindings, RuntimeError>> + 'b>> {
+                    Box::pin(async move {
+                        let mut bindings = Bindings::new();
+                        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+                            if let InnerType::Ref(sugar, slot, unresolved_bindings) = &arg.inner {
+                                if let Some(resolved_type) = world.get_by_slot(*slot) {
+                                    if resolved_type.parameters().is_empty() {
+                                        bindings.bind(param.clone(), resolved_type.clone())
+                                    } else {
+                                        let resolved_bindings =
+                                            build_bindings(value.clone(), ctx, resolved_type.parameters(), unresolved_bindings, world).await?;
+                                        bindings.bind(
+                                            param.clone(),
+                                            Arc::new(Type::new(
+                                                resolved_type.name(),
+                                                resolved_type.documentation(),
+                                                resolved_type.parameters(),
+                                                InnerType::Bound(resolved_type, resolved_bindings),
+                                            )),
+                                        )
+                                    }
+                                }
+                            } else if let InnerType::Deref(inner) = &arg.inner {
+                                let result = arg.evaluate(
+                                    value.clone(),
+                                    ctx,
+                                    &Bindings::default(),
+                                    world,
+                                ).await?;
+
+                                if result.satisfied() {
+                                    if let Some(output) = result.output() {
+                                        bindings.bind(
+                                            param.clone(),
+                                            Arc::new(
+                                                output.into()
+                                            ),
+                                        )
+                                    } else {
+                                        bindings.bind(
+                                            param.clone(),
+                                            Arc::new(Type::new(
+                                                None,
+                                                None,
+                                                Vec::default(),
+                                                InnerType::Nothing,
+                                            )),
+                                        )
+                                    }
+                                } else {
+                                    bindings.bind(
+                                        param.clone(),
+                                        Arc::new(Type::new(
+                                            None,
+                                            None,
+                                            Vec::default(),
+                                            InnerType::Nothing,
+                                        )),
+                                    )
+                                }
+                            } else {
+                                bindings.bind(param.clone(), arg.clone())
+                            }
+                        }
+
+                        Ok(bindings)
+                    })
+                }
+                ;
+
                 if let Some(ty) = world.get_by_slot(*slot) {
-                    let bindings = (ty.parameters(), bindings, world).into();
+                    let bindings = build_bindings(value.clone(), ctx, ty.parameters(), arguments, world).await?;
+
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
                         Ok(EvaluationResult::new(
@@ -233,6 +304,16 @@ impl Type {
                     Err(RuntimeError::NoSuchTypeSlot(*slot))
                 }
             }),
+            InnerType::Deref(inner) => {
+                Box::pin(async move {
+                    inner.evaluate(
+                        value.clone(),
+                        ctx,
+                        &bindings,
+                        world,
+                    ).await
+                })
+            }
             InnerType::Bound(ty, bindings) => {
                 Box::pin(async move { ty.evaluate(value, ctx, bindings, world).await })
             }
@@ -452,9 +533,6 @@ impl Type {
                     trace.done(),
                 ))
             }),
-            //InnerType::Bound(primary, bindings) => {
-            //Box::pin(async move { primary.evaluate(value, bindings).await })
-            //}
             InnerType::Nothing => Box::pin(async move {
                 Ok(EvaluationResult::new(
                     Some(value.clone()),
@@ -474,6 +552,7 @@ pub enum InnerType {
     Primordial(PrimordialType),
     Bound(Arc<Type>, Bindings),
     Ref(SyntacticSugar, usize, Vec<Arc<Type>>),
+    Deref(Arc<Type>),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
@@ -492,6 +571,7 @@ impl InnerType {
                 .get_by_slot(*slot)
                 .map(|t| t.order(world))
                 .unwrap_or(128),
+            Self::Deref(inner) => inner.order(world),
             Self::Argument(s) => 2,
             Self::Const(s) => 1,
             Self::Object(o) => 64,
@@ -522,7 +602,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<Type>)> {
         self.bindings.iter()
     }
 
@@ -532,36 +612,6 @@ impl Bindings {
 
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
-    }
-}
-
-impl From<(Vec<String>, &Vec<Arc<Type>>, &World)> for Bindings {
-    fn from((parameters, arguments, world): (Vec<String>, &Vec<Arc<Type>>, &World)) -> Self {
-        let mut bindings = Self::new();
-        for (param, arg) in parameters.iter().zip(arguments.iter()) {
-            if let InnerType::Ref(sugar, slot, unresolved_bindings) = &arg.inner {
-                if let Some(resolved_type) = world.get_by_slot(*slot) {
-                    if resolved_type.parameters().is_empty() {
-                        bindings.bind(param.clone(), resolved_type.clone())
-                    } else {
-                        let resolved_bindings =
-                            (resolved_type.parameters(), unresolved_bindings, world).into();
-                        bindings.bind(
-                            param.clone(),
-                            Arc::new(Type::new(
-                                resolved_type.name(),
-                                resolved_type.documentation(),
-                                resolved_type.parameters(),
-                                InnerType::Bound(resolved_type, resolved_bindings),
-                            )),
-                        )
-                    }
-                }
-            } else {
-                bindings.bind(param.clone(), arg.clone())
-            }
-        }
-        bindings
     }
 }
 
@@ -577,6 +627,7 @@ impl Debug for InnerType {
             InnerType::List(inner) => write!(f, "[{:?}]", inner),
             InnerType::Argument(name) => write!(f, "{:?}", name),
             InnerType::Ref(sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerType::Deref(inner) => write!(f, "* {:?}", inner),
             InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
             InnerType::Nothing => write!(f, "nothing"),
         }
@@ -661,8 +712,10 @@ impl From<Rc<RuntimeValue>> for Type {
                 RuntimeValue::Object(_) => {
                     todo!()
                 }
-                RuntimeValue::List(_) => {
-                    todo!()
+                RuntimeValue::List(inner) => {
+                    InnerType::List(
+                        inner.iter().map(|e| Arc::new(Self::from(e.clone()))).collect()
+                    )
                 }
                 RuntimeValue::Octets(inner) => InnerType::Const(ValueType::Octets(inner.clone())),
             },
@@ -674,7 +727,7 @@ impl ValueType {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
+    ) -> Pin<Box<dyn Future<Output=bool> + 'e>> {
         match (self, &other) {
             (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
             (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
@@ -761,6 +814,19 @@ pub(crate) fn convert(
                 lir::InnerType::Ref(sugar.clone(), *slot, lir_bindings),
             ))
         }
+        mir::Type::Deref(inner) => Arc::new(
+            lir::Type::new(
+                name,
+                documentation,
+                parameters,
+                lir::InnerType::Deref(
+                    convert(
+                        inner.name(),
+                        inner.documentation(),
+                        inner.parameters().iter().map(|e| e.inner()).collect(),
+                        &inner.ty())),
+            )
+        ),
         mir::Type::Argument(arg_name) => Arc::new(lir::Type::new(
             name,
             documentation,

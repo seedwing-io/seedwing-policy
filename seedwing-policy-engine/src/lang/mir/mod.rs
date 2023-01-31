@@ -88,7 +88,7 @@ pub enum Type {
     Anything,
     Primordial(PrimordialType),
     Ref(SyntacticSugar, usize, Vec<Arc<TypeHandle>>),
-    //Bound(Arc<TypeHandle>, Bindings),
+    Deref(Arc<TypeHandle>),
     Argument(String),
     Const(ValueType),
     Object(ObjectType),
@@ -109,7 +109,7 @@ impl Debug for Type {
             Type::List(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
             Type::Ref(sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
-            //Type::Bound(primary, bindings) => write!(f, "{:?}<{:?}>", primary, bindings),
+            Type::Deref(inner) => write!(f, "*{:?}", inner),
             Type::Nothing => write!(f, "nothing"),
         }
     }
@@ -135,7 +135,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<TypeHandle>)> {
+    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<TypeHandle>)> {
         self.bindings.iter()
     }
 }
@@ -243,6 +243,7 @@ impl World {
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
+        log::info!("declare {}", path);
         if documentation.is_none() {
             log::warn!("{} is not documented", path.as_type_str());
         }
@@ -261,7 +262,7 @@ impl World {
         path: TypeName,
         ty: &Located<hir::Type>,
     ) -> Result<(), BuildError> {
-        log::debug!("define type {}", path);
+        log::info!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
             //handle.define_from(converted);
@@ -271,7 +272,7 @@ impl World {
     }
 
     pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
-        log::debug!("define function {}", path);
+        log::info!("define function {}", path);
         let runtime_type = Located::new(
             mir::Type::Primordial(PrimordialType::Function(
                 SyntacticSugar::from(path.clone()),
@@ -329,6 +330,15 @@ impl World {
                 TypeHandle::new(None)
                     .with(Located::new(mir::Type::Const(inner.inner()), ty.location())),
             )),
+            hir::Type::Deref(inner) => {
+                Ok(Arc::new(
+                    TypeHandle::new(None)
+                        .with(Located::new(
+                            mir::Type::Deref(self.convert(&*inner)?),
+                            ty.location(),
+                        ))
+                ))
+            }
             hir::Type::Object(inner) => {
                 let mut fields = Vec::new();
 

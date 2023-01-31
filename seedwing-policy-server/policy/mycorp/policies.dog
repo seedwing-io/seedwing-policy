@@ -1,5 +1,5 @@
 
-pattern people-near-me = lang::Or<data::From<"people.json">>
+pattern people-near-me = lang::Or<*data::From<"people.json">>
 
 pattern furry = {
   furry: true

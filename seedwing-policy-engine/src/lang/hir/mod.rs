@@ -121,6 +121,7 @@ impl TypeDefn {
 pub enum Type {
     Anything,
     Ref(SyntacticSugar, Located<TypeName>, Vec<Located<Type>>),
+    Deref(Box<Located<Type>>),
     Parameter(Located<String>),
     Const(Located<ValueType>),
     Object(ObjectType),
@@ -160,6 +161,7 @@ impl Type {
             Type::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Chain(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
             Type::Not(inner) => inner.referenced_types(),
+            Type::Deref(inner) => inner.referenced_types(),
             Type::Traverse(_) => Vec::default(),
             Type::Nothing => Vec::default(),
             Type::Parameter(_) => Vec::default(),
@@ -201,6 +203,7 @@ impl Type {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
             Type::Not(inner) => inner.qualify_types(types),
+            Type::Deref(inner) => inner.qualify_types(types),
             Type::Traverse(_) => {}
             Type::Nothing => {}
             Type::Parameter(_) => {}
@@ -225,6 +228,7 @@ impl Debug for Type {
             Type::Chain(terms) => write!(f, "{:?}", terms),
             Type::Traverse(step) => write!(f, ".{}", step.inner()),
             Type::Not(inner) => write!(f, "!{:?}", inner),
+            Type::Deref(inner) => write!(f, "*{:?}", inner),
             Type::Parameter(name) => write!(f, "{:?}", name),
         }
     }
@@ -329,7 +333,7 @@ impl World {
             units: Default::default(),
             packages: Default::default(),
             source_cache: Default::default(),
-            data_sources: None,
+            data_sources: Some(Vec::default()),
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::list::package());
