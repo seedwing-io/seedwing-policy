@@ -127,6 +127,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      # cache cargo data, not because of the build, but because of cargo based tooling
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          # although we don't use anything from the Cargo project, we still keep hashing the .lock file to get some
+          # id that aligns with the project
+          key: ${{ runner.os }}-cargo-publish-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install cyclonedx cli
         run: |
           curl -sLO https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.24.2/cyclonedx-linux-x64
