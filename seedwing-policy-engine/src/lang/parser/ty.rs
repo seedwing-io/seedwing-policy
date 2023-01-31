@@ -454,8 +454,7 @@ pub fn object_type(
 }
 
 pub fn field_name() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
-    //text::ident().map_with_span(Located::new)
-    filter(|c: &char| c.to_char().is_ascii_alphabetic() || c.to_char() == '_')
+    filter(|c: &char| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '@' )
         .map(Some)
         .chain::<char, Vec<_>, _>(
             filter(|c: &char| {
