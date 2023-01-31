@@ -174,8 +174,8 @@ jobs:
       - name: Create SBOM of the project
         run: |
           cargo install cargo-cyclonedx
-          cargo cyclonedx --all --format xml
-          cp seedwing-policy-server/bom.xml staging/project.sbom.xml
+          cargo cyclonedx --all --format json
+          cp seedwing-policy-server/bom.json staging/project.sbom.json
 
       - name: Fetch syft binary
         run: |
@@ -188,7 +188,7 @@ jobs:
         # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
         run: |
           for i in $(ls staging/seedwing-policy-server*); do
-            syft ${i} --output cyclonedx-xml > ${i}.sbom.xml
+            syft ${i} --output cyclonedx-json > ${i}.sbom.json
           done
 
       - name: Install cosign
@@ -210,7 +210,6 @@ jobs:
 
       - name: Generate container SBOM
         run: |
-          syft ~/download/container/image.tar --output cyclonedx-xml --catalogers rpm,cargo-auditable > staging/container.sbom.xml
           syft ~/download/container/image.tar --output cyclonedx-json --catalogers rpm,cargo-auditable > staging/container.sbom.json
 
       - name: Load container
