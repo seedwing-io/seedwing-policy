@@ -40,13 +40,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
 
-      - name: Log in to ghcr.io
-        uses: redhat-actions/podman-login@v1
-        with:
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: "ghcr.io"
-
       - name: Install qemu dependency
         run: |
           sudo apt-get update
