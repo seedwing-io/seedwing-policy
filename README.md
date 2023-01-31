@@ -5,3 +5,11 @@
 [![docs.rs](https://docs.rs/seedwing-policy-engine/badge.svg)](https://docs.rs/seedwing-policy-engine)
 
 A functional type system for implementing policy inspection, audit and enforcement.
+
+## Minimum supported Rust version (MSRV)
+
+Seedwing Policy is guaranteed to compile on the latest stable Rust version at the time of release. It might compile with older versions.
+
+## License
+
+Apache License, Version 2.0 ([LICENSE](LICENSE))
