@@ -38,14 +38,14 @@ impl From<JsonValue> for RuntimeValue {
             JsonValue::String(inner) => RuntimeValue::String(inner),
             JsonValue::Array(inner) => RuntimeValue::List(
                 inner
-                    .iter()
+                    .into_iter()
                     .map(|e| Rc::new(RuntimeValue::from(e)))
                     .collect(),
             ),
             JsonValue::Object(inner) => {
                 let fields = inner
-                    .iter()
-                    .map(|(k, v)| (k.clone(), Rc::new(RuntimeValue::from(v))))
+                    .into_iter()
+                    .map(|(k, v)| (k, Rc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object { fields })
