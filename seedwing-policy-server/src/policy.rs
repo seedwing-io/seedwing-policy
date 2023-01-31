@@ -1,7 +1,8 @@
 use crate::ui::html::Htmlifier;
 use crate::ui::rationale::Rationalizer;
-use crate::ui::LAYOUT_HTML;
-use actix_web::http::header;
+use crate::ui::{json, LAYOUT_HTML};
+use actix_web::guard::{Acceptable, Any, Guard, GuardContext, Header};
+use actix_web::http::header::{self};
 use actix_web::web::{BytesMut, Payload};
 use actix_web::{get, post};
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -12,7 +13,9 @@ use seedwing_policy_engine::lang::lir::EvalTrace;
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use crate::ui::breadcrumbs::Breadcrumbs;
 use seedwing_policy_engine::lang::lir::EvalContext;
-use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
+use seedwing_policy_engine::runtime::{
+    Component, EvaluationResult, ModuleHandle, PackagePath, TypeName, World,
+};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
 
@@ -22,8 +25,32 @@ pub struct PolicyQuery {
     trace: Option<bool>,
 }
 
+fn wants_json(ctx: &GuardContext) -> bool {
+    Any(Acceptable::new(mime::APPLICATION_JSON))
+        .or(Header(
+            header::CONTENT_TYPE.as_str(),
+            mime::APPLICATION_JSON.essence_str(),
+        ))
+        .check(ctx)
+}
+
+#[post("/policy/{path:.*}", guard = "wants_json")]
+pub async fn evaluate_json(
+    world: web::Data<World>,
+    path: web::Path<String>,
+    input: web::Json<serde_json::Value>,
+    params: web::Query<PolicyQuery>,
+) -> HttpResponse {
+    let value = RuntimeValue::from(input.into_inner());
+    let path = path.replace('/', "::");
+    evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
+        serde_json::to_string_pretty(&json::Result::new(r)).unwrap()
+    })
+    .await
+}
+
 #[post("/policy/{path:.*}")]
-pub async fn evaluate(
+pub async fn evaluate_html(
     req: HttpRequest,
     world: web::Data<World>,
     path: web::Path<String>,
@@ -42,33 +69,48 @@ pub async fn evaluate(
         let value = RuntimeValue::from(result);
         let path = path.replace('/', "::");
 
-        let mut trace = EvalTrace::Disabled;
-        if let Some(true) = params.trace {
-            trace = EvalTrace::Enabled;
-        }
-        match world.evaluate(&*path, value, EvalContext::new(trace)).await {
-            Ok(result) => {
-                let rationale = Rationalizer::new(&result);
-                let rationale = rationale.rationale();
-
-                if let Some(true) = params.opa {
-                    // OPA result format
-                    let satisfied = result.satisfied();
-                    HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
-                } else if result.satisfied() {
-                    HttpResponse::Ok().body(rationale)
-                } else {
-                    HttpResponse::UnprocessableEntity().body(rationale)
-                }
-            }
-            Err(err) => {
-                log::error!("err {:?}", err);
-                HttpResponse::InternalServerError().finish()
-            }
-        }
+        evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
+            Rationalizer::new(r).rationale()
+        })
+        .await
     } else {
         log::error!("unable to parse [{:?}]", result);
         HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
+    }
+}
+
+async fn evaluate<F>(
+    world: &World,
+    path: String,
+    value: RuntimeValue,
+    params: PolicyQuery,
+    formatter: F,
+) -> HttpResponse
+where
+    F: Fn(&EvaluationResult) -> String,
+{
+    let mut trace = EvalTrace::Disabled;
+    if let Some(true) = params.trace {
+        trace = EvalTrace::Enabled;
+    }
+    match world.evaluate(&*path, value, EvalContext::new(trace)).await {
+        Ok(result) => {
+            let rationale = formatter(&result);
+
+            if let Some(true) = params.opa {
+                // OPA result format
+                let satisfied = result.satisfied();
+                HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
+            } else if result.satisfied() {
+                HttpResponse::Ok().body(rationale)
+            } else {
+                HttpResponse::UnprocessableEntity().body(rationale)
+            }
+        }
+        Err(err) => {
+            log::error!("err {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }
 

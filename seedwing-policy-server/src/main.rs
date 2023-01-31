@@ -19,7 +19,9 @@ use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
-use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
+use crate::policy::{
+    display_component, display_root, display_root_no_slash, evaluate_html, evaluate_json,
+};
 use crate::ui::{documentation, index};
 
 include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
@@ -106,7 +108,8 @@ async fn main() -> std::io::Result<()> {
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
-                    .service(evaluate)
+                    .service(evaluate_json)
+                    .service(evaluate_html)
                     .service(documentation)
                     .service(playground::display)
                     .service(playground::display_root_no_slash)

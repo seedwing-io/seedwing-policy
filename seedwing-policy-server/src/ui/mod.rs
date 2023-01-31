@@ -7,6 +7,7 @@ use std::str::from_utf8;
 
 pub mod breadcrumbs;
 pub mod html;
+pub mod json;
 pub mod rationale;
 
 #[get("/")]
