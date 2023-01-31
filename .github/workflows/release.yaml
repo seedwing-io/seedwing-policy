@@ -155,6 +155,19 @@ jobs:
           chmod a+x convco
           sudo mv convco /usr/local/bin
 
+      - name: Fetch syft binary
+        run: |
+          curl -sL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz" -o syft.tar.gz
+          tar xzf syft.tar.gz
+          chmod a+x syft
+          sudo mv syft /usr/local/bin
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v2
+
+      - name: Check cosign
+        run: cosign version
+
       - name: Generate changelog
         run: |
           convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 > /tmp/changelog.md
@@ -171,31 +184,35 @@ jobs:
           mkdir -p staging
           cp -pv ~/download/*/seedwing-policy-server-* staging/
 
-      - name: Create SBOM of the project
+      - name: Create SBOM of the cargo project
+        # gather dependencies from cargo auditable build
         run: |
           cargo install cargo-cyclonedx
           cargo cyclonedx --all --format json
-          cp seedwing-policy-server/bom.json staging/project.sbom.json
+          cp seedwing-policy-server/bom.json staging/cargo.project.sbom.json
 
-      - name: Fetch syft binary
+      - name: Create SBOM of the web/yarn project
+        # gather (embedded) dependencies from the yarn build
         run: |
-          curl -sL "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz" -o syft.tar.gz
-          tar xzf syft.tar.gz
-          chmod a+x syft
-          sudo mv syft /usr/local/bin
+          syft seedwing-policy-server/web/yarn.lock --output cyclonedx-json > staging/web.project.sbom.json
+
+      - name: Merge project SBOM
+        # merge both SBOMs
+        run: |
+          cyclonedx merge \
+            --input-files \
+            staging/cargo.project.sbom.json \
+            staging/web.project.sbom.json \
+            --output-file staging/project.sbom.json
 
       - name: Create SBOMs for binaries
         # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
+        # and amend the information with the web project SBOM
         run: |
           for i in $(ls staging/seedwing-policy-server*); do
-            syft ${i} --output cyclonedx-json > ${i}.sbom.json
+            syft ${i} --output cyclonedx-json > ${i}.sbom.cargo-auditable.json
+            cyclonedx merge --input-files ${i}.sbom.cargo-auditable.json staging/web.project.sbom.json --output-file ${i}.sbom.json
           done
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v2
-
-      - name: Check cosign
-        run: cosign version
 
       - name: Cosign blobs
         env:
@@ -205,12 +222,10 @@ jobs:
             cosign sign-blob --yes --b64=false ${i} --output-signature ${i}.cosign.sig --output-certificate ${i}.cosign.crt
           done
 
-      - name: Display staging area
-        run: ls -R staging
-
       - name: Generate container SBOM
         run: |
           syft ~/download/container/image.tar --output cyclonedx-json --catalogers rpm,cargo-auditable > staging/container.sbom.json
+          cyclonedx merge --input-files staging/container.sbom.json staging/web.project.sbom.json --output-file staging/container.sbom.json
 
       - name: Load container
         run: |
@@ -258,6 +273,9 @@ jobs:
       - run: |
           cp ~/download/container/image.tar staging/container.tar
           xz staging/container.tar
+
+      - name: Display staging area
+        run: ls -R staging
 
       - name: Create Release
         env:
