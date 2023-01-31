@@ -438,3 +438,46 @@ pattern unsugared = lang::Or<[ something-borrowed, something-blue ]>
 ```
 
 Here we finally discover where *lists* (described above) become useful.
+
+=== Dereferencing (a.k.a. _Eager Evaluation_)
+
+Given that patterns are first-class constructs, passing them as parameters can sometimes be problematic.
+
+Consider this pattern:
+
+```
+pattern people = lang::Or<data::From<"people.json">>
+```
+
+And this `people.json`:
+
+```json
+[
+  "bob",
+  "jim"
+]
+```
+
+Initially, we think this might be equivalent to
+
+```
+pattern people = lang::Or[ "bob", "jim" ]>
+```
+
+But alas, it is not.
+Instead of receiving the array of people that `data::From<...>` provides, it receives the _actual type_ `data::From<...>`.
+That type has not yet been evaluated to provide the underlying data.
+The `lang::Or<...>` function expects a list-shaped type with terms to be _or_'d together.
+Instead, it's receiving the function type underlying `data::From<...>`.
+
+To resolve a type against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `*`.
+By placing a `*` as a prefix to a type, it will be evaluated, and the resulting value is then treated as a type and passed further.
+
+The pattern that behaves the way one might expect looks like:
+
+```
+pattern people = lang::Or<*data::From<"people.json">>
+```
+
+Now indeed the `lang::Or` will received a list-ish type full of string-ish types (the values `bob` and `jim`) and perform as expected.
+
