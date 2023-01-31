@@ -135,7 +135,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<TypeHandle>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<TypeHandle>)> {
         self.bindings.iter()
     }
 }
@@ -330,15 +330,10 @@ impl World {
                 TypeHandle::new(None)
                     .with(Located::new(mir::Type::Const(inner.inner()), ty.location())),
             )),
-            hir::Type::Deref(inner) => {
-                Ok(Arc::new(
-                    TypeHandle::new(None)
-                        .with(Located::new(
-                            mir::Type::Deref(self.convert(&*inner)?),
-                            ty.location(),
-                        ))
-                ))
-            }
+            hir::Type::Deref(inner) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
+                mir::Type::Deref(self.convert(inner)?),
+                ty.location(),
+            )))),
             hir::Type::Object(inner) => {
                 let mut fields = Vec::new();
 

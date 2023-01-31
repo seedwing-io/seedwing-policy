@@ -42,7 +42,7 @@ pub enum Expr {
 }
 
 pub type ExprFuture =
-Pin<Box<dyn Future<Output=Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
+    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
 
 impl Expr {
     #[allow(clippy::let_and_return)]
@@ -75,7 +75,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Less | Ordering::Equal) =
-                    (*lhs).partial_cmp(&(*rhs))
+                        (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Rc::new(true.into()))
                     } else {
@@ -101,7 +101,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Greater | Ordering::Equal) =
-                    (*lhs).partial_cmp(&(*rhs))
+                        (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Rc::new(true.into()))
                     } else {
@@ -200,7 +200,7 @@ impl Type {
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         let trace = ctx.trace();
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
@@ -215,7 +215,15 @@ impl Type {
                 ))
             }),
             InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
-                fn build_bindings<'b>(value: Rc<RuntimeValue>, ctx: &'b mut EvalContext, parameters: Vec<String>, arguments: &'b Vec<Arc<Type>>, world: &'b World) -> Pin<Box<dyn Future<Output=Result<Bindings, RuntimeError>> + 'b>> {
+                #[allow(clippy::ptr_arg)]
+                fn build_bindings<'b>(
+                    value: Rc<RuntimeValue>,
+                    ctx: &'b mut EvalContext,
+                    parameters: Vec<String>,
+                    arguments: &'b Vec<Arc<Type>>,
+                    world: &'b World,
+                ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
+                {
                     Box::pin(async move {
                         let mut bindings = Bindings::new();
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
@@ -224,8 +232,14 @@ impl Type {
                                     if resolved_type.parameters().is_empty() {
                                         bindings.bind(param.clone(), resolved_type.clone())
                                     } else {
-                                        let resolved_bindings =
-                                            build_bindings(value.clone(), ctx, resolved_type.parameters(), unresolved_bindings, world).await?;
+                                        let resolved_bindings = build_bindings(
+                                            value.clone(),
+                                            ctx,
+                                            resolved_type.parameters(),
+                                            unresolved_bindings,
+                                            world,
+                                        )
+                                        .await?;
                                         bindings.bind(
                                             param.clone(),
                                             Arc::new(Type::new(
@@ -238,21 +252,13 @@ impl Type {
                                     }
                                 }
                             } else if let InnerType::Deref(inner) = &arg.inner {
-                                let result = arg.evaluate(
-                                    value.clone(),
-                                    ctx,
-                                    &Bindings::default(),
-                                    world,
-                                ).await?;
+                                let result = arg
+                                    .evaluate(value.clone(), ctx, &Bindings::default(), world)
+                                    .await?;
 
                                 if result.satisfied() {
                                     if let Some(output) = result.output() {
-                                        bindings.bind(
-                                            param.clone(),
-                                            Arc::new(
-                                                output.into()
-                                            ),
-                                        )
+                                        bindings.bind(param.clone(), Arc::new(output.into()))
                                     } else {
                                         bindings.bind(
                                             param.clone(),
@@ -282,11 +288,12 @@ impl Type {
 
                         Ok(bindings)
                     })
-                }
-                ;
+                };
 
                 if let Some(ty) = world.get_by_slot(*slot) {
-                    let bindings = build_bindings(value.clone(), ctx, ty.parameters(), arguments, world).await?;
+                    let bindings =
+                        build_bindings(value.clone(), ctx, ty.parameters(), arguments, world)
+                            .await?;
 
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
@@ -305,14 +312,7 @@ impl Type {
                 }
             }),
             InnerType::Deref(inner) => {
-                Box::pin(async move {
-                    inner.evaluate(
-                        value.clone(),
-                        ctx,
-                        &bindings,
-                        world,
-                    ).await
-                })
+                Box::pin(async move { inner.evaluate(value.clone(), ctx, bindings, world).await })
             }
             InnerType::Bound(ty, bindings) => {
                 Box::pin(async move { ty.evaluate(value, ctx, bindings, world).await })
@@ -602,7 +602,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
         self.bindings.iter()
     }
 
@@ -712,11 +712,12 @@ impl From<Rc<RuntimeValue>> for Type {
                 RuntimeValue::Object(_) => {
                     todo!()
                 }
-                RuntimeValue::List(inner) => {
-                    InnerType::List(
-                        inner.iter().map(|e| Arc::new(Self::from(e.clone()))).collect()
-                    )
-                }
+                RuntimeValue::List(inner) => InnerType::List(
+                    inner
+                        .iter()
+                        .map(|e| Arc::new(Self::from(e.clone())))
+                        .collect(),
+                ),
                 RuntimeValue::Octets(inner) => InnerType::Const(ValueType::Octets(inner.clone())),
             },
         )
@@ -727,7 +728,7 @@ impl ValueType {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output=bool> + 'e>> {
+    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
         match (self, &other) {
             (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
             (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
@@ -814,19 +815,17 @@ pub(crate) fn convert(
                 lir::InnerType::Ref(sugar.clone(), *slot, lir_bindings),
             ))
         }
-        mir::Type::Deref(inner) => Arc::new(
-            lir::Type::new(
-                name,
-                documentation,
-                parameters,
-                lir::InnerType::Deref(
-                    convert(
-                        inner.name(),
-                        inner.documentation(),
-                        inner.parameters().iter().map(|e| e.inner()).collect(),
-                        &inner.ty())),
-            )
-        ),
+        mir::Type::Deref(inner) => Arc::new(lir::Type::new(
+            name,
+            documentation,
+            parameters,
+            lir::InnerType::Deref(convert(
+                inner.name(),
+                inner.documentation(),
+                inner.parameters().iter().map(|e| e.inner()).collect(),
+                &inner.ty(),
+            )),
+        )),
         mir::Type::Argument(arg_name) => Arc::new(lir::Type::new(
             name,
             documentation,

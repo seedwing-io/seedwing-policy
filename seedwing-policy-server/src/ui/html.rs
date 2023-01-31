@@ -179,7 +179,7 @@ impl<'w> Htmlifier<'w> {
             }
             InnerType::Deref(inner) => {
                 html.push_str("<span>");
-                html.push( '*');
+                html.push('*');
                 self.html_of_ty(html, inner.clone(), world);
                 html.push_str("</span>");
             }
