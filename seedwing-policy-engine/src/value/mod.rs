@@ -134,8 +134,26 @@ impl From<u8> for RuntimeValue {
     }
 }
 
+impl From<u16> for RuntimeValue {
+    fn from(inner: u16) -> Self {
+        Self::Integer(inner as _)
+    }
+}
+
 impl From<u32> for RuntimeValue {
     fn from(inner: u32) -> Self {
+        Self::Integer(inner as _)
+    }
+}
+
+impl From<i16> for RuntimeValue {
+    fn from(inner: i16) -> Self {
+        Self::Integer(inner as _)
+    }
+}
+
+impl From<i32> for RuntimeValue {
+    fn from(inner: i32) -> Self {
         Self::Integer(inner as _)
     }
 }
