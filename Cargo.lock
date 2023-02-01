@@ -2882,6 +2882,7 @@ dependencies = [
  "cidr",
  "criterion",
  "futures-util",
+ "http",
  "indexmap",
  "log",
  "regex",

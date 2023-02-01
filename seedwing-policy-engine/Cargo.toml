@@ -28,6 +28,7 @@ x509-parser = "0.14.0"
 base64 = "0.21.0"
 regex = "1.7.1"
 cidr = "0.2.1"
+http = "0.2.8"
 
 [features]
 default = ["sigstore"]
