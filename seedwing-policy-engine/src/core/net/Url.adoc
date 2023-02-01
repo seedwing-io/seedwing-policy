@@ -1,0 +1,37 @@
+A pattern that matches a URL, splitting it up in its parts. The input must be a string.
+
+NOTE: A URL can be `https://`, but also all other kinds of schemes, like `gopher://`
+
+To verify it is a URL:
+
+[source]
+----
+pattern is_url = net::Url
+----
+
+To verify it is an HTTPS URL:
+
+[source]
+----
+pattern is_url = net::Url({
+    scheme: "https",
+})
+----
+
+The following attributes are provided (for example from `https://foo.bar:123/path/to?a=b&c=d#link`):
+
+|===
+|Name | Mandatory | Type | Description
+
+| `scheme` | x | String | Scheme/protocol part (`https`)
+| `host` |  | String | Hostname part (`foo.bar`)
+| `port` |  | Integer | Port information (`123`)
+| `path` |  | String | Path (`/path/to`)
+| `query` |  | String | (encoded) query parameters (`a=b&c=d`)
+| `fragment` |  | String | Trailing fragment: (`#link`)
+| `username` |  | String | Username of the credentials
+| `password` |  | String | Password of the credentials
+
+NOTE: Optional fields with no value are represented as `Null`.
+
+|===
