@@ -17,11 +17,11 @@ const PATH: &str = "path";
 
 #[derive(Debug)]
 pub struct From {
-    data_sources: Arc<Vec<Box<dyn DataSource>>>,
+    data_sources: Arc<Vec<Arc<dyn DataSource>>>,
 }
 
 impl From {
-    pub fn new(data_sources: Vec<Box<dyn DataSource>>) -> Self {
+    pub fn new(data_sources: Vec<Arc<dyn DataSource>>) -> Self {
         Self {
             data_sources: Arc::new(data_sources),
         }

@@ -310,7 +310,7 @@ pub struct World {
     units: Vec<CompilationUnit>,
     packages: Vec<Package>,
     source_cache: SourceCache,
-    data_sources: Option<Vec<Box<dyn DataSource>>>,
+    data_sources: Vec<Arc<dyn DataSource>>,
 }
 
 impl Default for World {
@@ -333,7 +333,7 @@ impl World {
             units: Default::default(),
             packages: Default::default(),
             source_cache: Default::default(),
-            data_sources: None,
+            data_sources: Vec::default(),
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::list::package());
@@ -366,10 +366,10 @@ impl World {
     }
 
     pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-    where
-        Self: Sized,
-        S: Into<String>,
-        SrcIter: Iterator<Item = (SourceLocation, S)>,
+        where
+            Self: Sized,
+            S: Into<String>,
+            SrcIter: Iterator<Item=(SourceLocation, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
@@ -397,9 +397,7 @@ impl World {
     }
 
     pub fn data<D: DataSource + 'static>(&mut self, src: D) {
-        if let Some(mut ds) = self.data_sources.as_mut() {
-            ds.push(Box::new(src))
-        }
+        self.data_sources.push(Arc::new(src))
     }
 
     fn add_compilation_unit(&mut self, unit: CompilationUnit) {
@@ -411,9 +409,7 @@ impl World {
     }
 
     pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
-        if let Some(ds) = self.data_sources.take() {
-            self.add_package(crate::core::data::package(ds));
-        }
+        self.add_package(crate::core::data::package(self.data_sources.clone()));
 
         let mut core_units = Vec::new();
 
