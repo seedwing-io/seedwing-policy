@@ -58,7 +58,7 @@ pub async fn evaluate(
                 } else if result.satisfied() {
                     HttpResponse::Ok().body(rationale)
                 } else {
-                    HttpResponse::NotAcceptable().body(rationale)
+                    HttpResponse::UnprocessableEntity().body(rationale)
                 }
             }
             Err(err) => {

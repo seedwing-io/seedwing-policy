@@ -206,7 +206,7 @@
           $('#experiment_status').addClass("pf-m-green");
         }
     ).fail(arg => {
-      if (arg.status == 406) {
+      if (arg.status == 422) {
         $('#rationale_body').html(arg.responseText);
         $("#rationale").show();
         $('#experiment_status').removeClass("pf-m-gold");
