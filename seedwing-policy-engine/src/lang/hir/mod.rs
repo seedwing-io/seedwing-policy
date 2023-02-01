@@ -349,6 +349,7 @@ impl World {
         world.add_package(crate::core::kafka::package());
         world.add_package(crate::core::pem::package());
         world.add_package(crate::core::net::package());
+        world.add_package(crate::core::vex::package());
 
         #[cfg(feature = "debug")]
         world.add_package(crate::core::debug::package());
