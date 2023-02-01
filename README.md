@@ -18,12 +18,18 @@ You will need the following tools and components:
 * **Node.js & Yarn**: For the web bits in the server
 * **Podman or Docker**: For building the container image
 
-### Fedora
+Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
 
-Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html), or run:
+### Fedora
 
 ```shell
 dnf install nodejs yarnpkg
+```
+
+### Mac OS
+
+```shell
+brew install yarn node
 ```
 
 ## License
