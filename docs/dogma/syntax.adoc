@@ -470,7 +470,7 @@ That type has not yet been evaluated to provide the underlying data.
 The `lang::Or<...>` function expects a list-shaped type with terms to be _or_'d together.
 Instead, it's receiving the function type underlying `data::From<...>`.
 
-To resolve a type against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `*`.
+To resolve a type against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `\*`.
 By placing a `*` as a prefix to a type, it will be evaluated, and the resulting value is then treated as a type and passed further.
 
 The pattern that behaves the way one might expect looks like:
