@@ -3,7 +3,7 @@ use uri
 /// Pattern matching a well-formed OpenVEX document.
 pattern valid = {
     @context: uri::Url,
-    @id: string, // TODO: Strong type
+    @id: uri::Iri,
     author: string,
     role: string,
     timestamp: string, // TODO: Strong type
