@@ -19,8 +19,9 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
+pub mod serde;
+
 mod json;
-mod serde;
 mod yaml;
 
 struct Printer {
