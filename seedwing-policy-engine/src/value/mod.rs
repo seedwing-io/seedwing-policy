@@ -206,6 +206,19 @@ impl From<Object> for RuntimeValue {
     }
 }
 
+impl<T> From<Option<T>> for RuntimeValue
+where
+    T: Into<RuntimeValue>,
+{
+    fn from(value: Option<T>) -> Self {
+        if let Some(value) = value {
+            value.into()
+        } else {
+            RuntimeValue::Null
+        }
+    }
+}
+
 #[derive(Serialize, Debug, Clone)]
 pub enum RuntimeValue {
     Null,
