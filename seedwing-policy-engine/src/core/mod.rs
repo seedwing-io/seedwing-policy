@@ -107,6 +107,57 @@ pub trait Function: Sync + Send + Debug {
     ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
 }
 
+/// A synchronous version of [`Function`].
+pub trait SyncFunction: Sync + Send + Debug {
+    /// A number between 0 and u8::MAX indicating the evaluation order.
+    ///
+    /// 0 means the function is likely to be fast, 255 means likely to be slow.
+    fn order(&self) -> u8;
+
+    fn documentation(&self) -> Option<String> {
+        None
+    }
+
+    fn parameters(&self) -> Vec<String> {
+        Default::default()
+    }
+
+    fn call(
+        &self,
+        input: Rc<RuntimeValue>,
+        ctx: &mut EvalContext,
+        bindings: &Bindings,
+        world: &World,
+    ) -> Result<FunctionEvaluationResult, RuntimeError>;
+}
+
+impl<F> Function for F
+where
+    F: SyncFunction,
+{
+    fn order(&self) -> u8 {
+        SyncFunction::order(self)
+    }
+
+    fn documentation(&self) -> Option<String> {
+        SyncFunction::documentation(self)
+    }
+
+    fn parameters(&self) -> Vec<String> {
+        SyncFunction::parameters(self)
+    }
+
+    fn call<'v>(
+        &'v self,
+        input: Rc<RuntimeValue>,
+        ctx: &'v mut EvalContext,
+        bindings: &'v Bindings,
+        world: &'v World,
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+        Box::pin(async { SyncFunction::call(self, input, ctx, bindings, world) })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::lang::builder::Builder;
