@@ -56,23 +56,23 @@ impl Function for Inet4Addr {
                                         }
                                     }
                                     Err(e) => {
-                                        return Ok(FunctionEvaluationResult(
-                                            Output::None,
+                                        return Ok(
+                                            (Output::None,
                                             vec![EvaluationResult::new(
                                                 Some(input),
                                                 address_pattern,
                                                 Rationale::InvalidArgument(e.to_string()),
                                                 Output::None,
                                                 None,
-                                            )],
-                                        ))
+                                            )]).into(),
+                                        )
                                     }
                                 };
                             }
                         }
                         Err(e) => {
                             let e = format!("error parsing Inet4Addr<\"{range}\">: {e}");
-                            return Ok(FunctionEvaluationResult(
+                            return Ok( (
                                 Output::None,
                                 vec![EvaluationResult::new(
                                     Some(input),
@@ -80,8 +80,8 @@ impl Function for Inet4Addr {
                                     Rationale::InvalidArgument(e),
                                     Output::None,
                                     None,
-                                )],
-                            ));
+                                )]).into()
+                            );
                         }
                     }
                 }

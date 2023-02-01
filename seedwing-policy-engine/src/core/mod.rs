@@ -9,6 +9,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
+use crate::runtime::rationale::Rationale;
 
 pub mod base64;
 pub mod cyclonedx;
@@ -33,27 +34,53 @@ pub mod vex;
 pub mod x509;
 
 #[derive(Debug)]
-pub struct FunctionEvaluationResult(Output, Vec<EvaluationResult>);
+pub struct FunctionEvaluationResult {
+    function_output: Output,
+    function_rationale: Option<Rationale>,
+    supporting: Vec<EvaluationResult>,
+}
 
 impl FunctionEvaluationResult {
     pub fn output(&self) -> Output {
-        self.0.clone()
+        self.function_output.clone()
+    }
+
+    pub fn rationale(&self) -> Option<Rationale> {
+        self.function_rationale.clone()
     }
 
     pub fn supporting(&self) -> Vec<EvaluationResult> {
-        self.1.clone()
+        self.supporting.clone()
     }
 }
 
 impl From<Output> for FunctionEvaluationResult {
-    fn from(output: Output) -> Self {
-        Self(output, vec![])
+    fn from(function_output: Output) -> Self {
+        Self {
+            function_output,
+            function_rationale: None,
+            supporting: vec![]
+        }
     }
 }
 
 impl From<(Output, Vec<EvaluationResult>)> for FunctionEvaluationResult {
-    fn from(inner: (Output, Vec<EvaluationResult>)) -> Self {
-        Self(inner.0, inner.1)
+    fn from((function_output, supporting): (Output, Vec<EvaluationResult>)) -> Self {
+        Self {
+            function_output,
+            function_rationale: None,
+            supporting
+        }
+    }
+}
+
+impl From<(Output, Rationale)> for FunctionEvaluationResult {
+    fn from((function_output, function_rationale): (Output, Rationale)) -> Self {
+        Self {
+            function_output,
+            function_rationale: Some(function_rationale),
+            supporting: vec![],
+        }
     }
 }
 
@@ -77,7 +104,7 @@ pub trait Function: Sync + Send + Debug {
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
+    ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
 }
 
 #[cfg(test)]

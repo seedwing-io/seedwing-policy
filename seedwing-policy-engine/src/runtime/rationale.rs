@@ -15,7 +15,7 @@ pub enum Rationale {
     Const(bool),
     Primordial(bool),
     Expression(bool),
-    Function(bool, Vec<EvaluationResult>),
+    Function(bool, Option<Box<Rationale>>, Vec<EvaluationResult>),
     Refinement(Box<EvaluationResult>, Option<Box<EvaluationResult>>),
 }
 
@@ -33,7 +33,7 @@ impl Rationale {
             Rationale::Const(val) => *val,
             Rationale::Primordial(val) => *val,
             Rationale::Expression(val) => *val,
-            Rationale::Function(val, _) => *val,
+            Rationale::Function(val, rational, _) => *val,
             Rationale::Chain(terms) => terms.iter().all(|e| e.satisfied()),
             Rationale::Refinement(primary, refinement) => {
                 if !primary.satisfied() {
