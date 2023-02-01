@@ -1,0 +1,1 @@
+Pattern for validating timestamps in the RFC2822 format.

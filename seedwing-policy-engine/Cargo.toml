@@ -30,6 +30,7 @@ regex = "1.7.1"
 cidr = "0.2.1"
 http = "0.2.8"
 iref = "2.2.3"
+chrono = "0.4.23"
 
 [features]
 default = ["sigstore"]

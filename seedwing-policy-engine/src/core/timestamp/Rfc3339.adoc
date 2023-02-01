@@ -1,0 +1,1 @@
+Pattern for validating timestamps in the RFC3339/ISO8601 format.

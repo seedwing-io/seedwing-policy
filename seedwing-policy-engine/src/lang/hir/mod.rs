@@ -351,6 +351,7 @@ impl World {
         world.add_package(crate::core::net::package());
         world.add_package(crate::core::vex::package());
         world.add_package(crate::core::uri::package());
+        world.add_package(crate::core::timestamp::package());
 
         #[cfg(feature = "debug")]
         world.add_package(crate::core::debug::package());

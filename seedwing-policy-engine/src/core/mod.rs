@@ -27,6 +27,7 @@ pub mod pem;
 pub mod sigstore;
 pub mod spdx;
 pub mod string;
+pub mod timestamp;
 pub mod uri;
 pub mod vex;
 pub mod x509;
