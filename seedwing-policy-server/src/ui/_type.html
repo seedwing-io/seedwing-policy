@@ -64,6 +64,18 @@
     margin-bottom: 1em;
   }
 
+   #type-definition {
+    font-size: 1em;
+  }
+  #type-definition pre {
+    margin-top: 1em;
+  }
+
+  #type-definition div {
+    margin-left: 1em;
+    border-left: 1px dotted #ccc;
+  }
+
 </style>
 
 <h1 class="pf-c-title pf-m-4xl">
@@ -108,7 +120,7 @@
         <div class="pf-c-panel__main-body">
           <div class="pf-c-code-block">
             <div class="pf-c-code-block__content">
-              <pre class="pf-c-code-block__pre"><code class="pf-c-code-block__code">{{&definition}}</code></pre>
+              <pre class="pf-c-code-block__pre" id="type-definition"><code class="pf-c-code-block__code">{{&definition}}</code></pre>
             </div>
           </div>
         </div>
