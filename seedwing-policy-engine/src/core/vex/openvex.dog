@@ -1,4 +1,5 @@
 use uri
+use timestamp
 
 /// Pattern matching a well-formed OpenVEX document.
 pattern valid = {
@@ -6,8 +7,8 @@ pattern valid = {
     @id: uri::Iri,
     author: string,
     role: string,
-    timestamp: string, // TODO: Strong type
-    version: string, // TODO: Strong type
+    timestamp: timestamp::Iso8601,
+    version: string,
     tooling?: string,
     statements?: list::All<statement>,
 }
