@@ -1,5 +1,5 @@
 use crate::core::uri::url::Url;
-use crate::core::{FunctionEvaluationResult, SyncFunction};
+use crate::core::{BlockingFunction, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError, World};
@@ -11,7 +11,7 @@ pub struct Purl;
 
 const DOCUMENTATION: &str = include_str!("Purl.adoc");
 
-impl SyncFunction for Purl {
+impl BlockingFunction for Purl {
     fn order(&self) -> u8 {
         0
     }

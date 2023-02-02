@@ -1,4 +1,4 @@
-use crate::core::{Function, FunctionEvaluationResult, SyncFunction};
+use crate::core::{BlockingFunction, Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
@@ -13,7 +13,7 @@ pub struct Url;
 
 const DOCUMENTATION: &str = include_str!("Url.adoc");
 
-impl SyncFunction for Url {
+impl BlockingFunction for Url {
     fn order(&self) -> u8 {
         0
     }
