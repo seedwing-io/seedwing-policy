@@ -30,26 +30,9 @@ impl SyncFunction for Url {
         world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
-            RuntimeValue::String(value) => match ::url::Url::parse(&value) {
-                Ok(url) => {
-                    let mut result = Object::new();
-                    result.set("scheme", url.scheme());
-                    result.set("host", url.host_str());
-                    result.set("path", url.path());
-                    result.set("query", url.query());
-                    result.set("fragment", url.fragment());
-                    result.set("domain", url.domain());
-                    result.set("username", url.username());
-                    result.set("password", url.password());
-                    result.set("port", url.port());
-
-                    Ok(Output::Transform(Rc::new(result.into())).into())
-                }
-                Err(err) => Ok((
-                    Output::None,
-                    Rationale::InvalidArgument(format!("input is not a URL: {err}")),
-                )
-                    .into()),
+            RuntimeValue::String(value) => match Self::parse_url(&value) {
+                Ok(result) => Ok(Output::Transform(Rc::new(result.into())).into()),
+                Err(result) => Ok(result),
             },
             _ => Ok((
                 Output::None,
@@ -57,5 +40,41 @@ impl SyncFunction for Url {
             )
                 .into()),
         }
+    }
+}
+
+impl Url {
+    pub fn parse_url(string: &str) -> Result<Object, FunctionEvaluationResult> {
+        match ::url::Url::parse(&string) {
+            Ok(url) => {
+                let mut result = Object::new();
+                result.set("scheme", url.scheme());
+                result.set("host", url.host_str());
+                result.set("path", url.path());
+                result.set("query", url.query());
+                result.set("fragment", url.fragment());
+                result.set("domain", url.domain());
+                result.set("username", url.username());
+                result.set("password", url.password());
+                result.set("port", url.port());
+
+                Ok(result)
+            }
+            Err(err) => Err((
+                Output::None,
+                Rationale::InvalidArgument(format!("input is not a URL: {err}")),
+            )
+                .into()),
+        }
+    }
+
+    pub fn parse_query(query: &str) -> Object {
+        let mut result = Object::new();
+
+        for (k, v) in url::form_urlencoded::parse(query.as_bytes()) {
+            result.set(k, v);
+        }
+
+        result
     }
 }

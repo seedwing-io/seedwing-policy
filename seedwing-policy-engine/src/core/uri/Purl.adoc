@@ -1,0 +1,28 @@
+A Package URL
+
+Also see: https://github.com/package-url/purl-spec
+
+This parses either a string, or an object returned by `Url` into a "purl".
+
+Assume the following input:
+
+[source]
+----
+"pkg:rpm/fedora/curl@7.50.3-1.fc25?arch=i386&distro=fedora-25"
+----
+
+This would match:
+
+[source]
+----
+pattern example = Purl({
+    "type": "rpm",
+    "namespace": "fedora",
+    "name": "curl",
+    "version": "7.50.3-1.fc25",
+    "qualifiers": {
+        "arch": "i386",
+        "distro": "fedora-25",
+    }
+})
+----
