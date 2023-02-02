@@ -65,7 +65,7 @@ impl From<(SourceLocation, ParserError)> for BuildError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Output {
     None,
     Identity,

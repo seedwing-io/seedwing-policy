@@ -8,13 +8,14 @@ use ::serde::Serialize;
 use indexmap::IndexMap;
 use serde_json::{json, Map, Number};
 use std::any::Any;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::cell::{Ref, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter, Pointer};
 use std::future::{ready, Future};
 use std::hash::{Hash, Hasher};
+use std::ops::Index;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -122,12 +123,6 @@ impl PartialOrd for RuntimeValue {
     }
 }
 
-impl From<&str> for RuntimeValue {
-    fn from(inner: &str) -> Self {
-        Self::String(inner.to_string())
-    }
-}
-
 impl From<u8> for RuntimeValue {
     fn from(inner: u8) -> Self {
         Self::Integer(inner as _)
@@ -179,6 +174,18 @@ impl From<f64> for RuntimeValue {
 impl From<bool> for RuntimeValue {
     fn from(inner: bool) -> Self {
         Self::Boolean(inner)
+    }
+}
+
+impl From<&str> for RuntimeValue {
+    fn from(inner: &str) -> Self {
+        Self::String(inner.to_string())
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for RuntimeValue {
+    fn from(inner: Cow<'a, str>) -> Self {
+        Self::String(inner.to_string())
     }
 }
 
@@ -332,6 +339,14 @@ impl RuntimeValue {
         }
     }
 
+    pub fn try_get_str(&self) -> Option<&str> {
+        if let Self::String(inner) = self {
+            Some(&inner)
+        } else {
+            None
+        }
+    }
+
     pub fn is_integer(&self) -> bool {
         matches!(self, Self::Integer(_))
     }
@@ -455,11 +470,42 @@ impl Object {
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<RuntimeValue>)> {
         self.fields.iter()
     }
+
+    pub fn has_attr<A, F>(&self, name: A, f: F) -> bool
+    where
+        A: AsRef<str>,
+        F: FnOnce(&RuntimeValue) -> bool,
+    {
+        if let Some(v) = &self.get(name) {
+            f(v)
+        } else {
+            false
+        }
+    }
+
+    pub fn has_str<A, B>(&self, name: A, expected: B) -> bool
+    where
+        A: AsRef<str>,
+        B: AsRef<str>,
+    {
+        self.has_attr(
+            name,
+            |v| matches!(v, RuntimeValue::String(actual) if actual == expected.as_ref()),
+        )
+    }
+}
+
+impl Index<&str> for Object {
+    type Output = RuntimeValue;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        const NULL: RuntimeValue = RuntimeValue::Null;
+        self.fields.get(index).map(|s| s.as_ref()).unwrap_or(&NULL)
+    }
 }
 
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     pub(crate) fn assert_yaml<F, E>(f: F)
@@ -500,5 +546,18 @@ here:
             }),
             value
         );
+    }
+
+    #[test]
+    fn test_obj_has_str() {
+        let mut o = Object::new();
+        o.set("foo", "bar");
+        o.set("bar", 1);
+        o.set("null", RuntimeValue::Null);
+
+        assert!(o.has_str("foo", "bar"));
+        assert!(!o.has_str("bar", "1"));
+        assert!(!o.has_str("baz", ""));
+        assert!(!o.has_str("null", ""));
     }
 }
