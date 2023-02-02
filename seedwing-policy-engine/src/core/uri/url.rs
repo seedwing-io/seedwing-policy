@@ -1,40 +1,61 @@
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{Function, FunctionEvaluationResult, SyncFunction};
 use crate::lang::lir::{Bindings, EvalContext};
-use crate::runtime::{Output, RuntimeError, World};
-use crate::value::RuntimeValue;
+use crate::runtime::rationale::Rationale;
+use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::value::{Object, RuntimeValue};
+use std::fmt::{format, Debug};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Url.adoc");
-
 #[derive(Debug)]
 pub struct Url;
 
-impl Function for Url {
+const DOCUMENTATION: &str = include_str!("Url.adoc");
+
+impl SyncFunction for Url {
     fn order(&self) -> u8 {
-        128
+        0
     }
+
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }
 
-    fn call<'v>(
-        &'v self,
+    fn call(
+        &self,
         input: Rc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
-        Box::pin(async move {
-            if let Some(value) = input.try_get_string() {
-                match value.parse::<::http::Uri>() {
-                    Ok(_) => Ok(Output::Identity.into()),
-                    Err(_) => Ok(Output::None.into()),
+        ctx: &mut EvalContext,
+        bindings: &Bindings,
+        world: &World,
+    ) -> Result<FunctionEvaluationResult, RuntimeError> {
+        match input.as_ref() {
+            RuntimeValue::String(value) => match ::url::Url::parse(&value) {
+                Ok(url) => {
+                    let mut result = Object::new();
+                    result.set("scheme", url.scheme());
+                    result.set("host", url.host_str());
+                    result.set("path", url.path());
+                    result.set("query", url.query());
+                    result.set("fragment", url.fragment());
+                    result.set("domain", url.domain());
+                    result.set("username", url.username());
+                    result.set("password", url.password());
+                    result.set("port", url.port());
+
+                    Ok(Output::Transform(Rc::new(result.into())).into())
                 }
-            } else {
-                Ok(Output::None.into())
-            }
-        })
+                Err(err) => Ok((
+                    Output::None,
+                    Rationale::InvalidArgument(format!("input is not a URL: {err}")),
+                )
+                    .into()),
+            },
+            _ => Ok((
+                Output::None,
+                Rationale::InvalidArgument(format!("input is not a String")),
+            )
+                .into()),
+        }
     }
 }
