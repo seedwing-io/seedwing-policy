@@ -344,6 +344,7 @@ impl World {
         world.add_package(crate::core::sigstore::package());
         world.add_package(crate::core::x509::package());
         world.add_package(crate::core::cyclonedx::package());
+        world.add_package(crate::core::jsf::package());
         world.add_package(crate::core::spdx::package());
         world.add_package(crate::core::iso::package());
         world.add_package(crate::core::kafka::package());
@@ -366,10 +367,10 @@ impl World {
     }
 
     pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
-        where
-            Self: Sized,
-            S: Into<String>,
-            SrcIter: Iterator<Item=(SourceLocation, S)>,
+    where
+        Self: Sized,
+        S: Into<String>,
+        SrcIter: Iterator<Item = (SourceLocation, S)>,
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {

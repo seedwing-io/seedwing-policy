@@ -6,6 +6,12 @@ pattern bom = {
   version: integer,
   metadata?: metadata,
   components?: list::All<component>,
+  services?: list::All<service>,
+  externalReferences?: list::All<external-reference>,
+  dependencies?: list::All<dependency>,
+  compositions?: list::All<composition>,
+  vulnerabilities?: list::All<vulnerability>,
+  // signature?: signature
 }
 
 pattern metadata = {
@@ -104,10 +110,31 @@ pattern component = {
   purl?: string,
   swid?: iso::swid::tag,
   pedigree?: {
-    ancestors: list::All<component>,
+    ancestors?: list::All<component>,
+    descendants?: list::All<component>,
+    variants?: list::All<component>,
+    commits?: list::All<commit>,
+    patches?: list::All<patch>,
+    notes?: list::All<string>,
   },
+  externalReferences?: list::All<external-reference>,
+  components?: list::All<component>,
+  evidence?: {
+    licenses?: list::All<license>,
+    copyright?: list::All<{ text: string}>,
+  },
+  releaseNotes?: list::All<release-note>,
+  properties?: list::All< {
+    name: string,
+    value: string,
+  } >,
+  //signature?: signature,
+}
 
-
+pattern text = {
+  content-type?: string,
+  encoding?: "base64",
+  content: string,
 }
 
 pattern license = {
@@ -115,9 +142,162 @@ pattern license = {
 } || {
   id: spdx::license::id,
   name?: string,
-  text?: {
-    content-type?: string,
-    encoding?: "base64",
-    content: string,
+  text?: text,
+  url?: string,
+}
+
+pattern commit = {
+  uid?: string,
+  url?: string,
+  author?: {
+    timestamp?: string,
+    name?: string,
+    email?: string,
   },
+  committer?: {
+    timestamp?: string,
+    name?: string,
+    email?: string,
+  },
+  message?: string,
+}
+
+pattern patch = {
+  type: "unofficial"
+     || "monkey"
+     || "backport"
+     || "cherry-pick",
+  diff?: {
+    text?: text,
+    url?: string,
+  },
+  resolves: list::All<issue>,
+}
+
+pattern release-note = {
+  type: "major" || "minor" || "patch" || "pre-release" || "internal",
+  title?: string,
+  featuredImage?: string,
+  socialImage?: string,
+  description?: string,
+  timestamp?: string,
+  aliases?: list::All<string>,
+  tags?: list::All<string>,
+  resolves?: list::All<issue>,
+  notes?: list::All<{
+    locale?: string,
+    text: text,
+  }>,
+
+}
+
+pattern issue = {
+  type: "defect" || "enhancement" || "security",
+  id?: string,
+  name?: string,
+  descriptions?: string,
+  source?: source,
+  references?: list::All<string>,
+}
+
+pattern dependency = {
+  ref: string,
+  dependsOn?: list::All<string>,
+}
+
+pattern composition = {
+  aggregate: "complete"
+    || "incomplete"
+    || "incomplete_first_party_only"
+    || "incomplete_third_party_only"
+    || "unknown"
+    || "not_specified",
+  assemblies?: list::All<string>,
+  dependencies?: list::All<string>,
+  //signature?: signature
+
+}
+
+pattern vulnerability = {
+  bom-ref?: string,
+  id?: string,
+  source?: source,
+  references?: list::All< {
+    id: string,
+    source: source,
+  } >,
+  ratings?: list::All<rating>,
+  cwes?: list::All<integer>,
+  description?: string,
+  detail?: string,
+  recommendation?: string,
+  advisories?: list::All<advisory>,
+  created?: string,
+  published?: string,
+  updated?: string,
+  credits?: {
+    organizations?: list::All<organization>,
+    individuals?: list::All<contact>,
+  },
+  tools?: list::All<tool>,
+  // analysis?:
+  // affects?:
+  properties?: list::All< {
+    name: string,
+    value: string,
+  } >,
+
+
+
+}
+
+pattern source = {
+  name?: string,
+  url?: string,
+}
+
+pattern rating = {
+  source?: source,
+  score?: decimal,
+  severity?: "critical" || "high" || "medium" || "low" || "info" || "none" || "unknown",
+  method?: "CVSSv2" || "CVSSv3" || "CVSSv31" || "OWASP" || "other",
+  vector?: string,
+  justification: string,
+}
+
+pattern advisory = {
+  title?: string,
+  url: string,
+}
+
+pattern organization = {
+  name?: string,
+  url?: string,
+  contact?: list::All<contact>,
+}
+
+pattern service = {
+ bom-ref?: string,
+ provider?: organization,
+ group?: string,
+ name: string,
+ version?: string,
+ description?: string,
+ endpoints?: list::All<string>,
+ authenticated?: boolean,
+ x-trust-boundary?: boolean,
+ data?: list::All< {
+   flow: "inbound" || "outbound" || "bi-directional" || "unknown",
+   classification: string,
+ } >,
+ licenses?: list::All<license>,
+ externalReferences?: list::All<external-reference>,
+ services?: list::All<service>,
+ releaseNotes?: list::All<release-note>,
+ properties?: list::All< {
+   name: string,
+   value: string,
+ } >,
+ // signature?: signature
+
 }

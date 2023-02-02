@@ -1,0 +1,14 @@
+pattern public-key = {
+  kty: "EC",
+  crv: "P-256" || "P-384" || "P-512",
+  x: string,
+  y: string,
+} || {
+  kty: "OKP",
+  crv: "Ed25519" || "Ed448",
+  x: string,
+} || {
+  kty: "RSA",
+  n: string,
+  e: string,
+}

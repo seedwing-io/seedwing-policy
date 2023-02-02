@@ -17,6 +17,7 @@ pub mod data;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod iso;
+pub mod jsf;
 pub mod json;
 pub mod kafka;
 pub mod lang;

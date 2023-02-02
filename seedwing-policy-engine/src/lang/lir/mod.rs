@@ -417,7 +417,11 @@ impl Type {
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
-                        Rationale::Function(result.output().is_some(), result.rationale().map(|e| Box::new(e)), result.supporting()),
+                        Rationale::Function(
+                            result.output().is_some(),
+                            result.rationale().map(|e| Box::new(e)),
+                            result.supporting(),
+                        ),
                         result.output(),
                         trace.done(),
                     ))

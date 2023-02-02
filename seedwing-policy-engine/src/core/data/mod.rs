@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use crate::data::DataSource;
 use crate::package::Package;
 use crate::runtime::PackagePath;
+use std::sync::Arc;
 
 mod from;
 

@@ -239,7 +239,7 @@ impl<'w> Htmlifier<'w> {
             }
             html.push_str(": ");
             self.html_of_ty(html, f.ty(), world);
-            html.push_str("</div>");
+            html.push_str(",</div>");
         }
         html.push('}');
         html.push_str("</span>");
