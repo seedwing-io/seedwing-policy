@@ -100,11 +100,11 @@ pattern signed-thing = {
 }
 
 pattern acceptable-sbom = 
-  cyclonedx::v1_4::structure::bom 
-  && cyclonedx::v1_4::structure::with-components<acceptable-component>
+  cyclonedx::v1_4::bom 
+  && cyclonedx::v1_4::with-components<acceptable-component>
 
 pattern acceptable-component = 
-  cyclonedx::v1_4::structure::with-licenses<acceptable-license>
+  cyclonedx::v1_4::with-licenses<acceptable-license>
 
 pattern acceptable-license = {
   license: {
