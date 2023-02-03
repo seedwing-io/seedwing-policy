@@ -341,7 +341,7 @@ impl RuntimeValue {
 
     pub fn try_get_str(&self) -> Option<&str> {
         if let Self::String(inner) = self {
-            Some(&inner)
+            Some(inner)
         } else {
             None
         }

@@ -62,7 +62,7 @@ impl<'r> Rationalizer<'r> {
                     Rationale::Const(_) => {}
                     Rationale::Primordial(_) => {}
                     Rationale::Expression(_) => {}
-                    Rationale::Function(_, rationale, supporting) => {
+                    Rationale::Function(_, _rationale, supporting) => {
                         for each in supporting {
                             Self::rationale_inner(html, each);
                         }
@@ -182,7 +182,7 @@ impl<'r> Rationalizer<'r> {
             Rationale::Const(_) => {}
             Rationale::Primordial(_) => {}
             Rationale::Expression(_) => {}
-            Rationale::Function(val, rationale, supporting) => {
+            Rationale::Function(val, _rationale, supporting) => {
                 if *val {
                     match result.raw_output() {
                         Output::None => {

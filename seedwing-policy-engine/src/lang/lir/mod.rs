@@ -218,6 +218,7 @@ impl Type {
                 #[allow(clippy::ptr_arg)]
                 fn build_bindings<'b>(
                     value: Rc<RuntimeValue>,
+                    mut bindings: Bindings,
                     ctx: &'b mut EvalContext,
                     parameters: Vec<String>,
                     arguments: &'b Vec<Arc<Type>>,
@@ -225,7 +226,6 @@ impl Type {
                 ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
                 {
                     Box::pin(async move {
-                        let mut bindings = Bindings::new();
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
                             if let InnerType::Ref(sugar, slot, unresolved_bindings) = &arg.inner {
                                 if let Some(resolved_type) = world.get_by_slot(*slot) {
@@ -234,6 +234,7 @@ impl Type {
                                     } else {
                                         let resolved_bindings = build_bindings(
                                             value.clone(),
+                                            bindings.clone(),
                                             ctx,
                                             resolved_type.parameters(),
                                             unresolved_bindings,
@@ -251,6 +252,8 @@ impl Type {
                                         )
                                     }
                                 }
+                            } else if let InnerType::Argument(name) = &arg.inner {
+                                bindings.bind(param.clone(), bindings.get(name).unwrap());
                             } else if let InnerType::Deref(inner) = &arg.inner {
                                 let result = arg
                                     .evaluate(value.clone(), ctx, &Bindings::default(), world)
@@ -291,9 +294,15 @@ impl Type {
                 };
 
                 if let Some(ty) = world.get_by_slot(*slot) {
-                    let bindings =
-                        build_bindings(value.clone(), ctx, ty.parameters(), arguments, world)
-                            .await?;
+                    let bindings = build_bindings(
+                        value.clone(),
+                        bindings.clone(),
+                        ctx,
+                        ty.parameters(),
+                        arguments,
+                        world,
+                    )
+                    .await?;
 
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
@@ -419,7 +428,7 @@ impl Type {
                         self.clone(),
                         Rationale::Function(
                             result.output().is_some(),
-                            result.rationale().map(|e| Box::new(e)),
+                            result.rationale().map(Box::new),
                             result.supporting(),
                         ),
                         result.output(),
@@ -586,7 +595,7 @@ impl InnerType {
     }
 }
 
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Default, Debug, Clone)]
 pub struct Bindings {
     bindings: HashMap<String, Arc<Type>>,
 }

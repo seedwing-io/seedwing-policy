@@ -1,7 +1,7 @@
 use seedwing_policy_engine::lang::lir::{Expr, InnerType, ObjectType, Type, ValueType};
 use seedwing_policy_engine::lang::{PrimordialType, SyntacticSugar};
 use seedwing_policy_engine::runtime;
-use seedwing_policy_engine::runtime::{TypeName, World};
+use seedwing_policy_engine::runtime::{PackagePath, TypeName, World};
 use std::sync::Arc;
 
 #[allow(dead_code)]
@@ -17,25 +17,51 @@ impl<'w> Htmlifier<'w> {
 
     pub fn html_of(&self, ty: Arc<Type>, world: &World) -> String {
         let mut html = String::new();
-        self.html_of_ty_inner(&mut html, ty, world);
+        let pkg = ty.name().and_then(|e| e.package());
+        self.html_of_ty_inner(&mut html, &pkg, ty, world);
         html
     }
 
-    fn a(&self, html: &mut String, name: TypeName) {
+    fn a(&self, html: &mut String, pkg: &Option<PackagePath>, name: TypeName) {
         let href = name.as_type_str().replace("::", "/");
         let href = format!("{}{}", self.root, href);
+        let name = if let Some(pkg) = pkg {
+            if let Some(cmp_pkg) = name.package() {
+                if *pkg == cmp_pkg {
+                    name.name()
+                } else {
+                    name.as_type_str()
+                }
+            } else {
+                name.as_type_str()
+            }
+        } else {
+            name.as_type_str()
+        };
         html.push_str(format!("<a href='{href}'>{name}</a>").as_str());
     }
 
-    fn html_of_ty(&self, html: &mut String, ty: Arc<Type>, world: &World) {
+    fn html_of_ty(
+        &self,
+        html: &mut String,
+        pkg: &Option<PackagePath>,
+        ty: Arc<Type>,
+        world: &World,
+    ) {
         if let Some(name) = ty.name() {
-            self.a(html, name);
+            self.a(html, pkg, name);
         } else {
-            self.html_of_ty_inner(html, ty, world);
+            self.html_of_ty_inner(html, pkg, ty, world);
         }
     }
 
-    fn html_of_ty_inner(&self, html: &mut String, ty: Arc<Type>, world: &World) {
+    fn html_of_ty_inner(
+        &self,
+        html: &mut String,
+        pkg: &Option<PackagePath>,
+        ty: Arc<Type>,
+        world: &World,
+    ) {
         match ty.inner() {
             InnerType::Anything => {
                 html.push_str("<span>");
@@ -71,13 +97,13 @@ impl<'w> Htmlifier<'w> {
             },
             InnerType::Bound(primary, bindings) => {
                 html.push_str("<span>");
-                self.html_of_ty(html, primary.clone(), world);
+                self.html_of_ty(html, pkg, primary.clone(), world);
                 if !&primary.parameters().is_empty() {
                     html.push_str("&lt;");
                     for (i, param) in primary.parameters().iter().enumerate() {
                         let bound = bindings.get(param);
                         if let Some(bound) = bound {
-                            self.html_of_ty(html, bound.clone(), world);
+                            self.html_of_ty(html, pkg, bound.clone(), world);
                             if i + 1 < bindings.len() {
                                 html.push_str(", ");
                             }
@@ -95,11 +121,11 @@ impl<'w> Htmlifier<'w> {
                     if let Some(ty) = ty {
                         html.push_str("<span>");
                         let has_params = !ty.parameters().is_empty();
-                        self.html_of_ty(html, ty, world);
+                        self.html_of_ty(html, pkg, ty, world);
                         if has_params {
                             html.push_str("&lt;");
                             for (i, arg) in bindings.iter().enumerate() {
-                                self.html_of_ty(html, arg.clone(), world);
+                                self.html_of_ty(html, pkg, arg.clone(), world);
                                 if i + 1 < bindings.len() {
                                     html.push_str(", ");
                                 }
@@ -114,7 +140,7 @@ impl<'w> Htmlifier<'w> {
                     if let InnerType::List(terms) = terms.inner() {
                         html.push_str("<span>");
                         for (i, term) in terms.iter().enumerate() {
-                            self.html_of_ty(html, term.clone(), world);
+                            self.html_of_ty(html, pkg, term.clone(), world);
                             if i + 1 < terms.len() {
                                 html.push_str("\n  && ");
                             }
@@ -127,7 +153,7 @@ impl<'w> Htmlifier<'w> {
                     if let InnerType::List(terms) = terms.inner() {
                         html.push_str("<span>");
                         for (i, term) in terms.iter().enumerate() {
-                            self.html_of_ty(html, term.clone(), world);
+                            self.html_of_ty(html, pkg, term.clone(), world);
                             if i + 1 < terms.len() {
                                 html.push_str("\n  || ");
                             }
@@ -139,7 +165,7 @@ impl<'w> Htmlifier<'w> {
                     let refinement = &bindings[0];
                     html.push_str("<span>");
                     html.push('(');
-                    self.html_of_ty(html, refinement.clone(), world);
+                    self.html_of_ty(html, pkg, refinement.clone(), world);
                     html.push(')');
                     html.push_str("</span>");
                 }
@@ -158,7 +184,7 @@ impl<'w> Htmlifier<'w> {
                     if let InnerType::List(terms) = terms.inner() {
                         html.push_str("<span>");
                         for term in terms {
-                            self.html_of_ty(html, term.clone(), world);
+                            self.html_of_ty(html, pkg, term.clone(), world);
                         }
                         html.push_str("</span>");
                     }
@@ -168,7 +194,7 @@ impl<'w> Htmlifier<'w> {
                     if let InnerType::List(terms) = terms.inner() {
                         html.push_str("<span>!");
                         for term in terms {
-                            self.html_of_ty(html, term.clone(), world);
+                            self.html_of_ty(html, pkg, term.clone(), world);
                         }
                         html.push_str("</span>");
                     }
@@ -180,7 +206,7 @@ impl<'w> Htmlifier<'w> {
             InnerType::Deref(inner) => {
                 html.push_str("<span>");
                 html.push('*');
-                self.html_of_ty(html, inner.clone(), world);
+                self.html_of_ty(html, pkg, inner.clone(), world);
                 html.push_str("</span>");
             }
             InnerType::Const(val) => match val {
@@ -203,7 +229,7 @@ impl<'w> Htmlifier<'w> {
                 }
             },
             InnerType::Object(object) => {
-                self.html_of_object(html, object, world);
+                self.html_of_object(html, pkg, object, world);
             }
             InnerType::Expr(expr) => {
                 html.push_str("$(");
@@ -213,7 +239,7 @@ impl<'w> Htmlifier<'w> {
             InnerType::List(terms) => {
                 html.push_str("<span>[ ");
                 for (i, term) in terms.iter().enumerate() {
-                    self.html_of_ty(html, term.clone(), world);
+                    self.html_of_ty(html, pkg, term.clone(), world);
                     if i + 1 < terms.len() {
                         html.push_str(", ");
                     }
@@ -228,7 +254,13 @@ impl<'w> Htmlifier<'w> {
         }
     }
 
-    fn html_of_object(&self, html: &mut String, object: &ObjectType, world: &World) {
+    fn html_of_object(
+        &self,
+        html: &mut String,
+        pkg: &Option<PackagePath>,
+        object: &ObjectType,
+        world: &World,
+    ) {
         html.push_str("<span>");
         html.push('{');
         for f in object.fields() {
@@ -238,7 +270,7 @@ impl<'w> Htmlifier<'w> {
                 html.push('?');
             }
             html.push_str(": ");
-            self.html_of_ty(html, f.ty(), world);
+            self.html_of_ty(html, pkg, f.ty(), world);
             html.push_str(",</div>");
         }
         html.push('}');

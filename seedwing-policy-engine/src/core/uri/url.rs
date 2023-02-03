@@ -30,7 +30,7 @@ impl BlockingFunction for Url {
         world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
-            RuntimeValue::String(value) => match Self::parse_url(&value) {
+            RuntimeValue::String(value) => match Self::parse_url(value) {
                 Ok(result) => Ok(Output::Transform(Rc::new(result.into())).into()),
                 Err(result) => Ok(result),
             },
@@ -45,7 +45,7 @@ impl BlockingFunction for Url {
 
 impl Url {
     pub fn parse_url(string: &str) -> Result<Object, FunctionEvaluationResult> {
-        match ::url::Url::parse(&string) {
+        match ::url::Url::parse(string) {
             Ok(url) => {
                 let mut result = Object::new();
                 result.set("scheme", url.scheme());

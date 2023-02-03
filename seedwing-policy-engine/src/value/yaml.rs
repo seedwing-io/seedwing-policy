@@ -9,7 +9,7 @@ fn to_key(k: YamlValue) -> String {
         YamlValue::Bool(v) => v.to_string(),
         YamlValue::Number(v) => v.to_string(),
         YamlValue::String(v) => v,
-        YamlValue::Sequence(v) => v.into_iter().map(|s| to_key(s)).collect(),
+        YamlValue::Sequence(v) => v.into_iter().map(to_key).collect(),
         YamlValue::Mapping(v) => v
             .into_iter()
             .map(|(k, v)| format!("{}/{}", to_key(k), to_key(v)))

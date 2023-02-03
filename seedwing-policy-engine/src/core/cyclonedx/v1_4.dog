@@ -188,7 +188,6 @@ pattern release-note = {
     locale?: string,
     text: text,
   }>,
-
 }
 
 pattern issue = {
@@ -215,7 +214,6 @@ pattern composition = {
   assemblies?: list::All<string>,
   dependencies?: list::All<string>,
   //signature?: signature
-
 }
 
 pattern vulnerability = {
@@ -246,9 +244,6 @@ pattern vulnerability = {
     name: string,
     value: string,
   } >,
-
-
-
 }
 
 pattern source = {

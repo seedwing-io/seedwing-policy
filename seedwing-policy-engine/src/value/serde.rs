@@ -357,7 +357,7 @@ impl<'a> ser::SerializeMap for SerializeMap<'a> {
         T: Serialize,
     {
         self.output.set(
-            self.key.take().ok_or_else(|| Error::MissingKey)?,
+            self.key.take().ok_or(Error::MissingKey)?,
             value.serialize(&mut *self.ser)?,
         );
         Ok(())

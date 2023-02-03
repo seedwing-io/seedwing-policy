@@ -582,6 +582,10 @@ impl TypeName {
         segments.push(self.name.clone());
         segments
     }
+
+    pub fn package(&self) -> Option<PackagePath> {
+        self.package.clone()
+    }
 }
 
 impl From<String> for TypeName {
