@@ -62,9 +62,11 @@ impl<'r> Rationalizer<'r> {
                     Rationale::Const(_) => {}
                     Rationale::Primordial(_) => {}
                     Rationale::Expression(_) => {}
-                    Rationale::Function(_, _rationale, supporting) => {
-                        for each in supporting {
-                            Self::rationale_inner(html, each);
+                    Rationale::Function(sat, _rationale, supporting) => {
+                        if !sat {
+                            for each in supporting {
+                                Self::rationale_inner(html, each);
+                            }
                         }
                     }
                     Rationale::Refinement(_, _) => {}
@@ -186,7 +188,7 @@ impl<'r> Rationalizer<'r> {
                 if *val {
                     match result.raw_output() {
                         Output::None => {
-                            todo!("should not get here")
+                            //todo!("should not get here")
                         }
                         Output::Identity => {
                             //html.push_str("<div class='function'>");
@@ -210,11 +212,13 @@ impl<'r> Rationalizer<'r> {
                             html.push_str("</div>");
                         }
                     }
+                    /*
                     if !supporting.is_empty() {
                         for e in supporting {
                             Self::rationale_inner(html, e);
                         }
                     }
+                     */
                 }
             }
             Rationale::Refinement(primary, refinement) => {

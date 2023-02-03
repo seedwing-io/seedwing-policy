@@ -383,10 +383,12 @@ pattern property = {
 pattern license = {
   expression: string,
 } || {
-  id: spdx::license::id,
-  name?: string,
-  text?: text,
-  url?: string,
+  license: {
+    id: spdx::license::id,
+    name?: string,
+    text?: text,
+    url?: string,
+  }
 }
 
 pattern copyright = {
