@@ -36,7 +36,7 @@ impl BlockingFunction for Url {
             },
             _ => Ok((
                 Output::None,
-                Rationale::InvalidArgument(format!("input is not a String")),
+                Rationale::InvalidArgument("input is not a String".to_string()),
             )
                 .into()),
         }

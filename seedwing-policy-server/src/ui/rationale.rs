@@ -184,7 +184,7 @@ impl<'r> Rationalizer<'r> {
             Rationale::Const(_) => {}
             Rationale::Primordial(_) => {}
             Rationale::Expression(_) => {}
-            Rationale::Function(val, _rationale, supporting) => {
+            Rationale::Function(val, _rationale, _supporting) => {
                 if *val {
                     match result.raw_output() {
                         Output::None => {
