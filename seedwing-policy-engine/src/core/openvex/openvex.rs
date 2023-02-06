@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 
 /// The VEX type represents a VEX document and all of its contained information.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Vex {
+pub struct OpenVex {
     #[serde(flatten)]
-    metadata: Metadata,
+    pub metadata: Metadata,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
 }
 
 /// The Metadata type represents the metadata associated with a VEX document.
@@ -34,6 +34,11 @@ pub struct Metadata {
     /// Timestamp defines the time at which the document was issued.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub timestamp: Option<DateTime<Utc>>,
+
+    /// Version is the document version. It must be incremented when any content
+    /// within the VEX document changes, including any VEX statements included within
+    /// the VEX document.
+    pub version: String,
 
     /// Tooling expresses how the VEX document and contained VEX statements were
     /// generated. It's optional. It may specify tools or automated processes used in

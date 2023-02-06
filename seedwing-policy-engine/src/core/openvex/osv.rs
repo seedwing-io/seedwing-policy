@@ -56,68 +56,68 @@ pub struct OsvPackageQuery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvResponse {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    vulns: Vec<OsvVulnerability>,
+    pub vulns: Vec<OsvVulnerability>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvVulnerability {
     #[serde(alias = "schemaVersion")]
-    schema_version: String,
-    id: String,
-    published: DateTime<Utc>,
-    modified: DateTime<Utc>,
+    pub schema_version: String,
+    pub id: String,
+    pub published: DateTime<Utc>,
+    pub modified: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    withdrawn: Option<DateTime<Utc>>,
+    pub withdrawn: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    aliases: Vec<String>,
+    pub aliases: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    related: Vec<String>,
-    summary: String,
-    details: String,
-    affected: Vec<OsvAffected>,
+    pub related: Vec<String>,
+    pub summary: String,
+    pub details: String,
+    pub affected: Vec<OsvAffected>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    references: Vec<OsvReference>,
+    pub references: Vec<OsvReference>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    severity: Vec<OsvSeverity>,
+    pub severity: Vec<OsvSeverity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    credits: Vec<OsvCredit>,
+    pub credits: Vec<OsvCredit>,
 
     #[serde(alias = "databaseSpecific")]
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    database_specific: Option<serde_json::Value>,
+    pub database_specific: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvAffected {
-    package: OsvPackage,
-    ranges: Vec<OsvRange>,
+    pub package: OsvPackage,
+    pub ranges: Vec<OsvRange>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    versions: Vec<String>,
+    pub versions: Vec<String>,
 
     #[serde(alias = "ecosystemSpecific")]
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    ecosystem_specific: Option<serde_json::Value>,
+    pub ecosystem_specific: Option<serde_json::Value>,
 
     #[serde(alias = "databaseSpecific")]
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    database_specific: Option<serde_json::Value>,
+    pub database_specific: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvPackage {
-    name: String,
-    ecosystem: String,
-    purl: Option<String>,
+    pub name: String,
+    pub ecosystem: String,
+    pub purl: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvRange {
-    r#type: OsvRangeType,
+    pub r#type: OsvRangeType,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    repo: Option<String>,
-    events: Vec<OsvEvent>,
+    pub repo: Option<String>,
+    pub events: Vec<OsvEvent>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -141,17 +141,17 @@ impl Default for OsvRangeType {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvEvent {
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    introduced: Option<String>,
+    pub introduced: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    fixed: Option<String>,
+    pub fixed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    limit: Option<String>,
+    pub limit: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvReference {
-    r#type: OsvReferenceType,
-    url: String,
+    pub r#type: OsvReferenceType,
+    pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -180,8 +180,8 @@ impl Default for OsvReferenceType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvSeverity {
-    r#type: OsvSeverityType,
-    score: String,
+    pub r#type: OsvSeverityType,
+    pub score: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -194,6 +194,6 @@ pub enum OsvSeverityType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvCredit {
-    name: String,
-    contact: Vec<String>,
+    pub name: String,
+    pub contact: Vec<String>,
 }

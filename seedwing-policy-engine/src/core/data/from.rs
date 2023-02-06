@@ -28,6 +28,12 @@ impl From {
     }
 }
 
+impl Default for From {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
 impl Function for From {
     fn order(&self) -> u8 {
         128
