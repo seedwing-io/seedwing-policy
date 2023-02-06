@@ -350,7 +350,7 @@ impl World {
         world.add_package(crate::core::kafka::package());
         world.add_package(crate::core::pem::package());
         world.add_package(crate::core::net::package());
-        world.add_package(crate::core::vex::package());
+        world.add_package(crate::core::openvex::package());
         world.add_package(crate::core::uri::package());
         world.add_package(crate::core::timestamp::package());
 
