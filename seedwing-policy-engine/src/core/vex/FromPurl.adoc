@@ -1,0 +1,1 @@
+Lookup vulnerability information for a product URL (pURL) and return OpenVex document with vulnerability information.
