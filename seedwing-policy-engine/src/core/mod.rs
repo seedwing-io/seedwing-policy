@@ -24,6 +24,7 @@ pub mod lang;
 pub mod list;
 pub mod maven;
 pub mod net;
+pub mod openvex;
 pub mod pem;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
@@ -31,7 +32,6 @@ pub mod spdx;
 pub mod string;
 pub mod timestamp;
 pub mod uri;
-pub mod vex;
 pub mod x509;
 
 #[derive(Debug)]
