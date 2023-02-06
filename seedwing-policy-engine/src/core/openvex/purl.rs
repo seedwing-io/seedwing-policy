@@ -21,6 +21,7 @@ use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 
+use super::openvex::*;
 use super::osv::*;
 
 #[derive(Debug)]
@@ -66,7 +67,8 @@ impl Function for FromPurl {
                     .await
                 {
                     Ok(transform) => {
-                        let json: serde_json::Value = serde_json::to_value(transform).unwrap();
+                        let vex = osv2vex(transform);
+                        let json: serde_json::Value = serde_json::to_value(vex).unwrap();
                         return Ok(Output::Transform(Rc::new(json.into())).into());
                     }
                     Err(e) => {
@@ -78,6 +80,52 @@ impl Function for FromPurl {
             }
         })
     }
+}
+
+fn osv2vex(osv: OsvResponse) -> OpenVex {
+    let mut vex = OpenVex {
+        metadata: Metadata {
+            context: "https://github.com/seedwing-io/seedwing-policy".to_string(),
+            id: uuid::Uuid::new_v4().to_string(),
+            author: "Seedwing Policy Engine".to_string(),
+            role: "Document Creator".to_string(),
+            timestamp: Some(Utc::now()),
+            // TODO: Should we based this on some global atomic?
+            version: "1".to_string(),
+            tooling: Some("Seedwing Policy Engine".to_string()),
+            supplier: Some("seedwing.io".to_string()),
+        },
+        statements: Vec::new(),
+    };
+
+    for vuln in osv.vulns.iter() {
+        let mut products = Vec::new();
+        let status = Status::Affected;
+        let justification = None;
+
+        for affected in vuln.affected.iter() {
+            if let Some(purl) = &affected.package.purl {
+                products.push(purl.clone());
+            }
+            for range in affected.ranges.iter() {}
+        }
+        let statement = Statement {
+            vulnerability: Some(vuln.id.clone()),
+            vuln_description: Some(vuln.summary.clone()),
+            timestamp: Some(vuln.modified),
+            products,
+            subcomponents: Vec::new(),
+            status,
+            status_notes: None,
+            justification,
+            impact_statement: None,
+            action_statement: None,
+            action_statement_timestamp: None,
+        };
+        vex.statements.push(statement);
+    }
+
+    vex
 }
 /*
 curl -X POST -d \
