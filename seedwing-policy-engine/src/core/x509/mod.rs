@@ -22,6 +22,7 @@ pub fn package() -> Package {
     pkg.register_function("PEM".into(), PEM);
     pkg.register_function("DER".into(), DER);
     pkg.register_source("oid".into(), include_str!("oid.dog"));
+    pkg.register_source("".into(), include_str!("certificate.dog"));
     pkg
 }
 

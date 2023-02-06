@@ -16,7 +16,7 @@ use crate::value::RuntimeValue;
 use chumsky::chain::Chain;
 use chumsky::prelude::*;
 use chumsky::text::Character;
-use chumsky::Parser;
+use chumsky::{Parser, Stream};
 use std::fmt::{Debug, Display, Formatter};
 use std::iter;
 use std::iter::once;
@@ -342,8 +342,8 @@ pub fn ty(
                 .or(expr_ty())
                 .or(list_ty(expr.clone()))
                 .or(const_type())
-                .or(object_type(expr.clone()))
                 .or(type_ref(expr.clone(), visible_parameters))
+                .or(object_type(expr.clone()))
                 .then(postfix(expr).repeated()),
         )
         .map_with_span(|((not, deref), (primary, postfix)), span| {

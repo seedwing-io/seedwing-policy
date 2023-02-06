@@ -76,7 +76,7 @@ impl TypeHandle {
     }
 
     pub fn ty(&self) -> Arc<Located<mir::Type>> {
-        self.ty.borrow_mut().as_ref().unwrap().clone()
+        self.ty.borrow().as_ref().unwrap().clone()
     }
 
     pub fn name(&self) -> Option<TypeName> {
@@ -265,8 +265,9 @@ impl World {
         log::info!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
-            //handle.define_from(converted);
             self.type_slots[*handle].define_from(converted);
+        } else {
+            log::error!("Attempting to define an undeclared type");
         }
         Ok(())
     }

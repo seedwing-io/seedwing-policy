@@ -1,1 +1,4 @@
 pattern bob = "bob"
+
+pattern certs = x509::certificate( { serial: string } )
+

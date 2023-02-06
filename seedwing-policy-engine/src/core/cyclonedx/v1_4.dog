@@ -3,7 +3,7 @@ pattern with-metadata<M> = {
 }
 
 pattern with-components<C> = {
-  components?: list::All<C>,
+  components?: list::All<C && with-components<C>>,
 }
 
 pattern with-pedigree<P> = {

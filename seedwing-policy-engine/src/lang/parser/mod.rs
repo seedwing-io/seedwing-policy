@@ -275,7 +275,7 @@ impl PolicyParser {
     {
         let tokens = lexer().parse(stream)?;
         let tokens = remove_comments(&tokens);
-        let (compilation_unit, errors) = compilation_unit(source).parse_recovery(
+        let (compilation_unit, errors) = compilation_unit(source).parse_recovery_verbose(
             Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
         );
 
