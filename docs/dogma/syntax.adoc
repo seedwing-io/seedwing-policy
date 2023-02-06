@@ -79,7 +79,7 @@ Within a pattern defined in the same file, referencing these two imports is poss
 
 ==== The `use ... as ...` variant
 
-In the even a policy author wants to `use` two different patterns that share a simple name, an `as ...` suffix is allowed to rename the pattern _in this file only_.
+In the event a policy author wants to `use` two different patterns that share a simple name, an `as ...` suffix is allowed to rename the pattern _in this file only_.
 
 ```
 use productization::build::allowed as build-allowed
