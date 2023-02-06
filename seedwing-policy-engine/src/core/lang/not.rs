@@ -4,7 +4,7 @@ use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("Not.adoc");
 
@@ -27,11 +27,12 @@ impl Function for Not {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             println!("A");
             if let Some(pattern) = bindings.get(PATTERN) {

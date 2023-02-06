@@ -5,7 +5,7 @@ use crate::value::RuntimeValue;
 use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("Regexp.adoc");
 const REGEXP: &str = "regexp";
@@ -27,11 +27,12 @@ impl Function for Regexp {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             if let Some(regexp) = bindings.get(REGEXP) {
                 if let Some(ValueType::String(regexp)) = regexp.try_get_resolved_value() {

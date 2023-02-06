@@ -15,7 +15,6 @@ use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 
@@ -41,11 +40,12 @@ impl Function for SHA256 {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(digest) = input.try_get_string() {
@@ -80,7 +80,7 @@ impl Function for SHA256 {
                     let joined = join_all(handles).await;
                     let transform: Vec<RuntimeValue> = joined.into_iter().flatten().collect();
 
-                    Ok(Output::Transform(Rc::new(transform.into())).into())
+                    Ok(Output::Transform(Arc::new(transform.into())).into())
                 } else {
                     Ok(Output::None.into())
                 }

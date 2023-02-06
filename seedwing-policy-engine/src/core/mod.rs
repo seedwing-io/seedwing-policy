@@ -101,11 +101,11 @@ pub trait Function: Sync + Send + Debug {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>;
 }
 
 /// A blocking version of [`Function`].
@@ -125,7 +125,7 @@ pub trait BlockingFunction: Sync + Send + Debug {
 
     fn call(
         &self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &mut EvalContext,
         bindings: &Bindings,
         world: &World,
@@ -150,11 +150,12 @@ where
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async { BlockingFunction::call(self, input, ctx, bindings, world) })
     }
 }

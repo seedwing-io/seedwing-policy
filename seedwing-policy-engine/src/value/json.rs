@@ -2,7 +2,6 @@ use crate::value::{Object, RuntimeValue};
 use serde_json::{Number, Value as JsonValue};
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 
 /*
@@ -39,13 +38,13 @@ impl From<JsonValue> for RuntimeValue {
             JsonValue::Array(inner) => RuntimeValue::List(
                 inner
                     .into_iter()
-                    .map(|e| Rc::new(RuntimeValue::from(e)))
+                    .map(|e| Arc::new(RuntimeValue::from(e)))
                     .collect(),
             ),
             JsonValue::Object(inner) => {
                 let fields = inner
                     .into_iter()
-                    .map(|(k, v)| (k, Rc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (k, Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object { fields })
@@ -72,13 +71,13 @@ impl From<&JsonValue> for RuntimeValue {
             JsonValue::Array(inner) => RuntimeValue::List(
                 inner
                     .iter()
-                    .map(|e| Rc::new(RuntimeValue::from(e)))
+                    .map(|e| Arc::new(RuntimeValue::from(e)))
                     .collect(),
             ),
             JsonValue::Object(inner) => {
                 let fields = inner
                     .iter()
-                    .map(|(k, v)| (k.clone(), Rc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (k.clone(), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object { fields })

@@ -42,17 +42,18 @@ impl Function for From {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             if let Some(val) = bindings.get(PATH) {
                 if let Some(ValueType::String(path)) = val.try_get_resolved_value() {
                     for ds in &*self.data_sources {
                         if let Ok(Some(value)) = ds.get(path.clone()) {
-                            return Ok(Output::Transform(Rc::new(value)).into());
+                            return Ok(Output::Transform(Arc::new(value)).into());
                         }
                     }
                 }

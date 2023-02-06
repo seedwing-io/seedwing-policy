@@ -4,7 +4,7 @@ use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("Length.adoc");
 
@@ -21,14 +21,15 @@ impl Function for Length {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             if let Some(value) = input.try_get_string() {
-                Ok(Output::Transform(Rc::new(value.len().into())).into())
+                Ok(Output::Transform(Arc::new(value.len().into())).into())
             } else {
                 Ok(Output::None.into())
             }

@@ -1,6 +1,6 @@
 use crate::value::{Object, RuntimeValue};
-use std::rc::Rc;
 use std::str::from_utf8;
+use std::sync::Arc;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::asn1_rs::{Any, BitString};
 use x509_parser::der_parser::ber::{Class, Header};
@@ -275,31 +275,31 @@ impl From<&KeyUsage> for RuntimeValue {
         let mut result = Vec::new();
 
         if value.digital_signature() {
-            result.push(Rc::new("Digital Signature".into()));
+            result.push(Arc::new("Digital Signature".into()));
         }
         if value.non_repudiation() {
-            result.push(Rc::new("Non Repudiation".into()));
+            result.push(Arc::new("Non Repudiation".into()));
         }
         if value.key_encipherment() {
-            result.push(Rc::new("Key Encipherment".into()));
+            result.push(Arc::new("Key Encipherment".into()));
         }
         if value.data_encipherment() {
-            result.push(Rc::new("Data Encipherment".into()));
+            result.push(Arc::new("Data Encipherment".into()));
         }
         if value.key_agreement() {
-            result.push(Rc::new("Key Agreement".into()));
+            result.push(Arc::new("Key Agreement".into()));
         }
         if value.key_cert_sign() {
-            result.push(Rc::new("Key Cert Sign".into()));
+            result.push(Arc::new("Key Cert Sign".into()));
         }
         if value.crl_sign() {
-            result.push(Rc::new("CRL Sign".into()));
+            result.push(Arc::new("CRL Sign".into()));
         }
         if value.encipher_only() {
-            result.push(Rc::new("Encipher Only".into()));
+            result.push(Arc::new("Encipher Only".into()));
         }
         if value.decipher_only() {
-            result.push(Rc::new("Decipher Only".into()));
+            result.push(Arc::new("Decipher Only".into()));
         }
 
         RuntimeValue::List(result)

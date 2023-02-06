@@ -11,7 +11,6 @@ use base64::Engine;
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 
@@ -32,11 +31,12 @@ impl Function for AsCertificate {
     }
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             let bytes = if let Some(inner) = input.try_get_octets() {
                 inner
@@ -56,7 +56,7 @@ impl Function for AsCertificate {
             }
             result.push_str("-----END CERTIFICATE-----\n");
 
-            Ok(Output::Transform(Rc::new(result.into())).into())
+            Ok(Output::Transform(Arc::new(result.into())).into())
         })
     }
 }

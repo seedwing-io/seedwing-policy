@@ -209,19 +209,19 @@ impl From<&[u8]> for RuntimeValue {
 
 impl From<Vec<RuntimeValue>> for RuntimeValue {
     fn from(inner: Vec<RuntimeValue>) -> Self {
-        Self::List(inner.into_iter().map(Rc::new).collect())
+        Self::List(inner.into_iter().map(Arc::new).collect())
     }
 }
 
-impl From<Vec<Rc<RuntimeValue>>> for RuntimeValue {
-    fn from(value: Vec<Rc<RuntimeValue>>) -> Self {
+impl From<Vec<Arc<RuntimeValue>>> for RuntimeValue {
+    fn from(value: Vec<Arc<RuntimeValue>>) -> Self {
         Self::List(value)
     }
 }
 
 impl From<&[RuntimeValue]> for RuntimeValue {
     fn from(inner: &[RuntimeValue]) -> Self {
-        Self::List(inner.iter().map(|e| Rc::new(e.clone())).collect())
+        Self::List(inner.iter().map(|e| Arc::new(e.clone())).collect())
     }
 }
 
@@ -252,7 +252,7 @@ pub enum RuntimeValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(#[serde(skip)] Vec<Rc<RuntimeValue>>),
+    List(#[serde(skip)] Vec<Arc<RuntimeValue>>),
     Octets(Vec<u8>),
 }
 
@@ -318,7 +318,7 @@ impl RuntimeValue {
         I: IntoIterator<Item = T>,
         T: Into<RuntimeValue>,
     {
-        RuntimeValue::List(iter.into_iter().map(|e| Rc::new(e.into())).collect())
+        RuntimeValue::List(iter.into_iter().map(|e| Arc::new(e.into())).collect())
     }
 }
 
@@ -387,7 +387,7 @@ impl RuntimeValue {
         matches!(self, Self::List(_))
     }
 
-    pub fn try_get_list(&self) -> Option<&Vec<Rc<RuntimeValue>>> {
+    pub fn try_get_list(&self) -> Option<&Vec<Arc<RuntimeValue>>> {
         if let Self::List(inner) = self {
             Some(inner)
         } else {
@@ -423,7 +423,7 @@ impl RuntimeValue {
 #[derive(Serialize, Debug, Clone, Default, PartialEq)]
 pub struct Object {
     #[serde(skip)]
-    fields: IndexMap<String, Rc<RuntimeValue>>,
+    fields: IndexMap<String, Arc<RuntimeValue>>,
 }
 
 impl Display for Object {
@@ -452,7 +452,7 @@ impl Object {
         serde_json::Value::Object(inner)
     }
 
-    pub fn get<N>(&self, name: N) -> Option<Rc<RuntimeValue>>
+    pub fn get<N>(&self, name: N) -> Option<Arc<RuntimeValue>>
     where
         N: AsRef<str>,
     {
@@ -464,10 +464,10 @@ impl Object {
         N: Into<String>,
         V: Into<RuntimeValue>,
     {
-        self.fields.insert(name.into(), Rc::new(value.into()));
+        self.fields.insert(name.into(), Arc::new(value.into()));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Rc<RuntimeValue>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<RuntimeValue>)> {
         self.fields.iter()
     }
 
@@ -530,9 +530,9 @@ here:
                 let mut o = Object::new();
                 o.set("bar", {
                     let mut s = Vec::new();
-                    s.push(Rc::new(1i64.into()));
-                    s.push(Rc::new("baz".into()));
-                    s.push(Rc::new(true.into()));
+                    s.push(Arc::new(1i64.into()));
+                    s.push(Arc::new("baz".into()));
+                    s.push(Arc::new(true.into()));
                     s
                 });
                 o.set("foo", "bar");

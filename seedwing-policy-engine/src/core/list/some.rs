@@ -6,7 +6,6 @@ use crate::value::{RationaleResult, RuntimeValue};
 use std::cell::RefCell;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -22,11 +21,12 @@ impl Function for Some {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             if let Option::Some(list) = input.try_get_list() {
                 let expected_count = bindings.get(COUNT).unwrap();
@@ -48,7 +48,7 @@ impl Function for Some {
                         let count = supporting.iter().filter(|e| e.satisfied()).count();
                         let expected_result = expected_count
                             .evaluate(
-                                Rc::new((count as i64).into()),
+                                Arc::new((count as i64).into()),
                                 ctx,
                                 &Default::default(),
                                 world,

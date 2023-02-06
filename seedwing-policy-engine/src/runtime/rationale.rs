@@ -1,5 +1,6 @@
 use crate::runtime::EvaluationResult;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum Rationale {
@@ -15,8 +16,8 @@ pub enum Rationale {
     Const(bool),
     Primordial(bool),
     Expression(bool),
-    Function(bool, Option<Box<Rationale>>, Vec<EvaluationResult>),
-    Refinement(Box<EvaluationResult>, Option<Box<EvaluationResult>>),
+    Function(bool, Option<Arc<Rationale>>, Vec<EvaluationResult>),
+    Refinement(Arc<EvaluationResult>, Option<Arc<EvaluationResult>>),
 }
 
 impl Rationale {

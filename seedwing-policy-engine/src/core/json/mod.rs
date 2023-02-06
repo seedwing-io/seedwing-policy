@@ -35,18 +35,19 @@ impl Function for JSON {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + Send + 'v>>
+    {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
                 let json_value: Result<serde_json::Value, _> =
                     serde_json::from_slice(inner.as_bytes());
                 if let Ok(json_value) = json_value {
-                    Ok(Output::Transform(Rc::new(json_value.into())).into())
+                    Ok(Output::Transform(Arc::new(json_value.into())).into())
                 } else {
                     Ok(Output::None.into())
                 }
