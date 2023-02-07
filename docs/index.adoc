@@ -33,8 +33,13 @@ The core policy engine is simply a Rust library, which can be embedded or used b
 The engine includes the parsing and compiling of the Dogma language into executable policies.
 
 ```rust
-let result = world.evaluate( policy_path, input_value ).await;
+let result = world.evaluate( policy_path, input_value, EvalContext::default() ).await;
 ```
+
+=== CLI
+
+the link:cli/[Seedwing CLI] directly embeds the engine and provides command-line access to its functionality.
+Consumers can evaluate input data against policies by providing files or streams on `STDIN`.
 
 === Server
 
