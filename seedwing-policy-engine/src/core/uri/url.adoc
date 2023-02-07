@@ -6,14 +6,14 @@ To verify it is a URL:
 
 [source]
 ----
-pattern is_url = net::Url
+pattern is_url = net::url
 ----
 
 To verify it is an HTTPS URL:
 
 [source]
 ----
-pattern is_url = net::Url({
+pattern is_url = net::url({
     scheme: "https",
 })
 ----

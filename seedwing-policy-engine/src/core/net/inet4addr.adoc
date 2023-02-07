@@ -5,7 +5,7 @@ An empty input string does *not* match.
 For instance:
 
 ```
-pattern allowed = net::Inet4Addr<"10.0.0.0/16">
+pattern allowed = net::inet4addr<"10.0.0.0/16">
 ```
 
 Would match

@@ -84,7 +84,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, 42>
+            pattern test-some = list::some<2, 42>
         "#,
         );
 
@@ -109,7 +109,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, $(self > 50)>
+            pattern test-some = list::some<2, $(self > 50)>
         "#,
         );
 
@@ -134,7 +134,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, $(self > 50)>
+            pattern test-some = list::some<2, $(self > 50)>
         "#,
         );
 
@@ -159,7 +159,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, 42>
+            pattern test-some = list::some<2, 42>
         "#,
         );
 
@@ -184,7 +184,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, $(self > 101)>
+            pattern test-some = list::some<2, $(self > 101)>
         "#,
         );
 
@@ -209,7 +209,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, 42>
+            pattern test-some = list::some<2, 42>
         "#,
         );
 
@@ -234,7 +234,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, $(self > 99.0)>
+            pattern test-some = list::some<2, $(self > 99.0)>
         "#,
         );
 
@@ -259,7 +259,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, 42>
+            pattern test-some = list::some<2, 42>
         "#,
         );
 
@@ -284,7 +284,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-some = list::Some<2, 42>
+            pattern test-some = list::some<2, 42>
         "#,
         );
 

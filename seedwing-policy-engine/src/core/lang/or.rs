@@ -7,7 +7,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
-const DOCUMENTATION: &str = include_str!("Or.adoc");
+const DOCUMENTATION: &str = include_str!("or.adoc");
 
 const TERMS: &str = "terms";
 

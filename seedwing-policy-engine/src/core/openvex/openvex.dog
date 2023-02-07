@@ -3,22 +3,22 @@ use timestamp
 
 /// Pattern matching a well-formed OpenVEX document.
 pattern valid = {
-    @context: uri::Url,
-    @id: uri::Iri,
+    @context: uri::url,
+    @id: uri::iri,
     author: string,
     role: string,
-    timestamp: timestamp::Iso8601,
+    timestamp: timestamp::iso8601,
     version: string,
     tooling?: string,
-    statements?: list::All<statement>,
+    statements?: list::all<statement>,
 }
 
 pattern statement = {
     vulnerability: string, // TODO: Strong type
     vuln_description?: string,
     timestamp?: string, // TODO: Strong type
-    products?: list::All<string>, // TODO: Strong type
-    subcomponents?: list::All<string>, // TODO: Strong type
+    products?: list::all<string>, // TODO: Strong type
+    subcomponents?: list::all<string>, // TODO: Strong type
     status: "not_affected" || "affected" || "fixed" || "under_investigation",
     status_notes?: string,
     justification?: "component_not_present" || "vulnerable_code_not_present" || "vulnerable_code_not_in_execute_path" || "vulnerable_code_cannot_be_controlled_by_adversary" || "inline_mitigations_already_exist",
@@ -29,14 +29,14 @@ pattern statement = {
 
 /// Enforce that there are no statements considered affecting.
 pattern not-affected = {
-    statements?: list::None<{
+    statements?: list::none<{
         status: "affected" || "under_investigation"
     }>,
 }
 
 /// Match on any statements listed as affected.
 pattern affected = {
-    statements: list::Any<{
+    statements: list::any<{
         status: "affected" || "under_investigation"
     }>,
 }

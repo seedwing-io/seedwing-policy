@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
-const DOCUMENTATION: &str = include_str!("Head.adoc");
+const DOCUMENTATION: &str = include_str!("head.adoc");
 
 #[derive(Debug)]
 pub struct Head;
@@ -63,7 +63,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal() {
         let result = test_pattern(
-            r#"list::Head<2>({
+            r#"list::head<2>({
                 head: [1, 2],
                 main: [3, 4, 5, 41, 43, 99],
             })"#,
@@ -77,7 +77,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_default() {
         let result = test_pattern(
-            r#"list::Head({
+            r#"list::head({
                 head: [1],
                 main: [2, 3, 4, 5, 41, 43, 99],
             })"#,
@@ -91,7 +91,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_no_main() {
         let result = test_pattern(
-            r#"list::Head<2>({
+            r#"list::head<2>({
                 head: [1, 2],
                 main: [],
             })"#,
@@ -105,7 +105,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_less() {
         let result = test_pattern(
-            r#"list::Head<2>({
+            r#"list::head<2>({
                 head: [1],
                 main: [],
             })"#,
@@ -119,7 +119,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_empty() {
         let result = test_pattern(
-            r#"list::Head<2>({
+            r#"list::head<2>({
                 head: [],
                 main: [],
             })"#,
@@ -133,7 +133,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_zero() {
         let result = test_pattern(
-            r#"list::Head<0>({
+            r#"list::head<0>({
                 head: [],
                 main: [1, 2, 3],
             })"#,

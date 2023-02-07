@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
-const DOCUMENTATION: &str = include_str!("All.adoc");
+const DOCUMENTATION: &str = include_str!("all.adoc");
 
 #[derive(Debug)]
 pub struct All;
@@ -69,7 +69,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-all = list::All<42>
+            pattern test-all = list::all<42>
         "#,
         );
 
@@ -94,7 +94,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-all = list::All<$(self >= 42)>
+            pattern test-all = list::all<$(self >= 42)>
         "#,
         );
 
@@ -119,7 +119,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-all = list::All<42>
+            pattern test-all = list::all<42>
         "#,
         );
 
@@ -144,7 +144,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-all = list::All<$(self >= 42)>
+            pattern test-all = list::all<$(self >= 42)>
         "#,
         );
 
@@ -168,7 +168,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-all = list::All<42>
+            pattern test-all = list::all<42>
         "#,
         );
 

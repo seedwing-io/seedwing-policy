@@ -55,7 +55,7 @@ When an input value is presented to a type, the type acts not unlike a function,
 A _function_ can also be considered a kind of type if you squint hard enough from far enough away, since they are also presented with an input value and pass along an output value if successful.
 The primary difference is that functions are written in Rust, not Dogma, and they may pass along completely different values as output.
 
-For instance, a function link:/policy/base64/Base64[Base64] accepts a string input, and if that input can be successfully decoded as a base64 input, the output value is _the decoded value_.
+For instance, a function link:/policy/base64/base64[base64] accepts a string input, and if that input can be successfully decoded as a base64 input, the output value is _the decoded value_.
 
 === Expressions
 

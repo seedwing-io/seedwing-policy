@@ -12,7 +12,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct JSON;
 
-const DOCUMENTATION: &str = include_str!("From.adoc");
+const DOCUMENTATION: &str = include_str!("from.adoc");
 const PATH: &str = "path";
 
 #[derive(Debug)]

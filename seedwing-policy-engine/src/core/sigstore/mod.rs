@@ -21,14 +21,14 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["sigstore"]));
-    pkg.register_function("SHA256".into(), SHA256);
+    pkg.register_function("sha256".into(), SHA256);
     pkg
 }
 
 #[derive(Debug)]
 pub struct SHA256;
 
-const DOCUMENTATION: &str = include_str!("SHA256.adoc");
+const DOCUMENTATION: &str = include_str!("sha256.adoc");
 
 impl Function for SHA256 {
     fn order(&self) -> u8 {

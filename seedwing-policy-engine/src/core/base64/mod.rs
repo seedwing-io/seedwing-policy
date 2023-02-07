@@ -17,14 +17,14 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]));
-    pkg.register_function("Base64".into(), Base64);
-    pkg.register_function("Base64Url".into(), Base64Url);
-    pkg.register_function("Base64Encode".into(), Base64Encode);
+    pkg.register_function("base64".into(), Base64);
+    pkg.register_function("base64-url".into(), Base64Url);
+    pkg.register_function("base64-encode".into(), Base64Encode);
     pkg
 }
 
-const DOCUMENTATION_BASE64: &str = include_str!("Base64.adoc");
-const DOCUMENTATION_BASE64_ENCODE: &str = include_str!("Base64Encode.adoc");
+const DOCUMENTATION_BASE64: &str = include_str!("base64.adoc");
+const DOCUMENTATION_BASE64_ENCODE: &str = include_str!("base64-encode.adoc");
 
 #[derive(Debug)]
 pub struct Base64;

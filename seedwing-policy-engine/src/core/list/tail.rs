@@ -8,7 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Tail.adoc");
+const DOCUMENTATION: &str = include_str!("tail.adoc");
 
 #[derive(Debug)]
 pub struct Tail;
@@ -65,7 +65,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal() {
         let result = test_pattern(
-            r#"list::Tail<2>({
+            r#"list::tail<2>({
                 tail: [43, 99],
                 main: [1, 2, 3, 4, 5, 41],
             })"#,
@@ -79,7 +79,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_default() {
         let result = test_pattern(
-            r#"list::Tail({
+            r#"list::tail({
                 tail: [99],
                 main: [1, 2, 3, 4, 5, 41, 43],
             })"#,
@@ -93,7 +93,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_no_main() {
         let result = test_pattern(
-            r#"list::Tail<2>({
+            r#"list::tail<2>({
                 tail: [1, 2],
                 main: [],
             })"#,
@@ -107,7 +107,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_less() {
         let result = test_pattern(
-            r#"list::Tail<2>({
+            r#"list::tail<2>({
                 tail: [1],
                 main: [],
             })"#,
@@ -121,7 +121,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_empty() {
         let result = test_pattern(
-            r#"list::Tail<2>({
+            r#"list::tail<2>({
                 tail: [],
                 main: [],
             })"#,
@@ -135,7 +135,7 @@ mod test {
     #[tokio::test]
     async fn call_matching_homogenous_literal_zero() {
         let result = test_pattern(
-            r#"list::Tail<0>({
+            r#"list::tail<0>({
                 tail: [],
                 main: [1, 2, 3],
             })"#,

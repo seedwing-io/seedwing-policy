@@ -4,7 +4,7 @@ For instance, this pattern:
 
 [source,subs=normal]
 ----
-pattern split = list::Tail<2>({
+pattern split = list::tail<2>({
   tail: [4, 5],
   main: [1, 2, 3],
 })
@@ -16,7 +16,7 @@ The logic is greedy, it tries to fill the `tail` section first:
 
 [source,subs=normal]
 ----
-pattern split = list::Tail<3>({
+pattern split = list::tail<3>({
   tail: [1, 2],
   main: [],
 })
@@ -28,7 +28,7 @@ It is also possible to just get one item, omitting the binding:
 
 [source,subs=normal]
 ----
-pattern split = list::Tail({
+pattern split = list::tail({
   tail: [5],
   main: [1, 2, 3, 4],
 })

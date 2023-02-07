@@ -1,38 +1,3 @@
-/*
-               let input = value.clone();
-               let mut rationale = Vec::new();
-               let mut cur = value;
-               let mut cur_output = Output::None;
-               for term in terms {
-                   let result = term.evaluate(cur.clone(), bindings, world).await?;
-
-                   rationale.push(result.clone());
-
-                   match result.raw_output() {
-                       Output::None => {
-                           return Ok(EvaluationResult::new(
-                               Some(cur.clone()),
-                               self.clone(),
-                               Rationale::Chain(rationale),
-                               Output::None,
-                           ));
-                       }
-                       Output::Identity => { /* keep trucking */ }
-                       Output::Transform(val) => {
-                           cur_output = Output::Transform(cur.clone());
-                           cur = val.clone()
-                       }
-                   }
-               }
-
-               Ok(EvaluationResult::new(
-                   Some(input),
-                   self.clone(),
-                   Rationale::Chain(rationale),
-                   cur_output,
-               ))
-*/
-
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext, InnerType};
 use crate::runtime::rationale::Rationale;
@@ -42,7 +7,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Chain.adoc");
+const DOCUMENTATION: &str = include_str!("chain.adoc");
 
 const TERMS: &str = "terms";
 

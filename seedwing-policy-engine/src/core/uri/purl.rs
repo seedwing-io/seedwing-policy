@@ -9,7 +9,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct Purl;
 
-const DOCUMENTATION: &str = include_str!("Purl.adoc");
+const DOCUMENTATION: &str = include_str!("purl.adoc");
 
 impl BlockingFunction for Purl {
     fn order(&self) -> u8 {
@@ -65,7 +65,7 @@ impl Purl {
                 *name
             }
             _ => {
-                return Self::invalid_arg(format!("Invalid Purl path"));
+                return Self::invalid_arg(format!("Invalid purl path"));
             }
         };
 
@@ -120,7 +120,7 @@ mod test {
     #[tokio::test]
     async fn test_purl_1() {
         let result = test_pattern(
-            r#"uri::Purl"#,
+            r#"uri::purl"#,
             "pkg:rpm/fedora/curl@7.50.3-1.fc25?arch=i386&distro=fedora-25",
         )
         .await;
@@ -146,7 +146,7 @@ mod test {
     #[tokio::test]
     async fn test_purl_2() {
         let result = test_pattern(
-            r#"uri::Purl"#,
+            r#"uri::purl"#,
             "pkg:docker/customer/dockerimage@sha256:244fd47e07d1004f0aed9c?repository_url=gcr.io",
         )
         .await;
@@ -170,7 +170,7 @@ mod test {
 
     #[tokio::test]
     async fn test_purl_3() {
-        let result = test_pattern(r#"uri::Purl"#, "pkg:cargo/rand@0.7.2").await;
+        let result = test_pattern(r#"uri::purl"#, "pkg:cargo/rand@0.7.2").await;
 
         assert_eq!(
             result.output(),
@@ -188,7 +188,7 @@ mod test {
     #[tokio::test]
     async fn test_purl_4() {
         let result = test_pattern(
-            r#"uri::Purl"#,
+            r#"uri::purl"#,
             "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs",
         )
         .await;

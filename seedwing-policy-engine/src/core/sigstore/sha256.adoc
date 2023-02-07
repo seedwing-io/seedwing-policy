@@ -1,4 +1,4 @@
-Perform a SigStore query by *SHA256* string valid.
+Perform a SigStore query by *sha256* string valid.
 
 The output, if successful, is a list (possibly empty) of SigStore/Rekor entries.
 

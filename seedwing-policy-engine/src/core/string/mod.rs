@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["string"]));
-    pkg.register_function("Length".into(), Length);
-    pkg.register_function("Regexp".into(), Regexp);
+    pkg.register_function("length".into(), Length);
+    pkg.register_function("regexp".into(), Regexp);
     pkg
 }

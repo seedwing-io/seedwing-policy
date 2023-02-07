@@ -4,7 +4,7 @@ For instance, this pattern:
 
 [source,subs=normal]
 ----
-pattern split = list::Head<2>({
+pattern split = list::head<2>({
   head: [1, 2],
   main: [3, 4, 5],
 })
@@ -16,7 +16,7 @@ The logic is greedy, it tries to fill the `head` section first:
 
 [source,subs=normal]
 ----
-pattern split = list::Head<3>({
+pattern split = list::head<3>({
   head: [1, 2],
   main: [],
 })
@@ -28,7 +28,7 @@ It is also possible to just get one item, omitting the binding:
 
 [source,subs=normal]
 ----
-pattern split = list::Head({
+pattern split = list::head({
   head: [1],
   main: [2, 3, 4, 5],
 })

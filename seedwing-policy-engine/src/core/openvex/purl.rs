@@ -29,7 +29,7 @@ use super::osv::*;
 #[derive(Debug)]
 pub struct FromPurl;
 
-const DOCUMENTATION: &str = include_str!("FromPurl.adoc");
+const DOCUMENTATION: &str = include_str!("from-purl.adoc");
 
 impl Function for FromPurl {
     fn order(&self) -> u8 {

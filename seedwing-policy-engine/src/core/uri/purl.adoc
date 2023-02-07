@@ -15,7 +15,7 @@ This would match:
 
 [source]
 ----
-pattern example = Purl({
+pattern example = purl({
     "type": "rpm",
     "namespace": "fedora",
     "name": "curl",

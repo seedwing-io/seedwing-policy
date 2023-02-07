@@ -10,7 +10,7 @@ use cidr::*;
 use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
 use std::{net::Ipv4Addr, str::FromStr};
 
-const DOCUMENTATION: &str = include_str!("Inet4Addr.adoc");
+const DOCUMENTATION: &str = include_str!("inet4addr.adoc");
 const ADDRESS: &str = "address";
 
 #[derive(Debug)]
@@ -66,7 +66,7 @@ impl Function for Inet4Addr {
                             }
                         }
                         Err(e) => {
-                            let e = format!("error parsing Inet4Addr<\"{range}\">: {e}");
+                            let e = format!("error parsing inet4addr<\"{range}\">: {e}");
                             return Ok((
                                 Output::None,
                                 vec![EvaluationResult::new(
@@ -99,7 +99,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern allow = net::Inet4Addr<"10.0.0.1">
+            pattern allow = net::inet4addr<"10.0.0.1">
         "#,
         );
 
@@ -115,7 +115,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern allow = net::Inet4Addr<"10.0.0.0/16">
+            pattern allow = net::inet4addr<"10.0.0.0/16">
         "#,
         );
 
@@ -135,7 +135,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern allow = net::Inet4Addr<"10.0.0.1/16">
+            pattern allow = net::inet4addr<"10.0.0.1/16">
         "#,
         );
 
@@ -150,7 +150,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern allow = net::Inet4Addr<"10.0.0.0/16">
+            pattern allow = net::inet4addr<"10.0.0.0/16">
         "#,
         );
 

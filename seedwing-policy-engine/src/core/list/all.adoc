@@ -5,7 +5,7 @@ An empty input list *does* match this pattern.
 For instance, this pattern:
 
 ```
-pattern only-numbers = list::All<integer>
+pattern only-numbers = list::all<integer>
 ```
 
 would match

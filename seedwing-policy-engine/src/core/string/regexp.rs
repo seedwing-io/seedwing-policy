@@ -7,7 +7,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Regexp.adoc");
+const DOCUMENTATION: &str = include_str!("regexp.adoc");
 const REGEXP: &str = "regexp";
 
 #[derive(Debug)]
@@ -61,7 +61,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern re = string::Regexp<"bob.*mcwhirter">
+            pattern re = string::regexp<"bob.*mcwhirter">
         "#,
         );
 
@@ -86,7 +86,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern re = string::Regexp<"bob.*mcwhirter">
+            pattern re = string::regexp<"bob.*mcwhirter">
         "#,
         );
 
@@ -111,7 +111,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern re = string::Regexp<42>
+            pattern re = string::regexp<42>
         "#,
         );
 
