@@ -1,0 +1,7 @@
+Produce an OpenVEX report based on an Open Source Vulnerability (OSV) response.
+
+You can combine this with other patterns to check if a given package has any known vulnerabilities:
+
+```
+pattern not-vulnerable = uri::purl(osv::from-purl(openvex::from-osv(openvex::not-affected)))
+```

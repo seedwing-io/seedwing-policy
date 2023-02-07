@@ -1,0 +1,7 @@
+Lookup vulnerability information for a package URL (pURL) in Open Source Vulnerability (OSV).
+
+You can combine this with other patterns to check if a given package has any known vulnerabilities:
+
+```
+pattern not-vulnerable = uri::purl(osv::from-purl(openvex::from-osv(openvex::not-affected)))
+```

@@ -25,6 +25,7 @@ pub mod list;
 pub mod maven;
 pub mod net;
 pub mod openvex;
+pub mod osv;
 pub mod pem;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
