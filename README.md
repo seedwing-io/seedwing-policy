@@ -6,6 +6,25 @@
 
 A functional type system for implementing policy inspection, audit and enforcement.
 
+Seedwing Policy consists of several components that may be combined or used standalone as part of a secure software supply chain:
+
+* *Dogma* - a policy description language.
+* *Engine* - a policy evaluation engine.
+* *Server* - an HTTP server and API for evaluating policies.
+
+With Seedwing Policy, you can:
+
+* Validate, destructure and inspect payload according to standards like CycloneDX, SPDX, OpenVEX, PEM and more.
+* Check for permitted licenses according to organization policy.
+* Check for trusted signatures against [Sigstore](https://sigstore.dev).
+* Check SBOM dependencies for vulnerabilities against [OSV](https://osv.dev).
+
+All of the policies can be centrally managed in a server, or built in as part of a custom application.
+
+### Other use cases
+
+Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apacke Kafka.
+
 ## Minimum supported Rust version (MSRV)
 
 Seedwing Policy is guaranteed to compile on the latest stable Rust version at the time of release. It might compile with older versions.
