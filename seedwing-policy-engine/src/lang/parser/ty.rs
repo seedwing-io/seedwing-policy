@@ -294,9 +294,18 @@ pub fn refinement(
     just("(")
         .padded()
         .ignored()
-        .then(expr.or_not())
+        .then(expr.clone().or_not())
         .then(just(")").padded().ignored())
         .map(move |((_, refinement), _)| Postfix::Refinement(refinement))
+        .or(
+            just("|")
+                .padded()
+                .ignored()
+                .then( expr )
+                .map(|(_, refinement)| {
+                    Postfix::Refinement(Some(refinement))
+                })
+        )
 }
 
 pub fn traversal(
