@@ -410,7 +410,9 @@ impl World {
     }
 
     pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
-        self.add_package(crate::core::data::package(self.data_sources.clone()));
+        if !self.data_sources.is_empty() {
+            self.add_package(crate::core::data::package(self.data_sources.clone()));
+        }
 
         let mut core_units = Vec::new();
 
