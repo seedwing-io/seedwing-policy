@@ -1,11 +1,10 @@
-use std::path::PathBuf;
-use std::process::exit;
 use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
 use seedwing_policy_engine::lang::builder::Builder;
-use seedwing_policy_engine::runtime::{BuildError, World};
 use seedwing_policy_engine::runtime::sources::Directory;
-
+use seedwing_policy_engine::runtime::{BuildError, World};
+use std::path::PathBuf;
+use std::process::exit;
 
 pub struct Verify {
     policy_directories: Vec<PathBuf>,
@@ -54,13 +53,11 @@ impl Verify {
         let result = builder.finish().await;
 
         match result {
-            Ok(world) => {
-                Ok(world)
-            }
+            Ok(world) => Ok(world),
             Err(errors) => {
                 ErrorPrinter::new(builder.source_cache()).display(&errors);
                 exit(-2);
-                return Err(())
+                return Err(());
             }
         }
     }

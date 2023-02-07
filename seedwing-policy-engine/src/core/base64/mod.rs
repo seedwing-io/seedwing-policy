@@ -4,7 +4,7 @@ use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
-use base64::engine::general_purpose::{ URL_SAFE_NO_PAD, STANDARD};
+use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::Engine;
 use std::borrow::Borrow;
 use std::cell::RefCell;

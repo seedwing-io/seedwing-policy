@@ -413,7 +413,7 @@ impl World {
         if !self.data_sources.is_empty() {
             self.add_package(crate::core::data::package(self.data_sources.clone()));
         } else {
-            self.add_package(crate::core::data::package(vec![] ) );
+            self.add_package(crate::core::data::package(vec![]));
         }
 
         let mut core_units = Vec::new();

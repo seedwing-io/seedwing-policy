@@ -18,10 +18,12 @@ impl Eval {
     }
 
     pub async fn run(&self) -> Result<EvaluationResult, RuntimeError> {
-        self.world.evaluate(
-            self.name.clone(),
-            self.value.clone(),
-            EvalContext::default()
-        ).await
+        self.world
+            .evaluate(
+                self.name.clone(),
+                self.value.clone(),
+                EvalContext::default(),
+            )
+            .await
     }
 }
