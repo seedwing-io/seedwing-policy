@@ -27,10 +27,16 @@ pattern statement = {
     action_statement_timestamp?: string,
 }
 
-pattern not_affected = !affected
+/// Enforce that there are no statements considered affecting.
+pattern not-affected = {
+    statements?: list::None<{
+        status: "affected" || "under_investigation"
+    }>,
+}
 
+/// Match on any statements listed as affected.
 pattern affected = {
-    statements?: list::Any<{
+    statements: list::Any<{
         status: "affected" || "under_investigation"
     }>,
 }
