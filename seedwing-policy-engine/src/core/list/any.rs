@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
-const DOCUMENTATION: &str = include_str!("Any.adoc");
+const DOCUMENTATION: &str = include_str!("any.adoc");
 
 #[derive(Debug)]
 pub struct Any;
@@ -69,7 +69,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<42>
+            pattern test-any = list::any<42>
         "#,
         );
 
@@ -94,7 +94,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<$(self > 50)>
+            pattern test-any = list::any<$(self > 50)>
         "#,
         );
 
@@ -119,7 +119,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<42>
+            pattern test-any = list::any<42>
         "#,
         );
 
@@ -143,7 +143,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<$(self > 101)>
+            pattern test-any = list::any<$(self > 101)>
         "#,
         );
 
@@ -168,7 +168,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<42>
+            pattern test-any = list::any<42>
         "#,
         );
 
@@ -193,7 +193,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<$(self > 99.0)>
+            pattern test-any = list::any<$(self > 99.0)>
         "#,
         );
 
@@ -218,7 +218,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<42>
+            pattern test-any = list::any<42>
         "#,
         );
 
@@ -243,7 +243,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<42>
+            pattern test-any = list::any<42>
         "#,
         );
 
@@ -268,8 +268,8 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-any = list::Any<
-                list::Any<99>
+            pattern test-any = list::any<
+                list::any<99>
             >
         "#,
         );

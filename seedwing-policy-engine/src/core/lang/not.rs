@@ -6,7 +6,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Not.adoc");
+const DOCUMENTATION: &str = include_str!("not.adoc");
 
 const PATTERN: &str = "pattern";
 

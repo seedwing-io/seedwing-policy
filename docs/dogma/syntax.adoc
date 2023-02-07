@@ -71,11 +71,11 @@ NOTE: Currently only full patterns can be imported using `use` statements, not p
 The simplest `use` statement brings a type into visible scope for use by its simple name.
 
 ```
-use list::All
+use list::all
 use sre::deploy::allowed
 ```
 
-Within a pattern defined in the same file, referencing these two imports is possible using purely their tail-end simple name of `All` and `allowed`.
+Within a pattern defined in the same file, referencing these two imports is possible using purely their tail-end simple name of `all` and `allowed`.
 
 ==== The `use ... as ...` variant
 
@@ -427,14 +427,14 @@ pattern named-bob-or-jim = named<"bob"> || named<"jim">
 
 Parameters can be _any type or pattern_; they are not required to be value-esque types or patterns.
 
-For instance, the logical `||` operator is actually syntactic sugar for `lang::Or<TERMS>`.
+For instance, the logical `||` operator is actually syntactic sugar for `lang::or<TERMS>`.
 
 This next two patterns are semantically and implementationally identical:
 
 ```
 pattern sugared = something-borrowed || something-blue
 
-pattern unsugared = lang::Or<[ something-borrowed, something-blue ]>
+pattern unsugared = lang::or<[ something-borrowed, something-blue ]>
 ```
 
 Here we finally discover where *lists* (described above) become useful.
@@ -446,7 +446,7 @@ Given that patterns are first-class constructs, passing them as parameters can s
 Consider this pattern:
 
 ```
-pattern people = lang::Or<data::From<"people.json">>
+pattern people = lang::or<data::from<"people.json">>
 ```
 
 And this `people.json`:
@@ -461,14 +461,14 @@ And this `people.json`:
 Initially, we think this might be equivalent to
 
 ```
-pattern people = lang::Or[ "bob", "jim" ]>
+pattern people = lang::or[ "bob", "jim" ]>
 ```
 
 But alas, it is not.
-Instead of receiving the array of people that `data::From<...>` provides, it receives the _actual type_ `data::From<...>`.
+Instead of receiving the array of people that `data::from<...>` provides, it receives the _actual type_ `data::from<...>`.
 That type has not yet been evaluated to provide the underlying data.
-The `lang::Or<...>` function expects a list-shaped type with terms to be _or_'d together.
-Instead, it's receiving the function type underlying `data::From<...>`.
+The `lang::or<...>` function expects a list-shaped type with terms to be _or_'d together.
+Instead, it's receiving the function type underlying `data::from<...>`.
 
 To resolve a type against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `\*`.
 By placing a `*` as a prefix to a type, it will be evaluated, and the resulting value is then treated as a type and passed further.
@@ -476,8 +476,8 @@ By placing a `*` as a prefix to a type, it will be evaluated, and the resulting 
 The pattern that behaves the way one might expect looks like:
 
 ```
-pattern people = lang::Or<*data::From<"people.json">>
+pattern people = lang::or<*data::from<"people.json">>
 ```
 
-Now indeed the `lang::Or` will received a list-ish type full of string-ish types (the values `bob` and `jim`) and perform as expected.
+Now indeed the `lang::or` will received a list-ish type full of string-ish types (the values `bob` and `jim`) and perform as expected.
 

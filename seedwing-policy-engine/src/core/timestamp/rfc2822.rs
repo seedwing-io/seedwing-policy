@@ -6,7 +6,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Rfc2822.adoc");
+const DOCUMENTATION: &str = include_str!("rfc2822.adoc");
 
 #[derive(Debug)]
 pub struct Rfc2822;

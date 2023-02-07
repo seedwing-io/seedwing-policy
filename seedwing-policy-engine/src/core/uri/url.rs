@@ -11,7 +11,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct Url;
 
-const DOCUMENTATION: &str = include_str!("Url.adoc");
+const DOCUMENTATION: &str = include_str!("url.adoc");
 
 impl BlockingFunction for Url {
     fn order(&self) -> u8 {

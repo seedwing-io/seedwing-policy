@@ -27,12 +27,12 @@ pub enum SyntacticSugar {
 impl From<TypeName> for SyntacticSugar {
     fn from(name: TypeName) -> Self {
         match name.as_type_str().as_str() {
-            "lang::And" => Self::And,
-            "lang::Or" => Self::Or,
-            "lang::Refine" => Self::Refine,
-            "lang::Traverse" => Self::Traverse,
-            "lang::Chain" => Self::Chain,
-            "lang::Not" => Self::Not,
+            "lang::and" => Self::And,
+            "lang::or" => Self::Or,
+            "lang::refine" => Self::Refine,
+            "lang::traverse" => Self::Traverse,
+            "lang::chain" => Self::Chain,
+            "lang::not" => Self::Not,
             _ => Self::None,
         }
     }

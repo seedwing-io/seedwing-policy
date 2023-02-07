@@ -1,1 +1,1 @@
-pattern certificate = base64::Base64Url(x509::DER)
+pattern certificate = base64::base64-url(x509::DER)

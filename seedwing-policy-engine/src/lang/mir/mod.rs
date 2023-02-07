@@ -355,7 +355,7 @@ impl World {
                 ty.location(),
             )))),
             hir::Type::Not(inner) => {
-                let primary_type_handle = self.types[&(String::from("lang::Not").into())];
+                let primary_type_handle = self.types[&(String::from("lang::not").into())];
 
                 let bindings = vec![self.convert(inner)?];
 
@@ -370,7 +370,7 @@ impl World {
                     inner.push(self.convert(e)?)
                 }
 
-                let primary_type_handle = self.types[&(String::from("lang::Or").into())];
+                let primary_type_handle = self.types[&(String::from("lang::or").into())];
 
                 let bindings = vec![Arc::new(
                     TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
@@ -387,7 +387,7 @@ impl World {
                     inner.push(self.convert(e)?)
                 }
 
-                let primary_type_handle = self.types[&(String::from("lang::And").into())];
+                let primary_type_handle = self.types[&(String::from("lang::and").into())];
 
                 let bindings = vec![Arc::new(
                     TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
@@ -399,7 +399,7 @@ impl World {
                 ))))
             }
             hir::Type::Refinement(refinement) => {
-                let primary_type_handle = self.types[&(String::from("lang::Refine").into())];
+                let primary_type_handle = self.types[&(String::from("lang::refine").into())];
 
                 let bindings = vec![self.convert(refinement)?];
 
@@ -409,7 +409,7 @@ impl World {
                 ))))
             }
             hir::Type::Traverse(step) => {
-                let primary_type_handle = self.types[&(String::from("lang::Traverse").into())];
+                let primary_type_handle = self.types[&(String::from("lang::traverse").into())];
 
                 let bindings = vec![Arc::new(TypeHandle::new(None).with(Located::new(
                     mir::Type::Const(ValueType::String(step.inner())),
@@ -422,7 +422,7 @@ impl World {
                 ))))
             }
             hir::Type::Chain(terms) => {
-                let primary_type_handle = self.types[&(String::from("lang::Chain").into())];
+                let primary_type_handle = self.types[&(String::from("lang::chain").into())];
 
                 let mut inner = Vec::new();
                 for e in terms {

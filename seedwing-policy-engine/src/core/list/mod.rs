@@ -21,12 +21,12 @@ const PATTERN: &str = "pattern";
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["list"]));
-    pkg.register_function("Any".into(), any::Any);
-    pkg.register_function("All".into(), all::All);
-    pkg.register_function("None".into(), none::None);
-    pkg.register_function("Some".into(), some::Some);
-    pkg.register_function("Head".into(), head::Head);
-    pkg.register_function("Tail".into(), tail::Tail);
+    pkg.register_function("any".into(), any::Any);
+    pkg.register_function("all".into(), all::All);
+    pkg.register_function("none".into(), none::None);
+    pkg.register_function("some".into(), some::Some);
+    pkg.register_function("head".into(), head::Head);
+    pkg.register_function("tail".into(), tail::Tail);
     pkg
 }
 

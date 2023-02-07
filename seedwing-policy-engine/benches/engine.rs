@@ -133,13 +133,13 @@ fn testdata_sigstore() -> TestData {
         r#"
             // Single-line comment, yay
             pattern signed-thing = {
-                digest: sigstore::SHA256(
+                digest: sigstore::sha256(
                     n<1>::{
                         apiVersion: "0.0.1",
                         spec: {
                             signature: {
                                 publicKey: {
-                                    content: base64::Base64(
+                                    content: base64::base64(
                                         x509::PEM( n<1>::{
                                             version: 2,
                                             extensions: n<1>::{

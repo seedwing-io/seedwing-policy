@@ -3,7 +3,7 @@ pattern with-metadata<M> = {
 }
 
 pattern with-components<C> = {
-  components?: list::All<C && with-components<C>>,
+  components?: list::all<C && with-components<C>>,
 }
 
 pattern with-pedigree<P> = {
@@ -11,15 +11,15 @@ pattern with-pedigree<P> = {
 }
 
 pattern with-ancestors<A> = {
-  ancestors?: list::All<A>
+  ancestors?: list::all<A>
 }
 
 pattern with-descendants<D> = {
-  ancestors?: list::All<D>
+  ancestors?: list::all<D>
 }
 
 pattern with-variants<V> = {
-  variants?: list::All<V>
+  variants?: list::all<V>
 }
 
 pattern with-supplier<S> = {
@@ -31,87 +31,87 @@ pattern with-evidence<E> = {
 }
 
 pattern with-commits<C> = {
-  variants?: list::All<C>
+  variants?: list::all<C>
 }
 
 pattern with-patches<P> = {
-  patches?: list::All<P>
+  patches?: list::all<P>
 }
 
 pattern with-notes<N> = {
-  notes?: list::All<N>
+  notes?: list::all<N>
 }
 
 pattern with-services<S> = {
-  services?: list::All<S>,
+  services?: list::all<S>,
 }
 
 pattern with-tools<T> = {
-  tools?: list::All<T>,
+  tools?: list::all<T>,
 }
 
 pattern with-authors<T> = {
-  authors?: list::All<T>,
+  authors?: list::all<T>,
 }
 
 pattern with-individuals<I> = {
-  individuals?: list::All<I>
+  individuals?: list::all<I>
 }
 
 pattern with-organizations<O> = {
-  organizations?: list::All<O>,
+  organizations?: list::all<O>,
 }
 
 pattern with-composition<C> = {
-  composition?: list::All<C>,
+  composition?: list::all<C>,
 }
 
 pattern with-properties<P> = {
-  properties?: list::All<P>
+  properties?: list::all<P>
 }
 
 pattern with-vulnerabilities<V> = {
-  vulnerabilities?: list::All<V>,
+  vulnerabilities?: list::all<V>,
 }
 
 pattern with-ratings<R> = {
-  ratings?: list::All<R>,
+  ratings?: list::all<R>,
 }
 
 pattern with-advisories<A> = {
-  advisories?: list::All<A>,
+  advisories?: list::all<A>,
 }
 
 pattern with-hashes<H> = {
-  hashes?: list::All<H>,
+  hashes?: list::all<H>,
 }
 
 pattern with-external-references<E> = {
-  externalReferences?: list::All<E>,
+  externalReferences?: list::all<E>,
 }
 
 pattern with-contact<C> = {
-  contact?: list::All<contact>,
+  contact?: list::all<contact>,
 }
 
 pattern with-licenses<L> = {
-  licenses?: list::All<L>,
+  licenses?: list::all<L>,
 }
 
 pattern with-copyright<C> = {
-  copyright?: list::All<C>
+  copyright?: list::all<C>
 }
 
 pattern with-dependencies<D> = {
-  dependencies?: list::All<D>,
+  dependencies?: list::all<D>,
 }
 
 pattern with-release-notes<R> = {
-  releaseNotes?: list::All<R>,
+  releaseNotes?: list::all<R>,
 }
 
 pattern with-data<D> = {
-  data?: list::All<D>,
+  data?: list::all<D>,
 }
 
 // --- core structures
@@ -147,7 +147,7 @@ pattern service = {
   name: string,
   version?: string,
   description?: string,
-  endpoints?: list::All<string>,
+  endpoints?: list::all<string>,
   authenticated?: boolean,
   x-trust-boundary?: boolean,
   // signature?: signature
@@ -171,7 +171,7 @@ pattern composition = {
     || "incomplete_third_party_only"
     || "unknown"
     || "not_specified",
-  assemblies?: list::All<string>,
+  assemblies?: list::all<string>,
   //signature?: signature
 } && with-dependencies<dependency>
 
@@ -264,18 +264,18 @@ pattern evidence = with-licenses<license> && with-copyright<copyright>
 
 pattern dependency = {
   ref: string,
-  dependsOn?: list::All<string>,
+  dependsOn?: list::all<string>,
 }
 
 pattern vulnerability = {
   bom-ref?: string,
   id?: string,
   source?: source,
-  references?: list::All< {
+  references?: list::all< {
     id: string,
     source: source,
   } >,
-  cwes?: list::All<integer>,
+  cwes?: list::all<integer>,
   description?: string,
   detail?: string,
   recommendation?: string,
@@ -313,10 +313,10 @@ pattern release-note = {
   socialImage?: string,
   description?: string,
   timestamp?: string,
-  aliases?: list::All<string>,
-  tags?: list::All<string>,
-  resolves?: list::All<issue>,
-  notes?: list::All<{
+  aliases?: list::all<string>,
+  tags?: list::all<string>,
+  resolves?: list::all<issue>,
+  notes?: list::all<{
     locale?: string,
     text: text,
   }>,
@@ -328,7 +328,7 @@ pattern issue = {
   name?: string,
   descriptions?: string,
   source?: source,
-  references?: list::All<string>,
+  references?: list::all<string>,
 }
 
 pattern commit = {
@@ -356,7 +356,7 @@ pattern patch = {
     text?: text,
     url?: string,
   },
-  resolves: list::All<issue>,
+  resolves: list::all<issue>,
 }
 
 pattern text = {

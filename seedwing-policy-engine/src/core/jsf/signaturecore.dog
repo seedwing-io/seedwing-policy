@@ -3,6 +3,6 @@ pattern signaturecore = {
   algorithm: jsf::algorithm,
   keyId: string,
   publicKey: jsf::public-key,
-  certificatePath: list::All<string>,
-  value: base64::Base64,
+  certificatePath: list::all<string>,
+  value: base64::base64,
 }

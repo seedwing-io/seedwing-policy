@@ -64,7 +64,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<42>
+            pattern test-none = list::none<42>
         "#,
         );
 
@@ -89,7 +89,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<$(self > 50)>
+            pattern test-none = list::none<$(self > 50)>
         "#,
         );
 
@@ -114,7 +114,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<42>
+            pattern test-none = list::none<42>
         "#,
         );
 
@@ -139,7 +139,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<$(self > 42)>
+            pattern test-none = list::none<$(self > 42)>
         "#,
         );
 
@@ -164,7 +164,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<$(self > 99.0)>
+            pattern test-none = list::none<$(self > 99.0)>
         "#,
         );
 
@@ -189,7 +189,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<42>
+            pattern test-none = list::none<42>
         "#,
         );
 
@@ -214,7 +214,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-none = list::None<42>
+            pattern test-none = list::none<42>
         "#,
         );
 

@@ -1,5 +1,5 @@
 
-pattern people-near-me = lang::Or<*data::From<"people.json">>
+pattern people-near-me = lang::or<*data::from<"people.json">>
 
 pattern furry = {
   furry: true
@@ -33,7 +33,7 @@ pattern baz = {
   baz: integer
 }
 
-pattern signers = lang::Or<[ "bob", "jim" ]>
+pattern signers = lang::or<[ "bob", "jim" ]>
 
 
 /// It could be a foo
@@ -77,16 +77,16 @@ pattern deep = self.foo.bar("bob")
 /// ```
 pattern signed-thing = {
     digest: sigstore::SHA256(
-        list::Any<{
+        list::any<{
             apiVersion: "0.0.1",
             spec: {
                 signature: {
                     publicKey: {
-                        content: base64::Base64(
-                            x509::PEM( list::Any<{
+                        content: base64::base64(
+                            x509::PEM( list::any<{
                                 version: 2,
-                                extensions: list::Any<{
-                                    subjectAlternativeName: list::Any<{
+                                extensions: list::any<{
+                                    subjectAlternativeName: list::any<{
                                         rfc822: "bob@mcwhirter.org",
                                     }>
                                 }>

@@ -29,11 +29,11 @@ mod traverse;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["lang"]));
-    pkg.register_function("And".into(), And);
-    pkg.register_function("Or".into(), Or);
-    pkg.register_function("Refine".into(), Refine);
-    pkg.register_function("Traverse".into(), Traverse);
-    pkg.register_function("Chain".into(), Chain);
-    pkg.register_function("Not".into(), Not);
+    pkg.register_function("and".into(), And);
+    pkg.register_function("or".into(), Or);
+    pkg.register_function("refine".into(), Refine);
+    pkg.register_function("traverse".into(), Traverse);
+    pkg.register_function("chain".into(), Chain);
+    pkg.register_function("not".into(), Not);
     pkg
 }

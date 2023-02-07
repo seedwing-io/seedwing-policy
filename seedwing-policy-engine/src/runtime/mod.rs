@@ -197,17 +197,17 @@ mod test {
             r#"
             // Single-line comment, yay
             pattern signed-thing = {
-                digest: sigstore::SHA256(
-                    list::Any<{
+                digest: sigstore::sha256(
+                    list::any<{
                         apiVersion: "0.0.1",
                         spec: {
                             signature: {
                                 publicKey: {
-                                    content: base64::Base64(
-                                        x509::PEM( list::Any<{
+                                    content: base64::base64(
+                                        x509::PEM( list::any<{
                                             version: 2,
-                                            extensions: list::Any<{
-                                                subjectAlternativeName: list::Any<{
+                                            extensions: list::any<{
+                                                subjectAlternativeName: list::any<{
                                                     rfc822: "bob@mcwhirter.org",
                                                 }>
                                             }>

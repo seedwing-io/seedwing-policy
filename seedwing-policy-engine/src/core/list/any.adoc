@@ -5,7 +5,7 @@ An empty input list does *not* match.
 For instance:
 
 ```
-pattern contains-bob = list::Any<"Bob">
+pattern contains-bob = list::any<"Bob">
 ```
 
 Would match

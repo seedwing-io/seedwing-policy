@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["pem"]));
-    pkg.register_function("AsCertificate".into(), AsCertificate);
+    pkg.register_function("as-certificate".into(), AsCertificate);
     pkg
 }
 

@@ -13,7 +13,7 @@ use std::str::from_utf8;
 use std::thread::sleep;
 use std::time::Duration;
 
-const DOCUMENTATION: &str = include_str!("DelayMs.adoc");
+const DOCUMENTATION: &str = include_str!("delay-ms.adoc");
 
 const DELAY: &str = "delay";
 

@@ -6,7 +6,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-const DOCUMENTATION: &str = include_str!("Refine.adoc");
+const DOCUMENTATION: &str = include_str!("refine.adoc");
 
 const REFINEMENT: &str = "refinement";
 
