@@ -26,7 +26,6 @@ impl OsvClient {
                 ecosystem: ecosystem.to_string(),
             },
         };
-        log::info!("Querying for {:?}", payload);
         let response = self.client.post(OSV_URL).json(&payload).send().await;
         match response {
             Ok(r) if r.status() == StatusCode::OK => {
