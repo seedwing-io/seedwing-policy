@@ -1,0 +1,23 @@
+[package]
+name = "seedwing-policy-cli"
+version = "0.1.0-alpha.2"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/seedwing-io/seedwing-policy"
+
+description = "A CLI to evaluate and explore seedwing policies"
+categories = ["development-tools", "parser-implementations"]
+keywords = ["policy"]
+
+[dependencies]
+seedwing-policy-engine = { path = "../seedwing-policy-engine" }
+log = "0.4.17"
+env_logger = "0.10.0"
+futures-util = "0.3.25"
+serde_json = "1.0.89"
+clap = { version = "4.0.29", features = [ "derive"] }
+serde = { version = "1.0.152" }
+tokio = "*"
+
+[features]
+debug = ["seedwing-policy-engine/debug"]

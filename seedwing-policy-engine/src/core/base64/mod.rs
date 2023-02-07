@@ -4,7 +4,7 @@ use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
-use base64::engine::general_purpose::STANDARD;
+use base64::engine::general_purpose::{ URL_SAFE_NO_PAD, STANDARD};
 use base64::Engine;
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -25,6 +25,7 @@ pub fn package() -> Package {
 
 const DOCUMENTATION_BASE64: &str = include_str!("base64.adoc");
 const DOCUMENTATION_BASE64_ENCODE: &str = include_str!("base64-encode.adoc");
+const DOCUMENTATION_BASE64URL: &str = include_str!("base64-url.adoc");
 
 #[derive(Debug)]
 pub struct Base64;
@@ -72,7 +73,7 @@ impl Function for Base64Url {
     }
 
     fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION_BASE64.into())
+        Some(DOCUMENTATION_BASE64URL.into())
     }
 
     fn call<'v>(
@@ -85,9 +86,7 @@ impl Function for Base64Url {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
-                let inner = inner.replace('-', "+");
-                let inner = inner.replace('_', "/");
-                let result = STANDARD.decode(inner);
+                let result = URL_SAFE_NO_PAD.decode(inner);
 
                 if let Ok(decoded) = result {
                     Ok(Output::Transform(Rc::new(decoded.into())).into())
