@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use tokio::fs;
 use tokio::io::AsyncReadExt;
+use crate::explain::explain;
 
 pub const COMMAND_NAME: &str = "seedwing-policy";
 
@@ -73,6 +74,8 @@ impl Cli {
 
                 match eval.run().await {
                     Ok(result) => {
+                        explain(&result);
+                        println!();
                         if result.satisfied() {
                             println!("ok!");
                         } else {
