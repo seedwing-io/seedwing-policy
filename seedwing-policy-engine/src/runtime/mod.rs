@@ -139,8 +139,6 @@ impl EvaluationResult {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RuntimeError {
-    #[error("lock")]
-    Lock,
     #[error("invalid state")]
     InvalidState,
     #[error("no such type: {0}")]

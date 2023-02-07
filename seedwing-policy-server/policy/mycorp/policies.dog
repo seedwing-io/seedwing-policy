@@ -76,7 +76,7 @@ pattern deep = self.foo.bar("bob")
 /// }
 /// ```
 pattern signed-thing = {
-    digest: sigstore::SHA256(
+    digest: sigstore::sha256(
         list::any<{
             apiVersion: "0.0.1",
             spec: {

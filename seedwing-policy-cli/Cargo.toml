@@ -12,6 +12,7 @@ keywords = ["policy"]
 [dependencies]
 seedwing-policy-engine = { path = "../seedwing-policy-engine" }
 log = "0.4.17"
+is-terminal = "0.4.3"
 env_logger = "0.10.0"
 futures-util = "0.3.25"
 serde_json = "1.0.89"
