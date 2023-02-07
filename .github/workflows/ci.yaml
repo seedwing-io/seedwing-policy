@@ -36,4 +36,4 @@ jobs:
         run: cargo test -- --nocapture
 
       - name: Benchmark
-        run: cargo bench
+        run: cargo bench --no-run
