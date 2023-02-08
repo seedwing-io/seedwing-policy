@@ -248,12 +248,19 @@ impl World {
             log::warn!("{} is not documented", path.as_type_str());
         }
 
-        self.type_slots.push(Arc::new(
+        let runtime_type = Arc::new(
             TypeHandle::new(Some(path.clone()))
                 .with_parameters(parameters)
                 .with_documentation(documentation),
-        ));
-        self.types.insert(path, self.type_slots.len() - 1);
+        );
+
+        if let Some(handle) = self.types.get_mut(&path) {
+            // self.types already contains an entry for this path so update it.
+            self.type_slots[*handle] = runtime_type;
+        } else {
+            self.type_slots.push(runtime_type);
+            self.types.insert(path, self.type_slots.len() - 1);
+        }
     }
 
     #[allow(clippy::result_large_err)]
