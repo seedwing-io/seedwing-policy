@@ -202,7 +202,7 @@ mod test {
                             signature: {
                                 publicKey: {
                                     content: base64::base64(
-                                        x509::PEM( list::any<{
+                                        x509::pem( list::any<{
                                             version: 2,
                                             extensions: list::any<{
                                                 subjectAlternativeName: list::any<{

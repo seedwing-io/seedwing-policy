@@ -19,8 +19,8 @@ pub mod convert;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["x509"]));
-    pkg.register_function("PEM".into(), PEM);
-    pkg.register_function("DER".into(), DER);
+    pkg.register_function("pem".into(), PEM);
+    pkg.register_function("der".into(), DER);
     pkg.register_source("oid".into(), include_str!("oid.dog"));
     pkg.register_source("".into(), include_str!("certificate.dog"));
     pkg

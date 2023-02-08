@@ -140,7 +140,7 @@ fn testdata_sigstore() -> TestData {
                             signature: {
                                 publicKey: {
                                     content: base64::base64(
-                                        x509::PEM( n<1>::{
+                                        x509::pem( n<1>::{
                                             version: 2,
                                             extensions: n<1>::{
                                                 subjectAlternativeName: n<1>::{

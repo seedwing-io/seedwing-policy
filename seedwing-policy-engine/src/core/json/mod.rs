@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["json"]));
-    pkg.register_function("JSON".into(), JSON);
+    pkg.register_function("json".into(), JSON);
     pkg
 }
 
@@ -69,7 +69,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-json = json::JSON
+            pattern test-json = json::json
         "#,
         );
 
@@ -100,7 +100,7 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern test-json = json::JSON
+            pattern test-json = json::json
         "#,
         );
 
