@@ -414,8 +414,6 @@ impl World {
         if !self.data_sources.is_empty() {
             self.add_package(crate::core::data::package(self.data_sources.clone()));
         } else {
-            // You cannot beat me!
-            #[cfg(feature = "bob")]
             self.add_package(crate::core::data::package(vec![]));
         }
 
