@@ -14,11 +14,12 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
+use base64::engine::GeneralPurpose;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]));
-    pkg.register_function("base64".into(), Base64);
-    pkg.register_function("base64-url".into(), Base64Url);
+    pkg.register_function("base64".into(), Base64::new(Alphabet::Standard));
+    pkg.register_function("base64-url".into(), Base64::new(Alphabet::UrlNoPad));
     pkg.register_function("base64-encode".into(), Base64Encode);
     pkg
 }
@@ -28,7 +29,36 @@ const DOCUMENTATION_BASE64_ENCODE: &str = include_str!("base64-encode.adoc");
 const DOCUMENTATION_BASE64URL: &str = include_str!("base64-url.adoc");
 
 #[derive(Debug)]
-pub struct Base64;
+enum Alphabet {
+    Standard,
+    UrlNoPad,
+}
+
+impl Alphabet {
+    pub fn decoder(&self) -> GeneralPurpose {
+        match self {
+            Alphabet::Standard => {
+                STANDARD
+            }
+            Alphabet::UrlNoPad => {
+                URL_SAFE_NO_PAD
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Base64 {
+    alphabet: Alphabet
+}
+
+impl Base64 {
+    fn new(alphabet: Alphabet) -> Self {
+        Self {
+            alphabet
+        }
+    }
+}
 
 impl Function for Base64 {
     fn order(&self) -> u8 {
@@ -36,7 +66,11 @@ impl Function for Base64 {
     }
 
     fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION_BASE64.into())
+        match self.alphabet {
+            Alphabet::Standard=> Some(DOCUMENTATION_BASE64.into()),
+            Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
+            _ => None
+        }
     }
 
     fn call<'v>(
@@ -49,44 +83,7 @@ impl Function for Base64 {
         Box::pin(async move {
             let input = (*input).borrow();
             if let Some(inner) = input.try_get_string() {
-                let result = STANDARD.decode(inner);
-
-                if let Ok(decoded) = result {
-                    Ok(Output::Transform(Rc::new(decoded.into())).into())
-                } else {
-                    //Err(FunctionError::Other("unable to decode base64".into()))
-                    Ok(Output::None.into())
-                }
-            } else {
-                Ok(Output::None.into())
-            }
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct Base64Url;
-
-impl Function for Base64Url {
-    fn order(&self) -> u8 {
-        128
-    }
-
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION_BASE64URL.into())
-    }
-
-    fn call<'v>(
-        &'v self,
-        input: Rc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
-    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
-        Box::pin(async move {
-            let input = (*input).borrow();
-            if let Some(inner) = input.try_get_string() {
-                let result = URL_SAFE_NO_PAD.decode(inner);
+                let result = self.alphabet.decoder().decode(inner);
 
                 if let Ok(decoded) = result {
                     Ok(Output::Transform(Rc::new(decoded.into())).into())
