@@ -18,6 +18,7 @@ use seedwing_policy_engine::runtime::{
 };
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
+use serde_json::{Error, Value};
 
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
@@ -46,7 +47,7 @@ pub async fn evaluate_json(
     evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
         serde_json::to_string_pretty(&json::Result::new(r)).unwrap()
     })
-    .await
+        .await
 }
 
 #[post("/policy/{path:.*}")]
@@ -65,17 +66,18 @@ pub async fn evaluate_html(
     // todo: accomodate non-JSON using content-type headers.
     let result: Result<serde_json::Value, _> = serde_json::from_slice(&content);
 
-    if let Ok(result) = &result {
-        let value = RuntimeValue::from(result);
-        let path = path.replace('/', "::");
+    match &result {
+        Ok(result) => {
+            let value = RuntimeValue::from(result);
+            let path = path.replace('/', "::");
 
-        evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
-            Rationalizer::new(r).rationale()
-        })
-        .await
-    } else {
-        log::error!("unable to parse [{:?}]", result);
-        HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
+            evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
+                Rationalizer::new(r).rationale()
+            }).await
+        }
+        Err(error) => {
+            HttpResponse::BadRequest().body(format!("{}", error))
+        }
     }
 }
 
@@ -86,8 +88,8 @@ async fn evaluate<F>(
     params: PolicyQuery,
     formatter: F,
 ) -> HttpResponse
-where
-    F: Fn(&EvaluationResult) -> String,
+    where
+        F: Fn(&EvaluationResult) -> String,
 {
     let mut trace = EvalTrace::Disabled;
     if let Some(true) = params.trace {

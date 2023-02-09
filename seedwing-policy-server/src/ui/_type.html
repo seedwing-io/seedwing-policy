@@ -182,6 +182,14 @@
         </div>
       </div>
     </div>
+    <div class="pf-c-panel pf-m-gold" id="error">
+      <div class="pf-c-panel__header">Error</div>
+      <div class="pf-c-panel__main">
+        <div class="pf-c-panel__main-body" id="error_body">
+          Error goes here.
+        </div>
+      </div>
+    </div>
   </div>
   {{/if}}
 </div>
@@ -196,8 +204,11 @@
   $("#documentation ul").addClass("pf-c-list");
 
   $("#rationale").hide();
+  $("#error").hide();
 
   $("#experiment_post").on("click", event => {
+    $("#rationale").hide();
+    $("#error").hide();
     $("#experiment_post")
         .prop("disabled", true)
         .addClass("pf-m-in-progress");
@@ -225,6 +236,8 @@
         $('#experiment_status').removeClass("pf-m-green");
         $('#experiment_status').addClass("pf-m-red");
       } else {
+        $('#error_body').html(arg.responseText);
+        $("#error").show();
         $('#experiment_status').removeClass("pf-m-green");
         $('#experiment_status').removeClass("pf-m-red");
         $('#experiment_status').addClass("pf-m-gold");
