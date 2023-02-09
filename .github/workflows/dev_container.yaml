@@ -1,0 +1,56 @@
+name: Developpement container
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Containerfile
+      - .github/workflows/dev_container.yaml
+    schedule:
+    - cron:  '0 0 * * *'
+
+env:
+  IMAGE_NAME: seedwing-policy-devcontainer
+  IMAGE_TAG: latest
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+
+jobs:
+  build-container:
+
+    permissions:
+      contents: read
+      packages: write
+
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
+          platforms: linux/amd64
+          extra-args:  |
+            --target devenv
+          containerfiles: |
+            ./Containerfile
+
+      - name: Log in to ghcr.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.IMAGE_REGISTRY }}
+
+      - name: Push to registry
+        id: push-to-ghcr
+        uses: redhat-actions/push-to-registry@v2
+         with:
+           tags: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

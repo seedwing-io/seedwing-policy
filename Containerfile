@@ -1,10 +1,11 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest as builder
+FROM registry.access.redhat.com/ubi9/ubi:latest AS devenv
 
 RUN dnf install -y gcc gcc-c++ openssl openssl-devel npm xz
 RUN npm install --global yarn
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 ENV PATH "$PATH:/root/.cargo/bin"
+LABEL org.opencontainers.image.source="https://github.com/seedwing-io/seedwing-policy"
 
 RUN rustup target add wasm32-unknown-unknown
 
@@ -29,8 +30,9 @@ RUN true \
     && install -m 0555 trunk /usr/local/bin/ \
     && rm trunk
 
-RUN cargo install cargo-auditable
+FROM devenv AS builder
 
+RUN cargo install cargo-auditable
 RUN mkdir /usr/src/project
 COPY . /usr/src/project
 WORKDIR /usr/src/project
@@ -39,6 +41,7 @@ RUN cd seedwing-policy-frontend && yarn install
 RUN cargo auditable build --release --features frontend
 
 RUN mkdir /result && cp -pv target/release/swio /result/
+
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
