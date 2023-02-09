@@ -1,6 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
+use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
@@ -42,8 +43,7 @@ const DOCUMENTATION: &str = include_str!("from-osv.adoc");
 
 impl Function for FromOsv {
     fn order(&self) -> u8 {
-        // Reaching out to the network
-        200
+        132
     }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
@@ -57,15 +57,23 @@ impl Function for FromOsv {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            match serde_json::from_value::<OsvResponse>(input.as_json()) {
-                Ok(osv) => {
-                    let vex = osv2vex(osv);
-                    let json: serde_json::Value = serde_json::to_value(vex).unwrap();
-                    Ok(Output::Transform(Rc::new(json.into())).into())
+            match input.as_ref() {
+                RuntimeValue::Object(osv) => {
+                    match serde_json::from_value::<OsvResponse>(osv.as_json()) {
+                        Ok(osv) => {
+                            let vex = osv2vex(osv);
+                            let json: serde_json::Value = serde_json::to_value(vex).unwrap();
+                            Ok(Output::Transform(Rc::new(json.into())).into())
+                        }
+                        Err(e) => {
+                            log::warn!("Error looking up {:?}", e);
+                            Ok(Output::None.into())
+                        }
+                    }
                 }
-                Err(e) => {
-                    log::warn!("Error looking up {:?}", e);
-                    Ok(Output::None.into())
+                v => {
+                    let msg = "input is neither a Object nor a List";
+                    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
                 }
             }
         })
@@ -76,8 +84,11 @@ fn osv2vex(osv: OsvResponse) -> OpenVex {
     const VERSION: AtomicU64 = AtomicU64::new(1);
     let mut vex = OpenVex {
         metadata: Metadata {
-            context: "https://github.com/seedwing-io/seedwing-policy".to_string(),
-            id: uuid::Uuid::new_v4().to_string(),
+            context: "https://openvex.dev/ns".to_string(),
+            id: format!(
+                "https://seedwing.io/docs/generated/{}",
+                uuid::Uuid::new_v4().to_string()
+            ),
             author: "Seedwing Policy Engine".to_string(),
             role: "Document Creator".to_string(),
             timestamp: Some(Utc::now()),

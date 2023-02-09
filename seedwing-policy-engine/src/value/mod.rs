@@ -443,7 +443,7 @@ impl Object {
         }
     }
 
-    fn as_json(&self) -> serde_json::Value {
+    pub fn as_json(&self) -> serde_json::Value {
         let mut inner = Map::new();
         for (name, value) in &self.fields {
             inner.insert(name.clone(), (**value).borrow().as_json());

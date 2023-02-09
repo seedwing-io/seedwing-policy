@@ -1,5 +1,6 @@
 use crate::core::lang::and::And;
 use crate::core::lang::chain::Chain;
+use crate::core::lang::map::Map;
 use crate::core::lang::not::Not;
 use crate::core::lang::or::Or;
 use crate::core::lang::refine::Refine;
@@ -22,6 +23,7 @@ use std::sync::Arc;
 
 mod and;
 mod chain;
+mod map;
 mod not;
 mod or;
 mod refine;
@@ -35,5 +37,6 @@ pub fn package() -> Package {
     pkg.register_function("traverse".into(), Traverse);
     pkg.register_function("chain".into(), Chain);
     pkg.register_function("not".into(), Not);
+    pkg.register_function("map".into(), Map);
     pkg
 }

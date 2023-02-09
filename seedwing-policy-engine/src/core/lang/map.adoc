@@ -1,0 +1,5 @@
+Parameterized patterns that maps a function over the values.
+
+For lists, the function will apply the parameterized function to each element in the list.
+
+For other values, the input will be passed as is.

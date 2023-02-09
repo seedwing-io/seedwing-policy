@@ -32,6 +32,7 @@ impl BlockingFunction for Purl {
                 Ok(url) => self.validate(&url),
                 Err(result) => Ok(result),
             },
+
             RuntimeValue::Object(url) => self.validate(url),
             _ => Self::invalid_arg("input is neither a String nor an Object"),
         }
