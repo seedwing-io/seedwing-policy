@@ -80,6 +80,31 @@ mod tests {
     use serde_json::json;
 
     #[tokio::test]
+    async fn test_map_single_element() {
+        let result = test_pattern(
+            r#"lang::map<uri::purl>"#,
+            RuntimeValue::String(
+                "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".to_string(),
+            ),
+        )
+        .await;
+
+        assert_eq!(
+            result.output(),
+            Some(Arc::new(
+                json!({
+                    "type": "github",
+                    "namespace": "package-url",
+                    "name": "purl-spec",
+                    "version": "244fd47e07d1004",
+                    "subpath": "everybody/loves/dogs",
+                })
+                .into()
+            ))
+        );
+    }
+
+    #[tokio::test]
     async fn test_map_list() {
         let result = test_pattern(
             r#"lang::map<uri::purl>"#,
