@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest AS devenv
+FROM registry.fedoraproject.org/fedora-toolbox:37 AS devenv
 
 RUN dnf install -y gcc gcc-c++ openssl openssl-devel npm xz
 RUN npm install --global yarn
