@@ -2,6 +2,7 @@ use crate::value::{Object, RuntimeValue};
 use serde::{ser, Serialize};
 use std::fmt::Display;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Serializer {}
 
@@ -198,7 +199,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 
 pub struct SerializeList<'a> {
     ser: &'a mut Serializer,
-    output: Vec<Rc<RuntimeValue>>,
+    output: Vec<Arc<RuntimeValue>>,
     parent: Option<&'a str>,
 }
 
@@ -223,7 +224,7 @@ impl<'a> SerializeList<'a> {
     where
         T: Serialize,
     {
-        self.output.push(Rc::new(value.serialize(&mut *self.ser)?));
+        self.output.push(Arc::new(value.serialize(&mut *self.ser)?));
         Ok(())
     }
 

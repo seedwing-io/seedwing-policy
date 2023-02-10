@@ -22,7 +22,7 @@ impl Function for Some {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -48,7 +48,7 @@ impl Function for Some {
                         let count = supporting.iter().filter(|e| e.satisfied()).count();
                         let expected_result = expected_count
                             .evaluate(
-                                Rc::new((count as i64).into()),
+                                Arc::new((count as i64).into()),
                                 ctx,
                                 &Default::default(),
                                 world,

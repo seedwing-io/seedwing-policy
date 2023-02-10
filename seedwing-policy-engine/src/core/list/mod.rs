@@ -35,9 +35,9 @@ pub(crate) async fn split_fill<I>(
     world: &World,
     mut i: I,
     count: Option<Arc<Type>>,
-) -> Result<(Vec<Rc<RuntimeValue>>, Vec<Rc<RuntimeValue>>), RuntimeError>
+) -> Result<(Vec<Arc<RuntimeValue>>, Vec<Arc<RuntimeValue>>), RuntimeError>
 where
-    I: Iterator<Item = Rc<RuntimeValue>> + DoubleEndedIterator,
+    I: Iterator<Item = Arc<RuntimeValue>> + DoubleEndedIterator,
 {
     let mut greedy = Vec::new();
 
@@ -46,7 +46,7 @@ where
             Some(expected_count) => {
                 let expected_result = expected_count
                     .evaluate(
-                        Rc::new((greedy.len()).into()),
+                        Arc::new((greedy.len()).into()),
                         ctx,
                         &Default::default(),
                         world,

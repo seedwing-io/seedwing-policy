@@ -41,7 +41,7 @@ impl Function for SHA256 {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -80,7 +80,7 @@ impl Function for SHA256 {
                     let joined = join_all(handles).await;
                     let transform: Vec<RuntimeValue> = joined.into_iter().flatten().collect();
 
-                    Ok(Output::Transform(Rc::new(transform.into())).into())
+                    Ok(Output::Transform(Arc::new(transform.into())).into())
                 } else {
                     Ok(Output::None.into())
                 }

@@ -51,7 +51,7 @@ impl Function for FromOsv {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -63,7 +63,7 @@ impl Function for FromOsv {
                         Ok(osv) => {
                             let vex = osv2vex(osv);
                             let json: serde_json::Value = serde_json::to_value(vex).unwrap();
-                            Ok(Output::Transform(Rc::new(json.into())).into())
+                            Ok(Output::Transform(Arc::new(json.into())).into())
                         }
                         Err(e) => {
                             log::warn!("Error looking up {:?}", e);

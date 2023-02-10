@@ -42,17 +42,17 @@ pub enum Expr {
 }
 
 pub type ExprFuture =
-    Pin<Box<dyn Future<Output = Result<Rc<RuntimeValue>, RuntimeError>> + 'static>>;
+    Pin<Box<dyn Future<Output = Result<Arc<RuntimeValue>, RuntimeError>> + 'static>>;
 
 impl Expr {
     #[allow(clippy::let_and_return)]
-    pub fn evaluate(&self, value: Rc<RuntimeValue>) -> ExprFuture {
+    pub fn evaluate(&self, value: Arc<RuntimeValue>) -> ExprFuture {
         let this = self.clone();
 
         Box::pin(async move {
             match &this {
                 Expr::SelfLiteral() => Ok(value.clone()),
-                Expr::Value(ref inner) => Ok(Rc::new(inner.into())),
+                Expr::Value(ref inner) => Ok(Arc::new(inner.into())),
                 Expr::Function(_, _) => todo!(),
                 Expr::Add(_, _) => todo!(),
                 Expr::Subtract(_, _) => todo!(),
@@ -63,9 +63,9 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Less) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     } else {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     };
 
                     result
@@ -77,9 +77,9 @@ impl Expr {
                     let result = if let Some(Ordering::Less | Ordering::Equal) =
                         (*lhs).partial_cmp(&(*rhs))
                     {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     } else {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     };
 
                     result
@@ -89,9 +89,9 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Greater) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     } else {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     };
 
                     result
@@ -103,9 +103,9 @@ impl Expr {
                     let result = if let Some(Ordering::Greater | Ordering::Equal) =
                         (*lhs).partial_cmp(&(*rhs))
                     {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     } else {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     };
 
                     result
@@ -115,9 +115,9 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     } else {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     };
 
                     result
@@ -127,9 +127,9 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Equal) = (*lhs).partial_cmp(&(*rhs)) {
-                        Ok(Rc::new(false.into()))
+                        Ok(Arc::new(false.into()))
                     } else {
-                        Ok(Rc::new(true.into()))
+                        Ok(Arc::new(true.into()))
                     };
 
                     result
@@ -196,7 +196,7 @@ impl Type {
 
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
-        value: Rc<RuntimeValue>,
+        value: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -217,7 +217,7 @@ impl Type {
             InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
                 #[allow(clippy::ptr_arg)]
                 fn build_bindings<'b>(
-                    value: Rc<RuntimeValue>,
+                    value: Arc<RuntimeValue>,
                     mut bindings: Bindings,
                     ctx: &'b mut EvalContext,
                     parameters: Vec<String>,
@@ -701,7 +701,7 @@ impl From<&ValueType> for RuntimeValue {
                 val.iter()
                     .map(|e| {
                         let copy = &*e.clone();
-                        Rc::new(RuntimeValue::from(copy))
+                        Arc::new(RuntimeValue::from(copy))
                     })
                     .collect(),
             ),
@@ -710,8 +710,8 @@ impl From<&ValueType> for RuntimeValue {
     }
 }
 
-impl From<Rc<RuntimeValue>> for Type {
-    fn from(val: Rc<RuntimeValue>) -> Self {
+impl From<Arc<RuntimeValue>> for Type {
+    fn from(val: Arc<RuntimeValue>) -> Self {
         Type::new(
             None,
             None,

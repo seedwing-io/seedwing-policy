@@ -77,7 +77,7 @@ impl Function for FromPurl {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -85,7 +85,7 @@ impl Function for FromPurl {
         Box::pin(async move {
             match input.as_ref() {
                 RuntimeValue::List(input) => {
-                    let mut list: Vec<Rc<RuntimeValue>> = Vec::new();
+                    let mut list: Vec<Arc<RuntimeValue>> = Vec::new();
                     for purl in input.iter() {
                         match self.call(purl.clone(), ctx, bindings, world).await {
                             Ok(result) => match result.output() {
@@ -99,13 +99,13 @@ impl Function for FromPurl {
                             }
                         }
                     }
-                    Ok(Output::Transform(Rc::new(list.into())).into())
+                    Ok(Output::Transform(Arc::new(list.into())).into())
                 }
                 RuntimeValue::Object(input) => {
                     let input = input.as_json();
                     match self.from_purl(input).await {
                         Ok(Some(json)) => {
-                            return Ok(Output::Transform(Rc::new(json.into())).into());
+                            return Ok(Output::Transform(Arc::new(json.into())).into());
                         }
                         Ok(None) => Ok(Output::None.into()),
                         Err(e) => {

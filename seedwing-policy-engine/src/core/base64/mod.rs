@@ -75,7 +75,7 @@ impl Function for Base64 {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -86,7 +86,7 @@ impl Function for Base64 {
                 let result = self.alphabet.decoder().decode(inner);
 
                 if let Ok(decoded) = result {
-                    Ok(Output::Transform(Rc::new(decoded.into())).into())
+                    Ok(Output::Transform(Arc::new(decoded.into())).into())
                 } else {
                     //Err(FunctionError::Other("unable to decode base64".into()))
                     Ok(Output::None.into())
@@ -111,7 +111,7 @@ impl Function for Base64Encode {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -121,7 +121,7 @@ impl Function for Base64Encode {
             if let Some(inner) = input.try_get_octets() {
                 let result = STANDARD.encode(inner);
 
-                Ok(Output::Transform(Rc::new(result.into())).into())
+                Ok(Output::Transform(Arc::new(result.into())).into())
             } else {
                 Ok(Output::None.into())
             }

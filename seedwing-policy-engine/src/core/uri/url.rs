@@ -7,6 +7,7 @@ use std::fmt::{format, Debug};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Url;
@@ -24,14 +25,14 @@ impl BlockingFunction for Url {
 
     fn call(
         &self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &mut EvalContext,
         bindings: &Bindings,
         world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
             RuntimeValue::String(value) => match Self::parse_url(value) {
-                Ok(result) => Ok(Output::Transform(Rc::new(result.into())).into()),
+                Ok(result) => Ok(Output::Transform(Arc::new(result.into())).into()),
                 Err(result) => Ok(result),
             },
             _ => Ok((

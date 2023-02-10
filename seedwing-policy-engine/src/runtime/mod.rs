@@ -69,7 +69,7 @@ impl From<(SourceLocation, ParserError)> for BuildError {
 pub enum Output {
     None,
     Identity,
-    Transform(Rc<RuntimeValue>),
+    Transform(Arc<RuntimeValue>),
 }
 
 impl Output {
@@ -80,7 +80,7 @@ impl Output {
 
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
-    input: Option<Rc<RuntimeValue>>,
+    input: Option<Arc<RuntimeValue>>,
     ty: Arc<Type>,
     rationale: Rationale,
     output: Output,
@@ -89,7 +89,7 @@ pub struct EvaluationResult {
 
 impl EvaluationResult {
     pub fn new(
-        input: Option<Rc<RuntimeValue>>,
+        input: Option<Arc<RuntimeValue>>,
         ty: Arc<Type>,
         rationale: Rationale,
         output: Output,
@@ -112,7 +112,7 @@ impl EvaluationResult {
         self.ty.clone()
     }
 
-    pub fn input(&self) -> Option<Rc<RuntimeValue>> {
+    pub fn input(&self) -> Option<Arc<RuntimeValue>> {
         self.input.clone()
     }
 
@@ -120,7 +120,7 @@ impl EvaluationResult {
         &self.rationale
     }
 
-    pub fn output(&self) -> Option<Rc<RuntimeValue>> {
+    pub fn output(&self) -> Option<Arc<RuntimeValue>> {
         match &self.output {
             Output::None => None,
             Output::Identity => self.input.clone(),
@@ -456,7 +456,7 @@ impl World {
         value: V,
         mut ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
-        let value = Rc::new(value.into());
+        let value = Arc::new(value.into());
         let path = TypeName::from(path.into());
         let slot = self.types.get(&path);
         if let Some(slot) = slot {

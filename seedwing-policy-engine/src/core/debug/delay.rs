@@ -10,6 +10,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -34,7 +35,7 @@ impl Function for DelayMs {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
