@@ -1,12 +1,10 @@
-use crate::core::{BlockingFunction, Function, FunctionEvaluationResult};
+use crate::core::{BlockingFunction, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
-use std::fmt::{format, Debug};
-use std::future::Future;
-use std::pin::Pin;
-use std::rc::Rc;
+use std::fmt::Debug;
+
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -26,9 +24,9 @@ impl BlockingFunction for Url {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        ctx: &mut EvalContext,
-        bindings: &Bindings,
-        world: &World,
+        _ctx: &mut EvalContext,
+        _bindings: &Bindings,
+        _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
             RuntimeValue::String(value) => match Self::parse_url(value) {

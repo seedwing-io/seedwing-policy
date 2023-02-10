@@ -1,26 +1,20 @@
-use std::collections::HashMap;
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
 use crate::lang::hir::{Field, MemberQualifier, ObjectType, Type, TypeDefn};
-use crate::lang::lir::ValueType;
+
 use crate::lang::parser::expr::expr;
 use crate::lang::parser::literal::{
     boolean_literal, decimal_literal, integer_literal, string_literal,
 };
-use crate::lang::parser::{
-    op, use_statement, CompilationUnit, Located, Location, ParserError, ParserInput,
-    SourceLocation, SourceSpan, Use,
-};
+use crate::lang::parser::{op, Located, ParserError, ParserInput};
 use crate::lang::SyntacticSugar;
 use crate::runtime::{PackageName, PackagePath, TypeName};
-use crate::value::RuntimeValue;
+
 use chumsky::chain::Chain;
 use chumsky::prelude::*;
 use chumsky::text::Character;
-use chumsky::{Parser, Stream};
-use std::fmt::{Debug, Display, Formatter};
-use std::iter;
+use chumsky::Parser;
+
 use std::iter::once;
-use std::ops::Deref;
 
 pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
     filter(|c: &char| (c.is_alphanumeric()) || *c == '@' || *c == '_' || *c == '-')
@@ -47,7 +41,7 @@ pub fn type_name() -> impl Parser<ParserInput, Located<TypeName>, Error = Parser
                 .at_least(1)
                 .allow_leading(),
         )
-        .map_with_span(|(absolute, mut segments), span| {
+        .map_with_span(|(_absolute, mut segments), span| {
             let tail = segments.pop().unwrap();
 
             let package = if segments.is_empty() {
@@ -274,7 +268,7 @@ pub fn expr_ty() -> impl Parser<ParserInput, Located<Type>, Error = ParserError>
         .ignored()
         .then(expr())
         .then(just(")").padded().ignored())
-        .map_with_span(|((_, expr), y), span| Located::new(Type::Expr(expr), span))
+        .map_with_span(|((_, expr), _y), span| Located::new(Type::Expr(expr), span))
 }
 
 pub enum Postfix {
@@ -305,13 +299,13 @@ pub fn refinement(
 }
 
 pub fn traversal(
-    expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
+    _expr: impl Parser<ParserInput, Located<Type>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Postfix, Error = ParserError> + Clone {
     just(".")
         .padded()
         .ignored()
         .then(field_name())
-        .map_with_span(move |(_, step), span| Postfix::Traversal(step))
+        .map_with_span(move |(_, step), _span| Postfix::Traversal(step))
 }
 
 pub fn list_ty(
@@ -513,7 +507,7 @@ mod test {
 
     #[test]
     fn parse_ty_defn_with_traversal() {
-        let ty = type_definition()
+        let _ty = type_definition()
             .parse("pattern bob = person.first_name(\"bob\").last_name")
             .unwrap()
             .inner();

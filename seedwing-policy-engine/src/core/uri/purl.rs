@@ -4,7 +4,7 @@ use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -24,9 +24,9 @@ impl BlockingFunction for Purl {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        ctx: &mut EvalContext,
-        bindings: &Bindings,
-        world: &World,
+        _ctx: &mut EvalContext,
+        _bindings: &Bindings,
+        _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
             RuntimeValue::String(url) => match super::url::Url::parse_url(url) {

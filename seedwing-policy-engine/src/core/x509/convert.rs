@@ -1,5 +1,5 @@
 use crate::value::{Object, RuntimeValue};
-use std::rc::Rc;
+
 use std::str::from_utf8;
 use std::sync::Arc;
 use x509_parser::certificate::X509Certificate;
@@ -107,7 +107,7 @@ impl From<&Oid<'_>> for RuntimeValue {
 impl From<&Any<'_>> for RuntimeValue {
     fn from(any: &Any<'_>) -> Self {
         let mut obj = Object::new();
-        obj.set("header", (&any.header));
+        obj.set("header", &any.header);
         obj.set("data", any.data);
         obj.into()
     }

@@ -4,7 +4,7 @@ use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("and.adoc");
@@ -86,7 +86,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime
@@ -122,7 +122,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -158,7 +158,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -194,7 +194,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 

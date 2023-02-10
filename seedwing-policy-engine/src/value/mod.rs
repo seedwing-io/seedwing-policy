@@ -1,22 +1,16 @@
-use crate::core::Function;
-use crate::lang::lir;
-use crate::lang::lir::{Field, InnerType};
-use crate::lang::mir::TypeHandle;
-use crate::lang::parser::Located;
-use crate::runtime::RuntimeError;
 use ::serde::Serialize;
 use indexmap::IndexMap;
 use serde_json::{json, Map, Number};
-use std::any::Any;
+
 use std::borrow::{Borrow, Cow};
-use std::cell::{Ref, RefCell};
+
 use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter, Pointer};
-use std::future::{ready, Future};
-use std::hash::{Hash, Hasher};
+
+use std::fmt::{Debug, Display, Formatter};
+
+use std::hash::Hasher;
 use std::ops::Index;
-use std::pin::Pin;
+
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -265,8 +259,8 @@ impl Display for RuntimeValue {
             Self::Decimal(val) => write!(f, "{val}"),
             Self::Boolean(val) => write!(f, "{val}"),
             Self::Object(val) => Display::fmt(val, f),
-            Self::List(val) => write!(f, "[ <<things>> ]"),
-            Self::Octets(val) => write!(f, "[ <<octets>> ]"),
+            Self::List(_val) => write!(f, "[ <<things>> ]"),
+            Self::Octets(_val) => write!(f, "[ <<octets>> ]"),
         }
     }
 }

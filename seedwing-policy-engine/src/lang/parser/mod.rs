@@ -1,18 +1,17 @@
 //use crate::lang::expr::expr;
-use crate::lang::hir::{Type, TypeDefn};
+use crate::lang::hir::TypeDefn;
 use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
-use crate::runtime::BuildError;
+
 use crate::runtime::PackagePath;
 use crate::runtime::TypeName;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
-use futures_util::future::err;
+
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
+
 use std::ops::{Deref, DerefMut};
-use std::str::from_utf8;
 
 pub mod expr;
 pub mod literal;
@@ -351,7 +350,7 @@ pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserE
         .then(type_name())
         .then(as_clause().or_not())
         // .then( just(";").padded().ignored() )
-        .map_with_span(|(((_, type_path), as_clause)), span| {
+        .map_with_span(|((_, type_path), as_clause), span| {
             Located::new(Use::new(type_path, as_clause), span)
         })
 }

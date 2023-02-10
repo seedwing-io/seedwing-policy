@@ -33,7 +33,7 @@ impl Rationale {
             Rationale::Const(val) => *val,
             Rationale::Primordial(val) => *val,
             Rationale::Expression(val) => *val,
-            Rationale::Function(val, rational, _) => *val,
+            Rationale::Function(val, _rational, _) => *val,
             Rationale::Chain(terms) => terms.iter().all(|e| e.satisfied()),
             Rationale::Refinement(primary, refinement) => {
                 if !primary.satisfied() {

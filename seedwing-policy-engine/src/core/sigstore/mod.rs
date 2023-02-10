@@ -3,20 +3,19 @@ use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
-use crate::value::{RationaleResult, RuntimeValue};
+use crate::value::RuntimeValue;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use futures_util::future::join_all;
-use futures_util::{FutureExt, TryFutureExt};
+use futures_util::FutureExt;
 use sigstore::rekor::apis::configuration::Configuration;
 use sigstore::rekor::apis::{entries_api, index_api};
 use sigstore::rekor::models::SearchIndex;
 use std::borrow::Borrow;
-use std::cell::RefCell;
+
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::str::from_utf8;
+
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -42,9 +41,9 @@ impl Function for SHA256 {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();

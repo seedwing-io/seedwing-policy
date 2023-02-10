@@ -1,12 +1,12 @@
 use super::COUNT;
 use crate::core::list::split_fill;
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, Type};
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("head.adoc");
@@ -54,11 +54,8 @@ impl Function for Head {
 #[cfg(test)]
 mod test {
     use super::super::test::*;
-    use super::*;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
-    use crate::runtime::EvaluationResult;
-    use serde_json::{json, Value};
+
+    use serde_json::json;
 
     #[tokio::test]
     async fn call_matching_homogenous_literal() {

@@ -1,12 +1,10 @@
-use crate::lang::parser::{ParserError, SourceLocation, SourceSpan};
+use crate::lang::parser::{SourceLocation, SourceSpan};
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
-use ariadne::{Cache, Label, Report, ReportKind, Source};
+use ariadne::{Label, Report, ReportKind};
 use chumsky::error::SimpleReason;
-use std::collections::HashSet;
-use std::fmt::{Debug, Display};
+
 use std::io;
-use std::ops::Range;
 
 pub struct ErrorPrinter<'c> {
     cache: &'c SourceCache,
@@ -37,7 +35,7 @@ impl<'c> ErrorPrinter<'c> {
                         println!("{inner:?}");
                         format!("unexpected character found {}", inner.found().unwrap())
                     }
-                    SimpleReason::Unclosed { span, delimiter } => {
+                    SimpleReason::Unclosed { span: _, delimiter } => {
                         format!("unclosed delimiter {delimiter}")
                     }
                     SimpleReason::Custom(inner) => inner.clone(),

@@ -1,6 +1,6 @@
 use crate::data::DataSource;
+use crate::lang::hir;
 use crate::lang::parser::SourceLocation;
-use crate::lang::{hir, lir};
 use crate::runtime;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
@@ -52,7 +52,7 @@ mod test {
     use super::*;
     use crate::lang::lir::EvalContext;
     use crate::runtime::sources::Ephemeral;
-    use crate::value::RationaleResult;
+
     use serde_json::json;
 
     #[actix_rt::test]
@@ -73,7 +73,7 @@ mod test {
         );
 
         let mut builder = Builder::new();
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
         let result = runtime

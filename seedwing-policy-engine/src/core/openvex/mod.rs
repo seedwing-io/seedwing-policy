@@ -4,23 +4,14 @@ use crate::package::Package;
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
-use crate::value::{RationaleResult, RuntimeValue};
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
-use chrono::{DateTime, Utc};
-use futures_util::future::join_all;
-use futures_util::{FutureExt, TryFutureExt};
-use serde::{Deserialize, Serialize};
-use sigstore::rekor::apis::configuration::Configuration;
-use sigstore::rekor::apis::{entries_api, index_api};
-use sigstore::rekor::models::SearchIndex;
-use std::borrow::Borrow;
-use std::cell::RefCell;
+use crate::value::RuntimeValue;
+
+use chrono::Utc;
+
 use std::collections::HashSet;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::str::from_utf8;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -52,9 +43,9 @@ impl Function for FromOsv {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             match input.as_ref() {
@@ -71,7 +62,7 @@ impl Function for FromOsv {
                         }
                     }
                 }
-                v => {
+                _v => {
                     let msg = "input is neither a Object nor a List";
                     Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
                 }

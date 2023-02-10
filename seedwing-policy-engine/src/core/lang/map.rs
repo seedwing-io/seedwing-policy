@@ -1,11 +1,11 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType, Type, ValueType};
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("map.adoc");

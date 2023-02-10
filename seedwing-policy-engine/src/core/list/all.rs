@@ -2,11 +2,11 @@ use crate::core::list::PATTERN;
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{Output, RuntimeError, World};
-use crate::value::{RationaleResult, RuntimeValue};
-use std::cell::RefCell;
+use crate::value::RuntimeValue;
+
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("all.adoc");
@@ -75,7 +75,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -100,7 +100,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -125,7 +125,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -150,7 +150,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -174,13 +174,13 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
         let value = json!([]);
 
-        let ty = runtime.get("test::test-all");
+        let _ty = runtime.get("test::test-all");
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())

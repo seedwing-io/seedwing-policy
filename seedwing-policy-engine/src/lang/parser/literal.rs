@@ -1,4 +1,3 @@
-use crate::lang::hir::Type;
 use crate::lang::lir::ValueType;
 use crate::lang::parser::{Located, ParserError, ParserInput, SourceSpan};
 use chumsky::primitive::{choice, filter, just};

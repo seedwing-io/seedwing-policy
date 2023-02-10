@@ -1,13 +1,12 @@
 use crate::lang::lir::EvalContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
-    lang::lir::{Bindings, Type, ValueType},
-    package::Package,
-    runtime::{rationale::Rationale, EvaluationResult, Output, PackagePath, RuntimeError, World},
+    lang::lir::{Bindings, ValueType},
+    runtime::{rationale::Rationale, EvaluationResult, Output, RuntimeError, World},
     value::RuntimeValue,
 };
 use cidr::*;
-use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
+use std::{future::Future, pin::Pin, sync::Arc};
 use std::{net::Ipv4Addr, str::FromStr};
 
 const DOCUMENTATION: &str = include_str!("inet4addr.adoc");
@@ -31,9 +30,9 @@ impl Function for Inet4Addr {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
+        _ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
-        world: &'v World,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(address_pattern) = bindings.get(ADDRESS) {
@@ -166,7 +165,7 @@ mod test {
         value: &str,
     ) -> Result<EvaluationResult, RuntimeError> {
         let mut builder = Builder::new();
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
         runtime

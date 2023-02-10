@@ -1,10 +1,10 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType};
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("refine.adoc");

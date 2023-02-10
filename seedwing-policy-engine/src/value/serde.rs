@@ -1,7 +1,7 @@
 use crate::value::{Object, RuntimeValue};
 use serde::{ser, Serialize};
 use std::fmt::Display;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 pub struct Serializer {}
@@ -15,7 +15,7 @@ pub enum Error {
 }
 
 impl ser::Error for Error {
-    fn custom<T>(msg: T) -> Self
+    fn custom<T>(_msg: T) -> Self
     where
         T: Display,
     {
@@ -109,7 +109,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(RuntimeValue::Null)
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
         Ok(RuntimeValue::Null)
     }
 
@@ -174,7 +174,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(SerializeList::with_parent(self, variant, Some(len)))
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         Ok(SerializeMap::new(self))
     }
 
@@ -191,7 +191,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Ok(SerializeMap::with_parent(self, variant))
     }
@@ -422,7 +422,6 @@ mod test {
     use super::*;
     use crate::value::test::assert_yaml;
     use crate::value::{Object, RuntimeValue};
-    use serde_json::{Number, Value};
 
     #[test]
     fn test_ser_none() {

@@ -1,11 +1,11 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext, InnerType};
-use crate::runtime::rationale::Rationale;
+
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("chain.adoc");
@@ -37,11 +37,11 @@ impl Function for Chain {
         Box::pin(async move {
             if let Some(terms) = bindings.get(TERMS) {
                 if let InnerType::List(terms) = terms.inner() {
-                    let original_input = input.clone();
+                    let _original_input = input.clone();
                     let mut rationale = Vec::new();
                     let mut cur = input;
                     let mut cur_output = Output::None;
-                    let mut last_output = Output::Identity;
+                    let _last_output = Output::Identity;
                     for term in terms {
                         let result = term.evaluate(cur.clone(), ctx, bindings, world).await?;
 

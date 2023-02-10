@@ -2,8 +2,8 @@ use crate::lang::parser::SourceLocation;
 use crate::runtime::PackagePath;
 use std::fs::File;
 use std::io::Read;
-use std::iter::{once, Once};
-use std::path::{Iter, Path, PathBuf};
+use std::iter::once;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 #[derive(Clone)]

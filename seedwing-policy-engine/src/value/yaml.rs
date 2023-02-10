@@ -1,7 +1,6 @@
-use crate::value::serde::{to_value, Error};
 use crate::value::{Object, RuntimeValue};
 use serde_yaml::Value as YamlValue;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 fn to_key(k: YamlValue) -> String {
@@ -61,7 +60,7 @@ impl From<YamlValue> for RuntimeValue {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+
     use crate::value::test::assert_yaml;
 
     #[test]

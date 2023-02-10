@@ -1,11 +1,11 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, ValueType};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("regexp.adoc");
@@ -29,9 +29,9 @@ impl Function for Regexp {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
+        _ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
-        world: &'v World,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(regexp) = bindings.get(REGEXP) {
@@ -68,7 +68,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -93,7 +93,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -118,7 +118,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 

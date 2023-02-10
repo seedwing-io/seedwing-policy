@@ -3,17 +3,16 @@ use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
-use crate::value::{RationaleResult, RuntimeValue};
+use crate::value::RuntimeValue;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::engine::GeneralPurpose;
 use base64::Engine;
 use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
+
+use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::str::from_utf8;
+
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -70,9 +69,9 @@ impl Function for Base64 {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
@@ -106,9 +105,9 @@ impl Function for Base64Encode {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();

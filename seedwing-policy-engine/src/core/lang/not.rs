@@ -1,10 +1,10 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType};
-use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::lang::lir::{Bindings, EvalContext};
+use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("not.adoc");
@@ -56,10 +56,9 @@ impl Function for Not {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+
     use crate::core::test::test_pattern;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
+
     use serde_json::json;
 
     #[actix_rt::test]

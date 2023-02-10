@@ -1,16 +1,9 @@
-use crate::lang::hir::{Expr, Type};
+use crate::lang::hir::Expr;
 use crate::lang::lir::ValueType;
-use crate::lang::parser::{FieldName, Located, Location, ParserError, ParserInput, SourceSpan};
-use crate::runtime::RuntimeError;
-use crate::value::RuntimeValue;
+use crate::lang::parser::{Located, Location, ParserError, ParserInput, SourceSpan};
+
 use chumsky::prelude::*;
 use chumsky::Parser;
-use serde::Serialize;
-use std::cell::RefCell;
-use std::cmp::Ordering;
-use std::future::{ready, Future};
-use std::pin::Pin;
-use std::rc::Rc;
 
 #[derive(Copy, Clone, Debug)]
 pub enum ExprError {
@@ -90,7 +83,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
 }
 
 pub fn self_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
-    just("self").padded().map_with_span(|v, span: SourceSpan| {
+    just("self").padded().map_with_span(|_v, span: SourceSpan| {
         Located::new(Expr::SelfLiteral(Location::from(span.clone())), span)
     })
 }
@@ -193,7 +186,7 @@ pub fn additive_expr(
 }
 
 pub fn multiplicative_expr(
-    expr: impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone,
+    _expr: impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     atom()
         .then(
@@ -268,7 +261,7 @@ mod test {
 
     #[test]
     fn parse_decimal_literal() {
-        let ty = expr()
+        let _ty = expr()
             .parse(
                 r#"
             42.1415

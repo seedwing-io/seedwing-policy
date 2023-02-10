@@ -5,7 +5,7 @@ use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -48,10 +48,10 @@ impl Function for From {
 
     fn call<'v>(
         &'v self,
-        input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
+        _input: Arc<RuntimeValue>,
+        _ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
-        world: &'v World,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(val) = bindings.get(PATH) {

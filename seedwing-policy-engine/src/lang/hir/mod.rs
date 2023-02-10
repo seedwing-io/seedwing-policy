@@ -4,8 +4,8 @@ use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, Sour
 use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::{BuildError, PackagePath, RuntimeError, TypeName};
-use crate::value::RuntimeValue;
+use crate::runtime::{BuildError, PackagePath, TypeName};
+
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -457,12 +457,12 @@ impl<'b> Lowerer<'b> {
         Self { units, packages }
     }
 
-    pub fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+    pub fn lower(self) -> Result<mir::World, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
         let mut world = mir::World::new();
         let mut errors = Vec::new();
 
-        for mut unit in self.units.iter_mut() {
+        for unit in self.units.iter_mut() {
             let unit_path = PackagePath::from(unit.source());
 
             let mut visible_types = unit

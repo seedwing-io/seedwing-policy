@@ -1,19 +1,18 @@
 use crate::core::Function;
-use crate::lang::hir::{Expr, MemberQualifier};
+use crate::lang::hir::Expr;
 use crate::lang::lir::ValueType;
-use crate::lang::parser::{Located, SourceLocation};
+use crate::lang::parser::Located;
 use crate::lang::PrimordialType;
+use crate::lang::SyntacticSugar;
 use crate::lang::{hir, mir};
-use crate::lang::{lir, SyntacticSugar};
 use crate::runtime;
+use crate::runtime::BuildError;
 use crate::runtime::TypeName;
-use crate::runtime::{BuildError, RuntimeError};
-use crate::value::RuntimeValue;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
-use std::future::Future;
-use std::pin::Pin;
+
 use std::sync::Arc;
 
 #[derive(Default, Debug)]
@@ -52,7 +51,7 @@ impl TypeHandle {
         self
     }
 
-    pub fn with(mut self, ty: Located<mir::Type>) -> Self {
+    pub fn with(self, ty: Located<mir::Type>) -> Self {
         self.define(Arc::new(ty));
         self
     }
@@ -108,7 +107,7 @@ impl Debug for Type {
             Type::Expr(inner) => write!(f, "$({:?})", inner),
             Type::List(inner) => write!(f, "[{:?}]", inner),
             Type::Argument(name) => write!(f, "{:?}", name),
-            Type::Ref(sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
+            Type::Ref(_sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
             Type::Deref(inner) => write!(f, "*{:?}", inner),
             Type::Nothing => write!(f, "nothing"),
         }
@@ -460,12 +459,12 @@ impl World {
         }
     }
 
-    pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+    pub fn lower(self) -> Result<runtime::World, Vec<BuildError>> {
         let mut world = runtime::World::new();
 
         log::info!("Compiling {} patterns", self.types.len());
 
-        for (slot, ty) in self.type_slots.iter().enumerate() {
+        for (_slot, ty) in self.type_slots.iter().enumerate() {
             world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
         }
 

@@ -1,14 +1,12 @@
-use crate::lang::hir::Type;
-use crate::lang::lir::{Bindings, EvalContext, EvalTrace};
+use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
-use crate::value::{RationaleResult, RuntimeValue};
-use std::cell::RefCell;
-use std::collections::HashMap;
+use crate::value::RuntimeValue;
+
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 pub mod base64;
@@ -167,7 +165,6 @@ mod test {
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvaluationResult;
     use crate::value::RuntimeValue;
-    use serde_json::{json, Value};
 
     pub(crate) async fn test_pattern<V>(pattern: &str, value: V) -> EvaluationResult
     where

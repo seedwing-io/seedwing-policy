@@ -3,15 +3,14 @@ use crate::lang::lir::{Bindings, EvalContext};
 use crate::package::Package;
 use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
-use crate::value::{RationaleResult, RuntimeValue};
-use ariadne::Cache;
-use base64::alphabet::STANDARD;
+use crate::value::RuntimeValue;
+
 use base64::engine::general_purpose::STANDARD_NO_PAD as PEM_ENGINE;
 use base64::Engine;
-use std::cell::RefCell;
+
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::str::from_utf8;
 use std::sync::Arc;
 
@@ -33,9 +32,9 @@ impl Function for AsCertificate {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let bytes = if let Some(inner) = input.try_get_octets() {

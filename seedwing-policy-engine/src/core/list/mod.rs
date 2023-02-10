@@ -1,11 +1,10 @@
 use crate::{
-    core::Function,
-    lang::lir::{EvalTrace, Type},
+    lang::lir::Type,
     package::Package,
     runtime::{PackagePath, RuntimeError, World},
     value::RuntimeValue,
 };
-use std::{future::Future, pin::Pin, rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use crate::lang::lir::EvalContext;
 
@@ -80,7 +79,7 @@ mod test {
     use crate::lang::lir::EvalContext;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvaluationResult;
-    use serde_json::{json, Value};
+    use serde_json::Value;
 
     pub(crate) async fn test_pattern(pattern: &str, value: Value) -> EvaluationResult {
         let src = Ephemeral::new("test", format!("pattern test-pattern = {pattern}"));

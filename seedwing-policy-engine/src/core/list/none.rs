@@ -3,11 +3,11 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
 use crate::runtime::World;
 use crate::runtime::{Output, RuntimeError};
-use crate::value::{RationaleResult, RuntimeValue};
-use std::cell::RefCell;
+use crate::value::RuntimeValue;
+
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -95,7 +95,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -120,7 +120,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -145,7 +145,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -170,7 +170,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -195,7 +195,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 
@@ -220,7 +220,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let runtime = builder.finish().await.unwrap();
 

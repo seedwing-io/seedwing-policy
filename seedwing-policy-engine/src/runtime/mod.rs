@@ -1,30 +1,23 @@
 use crate::core::Function;
-use crate::lang::hir::MemberQualifier;
-use crate::lang::lir::{Bindings, EvalContext, EvalTrace, Field, ObjectType, Type};
+
+use crate::lang::lir;
+use crate::lang::lir::{Bindings, EvalContext, EvalTrace, Type};
 use crate::lang::mir::TypeHandle;
-use crate::lang::parser::{
-    CompilationUnit, Located, ParserError, ParserInput, PolicyParser, SourceLocation, SourceSpan,
-};
-use crate::lang::{hir, lir};
-use crate::package::Package;
-use crate::runtime::cache::SourceCache;
+use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
+
 use crate::runtime::rationale::Rationale;
 use crate::value::RuntimeValue;
-use ariadne::Cache;
-use chumsky::{Error, Stream};
+
 use serde::{Serialize, Serializer};
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Cell, RefCell};
+
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::future::{ready, Future};
-use std::mem;
+
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
-use std::task::ready;
+
 use std::time::Duration;
 
 pub mod cache;
@@ -156,11 +149,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::{Directory, Ephemeral};
-    use crate::value::RationaleResult;
+
     use serde_json::json;
     use std::default::Default;
     use std::env;
-    use std::iter::once;
 
     #[actix_rt::test]
     async fn ephemeral_sources() {
@@ -168,7 +160,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let result = builder.finish().await;
 
@@ -181,7 +173,7 @@ mod test {
 
         let mut builder = Builder::new();
 
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
 
         let result = builder.finish().await;
 
@@ -258,10 +250,10 @@ mod test {
         );
 
         let mut builder = Builder::new();
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
-        let good_bob = json!(
+        let _good_bob = json!(
             {
                 "name": "Bob",
                 "age": 52,
@@ -302,7 +294,7 @@ mod test {
         );
 
         let mut builder = Builder::new();
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
         assert!(runtime
@@ -342,7 +334,7 @@ mod test {
         );
 
         let mut builder = Builder::new();
-        let result = builder.build(src.iter());
+        let _result = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
 
         assert!(runtime
@@ -479,7 +471,7 @@ impl World {
 
         let mut module_handle = ModuleHandle::new();
         let path = path.as_type_str();
-        for (name, ty) in self.types.iter() {
+        for (name, _ty) in self.types.iter() {
             let name = name.as_type_str();
             if let Some(relative_name) = name.strip_prefix(&path) {
                 let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
@@ -669,7 +661,7 @@ impl From<Vec<String>> for PackagePath {
 }
 
 impl From<Vec<Located<PackageName>>> for PackagePath {
-    fn from(mut segments: Vec<Located<PackageName>>) -> Self {
+    fn from(segments: Vec<Located<PackageName>>) -> Self {
         Self {
             is_absolute: true,
             path: segments,

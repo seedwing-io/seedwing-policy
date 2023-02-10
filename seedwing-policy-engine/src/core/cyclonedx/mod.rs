@@ -4,24 +4,11 @@ use crate::package::Package;
 use crate::runtime::PackagePath;
 use crate::runtime::World;
 use crate::runtime::{Output, RuntimeError};
-use crate::value::{RationaleResult, RuntimeValue};
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
-use chrono::{DateTime, Utc};
-use futures_util::future::join_all;
-use futures_util::{FutureExt, TryFutureExt};
-use serde::{Deserialize, Serialize};
-use sigstore::rekor::apis::configuration::Configuration;
-use sigstore::rekor::apis::{entries_api, index_api};
-use sigstore::rekor::models::SearchIndex;
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::collections::HashSet;
+use crate::value::RuntimeValue;
+
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::str::from_utf8;
-use std::sync::atomic::{AtomicU64, Ordering};
+
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -49,9 +36,9 @@ impl Function for ComponentPurls {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v mut EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             match input.as_json() {

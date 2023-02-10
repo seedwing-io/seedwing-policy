@@ -1,25 +1,24 @@
 use crate::core::Function;
-use crate::lang::hir::MemberQualifier;
-use crate::lang::mir::TypeHandle;
+
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialType, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, ModuleHandle, Output, RuntimeError, TraceResult};
+use crate::runtime::{EvaluationResult, Output, RuntimeError, TraceResult};
 use crate::runtime::{TypeName, World};
-use crate::value::{Object, RationaleResult, RuntimeValue};
+use crate::value::RuntimeValue;
 use serde::Serialize;
-use std::any::Any;
+
 use std::borrow::Borrow;
-use std::cell::RefCell;
+
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
-use std::hash::{Hash, Hasher};
+use std::hash::Hasher;
 use std::pin::Pin;
-use std::rc::Rc;
+
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Serialize, Debug, Clone)]
 pub enum Expr {
@@ -204,7 +203,7 @@ impl Type {
         let trace = ctx.trace();
         match &self.inner {
             InnerType::Anything => Box::pin(async move {
-                let mut locked_value = (*value).borrow();
+                let _locked_value = (*value).borrow();
                 //Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
                 Ok(EvaluationResult::new(
                     Some(value.clone()),
@@ -227,7 +226,7 @@ impl Type {
                 {
                     Box::pin(async move {
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
-                            if let InnerType::Ref(sugar, slot, unresolved_bindings) = &arg.inner {
+                            if let InnerType::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
                                 if let Some(resolved_type) = world.get_by_slot(*slot) {
                                     if resolved_type.parameters().is_empty() {
                                         bindings.bind(param.clone(), resolved_type.clone())
@@ -254,7 +253,7 @@ impl Type {
                                 }
                             } else if let InnerType::Argument(name) = &arg.inner {
                                 bindings.bind(param.clone(), bindings.get(name).unwrap());
-                            } else if let InnerType::Deref(inner) = &arg.inner {
+                            } else if let InnerType::Deref(_inner) = &arg.inner {
                                 let result = arg
                                     .evaluate(value.clone(), ctx, &Bindings::default(), world)
                                     .await?;
@@ -341,7 +340,7 @@ impl Type {
             }),
             InnerType::Primordial(inner) => match inner {
                 PrimordialType::Integer => Box::pin(async move {
-                    let mut locked_value = (*value).borrow();
+                    let locked_value = (*value).borrow();
                     if locked_value.is_integer() {
                         Ok(EvaluationResult::new(
                             Some(value.clone()),
@@ -361,7 +360,7 @@ impl Type {
                     }
                 }),
                 PrimordialType::Decimal => Box::pin(async move {
-                    let mut locked_value = (*value).borrow();
+                    let locked_value = (*value).borrow();
                     if locked_value.is_decimal() {
                         Ok(EvaluationResult::new(
                             Some(value.clone()),
@@ -381,7 +380,7 @@ impl Type {
                     }
                 }),
                 PrimordialType::Boolean => Box::pin(async move {
-                    let mut locked_value = (*value).borrow();
+                    let locked_value = (*value).borrow();
 
                     if locked_value.is_boolean() {
                         Ok(EvaluationResult::new(
@@ -402,7 +401,7 @@ impl Type {
                     }
                 }),
                 PrimordialType::String => Box::pin(async move {
-                    let mut locked_value = (*value).borrow();
+                    let locked_value = (*value).borrow();
                     if locked_value.is_string() {
                         Ok(EvaluationResult::new(
                             Some(value.clone()),
@@ -421,8 +420,8 @@ impl Type {
                         ))
                     }
                 }),
-                PrimordialType::Function(sugar, name, func) => Box::pin(async move {
-                    let mut result = func.call(value.clone(), ctx, bindings, world).await?;
+                PrimordialType::Function(_sugar, _name, func) => Box::pin(async move {
+                    let result = func.call(value.clone(), ctx, bindings, world).await?;
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
                         self.clone(),
@@ -437,7 +436,7 @@ impl Type {
                 }),
             },
             InnerType::Const(inner) => Box::pin(async move {
-                let mut locked_value = (*value).borrow();
+                let locked_value = (*value).borrow();
                 if inner.is_equal(locked_value).await {
                     Ok(EvaluationResult::new(
                         Some(value.clone()),
@@ -457,7 +456,7 @@ impl Type {
                 }
             }),
             InnerType::Object(inner) => Box::pin(async move {
-                let mut locked_value = (*value).borrow();
+                let locked_value = (*value).borrow();
                 if let Some(obj) = locked_value.try_get_object() {
                     let mut result = HashMap::new();
                     for field in &inner.fields {
@@ -501,7 +500,7 @@ impl Type {
             }),
             InnerType::Expr(expr) => Box::pin(async move {
                 let result = expr.evaluate(value.clone()).await?;
-                let mut locked_value = (*value).borrow();
+                let _locked_value = (*value).borrow();
                 let locked_result = (*result).borrow();
                 if let Some(true) = locked_result.try_get_boolean() {
                     Ok(EvaluationResult::new(
@@ -585,10 +584,10 @@ impl InnerType {
                 .map(|t| t.order(world))
                 .unwrap_or(128),
             Self::Deref(inner) => inner.order(world),
-            Self::Argument(s) => 2,
-            Self::Const(s) => 1,
-            Self::Object(o) => 64,
-            Self::Expr(e) => 128,
+            Self::Argument(_s) => 2,
+            Self::Const(_s) => 1,
+            Self::Object(_o) => 64,
+            Self::Expr(_e) => 128,
             Self::List(l) => l.iter().map(|e| e.order(world)).max().unwrap_or(128),
             Self::Nothing => 0,
         }
@@ -639,7 +638,7 @@ impl Debug for InnerType {
             InnerType::Expr(inner) => write!(f, "$({:?})", inner),
             InnerType::List(inner) => write!(f, "[{:?}]", inner),
             InnerType::Argument(name) => write!(f, "{:?}", name),
-            InnerType::Ref(sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerType::Ref(_sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
             InnerType::Deref(inner) => write!(f, "* {:?}", inner),
             InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
             InnerType::Nothing => write!(f, "nothing"),
