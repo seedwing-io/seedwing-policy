@@ -2,8 +2,6 @@ name: Developpement container
 
 on:
   push:
-    branches:
-      - main
     paths:
       - Containerfile
       - .github/workflows/dev_container.yaml
