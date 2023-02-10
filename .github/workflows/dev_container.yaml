@@ -51,6 +51,7 @@ jobs:
 
       - name: Push to registry
         id: push-to-ghcr
-        uses: redhat-actions/push-to-registry@v2
-         with:
-           tags: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        run: podman push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+#        uses: redhat-actions/push-to-registry@v2
+#        with:
+#          tags: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
