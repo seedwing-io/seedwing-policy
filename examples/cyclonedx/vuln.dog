@@ -1,0 +1,1 @@
+pattern not-affected = cyclonedx::component-purls | lang::map<uri::purl> | lang::map<osv::from-purl> | lang::map<openvex::from-osv> | list::none<openvex::affected>
