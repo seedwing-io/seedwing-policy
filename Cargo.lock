@@ -2985,6 +2985,7 @@ dependencies = [
  "sigstore",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "url",
  "uuid",
  "walkdir",
@@ -2997,6 +2998,7 @@ version = "0.1.0-alpha.2"
 dependencies = [
  "actix-web",
  "actix-web-static-files",
+ "base64 0.21.0",
  "clap 4.1.1",
  "env_logger",
  "futures-util",
@@ -3008,6 +3010,7 @@ dependencies = [
  "serde_json",
  "static-files",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
@@ -3528,6 +3531,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
 dependencies = [
  "native-tls",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-stream"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d660770404473ccd7bc9f8b28494a811bc18542b915c0855c51e8f419d5223ce"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
  "tokio",
 ]
 

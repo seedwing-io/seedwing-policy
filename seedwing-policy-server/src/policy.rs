@@ -1,3 +1,5 @@
+use std::str::from_utf8;
+use std::sync::Arc;
 use crate::ui::html::Htmlifier;
 use crate::ui::rationale::Rationalizer;
 use crate::ui::{json, LAYOUT_HTML};
@@ -19,6 +21,9 @@ use seedwing_policy_engine::runtime::{
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
 use serde_json::{Error, Value};
+use tokio::sync::Mutex;
+use crate::Monitor;
+use crate::monitor::MonitorResult;
 
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
@@ -41,12 +46,13 @@ pub async fn evaluate_json(
     path: web::Path<String>,
     input: web::Json<serde_json::Value>,
     params: web::Query<PolicyQuery>,
+    monitor_manager: web::Data<Arc<Mutex<Monitor>>>,
 ) -> HttpResponse {
     let value = RuntimeValue::from(input.into_inner());
     let path = path.replace('/', "::");
     evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
         serde_json::to_string_pretty(&json::Result::new(r)).unwrap()
-    })
+    }, monitor_manager)
         .await
 }
 
@@ -57,6 +63,7 @@ pub async fn evaluate_html(
     path: web::Path<String>,
     mut body: Payload,
     params: web::Query<PolicyQuery>,
+    monitor_manager: web::Data<Arc<Mutex<Monitor>>>,
 ) -> HttpResponse {
     let mut content = BytesMut::new();
     while let Some(Ok(bit)) = body.next().await {
@@ -73,7 +80,7 @@ pub async fn evaluate_html(
 
             evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
                 Rationalizer::new(r).rationale()
-            }).await
+            }, monitor_manager).await
         }
         Err(error) => {
             HttpResponse::BadRequest().body(format!("{}", error))
@@ -87,6 +94,7 @@ async fn evaluate<F>(
     value: RuntimeValue,
     params: PolicyQuery,
     formatter: F,
+    monitor_manager: web::Data<Arc<Mutex<Monitor>>>,
 ) -> HttpResponse
     where
         F: Fn(&EvaluationResult) -> String,
@@ -95,7 +103,7 @@ async fn evaluate<F>(
     if let Some(true) = params.trace {
         trace = EvalTrace::Enabled;
     }
-    match world.evaluate(&*path, value, EvalContext::new(trace)).await {
+    match world.evaluate(&*path, value.clone(), EvalContext::new(trace)).await {
         Ok(result) => {
             let rationale = formatter(&result);
 
@@ -104,12 +112,27 @@ async fn evaluate<F>(
                 let satisfied = result.satisfied();
                 HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
             } else if result.satisfied() {
+                monitor_manager.lock().await.record(
+                    path.into(),
+                    value,
+                    MonitorResult::Satisified
+                ).await;
                 HttpResponse::Ok().body(rationale)
             } else {
+                monitor_manager.lock().await.record(
+                    path.into(),
+                    value,
+                    MonitorResult::Unsatisfied
+                ).await;
                 HttpResponse::UnprocessableEntity().body(rationale)
             }
         }
         Err(err) => {
+            monitor_manager.lock().await.record(
+                path.into(),
+                value,
+                MonitorResult::Error
+            ).await;
             log::error!("err {:?}", err);
             HttpResponse::InternalServerError().finish()
         }

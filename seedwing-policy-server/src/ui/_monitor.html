@@ -1,0 +1,41 @@
+{{#> layout }}
+<style>
+
+  #events .satisfied {
+    background-color: #cfc;
+  }
+  #events .unsatisfied {
+    background-color: #fcc;
+  }
+
+</style>
+
+
+Monitor
+
+<div id="events">
+
+</div>
+
+<script defer>
+  const evtSource = new EventSource("");
+  evtSource.onmessage = (event) => {
+    console.log(event.data);
+    const data = event.data;
+    const parts = data.split(' ');
+    console.log( parts );
+    let event_div = "<div class='event " + parts[1] +"'>";
+
+    let name_col = "<span>" + parts[0] + "</span>";
+    let input_col = "<div>" + atob(parts[2]) + "</div>";
+
+    event_div += name_col;
+    event_div += input_col;
+
+    event_div += "</div>";
+    $('#events').append( event_div );
+  }
+
+</script>
+
+{{/layout}}

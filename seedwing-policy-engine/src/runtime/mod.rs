@@ -30,6 +30,7 @@ use std::time::Duration;
 pub mod cache;
 pub mod rationale;
 pub mod sources;
+pub mod monitor;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {

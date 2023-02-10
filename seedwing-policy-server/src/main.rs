@@ -2,6 +2,7 @@ mod cli;
 mod playground;
 mod policy;
 mod ui;
+mod monitor;
 
 use actix_web::{web, App, HttpServer};
 use actix_web_static_files::ResourceFiles;
@@ -14,11 +15,14 @@ use static_files::Resource;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::exit;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
+use crate::monitor::Monitor;
 use crate::policy::{
     display_component, display_root, display_root_no_slash, evaluate_html, evaluate_json,
 };
@@ -44,7 +48,7 @@ async fn main() -> std::io::Result<()> {
     };
 
     Builder::new()
-        .filter_level(LevelFilter::Warn)
+        .filter_level(LevelFilter::Debug)
         .filter_module("seedwing_policy_server", filter)
         .filter_module("seedwing_policy_engine", filter)
         .init();
@@ -87,6 +91,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     let result = builder.finish().await;
+    let monitor = Arc::new(Mutex::new(Monitor::new()));
 
     match result {
         Ok(world) => {
@@ -102,6 +107,7 @@ async fn main() -> std::io::Result<()> {
                         builder.clone(),
                         sources.clone(),
                     )))
+                    .app_data( web::Data::new( monitor.clone()) )
                     .service(ResourceFiles::new("/assets", assets))
                     .service(ResourceFiles::new("/ui", ui))
                     .service(index)
@@ -111,6 +117,7 @@ async fn main() -> std::io::Result<()> {
                     .service(evaluate_json)
                     .service(evaluate_html)
                     .service(documentation)
+                    .service(monitor::monitor)
                     .service(playground::display)
                     .service(playground::display_root_no_slash)
                     .service(playground::evaluate)
