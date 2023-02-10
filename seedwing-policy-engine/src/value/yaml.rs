@@ -2,6 +2,7 @@ use crate::value::serde::{to_value, Error};
 use crate::value::{Object, RuntimeValue};
 use serde_yaml::Value as YamlValue;
 use std::rc::Rc;
+use std::sync::Arc;
 
 fn to_key(k: YamlValue) -> String {
     match k {
@@ -38,13 +39,13 @@ impl From<YamlValue> for RuntimeValue {
             YamlValue::Sequence(inner) => RuntimeValue::List(
                 inner
                     .into_iter()
-                    .map(|e| Rc::new(RuntimeValue::from(e)))
+                    .map(|e| Arc::new(RuntimeValue::from(e)))
                     .collect(),
             ),
             YamlValue::Mapping(inner) => {
                 let fields = inner
                     .into_iter()
-                    .map(|(k, v)| (to_key(k), Rc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (to_key(k), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object { fields })

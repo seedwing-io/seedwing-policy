@@ -29,7 +29,7 @@ impl Function for Map {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -54,7 +54,7 @@ impl Function for Map {
                             }
                         }
                         Ok(
-                            Output::Transform(Rc::new(RuntimeValue::List(result.clone().into())))
+                            Output::Transform(Arc::new(RuntimeValue::List(result.clone().into())))
                                 .into(),
                         )
                     }
@@ -98,7 +98,7 @@ mod tests {
 
         assert_eq!(
             result.output(),
-            Some(Rc::new(
+            Some(Arc::new(
                 json!([{
                     "type": "github",
                     "namespace": "package-url",

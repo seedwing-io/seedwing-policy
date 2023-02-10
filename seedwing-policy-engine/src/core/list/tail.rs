@@ -7,6 +7,7 @@ use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
+use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("tail.adoc");
 
@@ -27,7 +28,7 @@ impl Function for Tail {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -45,7 +46,7 @@ impl Function for Tail {
                 result.set("tail", tail);
                 result.set("main", main);
 
-                Ok(Output::Transform(Rc::new(result.into())).into())
+                Ok(Output::Transform(Arc::new(result.into())).into())
             } else {
                 Ok(Output::None.into())
             }

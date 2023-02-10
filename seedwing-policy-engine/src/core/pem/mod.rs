@@ -32,7 +32,7 @@ impl Function for AsCertificate {
     }
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -56,7 +56,7 @@ impl Function for AsCertificate {
             }
             result.push_str("-----END CERTIFICATE-----\n");
 
-            Ok(Output::Transform(Rc::new(result.into())).into())
+            Ok(Output::Transform(Arc::new(result.into())).into())
         })
     }
 }

@@ -30,7 +30,7 @@ impl Function for Inet4Addr {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,

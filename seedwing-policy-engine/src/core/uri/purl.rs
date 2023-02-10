@@ -5,6 +5,7 @@ use crate::runtime::rationale::Rationale;
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Purl;
@@ -22,7 +23,7 @@ impl BlockingFunction for Purl {
 
     fn call(
         &self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &mut EvalContext,
         bindings: &Bindings,
         world: &World,
@@ -100,7 +101,7 @@ impl Purl {
             _ => {}
         }
 
-        Ok(Output::Transform(Rc::new(result.into())).into())
+        Ok(Output::Transform(Arc::new(result.into())).into())
     }
 
     fn error(rationale: Rationale) -> Result<FunctionEvaluationResult, RuntimeError> {
@@ -128,7 +129,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Rc::new(
+            Some(Arc::new(
                 json!({
                     "type": "rpm",
                     "namespace": "fedora",
@@ -154,7 +155,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Rc::new(
+            Some(Arc::new(
                 json!({
                     "type": "docker",
                     "namespace": "customer",
@@ -175,7 +176,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Rc::new(
+            Some(Arc::new(
                 json!({
                     "type": "cargo",
                     "name": "rand",
@@ -196,7 +197,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Rc::new(
+            Some(Arc::new(
                 json!({
                     "type": "github",
                     "namespace": "package-url",

@@ -48,7 +48,7 @@ impl Function for ExtractPurls {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -61,12 +61,12 @@ impl Function for ExtractPurls {
                         for component in components.iter() {
                             if let serde_json::Value::Object(c) = component {
                                 if let Some(serde_json::Value::String(s)) = c.get("purl") {
-                                    purls.push(Rc::new(RuntimeValue::String(s.clone())));
+                                    purls.push(Arc::new(RuntimeValue::String(s.clone())));
                                 }
                             }
                         }
                     }
-                    Ok(Output::Transform(Rc::new(RuntimeValue::List(purls))).into())
+                    Ok(Output::Transform(Arc::new(RuntimeValue::List(purls))).into())
                 }
                 _ => Ok(Output::None.into()),
             }

@@ -35,7 +35,7 @@ impl Function for JSON {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -46,7 +46,7 @@ impl Function for JSON {
                 let json_value: Result<serde_json::Value, _> =
                     serde_json::from_slice(inner.as_bytes());
                 if let Ok(json_value) = json_value {
-                    Ok(Output::Transform(Rc::new(json_value.into())).into())
+                    Ok(Output::Transform(Arc::new(json_value.into())).into())
                 } else {
                     Ok(Output::None.into())
                 }

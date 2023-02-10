@@ -48,7 +48,7 @@ impl Function for From {
 
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -58,7 +58,7 @@ impl Function for From {
                 if let Some(ValueType::String(path)) = val.try_get_resolved_value() {
                     for ds in &*self.data_sources {
                         if let Ok(Some(value)) = ds.get(path.clone()) {
-                            return Ok(Output::Transform(Rc::new(value)).into());
+                            return Ok(Output::Transform(Arc::new(value)).into());
                         }
                     }
                 }

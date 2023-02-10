@@ -36,7 +36,7 @@ impl Function for PEM {
     }
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -66,7 +66,7 @@ impl Function for PEM {
             if certs.is_empty() {
                 Ok(Output::None.into())
             } else {
-                Ok(Output::Transform(Rc::new(certs.into())).into())
+                Ok(Output::Transform(Arc::new(certs.into())).into())
             }
         })
     }
@@ -83,7 +83,7 @@ impl Function for DER {
     }
     fn call<'v>(
         &'v self,
-        input: Rc<RuntimeValue>,
+        input: Arc<RuntimeValue>,
         ctx: &'v mut EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
@@ -96,7 +96,7 @@ impl Function for DER {
             };
 
             match parse_x509_certificate(bytes) {
-                Ok((_, cert)) => Ok(Output::Transform(Rc::new((&cert).into())).into()),
+                Ok((_, cert)) => Ok(Output::Transform(Arc::new((&cert).into())).into()),
                 Err(_) => Ok(Output::None.into()),
             }
         })
