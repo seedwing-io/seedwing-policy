@@ -3,6 +3,7 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Result {
+    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<TypeName>,
     input: serde_json::Value,
     satisfied: bool,
@@ -79,5 +80,35 @@ fn support(result: &EvaluationResult) -> Vec<Result> {
         | Rationale::Primordial(_)
         | Rationale::Refinement(_, _)
         | Rationale::Expression(_) => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use seedwing_policy_engine::lang::builder::Builder;
+    use seedwing_policy_engine::lang::lir::EvalContext;
+    use seedwing_policy_engine::runtime::sources::Ephemeral;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn any_literal() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern any = list::any<42>
+        "#,
+        );
+        let mut builder = Builder::new();
+        let _ = builder.build(src.iter());
+        let runtime = builder.finish().await.unwrap();
+        let result = runtime
+            .evaluate("test::any", json!([1, 42, 99]), EvalContext::default())
+            .await
+            .unwrap();
+        assert!(result.satisfied());
+        assert_eq!(
+            r#"{"name":"list::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            serde_json::to_string(&super::Result::new(&result)).unwrap()
+        );
     }
 }

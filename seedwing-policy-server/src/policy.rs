@@ -18,7 +18,6 @@ use seedwing_policy_engine::runtime::{
 };
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
-use serde_json::{Error, Value};
 
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
@@ -52,7 +51,6 @@ pub async fn evaluate_json(
 
 #[post("/policy/{path:.*}")]
 pub async fn evaluate_html(
-    req: HttpRequest,
     world: web::Data<World>,
     path: web::Path<String>,
     mut body: Payload,
@@ -62,8 +60,6 @@ pub async fn evaluate_html(
     while let Some(Ok(bit)) = body.next().await {
         content.extend_from_slice(&bit);
     }
-
-    // todo: accomodate non-JSON using content-type headers.
     let result: Result<serde_json::Value, _> = serde_json::from_slice(&content);
 
     match &result {
