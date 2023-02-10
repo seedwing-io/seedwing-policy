@@ -47,7 +47,7 @@ pub async fn evaluate_json(
     evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
         serde_json::to_string_pretty(&json::Result::new(r)).unwrap()
     })
-        .await
+    .await
 }
 
 #[post("/policy/{path:.*}")]
@@ -73,11 +73,10 @@ pub async fn evaluate_html(
 
             evaluate(world.get_ref(), path, value, params.into_inner(), |r| {
                 Rationalizer::new(r).rationale()
-            }).await
+            })
+            .await
         }
-        Err(error) => {
-            HttpResponse::BadRequest().body(format!("{}", error))
-        }
+        Err(error) => HttpResponse::BadRequest().body(format!("{}", error)),
     }
 }
 
@@ -88,8 +87,8 @@ async fn evaluate<F>(
     params: PolicyQuery,
     formatter: F,
 ) -> HttpResponse
-    where
-        F: Fn(&EvaluationResult) -> String,
+where
+    F: Fn(&EvaluationResult) -> String,
 {
     let mut trace = EvalTrace::Disabled;
     if let Some(true) = params.trace {

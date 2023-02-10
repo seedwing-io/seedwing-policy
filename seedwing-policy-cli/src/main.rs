@@ -4,8 +4,8 @@ use clap::Parser;
 
 mod cli;
 mod eval;
-mod verify;
 mod explain;
+mod verify;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {

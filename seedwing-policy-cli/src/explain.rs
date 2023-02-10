@@ -1,4 +1,3 @@
-
 use seedwing_policy_engine::runtime::{rationale::Rationale, EvaluationResult, Output};
 use std::io::Write;
 use termcolor::{Ansi, ColorChoice, ColorSpec, StandardStream, WriteColor};

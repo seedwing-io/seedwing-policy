@@ -1,4 +1,5 @@
 use crate::eval::Eval;
+use crate::explain::explain;
 use crate::verify::Verify;
 use clap::ValueEnum;
 use is_terminal::IsTerminal;
@@ -9,7 +10,6 @@ use std::path::PathBuf;
 use std::process::exit;
 use tokio::fs;
 use tokio::io::AsyncReadExt;
-use crate::explain::explain;
 
 pub const COMMAND_NAME: &str = "seedwing-policy";
 

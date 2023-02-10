@@ -98,58 +98,61 @@ pub async fn evaluate(
         content.extend_from_slice(&bit);
     }
     match serde_json::from_slice::<EvaluateRequest>(&content) {
-        Ok(body) => {
-            match serde_json::from_str::<serde_json::Value>(&body.value) {
-                Ok(payload) => {
-                    match state.build(body.policy.as_bytes()) {
-                        Ok(mut builder) => {
-                            match builder.finish().await {
-                                Ok(world) => {
-                                    let value = RuntimeValue::from(&payload);
-                                    let mut full_path = "playground::".to_string();
-                                    full_path += &path.replace('/', "::");
+        Ok(body) => match serde_json::from_str::<serde_json::Value>(&body.value) {
+            Ok(payload) => match state.build(body.policy.as_bytes()) {
+                Ok(mut builder) => match builder.finish().await {
+                    Ok(world) => {
+                        let value = RuntimeValue::from(&payload);
+                        let mut full_path = "playground::".to_string();
+                        full_path += &path.replace('/', "::");
 
-                                    match world.evaluate(&*full_path, value, EvalContext::new(seedwing_policy_engine::lang::lir::EvalTrace::Enabled)).await {
-                                        Ok(result) => {
-                                            let rationale = Rationalizer::new(&result);
-                                            let rationale = rationale.rationale();
+                        match world
+                            .evaluate(
+                                &*full_path,
+                                value,
+                                EvalContext::new(
+                                    seedwing_policy_engine::lang::lir::EvalTrace::Enabled,
+                                ),
+                            )
+                            .await
+                        {
+                            Ok(result) => {
+                                let rationale = Rationalizer::new(&result);
+                                let rationale = rationale.rationale();
 
-                                            if result.satisfied() {
-                                                HttpResponse::Ok().body(rationale)
-                                            } else {
-                                                HttpResponse::NotAcceptable().body(rationale)
-                                            }
-                                        }
-                                        Err(err) => {
-                                            log::error!("err {:?}", err);
-                                            HttpResponse::InternalServerError().finish()
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    log::error!("err {:?}", e);
-                                    let e = e
-                                        .iter()
-                                        .map(|b| b.to_string())
-                                        .collect::<Vec<String>>()
-                                        .join(",");
-                                    HttpResponse::BadRequest().body(e.to_string())
+                                if result.satisfied() {
+                                    HttpResponse::Ok().body(rationale)
+                                } else {
+                                    HttpResponse::NotAcceptable().body(rationale)
                                 }
                             }
-                        }
-                        Err(e) => {
-                            log::error!("unable to build policy [{:?}]", e);
-                            HttpResponse::NotAcceptable().body(e.to_string())
+                            Err(err) => {
+                                log::error!("err {:?}", err);
+                                HttpResponse::InternalServerError().finish()
+                            }
                         }
                     }
-                }
+                    Err(e) => {
+                        log::error!("err {:?}", e);
+                        let e = e
+                            .iter()
+                            .map(|b| b.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        HttpResponse::BadRequest().body(e.to_string())
+                    }
+                },
                 Err(e) => {
-                    log::error!("unable to parse [{:?}]", e);
-                    HttpResponse::BadRequest()
-                        .body(format!("Unable to parse POST'd input {}", req.path()))
+                    log::error!("unable to build policy [{:?}]", e);
+                    HttpResponse::NotAcceptable().body(e.to_string())
                 }
+            },
+            Err(e) => {
+                log::error!("unable to parse [{:?}]", e);
+                HttpResponse::BadRequest()
+                    .body(format!("Unable to parse POST'd input {}", req.path()))
             }
-        }
+        },
         Err(e) => {
             log::error!("unable to parse [{:?}]", e);
             HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))

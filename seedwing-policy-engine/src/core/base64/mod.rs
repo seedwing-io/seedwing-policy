@@ -5,6 +5,7 @@ use crate::runtime::{Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::{RationaleResult, RuntimeValue};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+use base64::engine::GeneralPurpose;
 use base64::Engine;
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -14,7 +15,6 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
-use base64::engine::GeneralPurpose;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]));
@@ -37,26 +37,20 @@ enum Alphabet {
 impl Alphabet {
     pub fn decoder(&self) -> GeneralPurpose {
         match self {
-            Alphabet::Standard => {
-                STANDARD
-            }
-            Alphabet::UrlNoPad => {
-                URL_SAFE_NO_PAD
-            }
+            Alphabet::Standard => STANDARD,
+            Alphabet::UrlNoPad => URL_SAFE_NO_PAD,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Base64 {
-    alphabet: Alphabet
+    alphabet: Alphabet,
 }
 
 impl Base64 {
     fn new(alphabet: Alphabet) -> Self {
-        Self {
-            alphabet
-        }
+        Self { alphabet }
     }
 }
 
@@ -67,9 +61,9 @@ impl Function for Base64 {
 
     fn documentation(&self) -> Option<String> {
         match self.alphabet {
-            Alphabet::Standard=> Some(DOCUMENTATION_BASE64.into()),
+            Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
             Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
-            _ => None
+            _ => None,
         }
     }
 
