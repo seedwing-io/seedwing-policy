@@ -1,0 +1,14 @@
+= Examples for CycloneDX
+
+This folder contains example policies for use with CycloneDX documents.
+
+== Checking that a payload is a valid CycloneDX document
+
+You can use the existing pattern `cyclonedx::v1_4::bom` for that:
+
+```bash
+curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/cyclonedx/v1_4/
+```
+== Check that there are no security vulnerabilities for components
+
+W
