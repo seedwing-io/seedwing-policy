@@ -29,16 +29,16 @@ pub fn package() -> Package {
     pkg.register_source("v1_4".into(), include_str!("v1_4.dog"));
     //pkg.register_source("v1_4/structure".into(), include_str!("v1_4/v1_4.dog"));
     pkg.register_source("hash".into(), include_str!("hash.dog"));
-    pkg.register_function("extract-purls".into(), ExtractPurls);
+    pkg.register_function("component-purls".into(), ComponentPurls);
     pkg
 }
 
 #[derive(Debug)]
-pub struct ExtractPurls;
+pub struct ComponentPurls;
 
-const DOCUMENTATION: &str = include_str!("extract-purls.adoc");
+const DOCUMENTATION: &str = include_str!("component-purls.adoc");
 
-impl Function for ExtractPurls {
+impl Function for ComponentPurls {
     fn order(&self) -> u8 {
         128
     }
