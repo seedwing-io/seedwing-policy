@@ -23,28 +23,28 @@ impl PlaygroundState {
         Self { builder, sources }
     }
 
-    pub fn build(&self, policy: &[u8]) -> Result<PolicyBuilder, HttpResponse> {
+    pub fn build(&self, policy: &[u8]) -> Result<PolicyBuilder, String> {
         let mut builder = self.builder.clone();
         for source in self.sources.iter() {
             if let Err(e) = builder.build(source.iter()) {
                 log::error!("err {:?}", e);
-                return Err(HttpResponse::InternalServerError().finish());
+                return Err(e
+                    .iter()
+                    .map(|b| b.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","));
             }
         }
         match core::str::from_utf8(policy) {
             Ok(s) => {
                 if let Err(e) = builder.build(Ephemeral::new("playground", s).iter()) {
                     log::error!("unable to build policy [{:?}]", e);
-                    return Err(
-                        HttpResponse::BadRequest().body(format!("Compilation error: {e:?}"))
-                    );
+                    return Err(format!("Compilation error: {e:?}"));
                 }
             }
             Err(e) => {
                 log::error!("unable to parse [{:?}]", e);
-                return Err(
-                    HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {e:?}"))
-                );
+                return Err(format!("Unable to parse POST'd input {e:?}"));
             }
         }
         Ok(builder)
@@ -76,7 +76,7 @@ pub async fn compile(
 
     match state.build(&content) {
         Ok(_) => HttpResponse::Ok().into(),
-        Err(e) => e,
+        Err(e) => HttpResponse::BadRequest().body(e.to_string()),
     }
 }
 
@@ -110,32 +110,36 @@ pub async fn evaluate(
                                     full_path += &path.replace('/', "::");
 
                                     match world.evaluate(&*full_path, value, EvalContext::new(seedwing_policy_engine::lang::lir::EvalTrace::Enabled)).await {
-                            Ok(result) => {
-                                let rationale = Rationalizer::new(&result);
-                                let rationale = rationale.rationale();
+                                        Ok(result) => {
+                                            let rationale = Rationalizer::new(&result);
+                                            let rationale = rationale.rationale();
 
-                                if result.satisfied() {
-                                    HttpResponse::Ok().body(rationale)
-                                } else {
-                                    HttpResponse::NotAcceptable().body(rationale)
-                                }
-                            }
-                            Err(err) => {
-                                log::error!("err {:?}", err);
-                                HttpResponse::InternalServerError().finish()
-                            }
-                        }
+                                            if result.satisfied() {
+                                                HttpResponse::Ok().body(rationale)
+                                            } else {
+                                                HttpResponse::NotAcceptable().body(rationale)
+                                            }
+                                        }
+                                        Err(err) => {
+                                            log::error!("err {:?}", err);
+                                            HttpResponse::InternalServerError().finish()
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     log::error!("err {:?}", e);
-                                    HttpResponse::InternalServerError().finish()
+                                    let e = e
+                                        .iter()
+                                        .map(|b| b.to_string())
+                                        .collect::<Vec<String>>()
+                                        .join(",");
+                                    HttpResponse::BadRequest().body(e.to_string())
                                 }
                             }
                         }
                         Err(e) => {
-                            log::error!("unable to parse [{:?}]", e);
-                            HttpResponse::BadRequest()
-                                .body(format!("Unable to parse POST'd input {}", req.path()))
+                            log::error!("unable to build policy [{:?}]", e);
+                            HttpResponse::NotAcceptable().body(e.to_string())
                         }
                     }
                 }
