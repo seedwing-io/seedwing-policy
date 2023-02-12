@@ -473,7 +473,7 @@ impl<'b> Lowerer<'b> {
                     (
                         e.name().inner(),
                         Some(Located::new(
-                            TypeName::new(None, e.name().inner()),
+                            unit_path.type_name(e.name().inner()),
                             e.location(),
                         )),
                     )
@@ -483,16 +483,6 @@ impl<'b> Lowerer<'b> {
             //visible_types.insert("int".into(), None);
             for primordial in world.known_world() {
                 visible_types.insert(primordial.name(), None);
-            }
-
-            for defn in unit.types() {
-                visible_types.insert(
-                    defn.name().inner(),
-                    Some(Located::new(
-                        unit_path.type_name(defn.name().inner()),
-                        defn.location(),
-                    )),
-                );
             }
 
             for defn in unit.types() {
