@@ -8,32 +8,48 @@
     "tools": [{
       "vendor": "CycloneDX",
       "name": "CycloneDX Maven plugin",
-      "version": "2.0.2",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "78522e385d01fc74cb6410abb22b2b0ed9b47c1124635d955179402928820b43"
-        }
-      ]
+      "version": "2.0.2"
     }]
   },
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.9.10?type=jar",
-      "publisher": "FasterXML",
-      "group": "com.fasterxml.jackson.core",
-      "name": "jackson-annotations",
-      "version": "2.9.10",
-      "description": "Core annotations used for value types, used by Jackson data binding package.",
+      "bom-ref": "pkg:maven/log4j/log4j@1.2.17?type=jar",
+      "publisher": "Apache Software Foundation",
+      "group": "log4j",
+      "name": "log4j",
+      "version": "1.2.17",
+      "description": "Apache Log4j 1.2",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c876f2e85d0f108a34cdd11ccc9d8d7875697367efc75bf10a89c2c26aee994c"
+          "content": "1d31696445697720527091754369082a6651bd49781b6005deb94e56753406f9"
         }
       ],
       "licenses": [{"license": {"id": "Apache-2.0"}}],
-      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.9.10?type=jar"
-  }
+      "purl": "pkg:maven/log4j/log4j@1.2.17?type=jar",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "http://www.apache.org"
+        },
+        {
+          "type": "build-system",
+          "url": "http://vmgump.apache.org/gump/public/logging-log4j-12/logging-log4j-12/index.html"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://issues.apache.org/bugzilla/describecomponents.cgi?product=Log4j"
+        },
+        {
+          "type": "mailing-list",
+          "url": "http://mail-archives.apache.org/mod_mbox/logging-log4j-user/"
+        },
+        {
+          "type": "vcs",
+          "url": "http://svn.apache.org/viewvc/logging/log4j/tags/v1_2_17_rc3"
+        }
+      ]
+    }
  ]
 }
