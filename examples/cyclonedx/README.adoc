@@ -23,7 +23,7 @@ You can construct a pattern that checks all package URLs in this SBOM for vulner
 include::vuln.dog[]
 ----
 
-You can test this pattern with the following command:
+You can validate this SBOM against Seedwing using the following command:
 
 [source,bash]
 ----
