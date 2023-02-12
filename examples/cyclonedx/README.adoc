@@ -11,4 +11,6 @@ curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8
 ```
 == Check that there are no security vulnerabilities for components
 
-W
+```bash
+curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/vuln/
+```
