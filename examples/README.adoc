@@ -1,0 +1,5 @@
+= Seedwing examples
+
+Example Seedwing patterns for solving real world use cases.
+
+link:cyclonedx/README.adoc[CycloneDX]

@@ -17,6 +17,19 @@ fn main() -> std::io::Result<()> {
 
     docs.build()?;
 
+    // examples
+
+    println!("cargo:rerun-if-changed=examples/");
+
+    let mut examples = resource_dir("../examples");
+    examples
+        .with_generated_filename(
+            Path::new(&env::var("OUT_DIR").unwrap()).join("generated-examples.rs"),
+        )
+        .with_generated_fn("generate_examples");
+
+    examples.build()?;
+
     // static web assets
 
     let mut assets = resource_dir("./src/assets");

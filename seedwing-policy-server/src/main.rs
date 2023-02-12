@@ -22,9 +22,10 @@ use crate::cli::cli;
 use crate::policy::{
     display_component, display_root, display_root_no_slash, evaluate_html, evaluate_json,
 };
-use crate::ui::{documentation, index};
+use crate::ui::{documentation, examples, index};
 
 include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
+include!(concat!(env!("OUT_DIR"), "/generated-examples.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));
 
@@ -92,12 +93,14 @@ async fn main() -> std::io::Result<()> {
         Ok(world) => {
             let server = HttpServer::new(move || {
                 let raw_docs = generate_docs();
+                let raw_examples = generate_examples();
                 let assets = generate_assets();
                 let ui = generate_npm_assets();
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
                     .app_data(web::Data::new(Documentation(raw_docs)))
+                    .app_data(web::Data::new(Examples(raw_examples)))
                     .app_data(web::Data::new(PlaygroundState::new(
                         builder.clone(),
                         sources.clone(),
@@ -111,6 +114,7 @@ async fn main() -> std::io::Result<()> {
                     .service(evaluate_json)
                     .service(evaluate_html)
                     .service(documentation)
+                    .service(examples)
                     .service(playground::display)
                     .service(playground::display_root_no_slash)
                     .service(playground::evaluate)
@@ -128,3 +132,5 @@ async fn main() -> std::io::Result<()> {
 }
 
 pub struct Documentation(pub HashMap<&'static str, Resource>);
+
+pub struct Examples(pub HashMap<&'static str, Resource>);
