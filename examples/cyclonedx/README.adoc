@@ -1,6 +1,4 @@
-= Examples for CycloneDX
-
-This folder contains example policies for use with CycloneDX documents.
+= CycloneDX
 
 == Checking that a payload is a valid CycloneDX document
 
@@ -11,6 +9,14 @@ curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8
 ```
 == Check that there are no security vulnerabilities for components
 
-```bash
-curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/vuln/
-```
+[source]
+----
+include::vuln.dog[]
+----
+
+Test this pattern with the following command:
+
+[source,bash]
+----
+curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/vuln/not-affected
+----
