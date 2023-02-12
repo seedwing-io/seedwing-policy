@@ -7,14 +7,23 @@ You can use the existing pattern `cyclonedx::v1_4::bom` for that:
 ```bash
 curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/cyclonedx/v1_4/
 ```
-== Check that there are no security vulnerabilities for components
+== Check that there are no security vulnerabilities in your SBOM
+
+Given an example SBOM like this:
+
+[source,json]
+----
+include::bom.json[]
+----
+
+You can construct a pattern that checks all package URLs in this SBOM for vulnerabilities:
 
 [source]
 ----
 include::vuln.dog[]
 ----
 
-Test this pattern with the following command:
+You can test this pattern with the following command:
 
 [source,bash]
 ----

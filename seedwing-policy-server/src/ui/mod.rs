@@ -160,24 +160,28 @@ pub async fn examples(
 
     if let Some(doc) = doc {
         if let Ok(content) = from_utf8(doc.data) {
-            let mut renderer = Handlebars::new();
-            renderer.set_prevent_indent(true);
-            renderer.register_partial("layout", LAYOUT_HTML).unwrap();
-            renderer
-                .register_partial("documentation", DOCUMENTATION_HTML)
-                .unwrap();
-            let result = renderer.render(
-                "documentation",
-                &DocumentationContext {
-                    content: content.into(),
-                },
-            );
+            if path.ends_with(".dog") || path.ends_with(".json") {
+                HttpResponse::Ok().body(content)
+            } else {
+                let mut renderer = Handlebars::new();
+                renderer.set_prevent_indent(true);
+                renderer.register_partial("layout", LAYOUT_HTML).unwrap();
+                renderer
+                    .register_partial("examples", EXAMPLES_HTML)
+                    .unwrap();
+                let result = renderer.render(
+                    "examples",
+                    &DocumentationContext {
+                        content: content.into(),
+                    },
+                );
 
-            match result {
-                Ok(html) => HttpResponse::Ok().body(html),
-                Err(err) => {
-                    log::error!("{:?}", err);
-                    HttpResponse::InternalServerError().finish()
+                match result {
+                    Ok(html) => HttpResponse::Ok().body(html),
+                    Err(err) => {
+                        log::error!("{:?}", err);
+                        HttpResponse::InternalServerError().finish()
+                    }
                 }
             }
         } else {
@@ -189,5 +193,6 @@ pub async fn examples(
 }
 
 pub(crate) const DOCUMENTATION_HTML: &str = include_str!("_documentation.html");
+pub(crate) const EXAMPLES_HTML: &str = include_str!("_examples.html");
 pub(crate) const LAYOUT_HTML: &str = include_str!("_layout.html");
 pub(crate) const INDEX_HTML: &str = include_str!("_index.html");
