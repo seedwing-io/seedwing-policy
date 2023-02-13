@@ -1,7 +1,7 @@
 {{#> layout }}
 
 <script src="/ui/asciidoctor/asciidoctor.js"></script>
-<script src="/ui/monaco/min/vs/loader.js"></script>
+<script src="/ui/monaco-editor/min/vs/loader.js"></script>
 
 <style>
   #rationale {
@@ -90,7 +90,7 @@
           <form id="policy_form" class="pf-c-form">
             <div id="policy_editor" style="resize: vertical; width: 100%; height: 23em;"></div>
             <script>
-              require.config({ paths: { vs: '/ui/monaco/min/vs' } });
+              require.config({ paths: { vs: '/ui/monaco-editor/min/vs' } });
 
               require(['vs/editor/editor.main'], function () {
                   var editor = monaco.editor.create(document.getElementById('policy_editor'), {
@@ -147,7 +147,7 @@
           <form id="value_form" class="pf-c-form">
             <div id="value_editor" style="resize: vertical; width: 100%; height: 20em;"></div>
             <script>
-              require.config({ paths: { vs: '/ui/monaco/min/vs' } });
+              require.config({ paths: { vs: '/ui/monaco-editor/min/vs' } });
 
               require(['vs/editor/editor.main'], function () {
                   var editor = monaco.editor.create(document.getElementById('value_editor'), {
