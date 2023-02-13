@@ -1,0 +1,176 @@
+pattern csaf = {
+  document: document,
+  product_tree?: product_tree,
+  vulnerabilities?: list::all<vulnerability>,
+}
+
+pattern document = {
+  acknowledgements?: anything,
+  aggregate_severity?: aggregate_severity,
+  category: category,
+  csaf_version: csaf_version,
+  distribution?: distribution,
+  lang?: lang,
+  notes?: list::all<note>,
+  publisher: publisher,
+  references?: list::all<reference>,
+  source_lang?: lang,
+  title: string,
+  tracking?: tracking,
+}
+
+
+pattern aggregate_severity = {
+  namespace: uri::url,
+  text: string,
+}
+
+pattern distribution = {
+  text: string,
+  tlp: {
+    label: string,
+    url: uri::url,
+  }
+}
+
+pattern csaf_version = string
+
+pattern category = string
+
+pattern lang = string
+pattern note = {
+  category: string,
+  text: string,
+  title: string,
+}
+
+pattern publisher = {
+  category: string,
+  contact_details: uri::url,
+  name: string,
+  namespace: string,
+}
+
+pattern reference = {
+  category: string,
+  summary: string,
+  url: uri::url,
+}
+
+pattern tracking = {
+  current_release_date: timestamp::iso8601,
+  generator: {
+    date: timestamp::iso8601,
+    engine: {
+      name: string,
+      version: string,
+    }
+  },
+  id: string,
+  initial_release_data?: timestamp::iso8601,
+  revision_history: list::all<revision>,
+  status: string,
+  version: string,
+}
+
+pattern revision = {
+  date: timestamp::iso8601,
+  number: string,
+  summary: string,
+}
+
+pattern product_tree = {
+  branches?: list::all<branch>,
+  relationships?: list::all<relationship>,
+}
+
+pattern branch = {
+  name?: string,
+  category?: string,
+  product?: product,
+  branches?: list::all<branch>,
+}
+
+pattern product = {
+  name: string,
+  product_id: string,
+  product_identification_helper?: {
+    cpe: string,
+  }
+}
+
+pattern relationship = {
+  category?: string,
+  full_product_name?: {
+    name?: string,
+    product_id?: string,
+  },
+  product_reference?: string,
+  relates_to_product_reference?: string,
+}
+
+pattern vulnerability = {
+  cve: string::regexp<"CVE-\d+-\d+">,
+  cwe?: {
+    id: string,
+    name: string,
+  },
+  discovery_date: timestamp::iso8601,
+  flags: list::all<cve-flag>,
+  ids: list::all<reporter-id>,
+  notes?: list::all<note>,
+  product_status?: product-status,
+  references?: list::all<reference>,
+  remediations? : list::all<remediation>,
+  scores?: list::all<score>,
+  threats?: list::all<threat>,
+  title: string,
+}
+
+pattern reporter-id = {
+  system_name?: string,
+  text?: string,
+}
+
+pattern cve-flag = {
+  label?: string,
+  product_ids?: list::all<string>,
+}
+
+pattern product-status = {
+  fixed: list::all<string>,
+  known_not_affected: list::all<string>,
+}
+
+pattern remediation = {
+  category: string,
+  details: string,
+  product_ids: list::all<string>,
+  url: uri::url,
+}
+
+pattern score = {
+  cvss_v3?: cvss-v3,
+  products: list::all<string>,
+}
+
+pattern cvss-v3 = {
+  attackComplexity?: string,
+  attackVector?: string,
+  availabilityImpact?: string,
+  baseScore?: decimal,
+  baseSeverity?: string,
+  confidentialityImpact?: string,
+  integrityImpact?: string,
+  privilegesRequired?: string,
+  scope?: string,
+  userInteraction?: string,
+  vectorString?: string,
+  version?: string,
+}
+
+pattern threat = {
+  category: string,
+  date: timestamp::iso8601,
+  details: string,
+}
