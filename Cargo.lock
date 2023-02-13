@@ -2995,6 +2995,7 @@ dependencies = [
 name = "seedwing-policy-server"
 version = "0.1.0-alpha.2"
 dependencies = [
+ "actix-rt",
  "actix-web",
  "actix-web-static-files",
  "clap 4.1.1",

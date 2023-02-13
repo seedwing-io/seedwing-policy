@@ -6,7 +6,7 @@ pub enum Rationale {
     Anything,
     Nothing,
     Chain(Vec<EvaluationResult>),
-    Object(HashMap<String, EvaluationResult>),
+    Object(HashMap<String, Option<EvaluationResult>>),
     List(Vec<EvaluationResult>),
     NotAnObject,
     NotAList,
@@ -24,7 +24,9 @@ impl Rationale {
         match self {
             Rationale::Anything => true,
             Rationale::Nothing => false,
-            Rationale::Object(fields) => fields.values().all(|e| e.satisfied()),
+            Rationale::Object(fields) => fields
+                .values()
+                .all(|e| e.as_ref().map(|e| e.satisfied()).unwrap_or(false)),
             Rationale::List(items) => items.iter().all(|e| e.satisfied()),
             Rationale::NotAnObject => false,
             Rationale::NotAList => false,

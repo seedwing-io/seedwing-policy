@@ -23,6 +23,7 @@ serde = { version = "1.0.152" }
 actix-web-static-files = "4.0"
 static-files = "0.2.1"
 tokio = "*"
+actix-rt = "*"
 
 [build-dependencies]
 static-files = "0.2.1"

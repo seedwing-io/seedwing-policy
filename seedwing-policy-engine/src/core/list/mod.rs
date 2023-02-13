@@ -30,7 +30,7 @@ pub fn package() -> Package {
 }
 
 pub(crate) async fn split_fill<I>(
-    ctx: &mut EvalContext,
+    ctx: &EvalContext,
     world: &World,
     mut i: I,
     count: Option<Arc<Type>>,

@@ -30,7 +30,7 @@ impl Function for Inet4Addr {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v mut EvalContext,
+        _ctx: &'v EvalContext,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -52,7 +52,7 @@ impl Function for Inet4Addr {
                                         return Ok((
                                             Output::None,
                                             vec![EvaluationResult::new(
-                                                Some(input),
+                                                input,
                                                 address_pattern,
                                                 Rationale::InvalidArgument(e.to_string()),
                                                 Output::None,
@@ -69,7 +69,7 @@ impl Function for Inet4Addr {
                             return Ok((
                                 Output::None,
                                 vec![EvaluationResult::new(
-                                    Some(input),
+                                    input,
                                     address_pattern,
                                     Rationale::InvalidArgument(e),
                                     Output::None,

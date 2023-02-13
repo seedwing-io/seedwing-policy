@@ -24,7 +24,7 @@ impl BlockingFunction for Purl {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        _ctx: &mut EvalContext,
+        _ctx: &EvalContext,
         _bindings: &Bindings,
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {

@@ -14,8 +14,11 @@ use static_files::Resource;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::exit;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
+use seedwing_policy_engine::runtime::monitor::Monitor;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
@@ -89,8 +92,13 @@ async fn main() -> std::io::Result<()> {
 
     let result = builder.finish().await;
 
+    let monitor = Arc::new(Mutex::new(Monitor::new()));
+
     match result {
         Ok(world) => {
+            // todo: wire the receiver to a statistics gatherer.
+            let mut receiver = monitor.lock().await.subscribe("".into()).await;
+
             let server = HttpServer::new(move || {
                 let raw_docs = generate_docs();
                 let raw_examples = generate_examples();
@@ -99,6 +107,7 @@ async fn main() -> std::io::Result<()> {
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
+                    .app_data(web::Data::new(monitor.clone()))
                     .app_data(web::Data::new(Documentation(raw_docs)))
                     .app_data(web::Data::new(Examples(raw_examples)))
                     .app_data(web::Data::new(PlaygroundState::new(

@@ -1,7 +1,7 @@
 use crate::core::Function;
 
 use crate::lang::lir;
-use crate::lang::lir::{Bindings, EvalContext, EvalTrace, Type};
+use crate::lang::lir::{Bindings, EvalContext, TraceConfig, Type};
 use crate::lang::mir::TypeHandle;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
 
@@ -21,6 +21,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub mod cache;
+pub mod monitor;
 pub mod rationale;
 pub mod sources;
 
@@ -73,7 +74,7 @@ impl Output {
 
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
-    input: Option<Arc<RuntimeValue>>,
+    input: Arc<RuntimeValue>,
     ty: Arc<Type>,
     rationale: Rationale,
     output: Output,
@@ -82,7 +83,7 @@ pub struct EvaluationResult {
 
 impl EvaluationResult {
     pub fn new(
-        input: Option<Arc<RuntimeValue>>,
+        input: Arc<RuntimeValue>,
         ty: Arc<Type>,
         rationale: Rationale,
         output: Output,
@@ -105,7 +106,7 @@ impl EvaluationResult {
         self.ty.clone()
     }
 
-    pub fn input(&self) -> Option<Arc<RuntimeValue>> {
+    pub fn input(&self) -> Arc<RuntimeValue> {
         self.input.clone()
     }
 
@@ -116,7 +117,7 @@ impl EvaluationResult {
     pub fn output(&self) -> Option<Arc<RuntimeValue>> {
         match &self.output {
             Output::None => None,
-            Output::Identity => self.input.clone(),
+            Output::Identity => Some(self.input.clone()),
             Output::Transform(inner) => Some(inner.clone()),
         }
     }
@@ -403,7 +404,7 @@ mod test {
 pub struct World {
     types: HashMap<TypeName, usize>,
     type_slots: Vec<Arc<Type>>,
-    trace: EvalTrace,
+    trace: TraceConfig,
 }
 
 impl Default for World {
@@ -417,7 +418,7 @@ impl World {
         Self {
             types: Default::default(),
             type_slots: Default::default(),
-            trace: EvalTrace::Disabled,
+            trace: TraceConfig::Disabled,
         }
     }
 
@@ -438,7 +439,7 @@ impl World {
         self.types.insert(path, self.type_slots.len() - 1);
     }
 
-    pub(crate) fn trace(&self) -> &EvalTrace {
+    pub(crate) fn trace(&self) -> &TraceConfig {
         &self.trace
     }
 

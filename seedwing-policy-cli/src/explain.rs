@@ -43,9 +43,8 @@ fn explain_inner(
         "",
         result
             .input()
-            .map(|v| v.to_string())
-            .map(|v| v.replace('\n', &format!("\n{:indent$}", "", indent = indent + OFFSET)))
-            .unwrap_or_else(|| "<none>".into())
+            .to_string()
+            .replace('\n', &format!("\n{:indent$}", "", indent = indent + OFFSET))
             .trim_end()
     )?;
 
@@ -71,7 +70,11 @@ fn explain_inner(
         Rationale::Object(fields) => {
             for (name, result) in fields {
                 writeln!(w, "{:indent$}field: {name}", "")?;
-                explain_inner(w, indent + OFFSET, result)?;
+                if let Some(inner) = result {
+                    explain_inner(w, indent + OFFSET, inner)?;
+                } else {
+                    writeln!(w, "{:indent$}not present", "")?;
+                }
             }
         }
         Rationale::List(terms) => {

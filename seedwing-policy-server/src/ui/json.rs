@@ -15,10 +15,13 @@ pub struct Result {
 
 impl Result {
     pub fn new(result: &EvaluationResult) -> Self {
+        /*
         let input = match result.input() {
             Some(input) => input.as_json(),
             None => serde_json::Value::Null,
         };
+         */
+        let input = result.input().as_json();
 
         Self {
             name: result.ty().name(),
@@ -66,7 +69,11 @@ fn reason(rationale: &Rationale) -> String {
 
 fn support(result: &EvaluationResult) -> Vec<Result> {
     match result.rationale() {
-        Rationale::Object(fields) => fields.iter().map(|(_, r)| Result::new(r)).collect(),
+        Rationale::Object(fields) => fields
+            .iter()
+            .map(|(_, r)| r.as_ref().map(|r| Result::new(r)))
+            .flatten()
+            .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Result::new).collect()
         }
