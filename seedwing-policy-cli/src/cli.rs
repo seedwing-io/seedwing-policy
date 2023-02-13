@@ -80,6 +80,7 @@ impl Cli {
                             println!("ok!");
                         } else {
                             println!("pattern match failed");
+                            exit(-1);
                         }
                     }
                     Err(e) => {
