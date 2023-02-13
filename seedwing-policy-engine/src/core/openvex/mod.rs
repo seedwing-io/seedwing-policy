@@ -49,12 +49,35 @@ impl Function for FromOsv {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             match input.as_ref() {
+                RuntimeValue::List(items) => {
+                    let mut result: Vec<OpenVex> = Vec::new();
+                    for item in items.iter() {
+                        match serde_json::from_value::<OsvResponse>(item.as_json()) {
+                            Ok(osv) => {
+                                if let Some(vex) = osv2vex(osv) {
+                                    result.push(vex);
+                                }
+                            }
+                            Err(e) => {
+                                log::warn!("Error looking up {:?}", e);
+                                return Ok(Output::None.into());
+                            }
+                        }
+                    }
+
+                    let vex = merge(result);
+                    let json: serde_json::Value = serde_json::to_value(vex).unwrap();
+                    Ok(Output::Transform(Arc::new(json.into())).into())
+                }
                 RuntimeValue::Object(osv) => {
                     match serde_json::from_value::<OsvResponse>(osv.as_json()) {
                         Ok(osv) => {
-                            let vex = osv2vex(osv);
-                            let json: serde_json::Value = serde_json::to_value(vex).unwrap();
-                            Ok(Output::Transform(Arc::new(json.into())).into())
+                            if let Some(vex) = osv2vex(osv) {
+                                let json: serde_json::Value = serde_json::to_value(vex).unwrap();
+                                Ok(Output::Transform(Arc::new(json.into())).into())
+                            } else {
+                                Ok(Output::None.into())
+                            }
                         }
                         Err(e) => {
                             log::warn!("Error looking up {:?}", e);
@@ -71,8 +94,35 @@ impl Function for FromOsv {
     }
 }
 
-fn osv2vex(osv: OsvResponse) -> OpenVex {
-    const VERSION: AtomicU64 = AtomicU64::new(1);
+fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
+    if vexes.is_empty() {
+        None
+    } else {
+        let mut vex = OpenVex {
+            metadata: Metadata {
+                context: "https://openvex.dev/ns".to_string(),
+                id: format!(
+                    "https://seedwing.io/docs/generated/{}",
+                    uuid::Uuid::new_v4().to_string()
+                ),
+                author: "Seedwing Policy Engine".to_string(),
+                role: "Document Creator".to_string(),
+                timestamp: Some(Utc::now()),
+                version: format!("{}", VERSION.fetch_add(1, Ordering::Relaxed)),
+                tooling: Some("Seedwing Policy Engine".to_string()),
+                supplier: Some("seedwing.io".to_string()),
+            },
+            statements: Vec::new(),
+        };
+        for v in vexes.drain(..) {
+            vex.statements.extend(v.statements);
+        }
+        Some(vex)
+    }
+}
+
+const VERSION: AtomicU64 = AtomicU64::new(1);
+fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
     let mut vex = OpenVex {
         metadata: Metadata {
             context: "https://openvex.dev/ns".to_string(),
@@ -107,7 +157,7 @@ fn osv2vex(osv: OsvResponse) -> OpenVex {
         }
         let statement = Statement {
             vulnerability: Some(vuln.id.clone()),
-            vuln_description: Some(vuln.summary.clone()),
+            vuln_description: vuln.summary.clone(),
             timestamp: Some(vuln.modified),
             products: products.drain().collect(),
             subcomponents: Vec::new(),
@@ -126,5 +176,9 @@ fn osv2vex(osv: OsvResponse) -> OpenVex {
         vex.statements.push(statement);
     }
 
-    vex
+    if vex.statements.is_empty() {
+        None
+    } else {
+        Some(vex)
+    }
 }

@@ -3,6 +3,7 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
 const OSV_URL: &str = "https://api.osv.dev/v1/query";
+const OSV_BATCH_URL: &str = "https://api.osv.dev/v1/querybatch";
 pub struct OsvClient {
     client: reqwest::Client,
 }
@@ -13,19 +14,25 @@ impl OsvClient {
             client: reqwest::Client::new(),
         }
     }
-    pub async fn query(
+    pub async fn query_batch(
         &self,
-        ecosystem: &str,
-        name: &str,
-        version: &str,
-    ) -> Result<OsvResponse, anyhow::Error> {
-        let payload = OsvQuery {
-            version: version.to_string(),
-            package: OsvPackageQuery {
-                name: name.to_string(),
-                ecosystem: ecosystem.to_string(),
-            },
-        };
+        queries: Vec<OsvQuery>,
+    ) -> Result<OsvBatchResponse, anyhow::Error> {
+        let query = OsvBatchQuery { queries };
+        let response = self.client.post(OSV_BATCH_URL).json(&query).send().await;
+        match response {
+            Ok(r) if r.status() == StatusCode::OK => {
+                r.json::<OsvBatchResponse>().await.map_err(|e| e.into())
+            }
+            Ok(r) => Err(anyhow::anyhow!("Error querying package: {:?}", r)),
+            Err(e) => {
+                log::warn!("Error querying OSV: {:?}", e);
+                Err(e.into())
+            }
+        }
+    }
+
+    pub async fn query(&self, payload: OsvQuery) -> Result<OsvResponse, anyhow::Error> {
         let response = self.client.post(OSV_URL).json(&payload).send().await;
         match response {
             Ok(r) if r.status() == StatusCode::OK => {
@@ -41,15 +48,42 @@ impl OsvClient {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OsvBatchQuery {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    queries: Vec<OsvQuery>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OsvQuery {
     version: String,
     package: OsvPackageQuery,
+}
+
+impl From<(&str, &str, &str)> for OsvQuery {
+    fn from(values: (&str, &str, &str)) -> OsvQuery {
+        let ecosystem = values.0;
+        let name = values.1;
+        let version = values.2;
+        OsvQuery {
+            version: version.to_string(),
+            package: OsvPackageQuery {
+                name: name.to_string(),
+                ecosystem: ecosystem.to_string(),
+            },
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvPackageQuery {
     name: String,
     ecosystem: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OsvBatchResponse {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub results: Vec<OsvResponse>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,9 +95,9 @@ pub struct OsvResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvVulnerability {
     #[serde(alias = "schemaVersion")]
-    pub schema_version: String,
+    pub schema_version: Option<String>,
     pub id: String,
-    pub published: DateTime<Utc>,
+    pub published: Option<DateTime<Utc>>,
     pub modified: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub withdrawn: Option<DateTime<Utc>>,
@@ -71,8 +105,9 @@ pub struct OsvVulnerability {
     pub aliases: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub related: Vec<String>,
-    pub summary: String,
-    pub details: String,
+    pub summary: Option<String>,
+    pub details: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub affected: Vec<OsvAffected>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub references: Vec<OsvReference>,

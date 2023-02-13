@@ -1,5 +1,8 @@
+use anyhow::anyhow;
+
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, EvalContext};
+use crate::runtime::rationale::Rationale;
 
 use crate::runtime::World;
 use crate::runtime::{Output, RuntimeError};
@@ -18,37 +21,86 @@ pub struct FromPurl;
 const DOCUMENTATION: &str = include_str!("from-purl.adoc");
 
 impl FromPurl {
-    async fn from_purl(
+    async fn from_purls(
         &self,
         input: serde_json::Value,
     ) -> Result<Option<serde_json::Value>, RuntimeError> {
         use serde_json::Value as JsonValue;
         let client = OsvClient::new();
-        match (
-            input.get("name"),
-            input.get("namespace"),
-            input.get("type"),
-            input.get("version"),
-        ) {
-            (
-                Some(JsonValue::String(name)),
-                Some(JsonValue::String(namespace)),
-                Some(JsonValue::String(r#type)),
-                Some(JsonValue::String(version)),
-            ) => {
-                let (ecosystem, name) = purl2osv(r#type, name, namespace);
-                match client.query(&ecosystem, &name, &version).await {
-                    Ok(transform) => {
-                        let json: serde_json::Value = serde_json::to_value(transform).unwrap();
+        match input {
+            JsonValue::Array(items) => {
+                let queries: Vec<OsvQuery> = items
+                    .iter()
+                    .flat_map(|input| {
+                        match (
+                            input.get("name"),
+                            input.get("namespace"),
+                            input.get("type"),
+                            input.get("version"),
+                        ) {
+                            (
+                                Some(JsonValue::String(name)),
+                                Some(JsonValue::String(namespace)),
+                                Some(JsonValue::String(r#type)),
+                                Some(JsonValue::String(version)),
+                            ) => {
+                                let (ecosystem, name) = purl2osv(r#type, name, namespace);
+                                let payload: OsvQuery =
+                                    (ecosystem, name.as_str(), version.as_str()).into();
+                                Some(payload)
+                            }
+                            _ => None,
+                        }
+                    })
+                    .collect();
+
+                log::info!("Batch queries: {}", queries.len());
+                match client.query_batch(queries).await {
+                    Ok(result) => {
+                        log::info!("Batch query response OK");
+                        let json: serde_json::Value = serde_json::to_value(result.results).unwrap();
                         Ok(Some(json))
                     }
                     Err(e) => {
-                        log::warn!("Error looking up {:?}", e);
+                        log::warn!("{:?}", e);
                         Ok(None)
                     }
                 }
             }
-            _ => Ok(None),
+            JsonValue::Object(input) => {
+                match (
+                    input.get("name"),
+                    input.get("namespace"),
+                    input.get("type"),
+                    input.get("version"),
+                ) {
+                    (
+                        Some(JsonValue::String(name)),
+                        Some(JsonValue::String(namespace)),
+                        Some(JsonValue::String(r#type)),
+                        Some(JsonValue::String(version)),
+                    ) => {
+                        let (ecosystem, name) = purl2osv(r#type, name, namespace);
+                        let payload: OsvQuery = (ecosystem, name.as_str(), version.as_str()).into();
+                        match client.query(payload).await {
+                            Ok(transform) => {
+                                let json: serde_json::Value =
+                                    serde_json::to_value(transform).unwrap();
+                                Ok(Some(json))
+                            }
+                            Err(e) => {
+                                log::warn!("Error looking up {:?}", e);
+                                Ok(None)
+                            }
+                        }
+                    }
+                    _ => Ok(None),
+                }
+            }
+            _ => {
+                log::warn!("Expected object or array JSON value");
+                Ok(None)
+            }
         }
     }
 }
@@ -70,37 +122,8 @@ impl Function for FromPurl {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            match input.as_ref() {
-                RuntimeValue::List(input) => {
-                    let mut list: Vec<Arc<RuntimeValue>> = Vec::new();
-                    for purl in input.iter() {
-                        match self.call(purl.clone(), ctx, bindings, world).await {
-                            Ok(result) => match result.output() {
-                                Output::Transform(value) => {
-                                    list.push(value);
-                                }
-                                _ => return Ok(result),
-                            },
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    }
-                    Ok(Output::Transform(Arc::new(list.into())).into())
-                }
-                RuntimeValue::Object(input) => {
-                    let input = input.as_json();
-                    match self.from_purl(input).await {
-                        Ok(Some(json)) => {
-                            return Ok(Output::Transform(Arc::new(json.into())).into());
-                        }
-                        Ok(None) => Ok(Output::None.into()),
-                        Err(e) => {
-                            log::warn!("Error looking up {:?}", e);
-                            Ok(Output::None.into())
-                        }
-                    }
-                }
+            match self.from_purls(input.as_json()).await {
+                Ok(Some(json)) => Ok(Output::Transform(Arc::new(json.into())).into()),
                 _ => Ok(Output::None.into()),
             }
         })
