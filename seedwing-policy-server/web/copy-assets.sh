@@ -25,7 +25,7 @@ cp -av node_modules/@patternfly/patternfly/patternfly*.css $TARGET/patternfly/
 
 # monaco
 
-mkdir -p $TARGET/monaco
+mkdir -p $TARGET/monaco-editor/
 cp -av node_modules/monaco-editor/min/ $TARGET/monaco-editor/
 
 mkdir -p $TARGET/patternfly/assets/fonts
