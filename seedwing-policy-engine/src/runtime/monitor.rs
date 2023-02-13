@@ -25,9 +25,9 @@ impl MonitorEvent {
 
 #[derive(Debug, Clone)]
 pub struct StartEvent {
-    correlation: u64,
-    input: Arc<RuntimeValue>,
-    ty: Arc<Type>,
+    pub correlation: u64,
+    pub input: Arc<RuntimeValue>,
+    pub ty: Arc<Type>,
 }
 
 impl From<StartEvent> for MonitorEvent {
@@ -44,9 +44,9 @@ impl From<CompleteEvent> for MonitorEvent {
 
 #[derive(Debug, Clone)]
 pub struct CompleteEvent {
-    correlation: u64,
-    ty: Arc<Type>,
-    output: Output,
+    pub correlation: u64,
+    pub ty: Arc<Type>,
+    pub output: Output,
 }
 
 pub struct Monitor {
@@ -75,7 +75,7 @@ impl Monitor {
     pub async fn start(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> u64 {
         let correlation = self.correlation.fetch_add(1, Ordering::Relaxed);
         let event = StartEvent {
-            correlation: 0,
+            correlation,
             input,
             ty,
         };

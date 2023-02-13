@@ -24,6 +24,8 @@ actix-web-static-files = "4.0"
 static-files = "0.2.1"
 tokio = "*"
 actix-rt = "*"
+actix = "*"
+actix-ws = "*"
 
 [build-dependencies]
 static-files = "0.2.1"

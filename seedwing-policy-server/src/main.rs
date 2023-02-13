@@ -1,4 +1,5 @@
 mod cli;
+mod monitor;
 mod playground;
 mod policy;
 mod ui;
@@ -22,6 +23,7 @@ use seedwing_policy_engine::runtime::monitor::Monitor;
 use seedwing_policy_engine::runtime::sources::Directory;
 
 use crate::cli::cli;
+use crate::monitor::monitor_stream;
 use crate::policy::{
     display_component, display_root, display_root_no_slash, evaluate_html, evaluate_json,
 };
@@ -128,6 +130,8 @@ async fn main() -> std::io::Result<()> {
                     .service(playground::display_root_no_slash)
                     .service(playground::evaluate)
                     .service(playground::compile)
+                    .service(monitor::monitor)
+                    .service(monitor::monitor_stream)
             });
             log::info!("starting up at http://{}:{}/", bind, port);
 

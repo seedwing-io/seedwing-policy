@@ -1,0 +1,29 @@
+
+{{#> layout }}
+<style>
+
+  #events .satisfied {
+    background-color: #cfc;
+  }
+  #events .unsatisfied {
+    background-color: #fcc;
+  }
+
+</style>
+
+
+Monitor
+
+<div id="events">
+
+</div>
+
+<script defer>
+  const loc = window.location;
+  const stream = new WebSocket("ws://" + loc.host + loc.pathname.replace( "/monitor/", "/monitor-stream/" ));
+  stream.onmessage = (event) => {
+    console.log(event.data);
+  }
+</script>
+
+{{/layout}}
