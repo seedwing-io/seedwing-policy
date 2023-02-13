@@ -20,6 +20,37 @@ pub struct FromPurl;
 
 const DOCUMENTATION: &str = include_str!("from-purl.adoc");
 
+fn json_to_query(input: serde_json::Value) -> Option<OsvQuery> {
+    use serde_json::Value as JsonValue;
+    match input {
+        JsonValue::String(purl) => {
+            let payload: OsvQuery = OsvQuery::from(purl.as_str());
+            Some(payload)
+        }
+        JsonValue::Object(input) => {
+            match (
+                input.get("name"),
+                input.get("namespace"),
+                input.get("type"),
+                input.get("version"),
+            ) {
+                (
+                    Some(JsonValue::String(name)),
+                    Some(JsonValue::String(namespace)),
+                    Some(JsonValue::String(r#type)),
+                    Some(JsonValue::String(version)),
+                ) => {
+                    let (ecosystem, name) = purl2osv(r#type, name, namespace);
+                    let payload: OsvQuery = (ecosystem, name.as_str(), version.as_str()).into();
+                    Some(payload)
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
 impl FromPurl {
     async fn from_purls(
         &self,
@@ -28,30 +59,10 @@ impl FromPurl {
         use serde_json::Value as JsonValue;
         let client = OsvClient::new();
         match input {
-            JsonValue::Array(items) => {
+            JsonValue::Array(mut items) => {
                 let queries: Vec<OsvQuery> = items
-                    .iter()
-                    .flat_map(|input| {
-                        match (
-                            input.get("name"),
-                            input.get("namespace"),
-                            input.get("type"),
-                            input.get("version"),
-                        ) {
-                            (
-                                Some(JsonValue::String(name)),
-                                Some(JsonValue::String(namespace)),
-                                Some(JsonValue::String(r#type)),
-                                Some(JsonValue::String(version)),
-                            ) => {
-                                let (ecosystem, name) = purl2osv(r#type, name, namespace);
-                                let payload: OsvQuery =
-                                    (ecosystem, name.as_str(), version.as_str()).into();
-                                Some(payload)
-                            }
-                            _ => None,
-                        }
-                    })
+                    .drain(..)
+                    .flat_map(|input| json_to_query(input))
                     .collect();
 
                 log::info!("Batch queries: {}", queries.len());
@@ -67,36 +78,19 @@ impl FromPurl {
                     }
                 }
             }
-            JsonValue::Object(input) => {
-                match (
-                    input.get("name"),
-                    input.get("namespace"),
-                    input.get("type"),
-                    input.get("version"),
-                ) {
-                    (
-                        Some(JsonValue::String(name)),
-                        Some(JsonValue::String(namespace)),
-                        Some(JsonValue::String(r#type)),
-                        Some(JsonValue::String(version)),
-                    ) => {
-                        let (ecosystem, name) = purl2osv(r#type, name, namespace);
-                        let payload: OsvQuery = (ecosystem, name.as_str(), version.as_str()).into();
-                        match client.query(payload).await {
-                            Ok(transform) => {
-                                let json: serde_json::Value =
-                                    serde_json::to_value(transform).unwrap();
-                                Ok(Some(json))
-                            }
-                            Err(e) => {
-                                log::warn!("Error looking up {:?}", e);
-                                Ok(None)
-                            }
-                        }
+            input => match json_to_query(input) {
+                Some(query) => match client.query(query).await {
+                    Ok(transform) => {
+                        let json: serde_json::Value = serde_json::to_value(transform).unwrap();
+                        Ok(Some(json))
                     }
-                    _ => Ok(None),
-                }
-            }
+                    Err(e) => {
+                        log::warn!("Error looking up {:?}", e);
+                        Ok(None)
+                    }
+                },
+                _ => Ok(None),
+            },
             _ => {
                 log::warn!("Expected object or array JSON value");
                 Ok(None)

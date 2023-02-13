@@ -55,8 +55,22 @@ pub struct OsvBatchQuery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvQuery {
-    version: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    version: Option<String>,
     package: OsvPackageQuery,
+}
+
+impl From<&str> for OsvQuery {
+    fn from(purl: &str) -> OsvQuery {
+        Self {
+            version: None,
+            package: OsvPackageQuery {
+                name: None,
+                ecosystem: None,
+                purl: Some(purl.to_string()),
+            },
+        }
+    }
 }
 
 impl From<(&str, &str, &str)> for OsvQuery {
@@ -65,10 +79,11 @@ impl From<(&str, &str, &str)> for OsvQuery {
         let name = values.1;
         let version = values.2;
         OsvQuery {
-            version: version.to_string(),
+            version: Some(version.to_string()),
             package: OsvPackageQuery {
-                name: name.to_string(),
-                ecosystem: ecosystem.to_string(),
+                name: Some(name.to_string()),
+                ecosystem: Some(ecosystem.to_string()),
+                purl: None,
             },
         }
     }
@@ -76,8 +91,12 @@ impl From<(&str, &str, &str)> for OsvQuery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvPackageQuery {
-    name: String,
-    ecosystem: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    ecosystem: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    purl: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
