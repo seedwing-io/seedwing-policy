@@ -1,5 +1,5 @@
 use seedwing_policy_engine::lang::lir::EvalContext;
-use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError, TypeName, World};
+use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError, World};
 use seedwing_policy_engine::value::RuntimeValue;
 
 pub struct Eval {

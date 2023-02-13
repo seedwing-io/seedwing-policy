@@ -3,13 +3,12 @@ use crate::explain::explain;
 use crate::verify::Verify;
 use clap::ValueEnum;
 use is_terminal::IsTerminal;
-use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError};
+use seedwing_policy_engine::runtime::RuntimeError;
 use seedwing_policy_engine::value::RuntimeValue;
-use std::io::{stdin, Read};
+use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
 use tokio::fs;
-use tokio::io::AsyncReadExt;
 
 pub const COMMAND_NAME: &str = "seedwing-policy";
 

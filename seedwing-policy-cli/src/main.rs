@@ -1,5 +1,5 @@
-use crate::cli::{Cli, Command};
-use clap::Arg;
+use crate::cli::Cli;
+
 use clap::Parser;
 
 mod cli;

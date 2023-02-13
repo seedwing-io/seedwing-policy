@@ -2,7 +2,7 @@ use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
 use seedwing_policy_engine::lang::builder::Builder;
 use seedwing_policy_engine::runtime::sources::Directory;
-use seedwing_policy_engine::runtime::{BuildError, World};
+use seedwing_policy_engine::runtime::World;
 use std::path::PathBuf;
 use std::process::exit;
 
