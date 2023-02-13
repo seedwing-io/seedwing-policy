@@ -4,6 +4,8 @@ set -e
 
 TARGET="dist"
 
+rm -Rf $TARGET
+
 #
 # We don't have any bundling tool like trunk, or in the JS world, webpack. So `cp` it is.
 #
@@ -25,8 +27,9 @@ cp -av node_modules/@patternfly/patternfly/patternfly*.css $TARGET/patternfly/
 
 # monaco
 
-mkdir -p $TARGET/monaco-editor/
-cp -av node_modules/monaco-editor/min/ $TARGET/monaco-editor/
+mkdir -p $TARGET/monaco-editor/min/
+cp -av node_modules/monaco-editor/min/* $TARGET/monaco-editor/min/
+
 
 mkdir -p $TARGET/patternfly/assets/fonts
 # rsync might be more powerful, but is also more complex, and even less available. So let's try to get the job done
