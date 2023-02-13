@@ -23,6 +23,11 @@ cp -av node_modules/jquery/dist/* $TARGET/jquery/
 mkdir -p $TARGET/patternfly
 cp -av node_modules/@patternfly/patternfly/patternfly*.css $TARGET/patternfly/
 
+# monaco
+
+mkdir -p $TARGET/monaco
+cp -av node_modules/monaco-editor/min/ $TARGET/monaco-editor/
+
 mkdir -p $TARGET/patternfly/assets/fonts
 # rsync might be more powerful, but is also more complex, and even less available. So let's try to get the job done
 # with find.

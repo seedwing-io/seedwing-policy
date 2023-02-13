@@ -1,6 +1,7 @@
 {{#> layout }}
 
 <script src="/ui/asciidoctor/asciidoctor.js"></script>
+<script src="/ui/monaco/min/vs/loader.js"></script>
 
 <style>
 
@@ -166,8 +167,22 @@
         <div class="pf-c-panel__main-body">
 
           <form id="experiment_form" class="pf-c-form">
-                        <textarea id="experiment_body" class="pf-c-form-control"
-                                  style="width: 100%; height: 20em; font-family: monospace;"></textarea>
+            <div id="experiment_body" style="width: 100%; height: 20em; font-family: monospace;"></div>
+            <script>
+              require.config({ paths: { vs: '/ui/monaco/min/vs' } });
+
+              require(['vs/editor/editor.main'], function () {
+                  var editor = monaco.editor.create(document.getElementById('experiment_body'), {
+                    minimap: {enabled: false}
+                  });
+
+                  const form = document.getElementById("experiment_form");
+                  form.addEventListener("formdata", e =>
+                  {
+                      e.formData.append('body', editor.getModel().getValue());
+                  });
+              });
+            </script>
           </form>
 
         </div>
@@ -217,7 +232,7 @@
     $('#experiment_status').removeClass("pf-m-red");
     $('#rationale_body').html("");
     event.preventDefault();
-    const body = $("#experiment_body").val();
+    const body = new FormData(document.getElementById('experiment_form')).get("body");
     $.post(
         "{{url_path}}",
         body,

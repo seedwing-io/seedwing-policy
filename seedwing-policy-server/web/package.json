@@ -9,6 +9,7 @@
   "dependencies": {
     "@asciidoctor/core": "^2.2.6",
     "jquery": "^3.6.3",
-    "@patternfly/patternfly": "^4.222.4"
+    "@patternfly/patternfly": "^4.222.4",
+    "monaco-editor": "^0.35.0"
   }
 }

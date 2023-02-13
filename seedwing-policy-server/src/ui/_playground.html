@@ -1,6 +1,7 @@
 {{#> layout }}
 
 <script src="/ui/asciidoctor/asciidoctor.js"></script>
+<script src="/ui/monaco/min/vs/loader.js"></script>
 
 <style>
   #rationale {
@@ -87,9 +88,25 @@
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
           <form id="policy_form" class="pf-c-form">
-            <textarea id="policy_body" class="pf-c-form-control"
-                      style="resize: vertical; width: 100%; height: 23em; font-family: monospace;"
-                      placeholder="enter pattern definitions"></textarea>
+            <div id="policy_editor" style="resize: vertical; width: 100%; height: 23em;"></div>
+            <script>
+              require.config({ paths: { vs: '/ui/monaco/min/vs' } });
+
+              require(['vs/editor/editor.main'], function () {
+                  var editor = monaco.editor.create(document.getElementById('policy_editor'), {
+                      value: "pattern dog = {\n" +
+                              "    name: string,\n" +
+                              "    trained: boolean\n" +
+                              "}"
+                  });
+
+                  const form = document.getElementById("policy_form");
+                  form.addEventListener("formdata", e =>
+                  {
+                      e.formData.append('policy_body', editor.getModel().getValue());
+                  });
+              });
+            </script>
           </form>
         </div>
       </div>
@@ -128,9 +145,26 @@
       <div class="pf-c-panel__main">
         <div class="pf-c-panel__main-body">
           <form id="value_form" class="pf-c-form">
-            <textarea id="value_body" class="pf-c-form-control"
-                      style="resize: vertical; width: 100%; height: 20em; font-family: monospace;"
-                      placeholder="enter value to check against pattern"></textarea>
+            <div id="value_editor" style="resize: vertical; width: 100%; height: 20em;"></div>
+            <script>
+              require.config({ paths: { vs: '/ui/monaco/min/vs' } });
+
+              require(['vs/editor/editor.main'], function () {
+                  var editor = monaco.editor.create(document.getElementById('value_editor'), {
+                      value: "{ \n" +
+                              "   \"name\":\"goodboy\", \n" +
+                              "   \"trained\": true\n" +
+                              "}",
+                      language: "json"
+                  });
+
+                  const form = document.getElementById("value_form");
+                  form.addEventListener("formdata", e =>
+                  {
+                      e.formData.append('value_body', editor.getModel().getValue());
+                  });
+              });
+            </script>
             <input id="value_path" class="pf-c-form-control"
                    style="padding: 1ex; width: 100%; font-family: monospace;"
                    placeholder="enter pattern name"/>
@@ -172,7 +206,7 @@
     $('#policy_status').removeClass("pf-m-red");
     $('#compile_body').html("");
     event.preventDefault();
-    const body = $("#policy_body").val();
+    const body = new FormData(document.getElementById('policy_form')).get("policy_body");
     $.post(
         "{{compile_path}}",
         body,
@@ -215,8 +249,8 @@
     $('#rationale_body').html("");
 
     event.preventDefault();
-    const policy_body = $("#policy_body").val();
-    const value_body = $("#value_body").val();
+    const policy_body = new FormData(document.getElementById('policy_form')).get("policy_body");
+    const value_body = new FormData(document.getElementById('value_form')).get("value_body");
     const value_path = $("#value_path").val();
 
     const path = "{{eval_path}}/" + $("#value_path").val();
