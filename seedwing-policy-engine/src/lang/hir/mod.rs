@@ -354,6 +354,7 @@ impl World {
         world.add_package(crate::core::osv::package());
         world.add_package(crate::core::uri::package());
         world.add_package(crate::core::timestamp::package());
+        world.add_package(crate::core::csaf::package());
 
         #[cfg(feature = "debug")]
         world.add_package(crate::core::debug::package());
