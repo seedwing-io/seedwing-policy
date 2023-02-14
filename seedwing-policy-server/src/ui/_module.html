@@ -11,17 +11,16 @@
   {{/each}}
 </h1>
 
-<!--
-<h1 class="pf-c-title pf-m-4xl">
-  {{#if path_segments}}
-    {{#each path_segments}}
-      <span>{{this}} :: </span>
-    {{/each}}
-  {{else}}
-    [Root]
-  {{/if}}
-</h1>
--->
+<nav class="pf-c-nav pf-m-horizontal" aria-label="Global">
+  <button class="pf-c-nav__scroll-button" disabled aria-label="Scroll left">
+    <i class="fas fa-angle-left" aria-hidden="true"></i>
+  </button>
+  <ul class="pf-c-nav__list">
+    <li class="pf-c-nav__item">
+      <a href="{{monitor_link}}" class="pf-c-nav__link">Monitor</a>
+    </li>
+  </ul>
+</nav>
 
 {{#with module.modules as |modules|}}
 {{#if modules}}

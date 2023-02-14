@@ -206,7 +206,7 @@ impl Type {
             InnerType::Anything => Box::pin(async move {
                 let trace = ctx.trace(value.clone(), self.clone()).await;
                 //Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
-                Ok(trace.done(Rationale::Anything, Output::Identity).await)
+                Ok(trace.done((Rationale::Anything, Output::Identity)).await)
             }),
             InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
                 let trace = ctx.trace(value.clone(), self.clone()).await;
@@ -302,10 +302,10 @@ impl Type {
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
                         Ok(trace
-                            .done(result.rationale().clone(), result.raw_output().clone())
+                            .done((result.rationale().clone(), result.raw_output().clone()))
                             .await)
                     } else {
-                        Ok(result)
+                        Ok(trace.done(result).await)
                     }
                 } else {
                     Err(RuntimeError::NoSuchTypeSlot(*slot))
@@ -323,7 +323,7 @@ impl Type {
                     bound.evaluate(value.clone(), ctx, bindings, world).await
                 } else {
                     Ok(trace
-                        .done(Rationale::InvalidArgument(name.clone()), Output::None)
+                        .done((Rationale::InvalidArgument(name.clone()), Output::None))
                         .await)
                 }
             }),
@@ -333,10 +333,12 @@ impl Type {
                     let locked_value = (*value).borrow();
                     if locked_value.is_integer() {
                         Ok(trace
-                            .done(Rationale::Primordial(true), Output::Identity)
+                            .done((Rationale::Primordial(true), Output::Identity))
                             .await)
                     } else {
-                        Ok(trace.done(Rationale::Primordial(false), Output::None).await)
+                        Ok(trace
+                            .done((Rationale::Primordial(false), Output::None))
+                            .await)
                     }
                 }),
                 PrimordialType::Decimal => Box::pin(async move {
@@ -344,10 +346,12 @@ impl Type {
                     let locked_value = (*value).borrow();
                     if locked_value.is_decimal() {
                         Ok(trace
-                            .done(Rationale::Primordial(true), Output::Identity)
+                            .done((Rationale::Primordial(true), Output::Identity))
                             .await)
                     } else {
-                        Ok(trace.done(Rationale::Primordial(false), Output::None).await)
+                        Ok(trace
+                            .done((Rationale::Primordial(false), Output::None))
+                            .await)
                     }
                 }),
                 PrimordialType::Boolean => Box::pin(async move {
@@ -356,10 +360,12 @@ impl Type {
 
                     if locked_value.is_boolean() {
                         Ok(trace
-                            .done(Rationale::Primordial(true), Output::Identity)
+                            .done((Rationale::Primordial(true), Output::Identity))
                             .await)
                     } else {
-                        Ok(trace.done(Rationale::Primordial(false), Output::None).await)
+                        Ok(trace
+                            .done((Rationale::Primordial(false), Output::None))
+                            .await)
                     }
                 }),
                 PrimordialType::String => Box::pin(async move {
@@ -367,24 +373,26 @@ impl Type {
                     let locked_value = (*value).borrow();
                     if locked_value.is_string() {
                         Ok(trace
-                            .done(Rationale::Primordial(true), Output::Identity)
+                            .done((Rationale::Primordial(true), Output::Identity))
                             .await)
                     } else {
-                        Ok(trace.done(Rationale::Primordial(false), Output::None).await)
+                        Ok(trace
+                            .done((Rationale::Primordial(false), Output::None))
+                            .await)
                     }
                 }),
                 PrimordialType::Function(_sugar, _name, func) => Box::pin(async move {
                     let trace = ctx.trace(value.clone(), self.clone()).await;
                     let result = func.call(value.clone(), ctx, bindings, world).await?;
                     Ok(trace
-                        .done(
+                        .done((
                             Rationale::Function(
                                 result.output().is_some(),
                                 result.rationale().map(Box::new),
                                 result.supporting(),
                             ),
                             result.output(),
-                        )
+                        ))
                         .await)
                 }),
             },
@@ -392,9 +400,11 @@ impl Type {
                 let trace = ctx.trace(value.clone(), self.clone()).await;
                 let locked_value = (*value).borrow();
                 if inner.is_equal(locked_value).await {
-                    Ok(trace.done(Rationale::Const(true), Output::Identity).await)
+                    Ok(trace.done((Rationale::Const(true), Output::Identity)).await)
                 } else {
-                    Ok(trace.done(Rationale::Const(false), Output::Identity).await)
+                    Ok(trace
+                        .done((Rationale::Const(false), Output::Identity))
+                        .await)
                 }
             }),
             InnerType::Object(inner) => Box::pin(async move {
@@ -418,10 +428,10 @@ impl Type {
                         }
                     }
                     Ok(trace
-                        .done(Rationale::Object(result), Output::Identity)
+                        .done((Rationale::Object(result), Output::Identity))
                         .await)
                 } else {
-                    Ok(trace.done(Rationale::NotAnObject, Output::None).await)
+                    Ok(trace.done((Rationale::NotAnObject, Output::None)).await)
                 }
             }),
             InnerType::Expr(expr) => Box::pin(async move {
@@ -431,10 +441,12 @@ impl Type {
                 let locked_result = (*result).borrow();
                 if let Some(true) = locked_result.try_get_boolean() {
                     Ok(trace
-                        .done(Rationale::Expression(true), Output::Identity)
+                        .done((Rationale::Expression(true), Output::Identity))
                         .await)
                 } else {
-                    Ok(trace.done(Rationale::Expression(false), Output::None).await)
+                    Ok(trace
+                        .done((Rationale::Expression(false), Output::None))
+                        .await)
                 }
             }),
             InnerType::List(terms) => Box::pin(async move {
@@ -446,14 +458,16 @@ impl Type {
                             result
                                 .push(term.evaluate(element.clone(), ctx, bindings, world).await?);
                         }
-                        return Ok(trace.done(Rationale::List(result), Output::Identity).await);
+                        return Ok(trace
+                            .done((Rationale::List(result), Output::Identity))
+                            .await);
                     }
                 }
-                Ok(trace.done(Rationale::NotAList, Output::None).await)
+                Ok(trace.done((Rationale::NotAList, Output::None)).await)
             }),
             InnerType::Nothing => Box::pin(async move {
                 let trace = ctx.trace(value.clone(), self.clone()).await;
-                Ok(trace.done(Rationale::Nothing, Output::None).await)
+                Ok(trace.done((Rationale::Nothing, Output::None)).await)
             }),
         }
     }
@@ -884,8 +898,15 @@ pub struct TraceHandle<'ctx> {
     start: Option<Instant>,
 }
 
+impl From<EvaluationResult> for (Rationale, Output) {
+    fn from(result: EvaluationResult) -> Self {
+        (result.rationale().clone(), result.raw_output().clone())
+    }
+}
+
 impl<'ctx> TraceHandle<'ctx> {
-    async fn done(self, rationale: Rationale, output: Output) -> EvaluationResult {
+    async fn done<R: Into<(Rationale, Output)>>(self, result: R) -> EvaluationResult {
+        let (rationale, output) = result.into();
         let duration = self
             .start
             .map(|start| TraceResult::new(Instant::now() - start));

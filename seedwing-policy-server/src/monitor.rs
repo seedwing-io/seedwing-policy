@@ -12,6 +12,7 @@ use seedwing_policy_engine::runtime::{Component, Output, TypeName, World};
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::Arc;
+use std::time::{Instant, SystemTime};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 
@@ -61,7 +62,7 @@ pub async fn inner_monitor_stream(
     loop {
         // todo! listen for close and other failures.
         if let Some(event) = receiver.recv().await {
-            if let Ok(event) = Event::try_from(event) {
+            if let Ok(event) = WsEvent::try_from(event) {
                 if let Ok(json) = serde_json::to_string(&event) {
                     session.text(json).await;
                 }
@@ -71,43 +72,50 @@ pub async fn inner_monitor_stream(
 }
 
 #[derive(Serialize)]
-pub enum Event {
-    Start(Start),
-    Complete(Complete),
+#[serde(tag = "type", content = "event")]
+#[serde(rename_all = "lowercase")]
+pub enum WsEvent {
+    Start(WsStart),
+    Complete(WsComplete),
 }
 
 #[derive(Serialize)]
-pub struct Start {
+pub struct WsStart {
     correlation: u64,
+    timestamp: String,
     name: Option<String>,
     input: Value,
 }
 
 #[derive(Serialize)]
-pub struct Complete {
+pub struct WsComplete {
     correlation: u64,
+    timestamp: String,
     output: WsOutput,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum WsOutput {
     None,
     Identity,
     Transform(Value),
 }
 
-impl TryFrom<MonitorEvent> for Event {
+impl TryFrom<MonitorEvent> for WsEvent {
     type Error = ();
 
     fn try_from(value: MonitorEvent) -> Result<Self, Self::Error> {
         match value {
-            MonitorEvent::Start(inner) => Ok(Event::Start(Start {
+            MonitorEvent::Start(inner) => Ok(WsEvent::Start(WsStart {
                 correlation: inner.correlation,
+                timestamp: inner.timestamp.to_rfc2822(),
                 name: inner.ty.name().map(|e| e.as_type_str()),
                 input: inner.input.as_json(),
             })),
-            MonitorEvent::Complete(inner) => Ok(Event::Complete(Complete {
+            MonitorEvent::Complete(inner) => Ok(WsEvent::Complete(WsComplete {
                 correlation: inner.correlation,
+                timestamp: inner.timestamp.to_rfc2822(),
                 output: match inner.output {
                     Output::None => WsOutput::None,
                     Output::Identity => WsOutput::Identity,

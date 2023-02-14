@@ -169,11 +169,14 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let path_segments = PackagePath::from(path.clone());
                 let breadcrumbs = path_segments.into();
 
+                let monitor_link = url_path.replace("/policy/", "/monitor/");
+
                 renderer.render(
                     "module",
                     &ModuleRenderContext {
                         breadcrumbs,
                         url_path,
+                        monitor_link,
                         path,
                         module,
                     },
@@ -192,12 +195,14 @@ async fn display(req: HttpRequest, world: web::Data<World>, path: String) -> Htt
                 let breadcrumbs = (path_segments, ty.parameters()).into();
 
                 let html = Htmlifier::new("/policy/".into(), &world);
+                let monitor_link = url_path.replace("/policy/", "/monitor/");
 
                 renderer.render(
                     "type",
                     &TypeRenderContext {
                         breadcrumbs,
                         url_path,
+                        monitor_link,
                         path,
                         parameters: ty.parameters(),
                         documentation: ty.documentation().unwrap_or_default(),
@@ -226,6 +231,7 @@ const MODULE_HTML: &str = include_str!("ui/_module.html");
 pub struct ModuleRenderContext {
     breadcrumbs: Breadcrumbs,
     url_path: String,
+    monitor_link: String,
     path: String,
     module: ModuleHandle,
 }
@@ -234,6 +240,7 @@ pub struct ModuleRenderContext {
 pub struct TypeRenderContext {
     breadcrumbs: Breadcrumbs,
     url_path: String,
+    monitor_link: String,
     path: String,
     definition: String,
     documentation: String,

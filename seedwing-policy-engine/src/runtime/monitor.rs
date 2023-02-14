@@ -1,6 +1,7 @@
 use crate::lang::lir::{EvalContext, TraceHandle, Type};
 use crate::runtime::{EvaluationResult, Output};
 use crate::value::RuntimeValue;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -26,6 +27,7 @@ impl MonitorEvent {
 #[derive(Debug, Clone)]
 pub struct StartEvent {
     pub correlation: u64,
+    pub timestamp: DateTime<Utc>,
     pub input: Arc<RuntimeValue>,
     pub ty: Arc<Type>,
 }
@@ -45,6 +47,7 @@ impl From<CompleteEvent> for MonitorEvent {
 #[derive(Debug, Clone)]
 pub struct CompleteEvent {
     pub correlation: u64,
+    pub timestamp: DateTime<Utc>,
     pub ty: Arc<Type>,
     pub output: Output,
 }
@@ -76,6 +79,7 @@ impl Monitor {
         let correlation = self.correlation.fetch_add(1, Ordering::Relaxed);
         let event = StartEvent {
             correlation,
+            timestamp: Utc::now(),
             input,
             ty,
         };
@@ -86,6 +90,7 @@ impl Monitor {
     pub async fn complete(&self, correlation: u64, ty: Arc<Type>, output: Output) {
         let event = CompleteEvent {
             correlation,
+            timestamp: Utc::now(),
             ty,
             output,
         };

@@ -2,6 +2,14 @@
 {{#> layout }}
 <style>
 
+  .pf-c-table {
+      --pf-c-table--cell--FontSize: var(--pf-global--FontSize--sm);
+      --pf-c-table--cell--PaddingLeft: none;
+      --pf-c-table--cell--PaddingRight: none;
+      --pf-c-table--cell--PaddingTop: none;
+      --pf-c-table--cell--PaddingBottom: none;
+  }
+
   #events .satisfied {
     background-color: #cfc;
   }
@@ -11,18 +19,61 @@
 
 </style>
 
+<table
+    class="pf-c-table pf-m-grid-md"
+    role="grid"
+    aria-label="This is a simple table example"
+    id="table-basic"
+>
+  <caption>Pattern evaluation monitor</caption>
+  <thead>
+  <tr role="row">
+    <th role="columnheader" scope="col">Pattern</th>
+    <th role="columnheader" scope="col">Time</th>
+    <th role="columnheader" scope="col">Input</th>
+    <th role="columnheader" scope="col">Output</th>
+  </tr>
+  </thead>
 
-Monitor
-
-<div id="events">
-
-</div>
+  <tbody role="rowgroup" id="events">
+  </tbody>
+</table>
 
 <script defer>
   const loc = window.location;
   const stream = new WebSocket("ws://" + loc.host + loc.pathname.replace( "/monitor/", "/monitor-stream/" ));
-  stream.onmessage = (event) => {
-    console.log(event.data);
+  stream.onmessage = (ws_event) => {
+    const event = JSON.parse(ws_event.data);
+    if (event.type == "start") {
+
+      var row = $("<tr role='row' id='" + event.event.correlation + "'>")
+        .append( $( "<td role='cell' class='pattern' data-label='Pattern'>" ).text( event.event.name ) )
+        .append( $( "<td role='cell' data-label='Time'>" )
+          .append( $( "<div class='start'>" ).text( event.event.timestamp ) )
+          .append( $( "<div class='complete'>" ) )
+        )
+        .append( $( "<td role='cell' class='input' data-label='Input'>" )
+          .append( $( "<pre>" ).text( JSON.stringify(event.event.input, null, 2) ) )
+        )
+        .append( $( "<td role='cell' class='output' data-label='Output'>" ) )
+
+      $("#events").prepend( row );
+
+    } else if (event.type == "complete" ) {
+      $("#" + event.event.correlation + " .complete").text( event.event.timestamp );
+      if ( event.event.output == "none" ) {
+        $("#" + event.event.correlation).addClass( "unsatisfied" );
+      } else {
+        $("#" + event.event.correlation).addClass( "satisfied" );
+        if (event.event.output == "identity" ) {
+          $("#" + event.event.correlation + " .output").append( $("<i>identity</i>" ) );
+        } else {
+          const output = JSON.stringify(event.event.output.transform, null, 2);
+          $("#" + event.event.correlation + " .output").append( $("<pre>").text(output));
+        }
+      }
+
+    }
   }
 </script>
 
