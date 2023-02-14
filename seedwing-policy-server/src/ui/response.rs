@@ -1,8 +1,8 @@
 use seedwing_policy_engine::runtime::{rationale::Rationale, EvaluationResult, TypeName};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, Clone)]
-pub struct Result {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<TypeName>,
     input: serde_json::Value,
@@ -10,10 +10,10 @@ pub struct Result {
     #[serde(skip_serializing_if = "String::is_empty")]
     reason: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    rationale: Vec<Result>,
+    rationale: Vec<Response>,
 }
 
-impl Result {
+impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
         /*
         let input = match result.input() {
@@ -67,15 +67,15 @@ fn reason(rationale: &Rationale) -> String {
     }
 }
 
-fn support(result: &EvaluationResult) -> Vec<Result> {
+fn support(result: &EvaluationResult) -> Vec<Response> {
     match result.rationale() {
         Rationale::Object(fields) => fields
             .iter()
-            .map(|(_, r)| r.as_ref().map(|r| Result::new(r)))
+            .map(|(_, r)| r.as_ref().map(|r| Response::new(r)))
             .flatten()
             .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
-            terms.iter().map(Result::new).collect()
+            terms.iter().map(Response::new).collect()
         }
         Rationale::Anything
         | Rationale::Nothing
@@ -115,7 +115,7 @@ mod test {
         assert!(result.satisfied());
         assert_eq!(
             r#"{"name":"test::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
-            serde_json::to_string(&super::Result::new(&result)).unwrap()
+            serde_json::to_string(&super::Response::new(&result)).unwrap()
         );
     }
 }

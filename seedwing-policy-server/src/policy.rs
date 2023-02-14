@@ -1,6 +1,6 @@
 use crate::ui::html::Htmlifier;
 use crate::ui::rationale::Rationalizer;
-use crate::ui::{json, LAYOUT_HTML};
+use crate::ui::{response::Response, LAYOUT_HTML};
 use actix_web::guard::{Acceptable, Any, Guard, GuardContext, Header};
 use actix_web::http::header::{self};
 use actix_web::web::{BytesMut, Payload};
@@ -53,7 +53,7 @@ pub async fn evaluate_json(
         path,
         value,
         params.into_inner(),
-        |r| serde_json::to_string_pretty(&json::Result::new(r)).unwrap(),
+        |r| serde_json::to_string_pretty(&Response::new(r)).unwrap(),
     )
     .await
 }

@@ -8,7 +8,7 @@ use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
 use crate::runtime::rationale::Rationale;
 use crate::value::RuntimeValue;
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
@@ -530,6 +530,16 @@ impl Serialize for TypeName {
         S: Serializer,
     {
         self.as_type_str().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for TypeName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: String = Deserialize::deserialize(deserializer)?;
+        Ok(s.into())
     }
 }
 
