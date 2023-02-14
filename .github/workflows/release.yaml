@@ -105,14 +105,14 @@ jobs:
       - name: Upload server binary
         uses: actions/upload-artifact@v3
         with:
-          name: binary-${{ matrix.suffix }}
+          name: server-binary-${{ matrix.suffix }}
           path: target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
           if-no-files-found: error
 
       - name: Upload cli binary
         uses: actions/upload-artifact@v3
         with:
-          name: binary-${{ matrix.suffix }}
+          name: cli-binary-${{ matrix.suffix }}
           path: target/release/seedwing-policy-cli-${{ matrix.suffix }}${{ matrix.exe }}
           if-no-files-found: error
 
