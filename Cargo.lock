@@ -2218,6 +2218,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "openvex"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2133ef8137aaa4d25acdf54693268808058dd66b00a4c977f13c3452d94da25"
+dependencies = [
+ "chrono",
+ "serde",
+]
+
+[[package]]
 name = "ordered-float"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3025,6 +3035,7 @@ dependencies = [
  "indexmap",
  "iref",
  "log",
+ "openvex",
  "regex",
  "reqwest",
  "serde",

@@ -15,8 +15,6 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-mod openvex;
-
 use super::osv::osv::*;
 use openvex::*;
 
