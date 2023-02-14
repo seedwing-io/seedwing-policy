@@ -1,77 +1,93 @@
 pattern csaf = {
   document: document,
-  product_tree?: product_tree,
+  product_tree?: product-tree,
   vulnerabilities?: list::all<vulnerability>,
 }
 
 pattern document = {
-  acknowledgements?: anything,
-  aggregate_severity?: aggregate_severity,
-  category: category,
-  csaf_version: csaf_version,
+  acknowledgements?: list::all<acknowledgement>,
+  aggregate_severity?: aggregate-severity,
+  category: string,
+  csaf_version: "2.0",
   distribution?: distribution,
-  lang?: lang,
+  lang?: string,
   notes?: list::all<note>,
   publisher: publisher,
   references?: list::all<reference>,
-  source_lang?: lang,
+  source_lang?: string,
   title: string,
-  tracking?: tracking,
+  tracking: tracking,
 }
 
 
-pattern aggregate_severity = {
-  namespace: uri::url,
+pattern aggregate-severity = {
+  namespace?: uri::url,
   text: string,
 }
 
 pattern distribution = {
-  text: string,
-  tlp: {
-    label: string,
-    url: uri::url,
+  text?: string,
+  tlp?: {
+    label: tlp-label,
+    url?: uri::url,
   }
 }
 
-pattern csaf_version = string
+pattern tlp-label = "AMBER" || "GREEN" || "RED" || "WHITE"
 
-pattern category = string
-
-pattern lang = string
-pattern note = {
-  category: string,
-  text: string,
-  title: string,
+pattern acknowledgement = {
+  names?: list::all<string>,
+  organization?: string,
+  summary?: string,
+  urls?: list::all<uri::url>,
 }
 
+pattern note = {
+  category: note-category,
+  text: string,
+  title?: string,
+  audience?: string,
+}
+
+pattern note-category = "description" || "details" || "faq" || "general" || "legal_disclaimer" || "other" || "summary"
+
 pattern publisher = {
-  category: string,
+  category: publisher-category,
   contact_details: uri::url,
   name: string,
   namespace: string,
+  contact_details?: string,
+  issuing_authority?: string,
 }
 
+pattern publisher-category = "coordinator" || "discoverer" || "other" || "translator" || "user" || "vendor"
+
 pattern reference = {
-  category: string,
+  category?: reference-category,
   summary: string,
   url: uri::url,
 }
 
+pattern reference-category = "external" || "self"
+
 pattern tracking = {
   current_release_date: timestamp::iso8601,
-  generator: {
-    date: timestamp::iso8601,
+  generator?: {
+    date?: timestamp::iso8601,
     engine: {
       name: string,
-      version: string,
+      version?: string,
     }
   },
   id: string,
-  initial_release_data?: timestamp::iso8601,
+  initial_release_date: timestamp::iso8601,
   revision_history: list::all<revision>,
-  status: string,
+  status: tracking-status,
   version: string,
+  aliases?: list::all<string>,
 }
+
+pattern tracking-status = "draft" || "final" || "interim"
 
 pattern revision = {
   date: timestamp::iso8601,
@@ -79,53 +95,98 @@ pattern revision = {
   summary: string,
 }
 
-pattern product_tree = {
+pattern product-tree = {
   branches?: list::all<branch>,
   relationships?: list::all<relationship>,
+  product_groups?: list::all<product-group>,
+  full_product_names?: list::all<full-product-name>,
 }
 
 pattern branch = {
-  name?: string,
-  category?: string,
-  product?: product,
+  name: string,
+  category?: branch-category,
+  product?: full-product-name,
   branches?: list::all<branch>,
 }
 
-pattern product = {
+pattern branch-category = "architecture" || "host_name" || "language" || "legacy" || "patch_level" || "product_family" || "product_name" || "product_version" || "product_version_range" || "service_pack" || "specification" || "vendor"
+
+pattern full-product-name = {
   name: string,
   product_id: string,
   product_identification_helper?: {
-    cpe: string,
+    cpe?: string,
+    hashes?: list::all<hash-collection>,
+    purl?: uri::purl,
+    sbom_urls?: list::all<uri::url>,
+    serial_numbers?: list::all<string>,
+    skus?: list::all<string>,
+    x_generic_uris?: list::all<uri::url>,
   }
 }
 
-pattern relationship = {
-  category?: string,
-  full_product_name?: {
-    name?: string,
-    product_id?: string,
-  },
-  product_reference?: string,
-  relates_to_product_reference?: string,
+pattern hash-collection = {
+  file_hashes: list::all<hash>,
+  file_name: string,
 }
 
+pattern hash = {
+  algorithm: string,
+  value: string,
+}
+
+pattern product-group = {
+  group_id: string,
+  product_ids: list::all<string>,
+  summary?: string,
+}
+
+pattern relationship = {
+  category: relationship-category,
+  full_product_name: full-product-name,
+  product_reference: string,
+  relates_to_product_reference: string,
+}
+
+pattern relationship-category = "default_component_of" || "external_component_of" || "installed_on" || "installed_with" || "optional_component_of"
+
 pattern vulnerability = {
-  cve: string::regexp<"CVE-\d+-\d+">,
-  cwe?: {
-    id: string,
-    name: string,
-  },
-  discovery_date: timestamp::iso8601,
+  cve?: string::regexp<"CVE-\d+-\d+">,
+  cwe?: cwe,
+  discovery_date?: timestamp::iso8601,
+  id?: vulnerability-id,
+  involvements?: list::all<involvement>,
   flags: list::all<cve-flag>,
   ids: list::all<reporter-id>,
   notes?: list::all<note>,
   product_status?: product-status,
   references?: list::all<reference>,
   remediations? : list::all<remediation>,
+  acknowledgements?: list::all<acknowledgement>,
   scores?: list::all<score>,
   threats?: list::all<threat>,
-  title: string,
+  title?: string,
 }
+
+pattern cwe = {
+  id: string,
+  name: string,
+}
+
+pattern vulnerability-id = {
+  system_name: string,
+  text: string,
+}
+
+pattern involvement = {
+  party: involvement-party,
+  status: involvement-status,
+  date?: timestamp::iso8601,
+  summary?: string,
+}
+
+pattern involvement-party = "coordinator" || "discoverer" || "other" || "user" || "vendor"
+pattern involvement-status = "completed" || "contact_attempted" || "disputed" || "in_progress" || "not_contacted" || "open"
 
 pattern reporter-id = {
   system_name?: string,
@@ -139,24 +200,43 @@ pattern cve-flag = {
 
 pattern product-status = {
   fixed?: list::all<string>,
+  first_affected?: list::all<string>,
+  first_fixed?: list::all<string>,
   known_affected?: list::all<string>,
   known_not_affected?: list::all<string>,
+  last_affected?: list::all<string>,
+  recommended?: list::all<string>,
   under_investigation?: list::all<string>,
 }
 
 pattern remediation = {
-  category: string,
+  category: remediation-category,
   details: string,
+  date?: timestamp::iso8601,
+  entitlements?: list::all<string>,
+  group_ids?: list::all<string>,
   product_ids: list::all<string>,
-  url: uri::url,
+  restart_required?: restart-required,
+  url?: uri::url,
 }
+
+pattern remediation-category = "mitigation" || "no_fix_planned" || "none_available" || "vendor_fix" || "workaround"
+
+pattern restart-required = {
+  category: restart-category,
+  details?: string,
+}
+
+pattern restart-category = "connected" || "dependencies" || "machine" || "none" || "parent" || "service" || "system" || "vulnerable_component" || "zone"
 
 pattern score = {
   cvss_v3?: cvss-v3,
+  cvss_v2?: string,
   products: list::all<string>,
 }
 
 pattern cvss-v3 = {
+  minor_version?: integer,
   attackComplexity?: string,
   attackVector?: string,
   availabilityImpact?: string,
@@ -172,7 +252,11 @@ pattern cvss-v3 = {
 }
 
 pattern threat = {
-  category: string,
-  date: timestamp::iso8601,
+  category: threat-category,
   details: string,
+  date?: timestamp::iso8601,
+  group_ids?: list::all<string>,
+  product_ids?: list::all<string>,
 }
+
+pattern threat-category = "exploit_status" || "impact" || "target_set"
