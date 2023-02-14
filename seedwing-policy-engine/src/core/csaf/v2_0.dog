@@ -138,8 +138,10 @@ pattern cve-flag = {
 }
 
 pattern product-status = {
-  fixed: list::all<string>,
-  known_not_affected: list::all<string>,
+  fixed?: list::all<string>,
+  known_affected?: list::all<string>,
+  known_not_affected?: list::all<string>,
+  under_investigation?: list::all<string>,
 }
 
 pattern remediation = {
