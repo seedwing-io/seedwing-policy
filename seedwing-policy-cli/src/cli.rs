@@ -41,6 +41,9 @@ pub struct Cli {
 
     #[command(subcommand)]
     pub(crate) command: Command,
+
+    #[arg(short, long = "verbosity", value_name = "LEVEL", default_value_t = 2)]
+    pub(crate) verbosity: usize,
 }
 
 impl Cli {
@@ -71,7 +74,7 @@ impl Cli {
 
                 match eval.run().await {
                     Ok(result) => {
-                        explain(&result).unwrap();
+                        explain(&result, self.verbosity).unwrap();
                         println!();
                         if result.satisfied() {
                             println!("ok!");

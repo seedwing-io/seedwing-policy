@@ -266,6 +266,13 @@ impl Display for RuntimeValue {
 }
 
 impl RuntimeValue {
+    pub fn visit<F>(&self, f: &mut F)
+    where
+        F: FnMut(&RuntimeValue) -> std::io::Result<()>,
+    {
+        todo!()
+    }
+
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",

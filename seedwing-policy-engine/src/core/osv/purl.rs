@@ -66,10 +66,23 @@ impl FromPurl {
                     .collect();
 
                 log::info!("Batch queries: {}", queries.len());
-                match client.query_batch(queries).await {
-                    Ok(result) => {
-                        log::info!("Batch query response OK");
-                        let json: serde_json::Value = serde_json::to_value(result.results).unwrap();
+                match client.query_batch(&queries).await {
+                    Ok(mut result) => {
+                        let mut vulns: Vec<OsvVulnerability> =
+                            result.results.drain(..).flat_map(|v| v.vulns).collect();
+                        let mut processed = Vec::new();
+                        for vuln in vulns.drain(..) {
+                            match client.fetch_id(vuln.id.as_str()).await {
+                                Ok(vuln) => {
+                                    processed.push(vuln);
+                                }
+                                Err(e) => {
+                                    // Fallback to existing info
+                                    processed.push(vuln);
+                                }
+                            }
+                        }
+                        let json: serde_json::Value = serde_json::to_value(processed).unwrap();
                         Ok(Some(json))
                     }
                     Err(e) => {

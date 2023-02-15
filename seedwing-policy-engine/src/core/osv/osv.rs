@@ -3,7 +3,9 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
 const OSV_URL: &str = "https://api.osv.dev/v1/query";
+const OSV_VULN_URL: &str = "https://api.osv.dev/v1/vulns";
 const OSV_BATCH_URL: &str = "https://api.osv.dev/v1/querybatch";
+
 pub struct OsvClient {
     client: reqwest::Client,
 }
@@ -16,7 +18,7 @@ impl OsvClient {
     }
     pub async fn query_batch(
         &self,
-        queries: Vec<OsvQuery>,
+        queries: &Vec<OsvQuery>,
     ) -> Result<OsvBatchResponse, anyhow::Error> {
         let query = OsvBatchQuery { queries };
         let response = self.client.post(OSV_BATCH_URL).json(&query).send().await;
@@ -45,12 +47,30 @@ impl OsvClient {
             }
         }
     }
+
+    pub async fn fetch_id(&self, id: &str) -> Result<OsvVulnerability, anyhow::Error> {
+        let response = self
+            .client
+            .get(format!("{}/{id}", OSV_VULN_URL))
+            .send()
+            .await;
+        match response {
+            Ok(r) if r.status() == StatusCode::OK => {
+                r.json::<OsvVulnerability>().await.map_err(|e| e.into())
+            }
+            Ok(r) => Err(anyhow::anyhow!("Error fetch vulnerability {}: {:?}", id, r)),
+            Err(e) => {
+                log::warn!("Error fetching vulnerability {}: {:?}", id, e);
+                Err(e.into())
+            }
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct OsvBatchQuery {
+#[derive(Debug, Serialize)]
+pub struct OsvBatchQuery<'a> {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    queries: Vec<OsvQuery>,
+    queries: &'a Vec<OsvQuery>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -114,8 +134,10 @@ pub struct OsvResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OsvVulnerability {
     #[serde(alias = "schemaVersion")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub schema_version: Option<String>,
     pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub published: Option<DateTime<Utc>>,
     pub modified: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -124,7 +146,9 @@ pub struct OsvVulnerability {
     pub aliases: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub related: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub summary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub details: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub affected: Vec<OsvAffected>,
@@ -162,6 +186,7 @@ pub struct OsvAffected {
 pub struct OsvPackage {
     pub name: String,
     pub ecosystem: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub purl: Option<String>,
 }
 
