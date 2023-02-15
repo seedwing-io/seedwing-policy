@@ -3014,6 +3014,7 @@ dependencies = [
  "seedwing-policy-engine",
  "serde",
  "serde_json",
+ "serde_yaml",
  "termcolor",
  "tokio",
 ]

@@ -5,6 +5,7 @@ use clap::ValueEnum;
 use is_terminal::IsTerminal;
 use seedwing_policy_engine::runtime::RuntimeError;
 use seedwing_policy_engine::value::RuntimeValue;
+use serde_yaml::Error as YamlError;
 use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
@@ -114,7 +115,10 @@ pub async fn load_value(
                 Ok(value.into())
             }
             InputType::YAML => {
-                todo!()
+                let value: serde_json::Value = serde_yaml::from_slice(&*data)
+                    .map_err(|e| YamlError::from(e))
+                    .unwrap();
+                Ok(value.into())
             }
         }
     } else {
@@ -127,7 +131,10 @@ pub async fn load_value(
                 Ok(value.into())
             }
             InputType::YAML => {
-                todo!()
+                let value: serde_json::Value = serde_yaml::from_reader(stdin())
+                    .map_err(|e| YamlError::from(e))
+                    .unwrap();
+                Ok(value.into())
             }
         }
     }
