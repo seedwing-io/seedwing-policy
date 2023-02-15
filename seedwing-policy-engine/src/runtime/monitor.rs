@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
@@ -50,6 +51,7 @@ pub struct CompleteEvent {
     pub timestamp: DateTime<Utc>,
     pub ty: Arc<Type>,
     pub completion: Completion,
+    pub elapsed: Option<Duration>,
 }
 
 #[derive(Debug, Clone)]
@@ -95,22 +97,36 @@ impl Monitor {
         self.fanout(event.into()).await;
     }
 
-    pub async fn complete_ok(&self, correlation: u64, ty: Arc<Type>, output: Output) {
+    pub async fn complete_ok(
+        &self,
+        correlation: u64,
+        ty: Arc<Type>,
+        output: Output,
+        elapsed: Option<Duration>,
+    ) {
         let event = CompleteEvent {
             correlation,
             timestamp: Utc::now(),
             ty,
             completion: Completion::Output(output),
+            elapsed,
         };
         self.fanout(event.into()).await;
     }
 
-    pub async fn complete_err(&self, correlation: u64, ty: Arc<Type>, err: &RuntimeError) {
+    pub async fn complete_err(
+        &self,
+        correlation: u64,
+        ty: Arc<Type>,
+        err: &RuntimeError,
+        elapsed: Option<Duration>,
+    ) {
         let event = CompleteEvent {
             correlation,
             timestamp: Utc::now(),
             ty,
             completion: Completion::Err(format!("{}", err)),
+            elapsed,
         };
         self.fanout(event.into()).await;
     }

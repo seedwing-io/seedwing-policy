@@ -2,9 +2,10 @@ mod cli;
 mod monitor;
 mod playground;
 mod policy;
+mod statistics;
 mod ui;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{rt, web, App, HttpServer};
 use actix_web_static_files::ResourceFiles;
 use env_logger::Builder;
 use log::LevelFilter;
@@ -19,8 +20,9 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
-use seedwing_policy_engine::runtime::monitor::Monitor;
+use seedwing_policy_engine::runtime::monitor::{Monitor, MonitorEvent};
 use seedwing_policy_engine::runtime::sources::Directory;
+use seedwing_policy_engine::runtime::statistics::Statistics;
 
 use crate::cli::cli;
 use crate::monitor::monitor_stream;
@@ -96,10 +98,28 @@ async fn main() -> std::io::Result<()> {
 
     let monitor = Arc::new(Mutex::new(Monitor::new()));
 
+    let statistics = Arc::new(Mutex::new(Statistics::new()));
+
     match result {
         Ok(world) => {
             // todo: wire the receiver to a statistics gatherer.
             let mut receiver = monitor.lock().await.subscribe("".into()).await;
+
+            let gatherer = statistics.clone();
+
+            rt::spawn(async move {
+                loop {
+                    if let Some(result) = receiver.recv().await {
+                        if let MonitorEvent::Complete(event) = &result {
+                            if let Some(elapsed) = event.elapsed {
+                                if let Some(name) = result.ty().name() {
+                                    gatherer.lock().await.record(name, elapsed);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
             let server = HttpServer::new(move || {
                 let raw_docs = generate_docs();
@@ -110,6 +130,7 @@ async fn main() -> std::io::Result<()> {
                 App::new()
                     .app_data(web::Data::new(world.clone()))
                     .app_data(web::Data::new(monitor.clone()))
+                    .app_data(web::Data::new(statistics.clone()))
                     .app_data(web::Data::new(Documentation(raw_docs)))
                     .app_data(web::Data::new(Examples(raw_examples)))
                     .app_data(web::Data::new(PlaygroundState::new(
@@ -132,6 +153,7 @@ async fn main() -> std::io::Result<()> {
                     .service(playground::compile)
                     .service(monitor::monitor)
                     .service(monitor::monitor_stream)
+                    .service(statistics::statistics)
             });
             log::info!("starting up at http://{}:{}/", bind, port);
 

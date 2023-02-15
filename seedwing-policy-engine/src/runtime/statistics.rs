@@ -7,6 +7,12 @@ pub struct Statistics {
 }
 
 impl Statistics {
+    pub fn new() -> Self {
+        Self {
+            stats: Default::default(),
+        }
+    }
+
     pub fn record(&mut self, name: TypeName, elapsed: Duration) {
         if let Some(stats) = self.stats.get_mut(&name) {
             stats.record(elapsed);
@@ -15,11 +21,16 @@ impl Statistics {
             self.stats.insert(name, stats);
         }
     }
+
+    pub fn snapshot(&self) -> HashMap<TypeName, TypeStats> {
+        self.stats.clone()
+    }
 }
 
+#[derive(Clone)]
 pub struct TypeStats {
-    invocations: u64,
-    mean_execution_time: Duration,
+    pub invocations: u64,
+    pub mean_execution_time: Duration,
 }
 
 impl TypeStats {
@@ -31,13 +42,12 @@ impl TypeStats {
     }
 
     fn record(&mut self, elapsed: Duration) {
-        if let Ok(new_mean) = (((self.invocations as u128 * self.mean_execution_time.as_millis())
-            + elapsed.as_millis())
-            / self.invocations as u128
-            + 1)
-        .try_into()
+        if let Ok(new_mean) = (((self.invocations as u128 * self.mean_execution_time.as_nanos())
+            + elapsed.as_nanos())
+            / (self.invocations as u128 + 1))
+            .try_into()
         {
-            self.mean_execution_time = Duration::from_millis(new_mean);
+            self.mean_execution_time = Duration::from_nanos(new_mean);
             self.invocations += 1
         } else {
             // just restart

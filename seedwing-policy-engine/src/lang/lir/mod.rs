@@ -948,14 +948,14 @@ impl EvalContext {
                     monitor
                         .lock()
                         .await
-                        .complete_ok(correlation, ty, result.raw_output().clone())
+                        .complete_ok(correlation, ty, result.raw_output().clone(), elapsed)
                         .await
                 }
                 Err(err) => {
                     monitor
                         .lock()
                         .await
-                        .complete_err(correlation, ty, err)
+                        .complete_err(correlation, ty, err, elapsed)
                         .await
                 }
             }

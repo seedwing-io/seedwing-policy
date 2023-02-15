@@ -1,0 +1,31 @@
+
+{{#> layout }}
+<style>
+</style>
+
+<table
+    class="pf-c-table pf-m-grid-md"
+    role="grid"
+    aria-label="This is a simple table example"
+    id="table-basic"
+>
+  <caption>Statistics</caption>
+  <thead>
+  <tr role="row">
+    <th role="columnheader" scope="col">Pattern</th>
+    <th role="columnheader" scope="col">Invocations</th>
+    <th role="columnheader" scope="col">Mean Execution Time</th>
+  </tr>
+  </thead>
+
+  <tbody role="rowgroup" id="statistics">
+  {{#each this}}
+    <tr>
+      <td>{{this.name}}</td>
+      <td>{{this.invocations}}</td>
+      <td>{{this.mean_execution_time}}</td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>
+{{/layout}}
