@@ -57,7 +57,6 @@ impl Verify {
             Err(errors) => {
                 ErrorPrinter::new(builder.source_cache()).display(&errors);
                 exit(-2);
-                return Err(());
             }
         }
     }

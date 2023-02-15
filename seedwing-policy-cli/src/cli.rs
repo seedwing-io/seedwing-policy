@@ -10,8 +10,6 @@ use std::path::PathBuf;
 use std::process::exit;
 use tokio::fs;
 
-pub const COMMAND_NAME: &str = "seedwing-policy";
-
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum InputType {
     JSON,
@@ -73,7 +71,7 @@ impl Cli {
 
                 match eval.run().await {
                     Ok(result) => {
-                        explain(&result);
+                        explain(&result).unwrap();
                         println!();
                         if result.satisfied() {
                             println!("ok!");
