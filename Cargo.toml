@@ -4,3 +4,6 @@ members = [
   "seedwing-policy-server",
   "seedwing-policy-cli",
 ]
+exclude = [
+  "seedwing-policy-frontend"
+]

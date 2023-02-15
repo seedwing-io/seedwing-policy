@@ -1,0 +1,50 @@
+.rationale {
+
+  font-size: 80%;
+
+  code {
+    font-weight: 900;
+    padding: 0;
+    background-color: inherit;
+  }
+
+  .entry {
+    padding: 1ex;
+    border-left: 1px solid #333;
+    margin-bottom: 1ex;
+  }
+
+  .field {
+    border-bottom: 1px dotted #ccc;
+    padding-bottom: 1ex;
+    background-color: inherit;
+  }
+
+  .field-name {
+    background-color: inherit;
+  }
+
+  .satisfied {
+    background-color: #cfc;
+  }
+
+  .unsatisfied {
+    background-color: #fcc;
+  }
+
+  .satisfied:hover {
+    background-color: #9f9;
+  }
+
+  .unsatisfied:hover {
+    background-color: #f99;
+  }
+
+  .input,
+  .output {
+    background-color: #eee;
+    border: 1px solid #ccc;
+    padding: 1ex;
+    margin-bottom: 1em;
+  }
+}

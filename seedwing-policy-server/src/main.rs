@@ -1,3 +1,4 @@
+mod api;
 mod cli;
 mod monitor;
 mod playground;
@@ -5,6 +6,7 @@ mod policy;
 mod statistics;
 mod ui;
 
+use actix_web::middleware::{NormalizePath, TrailingSlash};
 use actix_web::{rt, web, App, HttpServer};
 use actix_web_static_files::ResourceFiles;
 use env_logger::Builder;
@@ -123,6 +125,13 @@ async fn main() -> std::io::Result<()> {
                     .service(ResourceFiles::new("/assets", assets))
                     .service(ResourceFiles::new("/ui", ui))
                     .service(index)
+                    .service(
+                        web::scope("/api")
+                            .wrap(NormalizePath::new(TrailingSlash::Always))
+                            .service(api::get_policy)
+                            .service(api::get_documentation)
+                            .service(api::evaluate),
+                    )
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
