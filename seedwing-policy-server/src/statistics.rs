@@ -4,7 +4,6 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use seedwing_policy_engine::runtime::statistics::{Statistics, TypeStats};
 use serde::Serialize;
-use std::os::macos::raw::stat;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
