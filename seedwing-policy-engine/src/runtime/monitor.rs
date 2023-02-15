@@ -1,5 +1,5 @@
 use crate::lang::lir::{EvalContext, TraceHandle, Type};
-use crate::runtime::{EvaluationResult, Output};
+use crate::runtime::{EvaluationResult, Output, RuntimeError};
 use crate::value::RuntimeValue;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
@@ -49,7 +49,13 @@ pub struct CompleteEvent {
     pub correlation: u64,
     pub timestamp: DateTime<Utc>,
     pub ty: Arc<Type>,
-    pub output: Output,
+    pub completion: Completion,
+}
+
+#[derive(Debug, Clone)]
+pub enum Completion {
+    Output(Output),
+    Err(String),
 }
 
 pub struct Monitor {
@@ -66,7 +72,7 @@ impl Monitor {
     }
 
     pub async fn subscribe(&self, path: String) -> Receiver<MonitorEvent> {
-        let (sender, receiver) = channel(10);
+        let (sender, receiver) = channel(500);
         self.subscribers.lock().await.push(Subscriber {
             path,
             sender: sender,
@@ -75,8 +81,11 @@ impl Monitor {
         receiver
     }
 
-    pub async fn start(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> u64 {
-        let correlation = self.correlation.fetch_add(1, Ordering::Relaxed);
+    pub fn init(&self) -> u64 {
+        self.correlation.fetch_add(1, Ordering::Relaxed)
+    }
+
+    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
         let event = StartEvent {
             correlation,
             timestamp: Utc::now(),
@@ -84,15 +93,24 @@ impl Monitor {
             ty,
         };
         self.fanout(event.into()).await;
-        correlation
     }
 
-    pub async fn complete(&self, correlation: u64, ty: Arc<Type>, output: Output) {
+    pub async fn complete_ok(&self, correlation: u64, ty: Arc<Type>, output: Output) {
         let event = CompleteEvent {
             correlation,
             timestamp: Utc::now(),
             ty,
-            output,
+            completion: Completion::Output(output),
+        };
+        self.fanout(event.into()).await;
+    }
+
+    pub async fn complete_err(&self, correlation: u64, ty: Arc<Type>, err: &RuntimeError) {
+        let event = CompleteEvent {
+            correlation,
+            timestamp: Utc::now(),
+            ty,
+            completion: Completion::Err(format!("{}", err)),
         };
         self.fanout(event.into()).await;
     }

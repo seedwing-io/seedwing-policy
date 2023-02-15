@@ -15,11 +15,12 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{ready, Future};
 use std::hash::Hasher;
+use std::mem;
 use std::pin::Pin;
 
 use crate::runtime::monitor::Monitor;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 #[derive(Serialize, Debug, Clone)]
@@ -202,14 +203,18 @@ impl Type {
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+        let trace = ctx.trace(value.clone(), self.clone());
         match &self.inner {
-            InnerType::Anything => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
-                //Ok(locked_value.rationale(self.clone(), RationaleResult::Same(value.clone())))
-                Ok(trace.done((Rationale::Anything, Output::Identity)).await)
-            }),
-            InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            InnerType::Anything => trace.run(Box::pin(async move {
+                Ok(EvaluationResult::new(
+                    value.clone(),
+                    self.clone(),
+                    Rationale::Anything,
+                    Output::Identity,
+                    None,
+                ))
+            })),
+            InnerType::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
                 #[allow(clippy::ptr_arg)]
                 fn build_bindings<'b>(
                     value: Arc<RuntimeValue>,
@@ -286,7 +291,7 @@ impl Type {
 
                         Ok(bindings)
                     })
-                };
+                }
 
                 if let Some(ty) = world.get_by_slot(*slot) {
                     let bindings = build_bindings(
@@ -297,118 +302,162 @@ impl Type {
                         arguments,
                         world,
                     )
-                    .await?;
+                    .await;
 
+                    let bindings = bindings.unwrap();
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                     if let SyntacticSugar::Chain = sugar {
-                        Ok(trace
-                            .done((result.rationale().clone(), result.raw_output().clone()))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            result.rationale().clone(),
+                            result.raw_output().clone(),
+                            None,
+                        ))
                     } else {
-                        Ok(trace.done(result).await)
+                        Ok(result)
                     }
                 } else {
                     Err(RuntimeError::NoSuchTypeSlot(*slot))
                 }
-            }),
-            InnerType::Deref(inner) => {
-                Box::pin(async move { inner.evaluate(value.clone(), ctx, bindings, world).await })
-            }
-            InnerType::Bound(ty, bindings) => {
-                Box::pin(async move { ty.evaluate(value, ctx, bindings, world).await })
-            }
-            InnerType::Argument(name) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            })),
+            InnerType::Deref(inner) => trace.run(Box::pin(async move {
+                inner.evaluate(value.clone(), ctx, bindings, world).await
+            })),
+            InnerType::Bound(ty, bindings) => trace.run(Box::pin(async move {
+                ty.evaluate(value, ctx, bindings, world).await
+            })),
+            InnerType::Argument(name) => trace.run(Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
                     bound.evaluate(value.clone(), ctx, bindings, world).await
                 } else {
-                    Ok(trace
-                        .done((Rationale::InvalidArgument(name.clone()), Output::None))
-                        .await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::InvalidArgument(name.clone()),
+                        Output::None,
+                        None,
+                    ))
                 }
-            }),
+            })),
             InnerType::Primordial(inner) => match inner {
-                PrimordialType::Integer => Box::pin(async move {
-                    let trace = ctx.trace(value.clone(), self.clone()).await;
+                PrimordialType::Integer => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_integer() {
-                        Ok(trace
-                            .done((Rationale::Primordial(true), Output::Identity))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                            None,
+                        ))
                     } else {
-                        Ok(trace
-                            .done((Rationale::Primordial(false), Output::None))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                            None,
+                        ))
                     }
-                }),
-                PrimordialType::Decimal => Box::pin(async move {
-                    let trace = ctx.trace(value.clone(), self.clone()).await;
+                })),
+                PrimordialType::Decimal => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_decimal() {
-                        Ok(trace
-                            .done((Rationale::Primordial(true), Output::Identity))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                            None,
+                        ))
                     } else {
-                        Ok(trace
-                            .done((Rationale::Primordial(false), Output::None))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                            None,
+                        ))
                     }
-                }),
-                PrimordialType::Boolean => Box::pin(async move {
-                    let trace = ctx.trace(value.clone(), self.clone()).await;
+                })),
+                PrimordialType::Boolean => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
 
                     if locked_value.is_boolean() {
-                        Ok(trace
-                            .done((Rationale::Primordial(true), Output::Identity))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                            None,
+                        ))
                     } else {
-                        Ok(trace
-                            .done((Rationale::Primordial(false), Output::None))
-                            .await)
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                            None,
+                        ))
                     }
-                }),
-                PrimordialType::String => Box::pin(async move {
-                    let trace = ctx.trace(value.clone(), self.clone()).await;
+                })),
+                PrimordialType::String => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_string() {
-                        Ok(trace
-                            .done((Rationale::Primordial(true), Output::Identity))
-                            .await)
-                    } else {
-                        Ok(trace
-                            .done((Rationale::Primordial(false), Output::None))
-                            .await)
-                    }
-                }),
-                PrimordialType::Function(_sugar, _name, func) => Box::pin(async move {
-                    let trace = ctx.trace(value.clone(), self.clone()).await;
-                    let result = func.call(value.clone(), ctx, bindings, world).await?;
-                    Ok(trace
-                        .done((
-                            Rationale::Function(
-                                result.output().is_some(),
-                                result.rationale().map(Box::new),
-                                result.supporting(),
-                            ),
-                            result.output(),
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(true),
+                            Output::Identity,
+                            None,
                         ))
-                        .await)
-                }),
+                    } else {
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Primordial(false),
+                            Output::None,
+                            None,
+                        ))
+                    }
+                })),
+                PrimordialType::Function(_sugar, _name, func) => trace.run(Box::pin(async move {
+                    let result = func.call(value.clone(), ctx, bindings, world).await?;
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Function(
+                            result.output().is_some(),
+                            result.rationale().map(Box::new),
+                            result.supporting(),
+                        ),
+                        result.output(),
+                        None,
+                    ))
+                })),
             },
-            InnerType::Const(inner) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            InnerType::Const(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
                 if inner.is_equal(locked_value).await {
-                    Ok(trace.done((Rationale::Const(true), Output::Identity)).await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Const(true),
+                        Output::Identity,
+                        None,
+                    ))
                 } else {
-                    Ok(trace
-                        .done((Rationale::Const(false), Output::Identity))
-                        .await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Const(false),
+                        Output::Identity,
+                        None,
+                    ))
                 }
-            }),
-            InnerType::Object(inner) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            })),
+            InnerType::Object(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
                 if let Some(obj) = locked_value.try_get_object() {
                     let mut result = HashMap::new();
@@ -427,30 +476,46 @@ impl Type {
                             result.insert(field.name(), None);
                         }
                     }
-                    Ok(trace
-                        .done((Rationale::Object(result), Output::Identity))
-                        .await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Object(result),
+                        Output::Identity,
+                        None,
+                    ))
                 } else {
-                    Ok(trace.done((Rationale::NotAnObject, Output::None)).await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::NotAnObject,
+                        Output::None,
+                        None,
+                    ))
                 }
-            }),
-            InnerType::Expr(expr) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            })),
+            InnerType::Expr(expr) => trace.run(Box::pin(async move {
                 let result = expr.evaluate(value.clone()).await?;
                 let _locked_value = (*value).borrow();
                 let locked_result = (*result).borrow();
                 if let Some(true) = locked_result.try_get_boolean() {
-                    Ok(trace
-                        .done((Rationale::Expression(true), Output::Identity))
-                        .await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Expression(true),
+                        Output::Identity,
+                        None,
+                    ))
                 } else {
-                    Ok(trace
-                        .done((Rationale::Expression(false), Output::None))
-                        .await)
+                    Ok(EvaluationResult::new(
+                        value.clone(),
+                        self.clone(),
+                        Rationale::Expression(false),
+                        Output::None,
+                        None,
+                    ))
                 }
-            }),
-            InnerType::List(terms) => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
+            })),
+            InnerType::List(terms) => trace.run(Box::pin(async move {
                 if let Some(list_value) = value.try_get_list() {
                     if list_value.len() == terms.len() {
                         let mut result = Vec::new();
@@ -458,17 +523,32 @@ impl Type {
                             result
                                 .push(term.evaluate(element.clone(), ctx, bindings, world).await?);
                         }
-                        return Ok(trace
-                            .done((Rationale::List(result), Output::Identity))
-                            .await);
+                        return Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::List(result),
+                            Output::Identity,
+                            None,
+                        ));
                     }
                 }
-                Ok(trace.done((Rationale::NotAList, Output::None)).await)
-            }),
-            InnerType::Nothing => Box::pin(async move {
-                let trace = ctx.trace(value.clone(), self.clone()).await;
-                Ok(trace.done((Rationale::Nothing, Output::None)).await)
-            }),
+                Ok(EvaluationResult::new(
+                    value.clone(),
+                    self.clone(),
+                    Rationale::NotAList,
+                    Output::None,
+                    None,
+                ))
+            })),
+            InnerType::Nothing => trace.run(Box::pin(async move {
+                Ok(EvaluationResult::new(
+                    value.clone(),
+                    self.clone(),
+                    Rationale::Nothing,
+                    Output::None,
+                    None,
+                ))
+            })),
         }
     }
 }
@@ -840,32 +920,63 @@ impl EvalContext {
         Self { trace }
     }
 
-    pub async fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> TraceHandle {
-        //todo: fan out to anyone interested.
+    pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> TraceHandle {
         match &self.trace {
-            TraceConfig::Enabled(monitor) => {
-                let correlation = monitor.lock().await.start(input.clone(), ty.clone()).await;
-                TraceHandle {
-                    context: self,
-                    ty,
-                    correlation: Some(correlation),
-                    input,
-                    start: Some(Instant::now()),
-                }
-            }
+            TraceConfig::Enabled(monitor) => TraceHandle {
+                context: self,
+                ty,
+                input,
+                start: Some(Instant::now()),
+            },
             TraceConfig::Disabled => TraceHandle {
                 context: self,
                 ty,
-                correlation: None,
                 input,
                 start: None,
             },
         }
     }
 
-    async fn complete(&self, correlation: u64, ty: Arc<Type>, output: Output) {
+    async fn correlation(&self) -> Option<u64> {
+        match &self.trace {
+            TraceConfig::Enabled(monitor) => Some(monitor.lock().await.init()),
+            TraceConfig::Disabled => None,
+        }
+    }
+
+    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
+        match &self.trace {
+            TraceConfig::Enabled(monitor) => {
+                monitor.lock().await.start(correlation, input, ty).await;
+            }
+            _ => {}
+        }
+    }
+
+    async fn complete(
+        &self,
+        correlation: u64,
+        ty: Arc<Type>,
+        result: &Result<EvaluationResult, RuntimeError>,
+        elapsed: Option<Duration>,
+    ) {
         if let TraceConfig::Enabled(monitor) = &self.trace {
-            monitor.lock().await.complete(correlation, ty, output).await
+            match result {
+                Ok(result) => {
+                    monitor
+                        .lock()
+                        .await
+                        .complete_ok(correlation, ty, result.raw_output().clone())
+                        .await
+                }
+                Err(err) => {
+                    monitor
+                        .lock()
+                        .await
+                        .complete_err(correlation, ty, err)
+                        .await
+                }
+            }
         }
     }
 }
@@ -893,7 +1004,6 @@ impl Debug for TraceConfig {
 pub struct TraceHandle<'ctx> {
     context: &'ctx EvalContext,
     ty: Arc<Type>,
-    correlation: Option<u64>,
     input: Arc<RuntimeValue>,
     start: Option<Instant>,
 }
@@ -905,24 +1015,31 @@ impl From<EvaluationResult> for (Rationale, Output) {
 }
 
 impl<'ctx> TraceHandle<'ctx> {
-    async fn done<R: Into<(Rationale, Output)>>(self, result: R) -> EvaluationResult {
-        let (rationale, output) = result.into();
-        let duration = self
-            .start
-            .map(|start| TraceResult::new(Instant::now() - start));
-
-        let result = EvaluationResult::new(
-            self.input,
-            self.ty.clone(),
-            rationale,
-            output.clone(),
-            duration,
-        );
-
-        if let Some(correlation) = self.correlation {
-            self.context.complete(correlation, self.ty, output).await;
+    fn run<'v>(
+        mut self,
+        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
+    where
+        'ctx: 'v,
+    {
+        if self.start.is_some() {
+            Box::pin(async move {
+                if let Some(correlation) = self.context.correlation().await {
+                    self.context
+                        .start(correlation, self.input.clone(), self.ty.clone())
+                        .await;
+                    let mut result = block.await;
+                    let elapsed = self.start.map(|e| e.elapsed());
+                    self.context
+                        .complete(correlation, self.ty.clone(), &result, elapsed)
+                        .await;
+                    result
+                } else {
+                    block.await
+                }
+            })
+        } else {
+            block
         }
-
-        result
     }
 }

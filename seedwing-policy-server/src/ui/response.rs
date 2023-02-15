@@ -114,7 +114,7 @@ mod test {
             .unwrap();
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":"test::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":"list::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&super::Response::new(&result)).unwrap()
         );
     }

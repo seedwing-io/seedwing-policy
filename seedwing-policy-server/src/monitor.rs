@@ -7,7 +7,7 @@ use actix_web::Error;
 use actix_web::{get, post};
 use actix_web::{rt, web, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
-use seedwing_policy_engine::runtime::monitor::{Monitor, MonitorEvent};
+use seedwing_policy_engine::runtime::monitor::{Completion, Monitor, MonitorEvent};
 use seedwing_policy_engine::runtime::{Component, Output, TypeName, World};
 use serde::Serialize;
 use serde_json::Value;
@@ -96,10 +96,12 @@ pub struct WsComplete {
 
 #[derive(Serialize)]
 #[serde(rename_all = "lowercase")]
+#[serde(tag = "type", content = "value")]
 pub enum WsOutput {
     None,
     Identity,
     Transform(Value),
+    Err(String),
 }
 
 impl TryFrom<MonitorEvent> for WsEvent {
@@ -116,10 +118,13 @@ impl TryFrom<MonitorEvent> for WsEvent {
             MonitorEvent::Complete(inner) => Ok(WsEvent::Complete(WsComplete {
                 correlation: inner.correlation,
                 timestamp: inner.timestamp.to_rfc2822(),
-                output: match inner.output {
-                    Output::None => WsOutput::None,
-                    Output::Identity => WsOutput::Identity,
-                    Output::Transform(val) => WsOutput::Transform(val.as_json()),
+                output: match inner.completion {
+                    Completion::Output(Output::None) => WsOutput::None,
+                    Completion::Output(Output::Identity) => WsOutput::Identity,
+                    Completion::Output(Output::Transform(val)) => {
+                        WsOutput::Transform(val.as_json())
+                    }
+                    Completion::Err(err) => WsOutput::Err(err.clone()),
                 },
             })),
         }

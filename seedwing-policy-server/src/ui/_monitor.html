@@ -13,8 +13,13 @@
   #events .satisfied {
     background-color: #cfc;
   }
+
   #events .unsatisfied {
     background-color: #fcc;
+  }
+
+  #events .error {
+    background-color: #ccf;
   }
 
 </style>
@@ -61,18 +66,19 @@
 
     } else if (event.type == "complete" ) {
       $("#" + event.event.correlation + " .complete").text( event.event.timestamp );
-      if ( event.event.output == "none" ) {
+      if ( event.event.output.type == "none" ) {
         $("#" + event.event.correlation).addClass( "unsatisfied" );
-      } else {
+      } else if (event.event.output.type == "identity" ) {
         $("#" + event.event.correlation).addClass( "satisfied" );
-        if (event.event.output == "identity" ) {
-          $("#" + event.event.correlation + " .output").append( $("<i>identity</i>" ) );
-        } else {
-          const output = JSON.stringify(event.event.output.transform, null, 2);
-          $("#" + event.event.correlation + " .output").append( $("<pre>").text(output));
-        }
+        $("#" + event.event.correlation + " .output").append( $("<i>identity</i>" ) );
+      } else if (event.event.output.type == "transform") {
+        $("#" + event.event.correlation).addClass( "satisfied" );
+        const output = JSON.stringify(event.event.output.value, null, 2);
+        $("#" + event.event.correlation + " .output").append( $("<pre>").text(output));
+      } else {
+        $("#" + event.event.correlation).addClass( "error" );
+        $("#" + event.event.correlation + " .output").append( $("<b>").text(event.event.output.value.err));
       }
-
     }
   }
 </script>
