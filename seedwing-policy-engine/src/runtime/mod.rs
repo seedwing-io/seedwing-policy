@@ -24,6 +24,7 @@ pub mod cache;
 pub mod monitor;
 pub mod rationale;
 pub mod sources;
+pub mod statistics;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {

@@ -44,7 +44,7 @@ pub enum Expr {
 }
 
 pub type ExprFuture =
-Pin<Box<dyn Future<Output=Result<Arc<RuntimeValue>, RuntimeError>> + 'static>>;
+    Pin<Box<dyn Future<Output = Result<Arc<RuntimeValue>, RuntimeError>> + 'static>>;
 
 impl Expr {
     #[allow(clippy::let_and_return)]
@@ -77,7 +77,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Less | Ordering::Equal) =
-                    (*lhs).partial_cmp(&(*rhs))
+                        (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Arc::new(true.into()))
                     } else {
@@ -103,7 +103,7 @@ impl Expr {
                     let rhs = rhs.clone().evaluate(value.clone()).await?;
 
                     let result = if let Some(Ordering::Greater | Ordering::Equal) =
-                    (*lhs).partial_cmp(&(*rhs))
+                        (*lhs).partial_cmp(&(*rhs))
                     {
                         Ok(Arc::new(true.into()))
                     } else {
@@ -202,7 +202,7 @@ impl Type {
         ctx: &'v EvalContext,
         bindings: &'v Bindings,
         world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         let trace = ctx.trace(value.clone(), self.clone());
         match &self.inner {
             InnerType::Anything => trace.run(Box::pin(async move {
@@ -222,7 +222,7 @@ impl Type {
                     parameters: Vec<String>,
                     arguments: &'b Vec<Arc<Type>>,
                     world: &'b World,
-                ) -> Pin<Box<dyn Future<Output=Result<Bindings, RuntimeError>> + 'b>>
+                ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
                 {
                     Box::pin(async move {
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
@@ -239,7 +239,7 @@ impl Type {
                                             unresolved_bindings,
                                             world,
                                         )
-                                            .await?;
+                                        .await?;
                                         bindings.bind(
                                             param.clone(),
                                             Arc::new(Type::new(
@@ -301,7 +301,7 @@ impl Type {
                         arguments,
                         world,
                     )
-                        .await;
+                    .await;
 
                     let bindings = bindings.unwrap();
                     let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
@@ -588,7 +588,7 @@ impl Bindings {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
         self.bindings.iter()
     }
 
@@ -714,7 +714,7 @@ impl ValueType {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output=bool> + 'e>> {
+    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
         match (self, &other) {
             (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
             (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
@@ -943,11 +943,7 @@ impl EvalContext {
             match result {
                 Ok(ref mut result) => {
                     if let Some(elapsed) = elapsed {
-                        result.with_trace_result(
-                            TraceResult {
-                                duration: elapsed
-                            }
-                        );
+                        result.with_trace_result(TraceResult { duration: elapsed });
                     }
                     monitor
                         .lock()
@@ -1003,10 +999,10 @@ impl From<EvaluationResult> for (Rationale, Output) {
 impl<'ctx> TraceHandle<'ctx> {
     fn run<'v>(
         mut self,
-        block: Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>>,
-    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>>
-        where
-            'ctx: 'v,
+        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
+    where
+        'ctx: 'v,
     {
         if self.start.is_some() {
             Box::pin(async move {
