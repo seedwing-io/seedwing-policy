@@ -87,14 +87,13 @@ impl EvaluationResult {
         ty: Arc<Type>,
         rationale: Rationale,
         output: Output,
-        trace: Option<TraceResult>,
     ) -> Self {
         Self {
             input,
             ty,
             rationale,
             output,
-            trace,
+            trace: None,
         }
     }
 
@@ -128,6 +127,10 @@ impl EvaluationResult {
 
     pub fn trace(&self) -> Option<TraceResult> {
         self.trace
+    }
+
+    pub(crate) fn with_trace_result(&mut self, trace: TraceResult) {
+        self.trace.replace(trace);
     }
 }
 

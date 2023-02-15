@@ -56,7 +56,6 @@ impl Function for Inet4Addr {
                                                 address_pattern,
                                                 Rationale::InvalidArgument(e.to_string()),
                                                 Output::None,
-                                                None,
                                             )],
                                         )
                                             .into())
@@ -73,7 +72,6 @@ impl Function for Inet4Addr {
                                     address_pattern,
                                     Rationale::InvalidArgument(e),
                                     Output::None,
-                                    None,
                                 )],
                             )
                                 .into());
