@@ -26,9 +26,7 @@ use seedwing_policy_engine::runtime::statistics::Statistics;
 
 use crate::cli::cli;
 use crate::monitor::monitor_stream;
-use crate::policy::{
-    display_component, display_root, display_root_no_slash, evaluate_html, evaluate_json,
-};
+use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
 use crate::ui::{documentation, examples, index};
 
 include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
@@ -143,8 +141,7 @@ async fn main() -> std::io::Result<()> {
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
-                    .service(evaluate_json)
-                    .service(evaluate_html)
+                    .service(evaluate)
                     .service(documentation)
                     .service(examples)
                     .service(playground::display)

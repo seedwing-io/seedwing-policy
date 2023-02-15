@@ -3065,10 +3065,10 @@ dependencies = [
  "futures-util",
  "handlebars",
  "log",
- "mime",
  "seedwing-policy-engine",
  "serde",
  "serde_json",
+ "serde_yaml",
  "static-files",
  "tokio",
 ]

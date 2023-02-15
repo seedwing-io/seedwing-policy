@@ -1,5 +1,48 @@
+use actix_web::web::{BytesMut, Payload};
+use futures_util::StreamExt;
 use seedwing_policy_engine::runtime::{rationale::Rationale, EvaluationResult, TypeName};
 use serde::{Deserialize, Serialize};
+use serde_json::Error;
+
+use super::rationale::Rationalizer;
+
+pub async fn parse(body: &mut Payload) -> Result<serde_json::Value, Error> {
+    let mut content = BytesMut::new();
+    while let Some(Ok(bit)) = body.next().await {
+        content.extend_from_slice(&bit);
+    }
+    serde_json::from_slice(&content)
+        .or_else(|_| serde_yaml::from_slice::<serde_json::Value>(&content))
+        .map_err(serde::de::Error::custom)
+}
+
+#[derive(Deserialize, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum Format {
+    Html,
+    Json,
+    Yaml,
+}
+
+impl Format {
+    pub fn format(&self, result: &EvaluationResult) -> String {
+        match self {
+            Self::Html => Rationalizer::new(result).rationale(),
+            Self::Json => serde_json::to_string_pretty(&Response::new(result)).unwrap(),
+            Self::Yaml => serde_yaml::to_string(&Response::new(result)).unwrap(),
+        }
+    }
+}
+
+impl From<String> for Format {
+    fn from(name: String) -> Self {
+        match name.as_str() {
+            "json" | "application/json" => Self::Json,
+            "yaml" | "application/yaml" | "application/x-yaml" | "text/x-yaml" => Self::Yaml,
+            _ => Self::Html,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
@@ -15,17 +58,9 @@ pub struct Response {
 
 impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
-        /*
-        let input = match result.input() {
-            Some(input) => input.as_json(),
-            None => serde_json::Value::Null,
-        };
-         */
-        let input = result.input().as_json();
-
         Self {
             name: result.ty().name(),
-            input,
+            input: result.input().as_json(),
             satisfied: result.satisfied(),
             reason: reason(result.rationale()),
             rationale: support(result),
@@ -102,14 +137,14 @@ mod test {
         let src = Ephemeral::new(
             "test",
             r#"
-            pattern any = list::any<42>
+            pattern foo = list::any<42>
         "#,
         );
         let mut builder = Builder::new();
         let _ = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
         let result = runtime
-            .evaluate("test::any", json!([1, 42, 99]), EvalContext::default())
+            .evaluate("test::foo", json!([1, 42, 99]), EvalContext::default())
             .await
             .unwrap();
         assert!(result.satisfied());
