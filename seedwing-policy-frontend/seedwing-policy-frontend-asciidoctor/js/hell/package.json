@@ -1,0 +1,21 @@
+{
+  "name": "asciidoctor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "build": "npx rollup -c"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@asciidoctor/core": "^3.0.0-alpha.4"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^13.1.1",
+    "@rollup/plugin-replace": "^3.0.0",
+    "rollup": "^2.61.1",
+    "@rollup/plugin-terser": "^0.4.0"
+  }
+}

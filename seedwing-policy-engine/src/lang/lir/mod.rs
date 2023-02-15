@@ -6,7 +6,7 @@ use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, TraceResult};
 use crate::runtime::{TypeName, World};
 use crate::value::RuntimeValue;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use std::borrow::Borrow;
 
