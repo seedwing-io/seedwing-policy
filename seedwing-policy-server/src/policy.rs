@@ -1,12 +1,12 @@
 use crate::ui::html::Htmlifier;
-use crate::ui::rationale::Rationalizer;
-use crate::ui::{response::Response, LAYOUT_HTML};
-use actix_web::guard::{Acceptable, Any, Guard, GuardContext, Header};
+use crate::ui::{
+    response::{parse, Format},
+    LAYOUT_HTML,
+};
 use actix_web::http::header::{self};
-use actix_web::web::{BytesMut, Payload};
+use actix_web::web::Payload;
 use actix_web::{get, post};
 use actix_web::{web, HttpRequest, HttpResponse};
-use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::TraceConfig;
 use std::sync::Arc;
@@ -15,9 +15,7 @@ use std::sync::Arc;
 use crate::ui::breadcrumbs::Breadcrumbs;
 use seedwing_policy_engine::lang::lir::EvalContext;
 use seedwing_policy_engine::runtime::monitor::Monitor;
-use seedwing_policy_engine::runtime::{
-    Component, EvaluationResult, ModuleHandle, PackagePath, TypeName, World,
-};
+use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;
 use tokio::sync::Mutex;
@@ -25,102 +23,45 @@ use tokio::sync::Mutex;
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
     opa: Option<bool>,
-    trace: Option<bool>,
-}
-
-fn wants_json(ctx: &GuardContext) -> bool {
-    Any(Acceptable::new(mime::APPLICATION_JSON))
-        .or(Header(
-            header::CONTENT_TYPE.as_str(),
-            mime::APPLICATION_JSON.essence_str(),
-        ))
-        .check(ctx)
-}
-
-#[post("/policy/{path:.*}", guard = "wants_json")]
-pub async fn evaluate_json(
-    world: web::Data<World>,
-    monitor: web::Data<Arc<Mutex<Monitor>>>,
-    path: web::Path<String>,
-    input: web::Json<serde_json::Value>,
-    params: web::Query<PolicyQuery>,
-) -> HttpResponse {
-    let value = RuntimeValue::from(input.into_inner());
-    let path = path.replace('/', "::");
-    evaluate(
-        world.get_ref(),
-        monitor.get_ref().clone(),
-        path,
-        value,
-        params.into_inner(),
-        |r| serde_json::to_string_pretty(&Response::new(r)).unwrap(),
-    )
-    .await
+    format: Option<Format>,
 }
 
 #[post("/policy/{path:.*}")]
-pub async fn evaluate_html(
+pub async fn evaluate(
     world: web::Data<World>,
     monitor: web::Data<Arc<Mutex<Monitor>>>,
     path: web::Path<String>,
-    mut body: Payload,
     params: web::Query<PolicyQuery>,
+    content_type: web::Header<header::ContentType>,
+    mut body: Payload,
 ) -> HttpResponse {
-    let mut content = BytesMut::new();
-    while let Some(Ok(bit)) = body.next().await {
-        content.extend_from_slice(&bit);
-    }
-    let result: Result<serde_json::Value, _> = serde_json::from_slice(&content);
-
-    match &result {
+    match &parse(&mut body).await {
         Ok(result) => {
             let value = RuntimeValue::from(result);
             let path = path.replace('/', "::");
+            let trace = TraceConfig::Enabled(monitor.get_ref().clone());
+            match world.evaluate(&*path, value, EvalContext::new(trace)).await {
+                Ok(result) => {
+                    let f = params.format.unwrap_or(content_type.to_string().into());
+                    let rationale = f.format(&result);
 
-            evaluate(
-                world.get_ref(),
-                monitor.get_ref().clone(),
-                path,
-                value,
-                params.into_inner(),
-                |r| Rationalizer::new(r).rationale(),
-            )
-            .await
-        }
-        Err(error) => HttpResponse::BadRequest().body(format!("{}", error)),
-    }
-}
-
-async fn evaluate<F>(
-    world: &World,
-    monitor: Arc<Mutex<Monitor>>,
-    path: String,
-    value: RuntimeValue,
-    params: PolicyQuery,
-    formatter: F,
-) -> HttpResponse
-where
-    F: Fn(&EvaluationResult) -> String,
-{
-    let mut trace = TraceConfig::Enabled(monitor.clone());
-    match world.evaluate(&*path, value, EvalContext::new(trace)).await {
-        Ok(result) => {
-            let rationale = formatter(&result);
-
-            if let Some(true) = params.opa {
-                // OPA result format
-                let satisfied = result.satisfied();
-                HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
-            } else if result.satisfied() {
-                HttpResponse::Ok().body(rationale)
-            } else {
-                HttpResponse::UnprocessableEntity().body(rationale)
+                    if let Some(true) = params.opa {
+                        // OPA result format
+                        let satisfied = result.satisfied();
+                        HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
+                    } else if result.satisfied() {
+                        HttpResponse::Ok().body(rationale)
+                    } else {
+                        HttpResponse::UnprocessableEntity().body(rationale)
+                    }
+                }
+                Err(err) => {
+                    log::error!("err {:?}", err);
+                    HttpResponse::InternalServerError().finish()
+                }
             }
         }
-        Err(err) => {
-            log::error!("err {:?}", err);
-            HttpResponse::InternalServerError().finish()
-        }
+        Err(error) => HttpResponse::BadRequest().body(format!("{}", error)),
     }
 }
 
