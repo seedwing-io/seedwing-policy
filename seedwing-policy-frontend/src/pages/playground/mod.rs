@@ -86,11 +86,14 @@ pub fn playground() -> Html {
 
     html!(
         <>
-        <PageSection>
-            <Title>{"Playground"}</Title>
+        <PageSection variant={PageSectionVariant::Light} sticky={[PageSectionSticky::Top]}>
+            <Content>
+                <Title size={Size::XXXXLarge}>{"Playground"}</Title>
+                { Html::from_html_unchecked(r#"<p>The <b>playground</b> is a place to interactively try out policies</p>"#.into()) }
+            </Content>
         </PageSection>
 
-        <PageSection variant={PageSectionVariant::Light}>
+        <PageSection variant={PageSectionVariant::Light} fill=true>
         <div class="playground">
         <Flex>
             <FlexItem modifiers={[FlexModifier::Flex1]}>

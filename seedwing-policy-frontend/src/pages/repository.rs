@@ -57,7 +57,7 @@ pub fn repository(props: &Props) -> Html {
                 <Title>{ last }</Title>
             </PageSection>
         </PageSectionGroup>
-        <PageSection variant={PageSectionVariant::Light}>
+        <PageSection variant={PageSectionVariant::Light} fill=true>
             <RepositoryViewer ..props.clone()/>
         </PageSection>
         </>

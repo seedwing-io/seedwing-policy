@@ -1,5 +1,9 @@
 @import "rationale";
 
+.asciidoctor {
+  @import "asciidoctor";
+}
+
 .playground div.monaco-wrapper {
   padding-top: 2em;
   height: 23em;
