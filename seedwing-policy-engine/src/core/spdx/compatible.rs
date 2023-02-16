@@ -10,7 +10,7 @@ use std::sync::Arc; // as spdx_parser;
 
 const DOCUMENTATION: &str = include_str!("compatible.adoc");
 
-const LICENSE_REQUIREMENT: &str = "terms";
+const LICENSE_REQUIREMENT: &str = "license_id";
 
 #[derive(Debug)]
 pub struct Compatible;
