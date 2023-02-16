@@ -198,4 +198,30 @@ mod test {
             serde_json::to_string(&super::Response::new(&result).collapse()).unwrap()
         );
     }
+
+    #[tokio::test]
+    async fn sad_any_literal() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern foo = list::any<42>
+        "#,
+        );
+        let mut builder = Builder::new();
+        let _ = builder.build(src.iter());
+        let runtime = builder.finish().await.unwrap();
+        let result = runtime
+            .evaluate("test::foo", json!([1, 99]), EvalContext::default())
+            .await
+            .unwrap();
+        assert!(!result.satisfied());
+        assert_eq!(
+            r#"{"name":"list::any","input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            serde_json::to_string(&super::Response::new(&result)).unwrap()
+        );
+        assert_eq!(
+            r#"{"name":"list::any","input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            serde_json::to_string(&super::Response::new(&result).collapse()).unwrap()
+        );
+    }
 }
