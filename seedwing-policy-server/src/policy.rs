@@ -23,6 +23,7 @@ use tokio::sync::Mutex;
 #[derive(serde::Deserialize)]
 pub struct PolicyQuery {
     opa: Option<bool>,
+    collapse: Option<bool>,
     format: Option<Format>,
 }
 
@@ -43,7 +44,7 @@ pub async fn evaluate(
             match world.evaluate(&*path, value, EvalContext::new(trace)).await {
                 Ok(result) => {
                     let f = params.format.unwrap_or(content_type.to_string().into());
-                    let rationale = f.format(&result);
+                    let rationale = f.format(&result, params.collapse.unwrap_or(false));
 
                     if let Some(true) = params.opa {
                         // OPA result format
