@@ -33,6 +33,10 @@ pub fn console() -> Html {
         <Router<AppRoute>>
             <Page {logo} {sidebar}>
                 <RouterSwitch<AppRoute> {render}/>
+
+                <PageSection variant={PageSectionVariant::Darker} fill={PageSectionFill::NoFill}>
+                    {"Copyright © 2023 Red Hat, Inc. and "} <a href="https://github.com/seedwing-io" target="_blank"> {"The Seedwing Project"} </a> {"."}
+                </PageSection>
             </Page>
         </Router<AppRoute>>
     )
