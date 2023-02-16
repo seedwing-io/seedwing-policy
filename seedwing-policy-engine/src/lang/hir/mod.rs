@@ -323,6 +323,7 @@ impl Clone for World {
     fn clone(&self) -> Self {
         let mut h = World::new();
         h.packages = self.packages.clone();
+        h.data_sources = self.data_sources.clone();
         h
     }
 }
