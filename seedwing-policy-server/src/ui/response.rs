@@ -89,6 +89,7 @@ impl Response {
         } else {
             unsatisfied_leaves(self.rationale)
         };
+        self.input = serde_json::json!("<collapsed>");
         self
     }
 }
@@ -193,7 +194,7 @@ mod test {
             serde_json::to_string(&super::Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":[1,42,99],"satisfied":true}"#,
+            r#"{"name":"list::any","input":"<collapsed>","satisfied":true}"#,
             serde_json::to_string(&super::Response::new(&result).collapse()).unwrap()
         );
     }
