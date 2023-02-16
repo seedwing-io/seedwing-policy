@@ -1,7 +1,7 @@
 use crate::ui::LAYOUT_HTML;
 use actix_web::get;
 use actix_web::{web, HttpRequest, HttpResponse};
-use handlebars::Handlebars;
+use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext};
 use seedwing_policy_engine::runtime::statistics::{Statistics, TypeStats};
 use serde::Serialize;
 use std::sync::Arc;
@@ -23,38 +23,28 @@ pub async fn statistics(
     renderer
         .register_partial("statistics", STATISTICS_HTML)
         .unwrap();
+    renderer.register_helper("format-time", Box::new(format_time));
 
-    let mut stats = Vec::new();
+    let mut snapshot = statistics.lock().await.snapshot();
+    snapshot.sort_by(|l, r| l.name.cmp(&r.name));
 
-    let snapshot = statistics.lock().await.snapshot();
-
-    for (name, snap_stat) in snapshot {
-        stats.push(WebStats {
-            name: name.as_type_str(),
-            invocations: snap_stat.invocations,
-            mean_execution_time: format(&snap_stat.mean_execution_time),
-        })
-    }
-
-    stats.sort_by(|l, r| l.name.cmp(&r.name));
-
-    if let Ok(html) = renderer.render("statistics", &stats) {
+    if let Ok(html) = renderer.render("statistics", &snapshot) {
         HttpResponse::Ok().body(html)
     } else {
         HttpResponse::InternalServerError().finish()
     }
 }
 
-#[derive(Serialize)]
-pub struct WebStats {
-    name: String,
-    invocations: u64,
-    mean_execution_time: String,
-}
-
-fn format(elapsed: &Duration) -> String {
-    let ns = elapsed.as_nanos();
-
+// implement via bare function
+fn format_time(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    rc: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let ns = h.param(0).unwrap();
+    let ns = ns.value().as_u64().unwrap();
     let ms = ns / 1_000_000;
     let ns = ns % 1_000_000;
 
@@ -62,10 +52,12 @@ fn format(elapsed: &Duration) -> String {
     let ms = ms % 1_000;
 
     if s > 0 {
-        format!("{}s {}ms", s, ms)
+        out.write(format!("{}s {}ms", s, ms).as_str());
     } else if ms > 0 {
-        format!("{}ms", ms)
+        out.write(format!("{}ms", ms).as_str());
     } else {
-        format!("{}ns", ns)
+        out.write(format!("{}ns", ns).as_str());
     }
+
+    Ok(())
 }

@@ -96,7 +96,7 @@ async fn main() -> std::io::Result<()> {
 
     let monitor = Arc::new(Mutex::new(Monitor::new()));
 
-    let statistics = Arc::new(Mutex::new(Statistics::new()));
+    let statistics = Arc::new(Mutex::new(Statistics::<100>::new()));
 
     match result {
         Ok(world) => {
@@ -111,7 +111,10 @@ async fn main() -> std::io::Result<()> {
                         if let MonitorEvent::Complete(event) = &result {
                             if let Some(elapsed) = event.elapsed {
                                 if let Some(name) = result.ty().name() {
-                                    gatherer.lock().await.record(name, elapsed);
+                                    gatherer
+                                        .lock()
+                                        .await
+                                        .record(name, elapsed, &event.completion);
                                 }
                             }
                         }

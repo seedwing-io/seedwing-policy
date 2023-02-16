@@ -4,17 +4,21 @@
 </style>
 
 <table
-    class="pf-c-table pf-m-grid-md"
+    class="pf-c-table pf-m-grid-md pf-m-compact"
     role="grid"
     aria-label="This is a simple table example"
     id="table-basic"
 >
-  <caption>Statistics</caption>
   <thead>
   <tr role="row">
     <th role="columnheader" scope="col">Pattern</th>
-    <th role="columnheader" scope="col">Invocations</th>
-    <th role="columnheader" scope="col">Mean Execution Time</th>
+    <th role="columnheader" scope="col">Total</th>
+    <th role="columnheader" scope="col">Satisfied</th>
+    <th role="columnheader" scope="col">Unsatisfied</th>
+    <th role="columnheader" scope="col">Error</th>
+    <th role="columnheader" scope="col">Mean</th>
+    <th role="columnheader" scope="col">Median</th>
+    <th role="columnheader" scope="col">StdDev</th>
   </tr>
   </thead>
 
@@ -23,7 +27,12 @@
     <tr>
       <td>{{this.name}}</td>
       <td>{{this.invocations}}</td>
-      <td>{{this.mean_execution_time}}</td>
+      <td>{{this.satisfied_invocations}}</td>
+      <td>{{this.unsatisfied_invocations}}</td>
+      <td>{{this.error_invocations}}</td>
+      <td>{{format-time this.mean}}</td>
+      <td>{{format-time this.median}}</td>
+      <td>{{format-time this.stddev}}</td>
     </tr>
   {{/each}}
   </tbody>
