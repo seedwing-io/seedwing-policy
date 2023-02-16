@@ -48,7 +48,7 @@ impl Function for Any {
                 if supporting.iter().any(|e| e.satisfied()) {
                     Ok((Output::Identity, supporting).into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok((Output::None, supporting).into())
                 }
             } else {
                 Ok(Output::None.into())
