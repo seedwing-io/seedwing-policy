@@ -28,11 +28,18 @@ pub enum Format {
 }
 
 impl Format {
-    pub fn format(&self, result: &EvaluationResult) -> String {
+    pub fn format(&self, result: &EvaluationResult, collapse: bool) -> String {
+        let response = if let Self::Html = self {
+            Response::default()
+        } else if collapse {
+            Response::new(result).collapse()
+        } else {
+            Response::new(result)
+        };
         match self {
             Self::Html => Rationalizer::new(result).rationale(),
-            Self::Json => serde_json::to_string_pretty(&Response::new(result)).unwrap(),
-            Self::Yaml => serde_yaml::to_string(&Response::new(result)).unwrap(),
+            Self::Json => serde_json::to_string_pretty(&response).unwrap(),
+            Self::Yaml => serde_yaml::to_string(&response).unwrap(),
         }
     }
     pub fn content_type(&self) -> ContentType {
@@ -54,7 +61,7 @@ impl From<String> for Format {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<TypeName>,
@@ -76,6 +83,29 @@ impl Response {
             rationale: support(result),
         }
     }
+    fn collapse(mut self) -> Self {
+        self.rationale = if self.satisfied {
+            Vec::new()
+        } else {
+            unsatisfied_leaves(self.rationale)
+        };
+        self
+    }
+}
+
+fn unsatisfied_leaves(tree: Vec<Response>) -> Vec<Response> {
+    let mut result = Vec::new();
+    for i in tree.into_iter() {
+        if i.satisfied {
+            continue;
+        }
+        if i.rationale.is_empty() {
+            result.push(i);
+        } else {
+            result.append(&mut unsatisfied_leaves(i.rationale.clone()));
+        }
+    }
+    result
 }
 
 fn reason(rationale: &Rationale) -> String {
@@ -143,7 +173,7 @@ mod test {
     use serde_json::json;
 
     #[tokio::test]
-    async fn any_literal() {
+    async fn happy_any_literal() {
         let src = Ephemeral::new(
             "test",
             r#"
@@ -161,6 +191,10 @@ mod test {
         assert_eq!(
             r#"{"name":"list::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&super::Response::new(&result)).unwrap()
+        );
+        assert_eq!(
+            r#"{"name":"list::any","input":[1,42,99],"satisfied":true}"#,
+            serde_json::to_string(&super::Response::new(&result).collapse()).unwrap()
         );
     }
 }
