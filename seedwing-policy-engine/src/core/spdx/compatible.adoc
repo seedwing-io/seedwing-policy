@@ -1,0 +1,12 @@
+Verifies that the given License expression is acceptable against a list of known-good licenses.
+All the licenses identifiers must be in the SPDX format.
+
+https://spdx.github.io/spdx-spec/v2-draft/SPDX-license-list/
+
+The list of known licenses must be given as a parameter. A single good license is also accepted.
+
+Example input:
+
+```
+"MIT OR Apache-2.0"
+```
