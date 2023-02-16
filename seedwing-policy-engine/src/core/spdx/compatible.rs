@@ -35,39 +35,32 @@ impl Function for Compatible {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
+            // Gather parameters
+            let authorized_licenses = if let Some(val) = bindings.get(LICENSE_REQUIREMENT) {
+                match val.inner() {
+                    InnerType::List(license_list) => license_list
+                        .to_vec()
+                        .iter()
+                        .filter_map(|t| t.try_get_resolved_value())
+                        .filter_map(|t| match t {
+                            ValueType::String(val) => Some(val.clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<String>>(),
+                    InnerType::Const(ValueType::String(license)) => vec![license.clone()],
+                    _ => return Ok(Output::None.into()),
+                }
+            } else {
+                return Ok(Output::None.into());
+            };
+
+            // the input should be a string
             if let Some(value) = input.try_get_string() {
                 if let Ok(license) = spdx::Expression::parse(value.as_str()) {
-                    if let Some(val) = bindings.get(LICENSE_REQUIREMENT) {
-                        if let Some(ValueType::String(license_req)) = val.try_get_resolved_value() {
-                            if let Ok(license_id) = spdx::Licensee::parse(license_req.as_str()) {
-                                if license.evaluate(|req| license_id.satisfies(req)) {
-                                    return Ok(Output::Identity.into());
-                                }
-                            }
-                        } else if let InnerType::List(license_list) = val.inner() {
-                            let list: Vec<ValueType> = license_list
-                                .to_vec()
-                                .iter()
-                                .filter_map(|t| t.try_get_resolved_value())
-                                .collect();
-                            let definitive_list: Vec<String> = list
-                                .iter()
-                                .filter_map(|t| {
-                                    if let ValueType::String(val) = t {
-                                        Some(val.clone())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect();
-
-                            for license_req in definitive_list {
-                                if let Ok(license_id) = spdx::Licensee::parse(license_req.as_str())
-                                {
-                                    if license.evaluate(|req| license_id.satisfies(req)) {
-                                        return Ok(Output::Identity.into());
-                                    }
-                                }
+                    for license_req in authorized_licenses {
+                        if let Ok(license_id) = spdx::Licensee::parse(license_req.as_str()) {
+                            if license.evaluate(|req| license_id.satisfies(req)) {
+                                return Ok(Output::Identity.into());
                             }
                         }
                     }
