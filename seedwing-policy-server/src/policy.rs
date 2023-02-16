@@ -50,9 +50,13 @@ pub async fn evaluate(
                         let satisfied = result.satisfied();
                         HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
                     } else if result.satisfied() {
-                        HttpResponse::Ok().body(rationale)
+                        HttpResponse::Ok()
+                            .content_type(f.content_type())
+                            .body(rationale)
                     } else {
-                        HttpResponse::UnprocessableEntity().body(rationale)
+                        HttpResponse::UnprocessableEntity()
+                            .content_type(f.content_type())
+                            .body(rationale)
                     }
                 }
                 Err(err) => {

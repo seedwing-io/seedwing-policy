@@ -1,4 +1,7 @@
-use actix_web::web::{BytesMut, Payload};
+use actix_web::{
+    http::header::ContentType,
+    web::{BytesMut, Payload},
+};
 use futures_util::StreamExt;
 use seedwing_policy_engine::runtime::{rationale::Rationale, EvaluationResult, TypeName};
 use serde::{Deserialize, Serialize};
@@ -30,6 +33,13 @@ impl Format {
             Self::Html => Rationalizer::new(result).rationale(),
             Self::Json => serde_json::to_string_pretty(&Response::new(result)).unwrap(),
             Self::Yaml => serde_yaml::to_string(&Response::new(result)).unwrap(),
+        }
+    }
+    pub fn content_type(&self) -> ContentType {
+        match self {
+            Self::Html => ContentType::html(),
+            Self::Json => ContentType::json(),
+            Self::Yaml => ContentType::plaintext(), // TODO: not this?
         }
     }
 }
