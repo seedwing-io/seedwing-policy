@@ -29,6 +29,7 @@ impl DataSource for DirectoryDataSource {
             if target.is_dir() {
                 Err(RuntimeError::FileUnreadable(target))
             } else if let Some(name) = target.file_name() {
+                log::info!("read from file: {:?}", name);
                 if name.to_string_lossy().ends_with(".json") {
                     // parse as JSON
                     if let Ok(file) = File::open(target.clone()) {
@@ -36,6 +37,19 @@ impl DataSource for DirectoryDataSource {
                         match json {
                             Ok(json) => Ok(Some(json.into())),
                             Err(e) => Err(RuntimeError::JsonError(target, e)),
+                        }
+                    } else {
+                        Err(RuntimeError::FileUnreadable(target))
+                    }
+                } else if name.to_string_lossy().ends_with(".yaml")
+                    || name.to_string_lossy().ends_with(".yml")
+                {
+                    // parse as YAML
+                    if let Ok(file) = File::open(target.clone()) {
+                        let yaml: Result<serde_json::Value, _> = serde_yaml::from_reader(file);
+                        match yaml {
+                            Ok(yaml) => Ok(Some(yaml.into())),
+                            Err(e) => Err(RuntimeError::YamlError(target, e)),
                         }
                     } else {
                         Err(RuntimeError::FileUnreadable(target))

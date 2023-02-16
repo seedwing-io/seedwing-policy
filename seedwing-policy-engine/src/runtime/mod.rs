@@ -145,6 +145,8 @@ pub enum RuntimeError {
     NoSuchTypeSlot(usize),
     #[error("error parsing JSON file {0}: {1}")]
     JsonError(PathBuf, serde_json::Error),
+    #[error("error parsing YAML file {0}: {1}")]
+    YamlError(PathBuf, serde_yaml::Error),
     #[error("error reading file: {0}")]
     FileUnreadable(PathBuf),
 }
