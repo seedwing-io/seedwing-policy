@@ -1,56 +1,56 @@
-use crate::ui::LAYOUT_HTML;
-use actix_web::get;
-use actix_web::{web, HttpResponse};
-use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext};
-use seedwing_policy_engine::runtime::statistics::Statistics;
 use std::sync::Arc;
+use std::time::Duration;
+
+use actix_web::{HttpRequest, HttpResponse, web};
+use actix_web::error::ParseError::Header;
+use actix_web::get;
+use actix_web::http::header::{self};
+use actix_web::http::header::ACCEPT;
+use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext};
+use mime::Mime;
+use serde::Serialize;
 use tokio::sync::Mutex;
+
+use seedwing_policy_engine::runtime::statistics::{Statistics, TypeStats};
+
+use crate::ui::LAYOUT_HTML;
 
 const STATISTICS_HTML: &str = include_str!("ui/_statistics.html");
 
 #[get("/statistics/{path:.*}")]
-pub async fn statistics(statistics: web::Data<Arc<Mutex<Statistics>>>) -> HttpResponse {
+pub async fn statistics(
+    req: HttpRequest,
+    statistics: web::Data<Arc<Mutex<Statistics>>>,
+    path: web::Path<String>,
+    accept: web::Header<header::Accept>,
+) -> HttpResponse {
+    let path = path.replace('/', "::");
+
+    let pref: Mime = accept.preference();
+
+    if pref == mime::APPLICATION_JSON {
+        statistics_json(path, statistics.get_ref().clone()).await
+    } else {
+        statistics_html(path, statistics.get_ref().clone()).await
+    }
+}
+
+pub async fn statistics_html(path: String, stats: Arc<Mutex<Statistics>>) -> HttpResponse {
     let mut renderer = Handlebars::new();
     renderer.set_prevent_indent(true);
     renderer.register_partial("layout", LAYOUT_HTML).unwrap();
     renderer
         .register_partial("statistics", STATISTICS_HTML)
         .unwrap();
-    renderer.register_helper("format-time", Box::new(format_time));
 
-    let mut snapshot = statistics.lock().await.snapshot();
-    snapshot.sort_by(|l, r| l.name.cmp(&r.name));
-
-    if let Ok(html) = renderer.render("statistics", &snapshot) {
+    if let Ok(html) = renderer.render("statistics", &()) {
         HttpResponse::Ok().body(html)
     } else {
         HttpResponse::InternalServerError().finish()
     }
 }
 
-// implement via bare function
-fn format_time(
-    h: &Helper,
-    _: &Handlebars,
-    _: &Context,
-    _rc: &mut RenderContext,
-    out: &mut dyn Output,
-) -> HelperResult {
-    let ns = h.param(0).unwrap();
-    let ns = ns.value().as_u64().unwrap();
-    let ms = ns / 1_000_000;
-    let ns = ns % 1_000_000;
-
-    let s = ms / 1_000;
-    let ms = ms % 1_000;
-
-    if s > 0 {
-        out.write(format!("{}s {}ms", s, ms).as_str())?;
-    } else if ms > 0 {
-        out.write(format!("{}ms", ms).as_str())?;
-    } else {
-        out.write(format!("{}ns", ns).as_str())?;
-    }
-
-    Ok(())
+pub async fn statistics_json(path: String, stats: Arc<Mutex<Statistics>>) -> HttpResponse {
+    let snapshot = stats.lock().await.snapshot();
+    HttpResponse::Ok().json(snapshot)
 }

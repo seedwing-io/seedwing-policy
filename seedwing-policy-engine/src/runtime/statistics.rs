@@ -117,7 +117,11 @@ impl<const N: usize> TypeStats<N> {
         let variance = self.samples[0..self.num_samples as usize]
             .iter()
             .map(|value| {
-                let diff = mean - (*value);
+                let diff = if (mean > *value) {
+                    mean - (*value)
+                } else {
+                    *value - mean
+                };
                 diff * diff
             })
             .sum::<u128>()
