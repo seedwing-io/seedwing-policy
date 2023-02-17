@@ -12,6 +12,12 @@ pub struct Statistics<const N: usize = 100> {
     stats: HashMap<TypeName, TypeStats<N>>,
 }
 
+impl<const N: usize> Default for Statistics<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<const N: usize> Statistics<N> {
     pub fn new() -> Self {
         Self {

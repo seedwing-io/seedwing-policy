@@ -65,6 +65,12 @@ pub struct Monitor {
     subscribers: Arc<Mutex<Vec<Subscriber>>>,
 }
 
+impl Default for Monitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Monitor {
     pub fn new() -> Self {
         Self {
@@ -77,7 +83,7 @@ impl Monitor {
         let (sender, receiver) = channel(500);
         self.subscribers.lock().await.push(Subscriber {
             path,
-            sender: sender,
+            sender,
             disconnected: false,
         });
         receiver
@@ -150,11 +156,7 @@ impl Monitor {
         }
 
         let mut locked = self.subscribers.lock().await;
-        let live_subscribers = locked
-            .iter()
-            .filter(|e| e.disconnected == false)
-            .cloned()
-            .collect();
+        let live_subscribers = locked.iter().filter(|e| !e.disconnected).cloned().collect();
         *locked = live_subscribers
     }
 }

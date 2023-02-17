@@ -924,11 +924,8 @@ impl EvalContext {
     }
 
     pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
-        match &self.trace {
-            TraceConfig::Enabled(monitor) => {
-                monitor.lock().await.start(correlation, input, ty).await;
-            }
-            _ => {}
+        if let TraceConfig::Enabled(monitor) = &self.trace {
+            monitor.lock().await.start(correlation, input, ty).await;
         }
     }
 

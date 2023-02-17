@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use actix_web::{HttpRequest, HttpResponse, web};
 use actix_web::error::ParseError::Header;
 use actix_web::get;
-use actix_web::http::header::{self};
 use actix_web::http::header::ACCEPT;
+use actix_web::http::header::{self};
+use actix_web::{web, HttpRequest, HttpResponse};
 use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext};
 use mime::Mime;
 use serde::Serialize;
