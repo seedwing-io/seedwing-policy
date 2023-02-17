@@ -1,4 +1,7 @@
-use crate::pages::{self, AppRoute};
+use crate::{
+    pages::{self, AppRoute},
+    utils::{use_open, ExtLinkIcon},
+};
 use patternfly_yew::*;
 use yew::prelude::*;
 use yew_nested_router::prelude::{Switch as RouterSwitch, *};
@@ -15,9 +18,9 @@ pub fn console() -> Html {
                 <NavList>
                     <NavExpandable title="Home">
                         <NavRouterItem<AppRoute> to={AppRoute::Index}>{ "Overview" }</NavRouterItem<AppRoute>>
-                        <NavRouterItem<AppRoute> to={AppRoute::Documentation}>{ "Documentation" }</NavRouterItem<AppRoute>>
-                        <NavRouterItem<AppRoute> to={AppRoute::Examples}>{ "Examples" }</NavRouterItem<AppRoute>>
                         <NavRouterItem<AppRoute> to={AppRoute::Playground}>{ "Playground" }</NavRouterItem<AppRoute>>
+                        <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
+                        <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
                     </NavExpandable>
                     <NavExpandable title="Repository">
                         <NavRouterItem<AppRoute> to={AppRoute::Repository{path: "".into()}}
@@ -29,9 +32,23 @@ pub fn console() -> Html {
         </PageSidebar>
     );
 
+    let callback_help = use_open("https://github.com/seedwing-io/seedwing-policy", "_blank");
+    let callback_github = use_open("https://github.com/seedwing-io/seedwing-policy", "_blank");
+
+    let tools = html!(
+        <Toolbar>
+            <ToolbarItem>
+                <Button icon={Icon::QuestionCircle} onclick={callback_help}/>
+            </ToolbarItem>
+            <ToolbarItem>
+                <Button icon={Icon::Github} onclick={callback_github}/>
+            </ToolbarItem>
+        </Toolbar>
+    );
+
     html!(
         <Router<AppRoute>>
-            <Page {logo} {sidebar}>
+            <Page {logo} {sidebar} {tools}>
                 <RouterSwitch<AppRoute> {render}/>
 
                 <PageSection variant={PageSectionVariant::Darker} fill={PageSectionFill::NoFill}>
@@ -46,9 +63,7 @@ fn render(route: AppRoute) -> Html {
     log::info!("Route: {route:?}");
     match route {
         AppRoute::Index => html!(<pages::Index/>),
-        AppRoute::Documentation => html!(<pages::Documentation />),
         AppRoute::Repository { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
-        _ => html!({ "Work in Progress" }),
     }
 }
