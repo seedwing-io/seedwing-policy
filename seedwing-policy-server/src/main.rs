@@ -14,17 +14,17 @@ use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
 use static_files::Resource;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use clap::Parser;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::monitor::{Monitor, MonitorEvent};
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::Statistics;
 
-use crate::cli::cli;
+use crate::cli::Cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
 use crate::ui::{documentation, examples, index};
 
@@ -35,44 +35,26 @@ include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let command = cli();
-    let matches = command.get_matches();
-
-    let log_level: String = matches.get_one("log").cloned().unwrap();
-    let filter = match log_level.as_str() {
-        "debug" => LevelFilter::Debug,
-        "trace" => LevelFilter::Trace,
-        "info" => LevelFilter::Info,
-        "warn" => LevelFilter::Warn,
-        "error" => LevelFilter::Error,
-        _ => LevelFilter::Info,
-    };
+    let cli: Cli = Cli::parse();
 
     Builder::new()
         .filter_level(LevelFilter::Warn)
-        .filter_module("seedwing_policy_server", filter)
-        .filter_module("seedwing_policy_engine", filter)
+        .filter_module("seedwing_policy_server", cli.log.into())
+        .filter_module("seedwing_policy_engine", cli.log.into())
         .init();
-
-    let bind: String = matches.get_one("bind").cloned().unwrap();
-    let port: u16 = matches.get_one("port").cloned().unwrap();
 
     let mut errors = Vec::new();
 
     let mut builder = PolicyBuilder::new();
     let mut sources = Vec::new();
-    if let Some(directories) = matches.get_many::<String>("dir") {
-        for dir in directories {
-            let dir = PathBuf::from(dir);
-            if !dir.exists() {
-                log::error!("Unable to open directory: {}", dir.to_string_lossy());
-                exit(-3);
-            }
-            sources.push(Directory::new(dir));
+    for dir in cli.policy_directories {
+        if !dir.exists() {
+            log::error!("Unable to open directory: {}", dir.to_string_lossy());
+            exit(-3);
         }
+        sources.push(Directory::new(dir));
     }
 
-    //log::info!("loading policies from {}", dir);
     for source in sources.iter() {
         if let Err(result) = builder.build(source.iter()) {
             errors.extend_from_slice(&result);
@@ -84,11 +66,9 @@ async fn main() -> std::io::Result<()> {
         exit(-1)
     }
 
-    if let Some(directories) = matches.get_many::<String>("data") {
-        for each in directories {
-            log::info!("loading data from {:?}", each);
-            builder.data(DirectoryDataSource::new(each.into()));
-        }
+    for each in cli.data_directories {
+        log::info!("loading data from {:?}", each);
+        builder.data(DirectoryDataSource::new(each));
     }
 
     let result = builder.finish().await;
@@ -154,9 +134,9 @@ async fn main() -> std::io::Result<()> {
                     .service(monitor::monitor_stream)
                     .service(statistics::statistics)
             });
-            log::info!("starting up at http://{}:{}/", bind, port);
+            log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
 
-            server.bind((bind, port))?.run().await
+            server.bind((cli.bind, cli.port))?.run().await
         }
         Err(errors) => {
             ErrorPrinter::new(builder.source_cache()).display(&errors);
