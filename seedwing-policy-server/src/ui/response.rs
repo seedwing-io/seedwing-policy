@@ -158,8 +158,7 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
     match result.rationale() {
         Rationale::Object(fields) => fields
             .iter()
-            .map(|(_, r)| r.as_ref().map(|r| Response::new(r)))
-            .flatten()
+            .filter_map(|(_, r)| r.as_ref().map(Response::new))
             .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
