@@ -33,7 +33,7 @@ pub async fn evaluate(
     monitor: web::Data<Arc<Mutex<Monitor>>>,
     path: web::Path<String>,
     params: web::Query<PolicyQuery>,
-    content_type: web::Header<header::ContentType>,
+    accept: web::Header<header::Accept>,
     mut body: Payload,
 ) -> HttpResponse {
     match &parse(&mut body).await {
@@ -43,7 +43,8 @@ pub async fn evaluate(
             let trace = TraceConfig::Enabled(monitor.get_ref().clone());
             match world.evaluate(&*path, value, EvalContext::new(trace)).await {
                 Ok(result) => {
-                    let f = params.format.unwrap_or(content_type.to_string().into());
+                    let mime = accept.preference();
+                    let f = params.format.unwrap_or(mime.to_string().into());
                     let rationale = f.format(&result, params.collapse.unwrap_or(false));
 
                     if let Some(true) = params.opa {
