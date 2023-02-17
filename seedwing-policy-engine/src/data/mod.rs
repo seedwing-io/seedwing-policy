@@ -66,6 +66,7 @@ impl DataSource for DirectoryDataSource {
                 Ok(None)
             }
         } else {
+            log::error!("{:?} not found", target);
             Ok(None)
         }
     }
