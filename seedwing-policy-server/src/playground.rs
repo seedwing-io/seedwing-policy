@@ -79,7 +79,7 @@ pub async fn compile(
 
     match state.build(&content) {
         Ok(_) => HttpResponse::Ok().into(),
-        Err(e) => HttpResponse::BadRequest().body(e.to_string()),
+        Err(e) => HttpResponse::BadRequest().body(e),
     }
 }
 
@@ -145,12 +145,12 @@ pub async fn evaluate(
                             .map(|b| b.to_string())
                             .collect::<Vec<String>>()
                             .join(",");
-                        HttpResponse::BadRequest().body(e.to_string())
+                        HttpResponse::BadRequest().body(e)
                     }
                 },
                 Err(e) => {
                     log::error!("unable to build policy [{:?}]", e);
-                    HttpResponse::NotAcceptable().body(e.to_string())
+                    HttpResponse::NotAcceptable().body(e)
                 }
             },
             Err(e) => {

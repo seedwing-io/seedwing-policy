@@ -461,7 +461,7 @@ impl World {
         if let Some(slot) = slot {
             let ty = self.type_slots[*slot].clone();
             let bindings = Bindings::default();
-            ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
+            ty.evaluate(value.clone(), &ctx, &bindings, self).await
         } else {
             Err(RuntimeError::NoSuchType(path))
         }

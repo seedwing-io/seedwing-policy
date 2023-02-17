@@ -15,7 +15,7 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use super::osv::osv::*;
+use super::osv::client::*;
 use openvex::*;
 
 pub fn package() -> Package {
@@ -101,7 +101,7 @@ fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
                 context: "https://openvex.dev/ns".to_string(),
                 id: format!(
                     "https://seedwing.io/docs/generated/{}",
-                    uuid::Uuid::new_v4().to_string()
+                    uuid::Uuid::new_v4()
                 ),
                 author: "Seedwing Policy Engine".to_string(),
                 role: "Document Creator".to_string(),
@@ -119,14 +119,14 @@ fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
     }
 }
 
-const VERSION: AtomicU64 = AtomicU64::new(1);
+static VERSION: AtomicU64 = AtomicU64::new(1);
 fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
     let mut vex = OpenVex {
         metadata: Metadata {
             context: "https://openvex.dev/ns".to_string(),
             id: format!(
                 "https://seedwing.io/docs/generated/{}",
-                uuid::Uuid::new_v4().to_string()
+                uuid::Uuid::new_v4()
             ),
             author: "Seedwing Policy Engine".to_string(),
             role: "Document Creator".to_string(),
@@ -160,9 +160,7 @@ fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
             products: products.drain().collect(),
             subcomponents: Vec::new(),
             status,
-            status_notes: Some(format!(
-                "Open Source Vulnerabilities (OSV) found vulnerabilities"
-            )),
+            status_notes: Some("Open Source Vulnerabilities (OSV) found vulnerabilities".into()),
             justification,
             impact_statement: None,
             action_statement: Some(format!(

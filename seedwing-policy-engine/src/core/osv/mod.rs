@@ -1,7 +1,7 @@
 use crate::package::Package;
 use crate::runtime::PackagePath;
 
-pub(crate) mod osv;
+pub(crate) mod client;
 mod purl;
 
 pub fn package() -> Package {

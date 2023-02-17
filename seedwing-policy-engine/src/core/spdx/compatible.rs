@@ -43,7 +43,7 @@ impl Function for Compatible {
                         .iter()
                         .filter_map(|t| t.try_get_resolved_value())
                         .filter_map(|t| match t {
-                            ValueType::String(val) => Some(val.clone()),
+                            ValueType::String(val) => Some(val),
                             _ => None,
                         })
                         .collect::<Vec<String>>(),

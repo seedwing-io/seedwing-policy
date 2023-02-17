@@ -51,7 +51,7 @@ impl Purl {
 
         let path = match url["path"].try_get_str() {
             Some(path) => path,
-            None => return Self::invalid_arg(format!("Purl has no path")),
+            None => return Self::invalid_arg("Purl has no path"),
         };
 
         let mut result = Object::new();
@@ -67,7 +67,7 @@ impl Purl {
                 *name
             }
             _ => {
-                return Self::invalid_arg(format!("Invalid purl path"));
+                return Self::invalid_arg("Invalid purl path");
             }
         };
 

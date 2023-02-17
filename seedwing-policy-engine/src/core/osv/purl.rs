@@ -13,7 +13,7 @@ use std::pin::Pin;
 
 use std::sync::Arc;
 
-use super::osv::*;
+use super::client::*;
 
 #[derive(Debug)]
 pub struct FromPurl;
@@ -53,17 +53,13 @@ fn json_to_query(input: serde_json::Value) -> Option<OsvQuery> {
 
 impl FromPurl {
     async fn from_purls(
-        &self,
         input: serde_json::Value,
     ) -> Result<Option<serde_json::Value>, RuntimeError> {
         use serde_json::Value as JsonValue;
         let client = OsvClient::new();
         match input {
             JsonValue::Array(mut items) => {
-                let queries: Vec<OsvQuery> = items
-                    .drain(..)
-                    .flat_map(|input| json_to_query(input))
-                    .collect();
+                let queries: Vec<OsvQuery> = items.drain(..).flat_map(json_to_query).collect();
 
                 log::info!("Batch queries: {}", queries.len());
                 match client.query_batch(&queries).await {
@@ -131,7 +127,7 @@ impl Function for FromPurl {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            match self.from_purls(input.as_json()).await {
+            match FromPurl::from_purls(input.as_json()).await {
                 Ok(Some(json)) => Ok(Output::Transform(Arc::new(json.into())).into()),
                 _ => Ok(Output::None.into()),
             }

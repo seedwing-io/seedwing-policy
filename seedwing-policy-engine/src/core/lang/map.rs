@@ -53,10 +53,7 @@ impl Function for Map {
                                 );
                             }
                         }
-                        Ok(
-                            Output::Transform(Arc::new(RuntimeValue::List(result.clone().into())))
-                                .into(),
-                        )
+                        Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
                     }
                     _ => Ok(map_fn
                         .evaluate(input, ctx, bindings, world)
@@ -67,7 +64,7 @@ impl Function for Map {
                 }
             } else {
                 let msg = "Unable to lookup map function";
-                return Ok((Output::None, Rationale::InvalidArgument(msg.into())).into());
+                Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
             }
         })
     }

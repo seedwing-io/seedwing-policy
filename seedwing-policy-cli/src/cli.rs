@@ -13,15 +13,15 @@ use tokio::fs;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum InputType {
-    JSON,
-    YAML,
+    Json,
+    Yaml,
 }
 
 #[derive(clap::Subcommand, Debug)]
 pub enum Command {
     Verify,
     Eval {
-        #[arg(short='t', value_name = "TYPE", value_enum, default_value_t=InputType::JSON)]
+        #[arg(short='t', value_name = "TYPE", value_enum, default_value_t=InputType::Json)]
         typ: InputType,
         #[arg(short, long)]
         input: Option<PathBuf>,
@@ -110,13 +110,13 @@ pub async fn load_value(
         let data = fs::read(input).await?;
 
         match typ {
-            InputType::JSON => {
-                let value: serde_json::Value = serde_json::from_slice(&*data)?;
+            InputType::Json => {
+                let value: serde_json::Value = serde_json::from_slice(&data)?;
                 Ok(value.into())
             }
-            InputType::YAML => {
-                let value: serde_json::Value = serde_yaml::from_slice(&*data)
-                    .map_err(|e| YamlError::from(e))
+            InputType::Yaml => {
+                let value: serde_json::Value = serde_yaml::from_slice(&data)
+                    .map_err(YamlError::from)
                     .unwrap();
                 Ok(value.into())
             }
@@ -126,13 +126,13 @@ pub async fn load_value(
             println!("Enter input value, ^D to finish");
         }
         match typ {
-            InputType::JSON => {
+            InputType::Json => {
                 let value: serde_json::Value = serde_json::from_reader(stdin())?;
                 Ok(value.into())
             }
-            InputType::YAML => {
+            InputType::Yaml => {
                 let value: serde_json::Value = serde_yaml::from_reader(stdin())
-                    .map_err(|e| YamlError::from(e))
+                    .map_err(YamlError::from)
                     .unwrap();
                 Ok(value.into())
             }
