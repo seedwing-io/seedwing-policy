@@ -93,7 +93,8 @@ async fn main() -> std::io::Result<()> {
                                     gatherer
                                         .lock()
                                         .await
-                                        .record(name, elapsed, &event.completion);
+                                        .record(name, elapsed, &event.completion)
+                                        .await;
                                 }
                             }
                         }
@@ -133,6 +134,7 @@ async fn main() -> std::io::Result<()> {
                     .service(monitor::monitor)
                     .service(monitor::monitor_stream)
                     .service(statistics::statistics)
+                    .service(statistics::statistics_stream)
             });
             log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
 

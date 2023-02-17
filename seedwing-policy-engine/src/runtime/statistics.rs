@@ -1,3 +1,4 @@
+use crate::lang::lir::Type;
 use crate::runtime::monitor::Completion;
 use crate::runtime::{Output, TypeName};
 use num_integer::Roots;
@@ -6,10 +7,15 @@ use rand::Rng;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env::var;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc::error::TrySendError;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::Mutex;
 
 pub struct Statistics<const N: usize = 100> {
     stats: HashMap<TypeName, TypeStats<N>>,
+    subscribers: Mutex<Vec<Subscriber>>,
 }
 
 impl<const N: usize> Default for Statistics<N> {
@@ -22,16 +28,22 @@ impl<const N: usize> Statistics<N> {
     pub fn new() -> Self {
         Self {
             stats: Default::default(),
+            subscribers: Default::default(),
         }
     }
 
-    pub fn record(&mut self, name: TypeName, elapsed: Duration, completion: &Completion) {
-        if let Some(stats) = self.stats.get_mut(&name) {
+    pub async fn record(&mut self, name: TypeName, elapsed: Duration, completion: &Completion) {
+        let snapshot = if let Some(stats) = self.stats.get_mut(&name) {
             stats.record(elapsed, completion);
+            stats.snapshot(&name)
         } else {
             let stats = TypeStats::new(elapsed, completion);
+            let snapshot = stats.snapshot(&name);
             self.stats.insert(name, stats);
-        }
+            snapshot
+        };
+
+        self.fanout(snapshot).await;
     }
 
     pub fn snapshot(&self) -> Vec<Snapshot> {
@@ -39,6 +51,39 @@ impl<const N: usize> Statistics<N> {
             .iter()
             .map(|(name, stats)| stats.snapshot(name))
             .collect()
+    }
+
+    pub async fn subscribe(&self, path: String) -> Receiver<Snapshot> {
+        let (sender, receiver) = channel(50);
+        self.subscribers.lock().await.push(Subscriber {
+            path,
+            sender,
+            disconnected: false,
+        });
+        receiver
+    }
+
+    async fn fanout(&self, snapshot: Snapshot) {
+        for subscriber in self
+            .subscribers
+            .lock()
+            .await
+            .iter_mut()
+            .filter(|sub| sub.interested_in(snapshot.name.clone()))
+        {
+            if let Err(err) = subscriber.sender.try_send(snapshot.clone()) {
+                match err {
+                    TrySendError::Full(_) => {
+                        // ehhh
+                    }
+                    TrySendError::Closed(_) => subscriber.disconnected = true,
+                }
+            }
+        }
+
+        let mut locked = self.subscribers.lock().await;
+        let live_subscribers = locked.iter().filter(|e| !e.disconnected).cloned().collect();
+        *locked = live_subscribers
     }
 }
 
@@ -137,7 +182,7 @@ impl<const N: usize> TypeStats<N> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct Snapshot {
     pub name: String,
     pub mean: u128,
@@ -147,4 +192,17 @@ pub struct Snapshot {
     pub satisfied_invocations: u64,
     pub unsatisfied_invocations: u64,
     pub error_invocations: u64,
+}
+
+#[derive(Clone)]
+pub struct Subscriber {
+    path: String,
+    sender: Sender<Snapshot>,
+    disconnected: bool,
+}
+
+impl Subscriber {
+    pub fn interested_in(&self, name: String) -> bool {
+        name.starts_with(&self.path)
+    }
 }
