@@ -761,39 +761,6 @@ pub enum Component {
     Type(Arc<Type>),
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ComponentInformation {
-    Module(ModuleHandle),
-    Type(TypeInformation),
-}
-
-impl From<Component> for ComponentInformation {
-    fn from(value: Component) -> Self {
-        match value {
-            Component::Module(module) => Self::Module(module),
-            Component::Type(r#type) => Self::Type(r#type.as_ref().into()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct TypeInformation {
-    pub name: Option<String>,
-    pub documentation: Option<String>,
-    pub parameters: Vec<String>,
-}
-
-impl From<&Type> for TypeInformation {
-    fn from(value: &Type) -> Self {
-        Self {
-            documentation: value.documentation(),
-            parameters: value.parameters(),
-            name: value.name().map(|name| name.as_type_str()),
-        }
-    }
-}
-
 /// Tracing information such as evaluation time.
 #[derive(Debug, Clone, Copy)]
 pub struct TraceResult {

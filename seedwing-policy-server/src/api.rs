@@ -1,11 +1,10 @@
 use crate::{ui::rationale::Rationalizer, PlaygroundState};
 use actix_web::{
-    get,
-    http::header,
-    post,
+    get, post,
     web::{self},
     HttpResponse, Responder,
 };
+use seedwing_policy_engine::runtime::{Component, ModuleHandle};
 use seedwing_policy_engine::{
     lang::lir::EvalContext,
     runtime::{ComponentInformation, RuntimeError, World},
@@ -13,6 +12,39 @@ use seedwing_policy_engine::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ComponentInformation {
+    Module(ModuleHandle),
+    Type(TypeInformation),
+}
+
+impl From<Component> for ComponentInformation {
+    fn from(value: Component) -> Self {
+        match value {
+            Component::Module(module) => Self::Module(module),
+            Component::Type(r#type) => Self::Type(r#type.as_ref().into()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TypeInformation {
+    pub name: Option<String>,
+    pub documentation: Option<String>,
+    pub parameters: Vec<String>,
+}
+
+impl From<&Type> for TypeInformation {
+    fn from(value: &Type) -> Self {
+        Self {
+            documentation: value.documentation(),
+            parameters: value.parameters(),
+            name: value.name().map(|name| name.as_type_str()),
+        }
+    }
+}
 
 #[get("/policy/v1alpha1/{path:.*}")]
 pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> impl Responder {
