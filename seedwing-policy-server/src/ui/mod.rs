@@ -6,9 +6,9 @@ use serde::Serialize;
 use std::str::from_utf8;
 
 pub mod breadcrumbs;
+pub mod format;
 pub mod html;
 pub mod rationale;
-pub mod response;
 
 #[get("/")]
 pub async fn index() -> HttpResponse {

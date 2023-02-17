@@ -1,6 +1,6 @@
 use crate::ui::html::Htmlifier;
 use crate::ui::{
-    response::{parse, Format},
+    format::{parse, Format},
     LAYOUT_HTML,
 };
 use actix_web::http::header::{self};
