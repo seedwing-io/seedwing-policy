@@ -462,11 +462,19 @@ impl Type {
                             result.insert(field.name(), None);
                         }
                     }
+
+                    let rationale = Rationale::Object(result);
+                    let output = if rationale.satisfied() {
+                        Output::Identity
+                    } else {
+                        Output::None
+                    };
+
                     Ok(EvaluationResult::new(
                         value.clone(),
                         self.clone(),
-                        Rationale::Object(result),
-                        Output::Identity,
+                        rationale,
+                        output,
                     ))
                 } else {
                     Ok(EvaluationResult::new(
