@@ -3045,6 +3045,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sigstore",
+ "spdx",
  "thiserror",
  "tokio",
  "url",
@@ -3362,6 +3363,15 @@ checksum = "02e2d2db9033d13a1567121ddd7a095ee144db4e1ca1b1bda3419bc0da294ebd"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "spdx"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52dd48832ddda0d79ca6062064d530680e24c5ee85ba1d9fae41f102b2d9f34f"
+dependencies = [
+ "smallvec",
 ]
 
 [[package]]

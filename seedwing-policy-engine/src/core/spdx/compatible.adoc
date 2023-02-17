@@ -1,0 +1,15 @@
+Verifies that the given License expression is acceptable against a list of known-good licenses.
+All the licenses identifiers must be in the SPDX format.
+
+https://spdx.github.io/spdx-spec/v2-draft/SPDX-license-list/
+
+The list of known licenses must be given as a parameter. A single good license is also accepted.
+
+Example:
+```
+pattern only-copyleft = spdx::compatible<["OSL-2.0", "GPL-2.0", "CC-BY-SA-2.0"]>
+
+//The following input would fail:
+
+"MIT OR Apache-2.0"
+```
