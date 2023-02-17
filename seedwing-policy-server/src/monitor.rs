@@ -1,31 +1,20 @@
 use crate::ui::LAYOUT_HTML;
-use actix::{Actor, StreamHandler};
-use actix_web::body::BodyStream;
-use actix_web::http::header;
-use actix_web::http::header::{HeaderValue, ACCEPT};
+use actix_web::get;
 use actix_web::Error;
-use actix_web::{get, post};
 use actix_web::{rt, web, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use seedwing_policy_engine::runtime::monitor::{Completion, Monitor, MonitorEvent};
-use seedwing_policy_engine::runtime::{Component, Output, TypeName, World};
+use seedwing_policy_engine::runtime::Output;
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::Arc;
-use std::time::{Instant, SystemTime};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 
 const MONITOR_HTML: &str = include_str!("ui/_monitor.html");
 
 #[get("/monitor/{path:.*}")]
-pub async fn monitor(
-    req: HttpRequest,
-    world: web::Data<World>,
-    monitor: web::Data<Arc<Mutex<Monitor>>>,
-    path: web::Path<String>,
-) -> HttpResponse {
-    let path = path.replace('/', "::");
+pub async fn monitor() -> HttpResponse {
     let mut renderer = Handlebars::new();
     renderer.set_prevent_indent(true);
     renderer.register_partial("layout", LAYOUT_HTML).unwrap();
@@ -56,7 +45,7 @@ pub async fn monitor_stream(
 
 pub async fn inner_monitor_stream(
     mut session: actix_ws::Session,
-    mut msg_stream: actix_ws::MessageStream,
+    _msg_stream: actix_ws::MessageStream,
     mut receiver: Receiver<MonitorEvent>,
 ) {
     loop {
@@ -64,7 +53,9 @@ pub async fn inner_monitor_stream(
         if let Some(event) = receiver.recv().await {
             if let Ok(event) = WsEvent::try_from(event) {
                 if let Ok(json) = serde_json::to_string(&event) {
-                    session.text(json).await;
+                    if session.text(json).await.is_err() {
+                        // session closed
+                    }
                 }
             }
         }

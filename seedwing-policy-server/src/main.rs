@@ -25,7 +25,6 @@ use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::Statistics;
 
 use crate::cli::cli;
-use crate::monitor::monitor_stream;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
 use crate::ui::{documentation, examples, index};
 
