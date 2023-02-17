@@ -4,14 +4,15 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
-use seedwing_policy_engine::runtime::{Component, ModuleHandle};
 use seedwing_policy_engine::{
-    lang::lir::EvalContext,
-    runtime::{ComponentInformation, RuntimeError, World},
+    lang::lir::{EvalContext, Type},
+    runtime::{monitor::Monitor, Component, ModuleHandle, RuntimeError, World},
     value::RuntimeValue,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -66,18 +67,19 @@ pub struct EvaluateRequest {
 #[post("/playground/v1alpha1/evaluate/")]
 pub async fn evaluate(
     state: web::Data<PlaygroundState>,
+    monitor: web::Data<Arc<Mutex<Monitor>>>,
     body: web::Json<EvaluateRequest>,
 ) -> HttpResponse {
+    let context = EvalContext::new(seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
+        monitor.get_ref().clone(),
+    ));
+
     match state.build(body.policy.as_bytes()) {
         Ok(mut builder) => match builder.finish().await {
             Ok(world) => {
                 let value = RuntimeValue::from(&body.value);
                 match world
-                    .evaluate(
-                        format!("playground::{}", body.name),
-                        value,
-                        EvalContext::new(seedwing_policy_engine::lang::lir::EvalTrace::Enabled),
-                    )
+                    .evaluate(format!("playground::{}", body.name), value, context)
                     .await
                 {
                     Ok(result) => {

@@ -129,7 +129,6 @@ async fn main() -> std::io::Result<()> {
                         web::scope("/api")
                             .wrap(NormalizePath::new(TrailingSlash::Always))
                             .service(api::get_policy)
-                            .service(api::get_documentation)
                             .service(api::evaluate),
                     )
                     .service(display_root_no_slash)
