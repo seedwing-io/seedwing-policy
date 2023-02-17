@@ -46,7 +46,7 @@
 
 <script defer>
   const loc = window.location;
-  const stream = new WebSocket("ws://" + loc.host + loc.pathname.replace( "/monitor/", "/monitor-stream/" ));
+  const stream = new WebSocket("ws://" + loc.host + "/stream" + loc.pathname);
   stream.onmessage = (ws_event) => {
     const event = JSON.parse(ws_event.data);
     if (event.type == "start") {

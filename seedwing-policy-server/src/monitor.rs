@@ -27,7 +27,7 @@ pub async fn monitor() -> HttpResponse {
     }
 }
 
-#[get("/monitor-stream/{path:.*}")]
+#[get("/stream/monitor/{path:.*}")]
 pub async fn monitor_stream(
     req: HttpRequest,
     monitor_manager: web::Data<Arc<Mutex<Monitor>>>,
