@@ -13,8 +13,8 @@ gloo-net = { version = "0.2.6", features = ["json"] }
 gloo-utils = "0.1.6"
 js-sys = "0.3.61"
 log = "0.4"
-monaco = { git="https://github.com/siku2/rust-monaco", features = ["yew-components"] }
-patternfly-yew = "0.4.0-alpha.1"
+monaco = { git = "https://github.com/siku2/rust-monaco", features = ["yew-components"] }
+patternfly-yew = { version = "0.4.0-alpha.1", features = ["icons-fab"] }
 ropey = "1"
 wasm-bindgen = "0.2.84"
 wasm-logger = "0.2"
@@ -42,5 +42,6 @@ members = [
 ]
 
 [patch.crates-io]
-patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "5830055d54f99f666c6fb20309fd342a2acb07a4" }
+patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "35283d0b5476d1b5ec4bef1fb3a6960e49e0e9bd" }
+#patternfly-yew = { path = "../../patternfly-yew" }
 yew-nested-router = { path = "../../yew-nested-router" }

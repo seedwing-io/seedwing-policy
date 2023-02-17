@@ -4,6 +4,7 @@
 mod app;
 mod console;
 mod pages;
+mod utils;
 
 use wasm_bindgen::prelude::*;
 
