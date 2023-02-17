@@ -115,7 +115,7 @@ impl TryFrom<MonitorEvent> for WsEvent {
                     Completion::Output(Output::Transform(val)) => {
                         WsOutput::Transform(val.as_json())
                     }
-                    Completion::Err(err) => WsOutput::Err(err.clone()),
+                    Completion::Err(err) => WsOutput::Err(err),
                 },
             })),
         }
