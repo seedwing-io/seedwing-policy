@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::{rationale::Rationale, EvaluationResult, TypeName};
 
@@ -6,7 +7,7 @@ use super::{rationale::Rationale, EvaluationResult, TypeName};
 pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<TypeName>,
-    input: serde_json::Value,
+    input: Value,
     satisfied: bool,
     #[serde(skip_serializing_if = "String::is_empty")]
     reason: String,
@@ -28,23 +29,34 @@ impl Response {
         self.rationale = if self.satisfied {
             Vec::new()
         } else {
-            unsatisfied_leaves(self.rationale)
+            deeply_unsatisfied(self.rationale)
         };
         self.input = serde_json::json!("<collapsed>");
         self
     }
+    fn has_input(&self) -> bool {
+        match &self.input {
+            Value::Null => false,
+            Value::String(s) => !s.is_empty(),
+            Value::Array(v) => !v.is_empty(),
+            Value::Object(m) => !m.is_empty(),
+            _ => true,
+        }
+    }
 }
 
-fn unsatisfied_leaves(tree: Vec<Response>) -> Vec<Response> {
+fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
     let mut result = Vec::new();
     for i in tree.into_iter() {
-        if i.satisfied {
-            continue;
-        }
-        if i.rationale.is_empty() {
-            result.push(i);
-        } else {
-            result.append(&mut unsatisfied_leaves(i.rationale.clone()));
+        if !i.satisfied {
+            // We want the deepest relevant response with input
+            if i.has_input() && i.rationale.iter().all(|x| x.satisfied || !x.has_input()) {
+                // We're assuming no descendents have unsatisfied
+                // input if no children do. If wrong, we must recur.
+                result.push(i);
+            } else {
+                result.append(&mut deeply_unsatisfied(i.rationale.clone()));
+            }
         }
     }
     result
