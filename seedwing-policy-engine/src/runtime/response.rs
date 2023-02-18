@@ -101,8 +101,7 @@ fn reason(rationale: &Rationale) -> String {
             tmp = format!("invalid argument: {name}");
             &tmp
         }
-        Rationale::Function(_, _, _) => "",
-        Rationale::Refinement(_primary, _refinement) => todo!(),
+        Rationale::Function(_, _, _) | Rationale::Refinement(_, _) => "",
     }
     .into()
 }
@@ -116,6 +115,10 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
         }
+        Rationale::Refinement(primary, refinement) => match refinement {
+            Some(r) => vec![Response::new(primary), Response::new(r)],
+            None => vec![Response::new(primary)],
+        },
         Rationale::Anything
         | Rationale::Nothing
         | Rationale::NotAnObject
@@ -124,7 +127,6 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
         | Rationale::InvalidArgument(_)
         | Rationale::Const(_)
         | Rationale::Primordial(_)
-        | Rationale::Refinement(_, _)
         | Rationale::Expression(_) => Vec::new(),
     }
 }
