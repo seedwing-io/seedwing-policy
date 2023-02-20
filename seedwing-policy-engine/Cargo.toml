@@ -41,8 +41,11 @@ uuid = { version = "1.3.0", features = ["v4"] }
 openvex = "0.1.0"
 spdx = "0.10.0"
 
+# monitoring
+prometheus = { version = "0.13.3", optional = true }
+
 [features]
-default = ["sigstore"]
+default = ["sigstore", "prometheus"]
 sigstore = ["dep:sigstore"]
 debug = []
 
