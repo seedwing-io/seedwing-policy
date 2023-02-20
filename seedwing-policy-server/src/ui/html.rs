@@ -28,7 +28,7 @@ impl<'w> Htmlifier<'w> {
         let name = if let Some(pkg) = pkg {
             if let Some(cmp_pkg) = name.package() {
                 if *pkg == cmp_pkg {
-                    name.name()
+                    name.name().to_string()
                 } else {
                     name.as_type_str()
                 }

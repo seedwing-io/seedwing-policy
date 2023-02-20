@@ -174,7 +174,7 @@ impl Type {
             Type::Ref(_, ref mut name, arguments) => {
                 if !name.is_qualified() {
                     // it's a simple single-word name, needs qualifying, perhaps.
-                    if let Some(Some(qualified)) = types.get(&name.name()) {
+                    if let Some(Some(qualified)) = types.get(name.name()) {
                         *name = qualified.clone();
                     }
                 }
@@ -484,14 +484,14 @@ impl<'b> Lowerer<'b> {
 
             //visible_types.insert("int".into(), None);
             for primordial in world.known_world() {
-                visible_types.insert(primordial.name(), None);
+                visible_types.insert(primordial.name().to_string(), None);
             }
 
             for defn in unit.types() {
                 let referenced_types = defn.referenced_types();
 
                 for ty in &referenced_types {
-                    if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
+                    if !ty.is_qualified() && !visible_types.contains_key(ty.name()) {
                         errors.push(BuildError::TypeNotFound(
                             unit.source().clone(),
                             ty.location().span(),
