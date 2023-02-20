@@ -18,9 +18,12 @@ use std::hash::Hasher;
 use std::mem;
 use std::pin::Pin;
 
-use crate::runtime::monitor::Monitor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+#[cfg(feature = "monitor")]
+use crate::runtime::monitor::Monitor;
+#[cfg(feature = "monitor")]
 use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -909,6 +912,7 @@ impl EvalContext {
 
     pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> TraceHandle {
         match &self.trace {
+            #[cfg(feature = "monitor")]
             TraceConfig::Enabled(monitor) => TraceHandle {
                 context: self,
                 ty,
@@ -926,12 +930,14 @@ impl EvalContext {
 
     async fn correlation(&self) -> Option<u64> {
         match &self.trace {
+            #[cfg(feature = "monitor")]
             TraceConfig::Enabled(monitor) => Some(monitor.lock().await.init()),
             TraceConfig::Disabled => None,
         }
     }
 
     pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
+        #[cfg(feature = "monitor")]
         if let TraceConfig::Enabled(monitor) = &self.trace {
             monitor.lock().await.start(correlation, input, ty).await;
         }
@@ -944,6 +950,7 @@ impl EvalContext {
         result: &mut Result<EvaluationResult, RuntimeError>,
         elapsed: Option<Duration>,
     ) {
+        #[cfg(feature = "monitor")]
         if let TraceConfig::Enabled(monitor) = &self.trace {
             match result {
                 Ok(ref mut result) => {
@@ -970,6 +977,7 @@ impl EvalContext {
 
 #[derive(Clone)]
 pub enum TraceConfig {
+    #[cfg(feature = "monitor")]
     Enabled(Arc<Mutex<Monitor>>),
     Disabled,
 }
@@ -977,6 +985,7 @@ pub enum TraceConfig {
 impl Debug for TraceConfig {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            #[cfg(feature = "monitor")]
             TraceConfig::Enabled(_) => {
                 write!(f, "Trace::Enabled")
             }
