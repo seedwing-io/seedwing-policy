@@ -1,7 +1,7 @@
 use crate::core::Function;
 
 use crate::runtime::TypeName;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use std::hash::{Hash, Hasher};
 
@@ -13,7 +13,7 @@ pub mod lir;
 pub mod mir;
 pub mod parser;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SyntacticSugar {
     None,
     And,
