@@ -10,7 +10,8 @@ categories = ["development-tools", "parser-implementations"]
 keywords = ["policy"]
 
 [dependencies]
-seedwing-policy-engine = { path = "../seedwing-policy-engine" }
+seedwing-policy-engine = { path = "../seedwing-policy-engine", features = ["sigstore", "prometheus"] }
+prometheus = "0.13.3"
 actix-web = "4"
 log = "0.4.17"
 env_logger = "0.10.0"

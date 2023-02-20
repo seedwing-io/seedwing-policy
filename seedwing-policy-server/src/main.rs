@@ -75,7 +75,9 @@ async fn main() -> std::io::Result<()> {
 
     let monitor = Arc::new(Mutex::new(Monitor::new()));
 
-    let statistics = Arc::new(Mutex::new(Statistics::<100>::new()));
+    let statistics = Arc::new(Mutex::new(Statistics::<100>::new(
+        prometheus::default_registry(),
+    )));
 
     match result {
         Ok(world) => {
@@ -134,6 +136,7 @@ async fn main() -> std::io::Result<()> {
                     .service(monitor::monitor)
                     .service(monitor::monitor_stream)
                     .service(statistics::statistics)
+                    .service(statistics::prometheus)
                     .service(statistics::statistics_stream)
             });
             log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
