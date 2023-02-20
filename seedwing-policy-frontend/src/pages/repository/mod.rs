@@ -1,7 +1,13 @@
+mod inner;
+
 use crate::pages::AppRoute;
 use gloo_net::http::Request;
+use inner::Inner;
 use patternfly_yew::*;
-use seedwing_policy_engine::runtime::{ComponentInformation, ModuleHandle, TypeInformation};
+use seedwing_policy_engine::{
+    api::{ComponentInformation, TypeInformation},
+    runtime::ModuleHandle,
+};
 use seedwing_policy_frontend_asciidoctor::Asciidoc;
 use std::rc::Rc;
 use yew::prelude::*;
@@ -30,41 +36,6 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentInformation>, S
         Ok(Some(response.json().await.map_err(|err| err.to_string())?))
     }
 }
-
-/*
-#[function_component(XRepository)]
-pub fn x_repository(props: &Props) -> Html {
-    let parent = use_memo(
-        |path| path.split("::").map(|s| s.to_string()).collect::<Vec<_>>(),
-        props.path.clone(),
-    );
-
-    let last = parent
-        .last()
-        .filter(|s| !s.is_empty())
-        .map(|s| s.as_str())
-        .unwrap_or("Root")
-        .to_string();
-
-    html!(
-        <>
-        <PageSectionGroup
-            sticky={[PageSectionSticky::Top]}
-        >
-            <PageSection r#type={PageSectionType::Breadcrumbs}>
-                <Breadcrumbs {parent} />
-            </PageSection>
-            <PageSection variant={PageSectionVariant::Light}>
-                <Title>{ last }</Title>
-            </PageSection>
-        </PageSectionGroup>
-        <PageSection variant={PageSectionVariant::Light} fill=true>
-            <RepositoryViewer ..props.clone()/>
-        </PageSection>
-        </>
-    )
-}
-*/
 
 fn last(parent: &Vec<String>) -> String {
     parent
@@ -151,7 +122,7 @@ pub fn repository(props: &Props) -> Html {
     )
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Properties)]
+#[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ComponentProps {
     pub base_path: Rc<Vec<String>>,
     pub component: ComponentInformation,
@@ -180,7 +151,7 @@ pub fn component_title(props: &ComponentProps) -> Html {
 #[function_component(Component)]
 pub fn component(props: &ComponentProps) -> Html {
     match &props.component {
-        ComponentInformation::Type(r#type) => render_type(r#type),
+        ComponentInformation::Type(r#type) => render_type(Rc::new(r#type.clone())),
         ComponentInformation::Module(module) => render_module(props.base_path.clone(), module),
     }
 }
@@ -237,17 +208,18 @@ fn render_full_type(r#type: &TypeInformation) -> Html {
     </>)
 }
 
-fn render_type(r#type: &TypeInformation) -> Html {
+fn render_type(r#type: Rc<TypeInformation>) -> Html {
     html!(
         <>
             <Content>
                 <dl>
                     <dt>{"Name"}</dt>
                     <dd>
-                        { render_full_type(r#type) }
+                        { render_full_type(&r#type) }
                     </dd>
                 </dl>
                 <Asciidoc content={r#type.documentation.as_deref().unwrap_or_default().to_string()}/>
+                <Inner {r#type}/>
             </Content>
         </>
     )

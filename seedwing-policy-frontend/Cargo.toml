@@ -42,6 +42,6 @@ members = [
 ]
 
 [patch.crates-io]
-patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "35283d0b5476d1b5ec4bef1fb3a6960e49e0e9bd" }
+patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "14036e5ed29e50cad5a04925b5eb50d137928305" }
 #patternfly-yew = { path = "../../patternfly-yew" }
 yew-nested-router = { path = "../../yew-nested-router" }
