@@ -161,7 +161,7 @@ impl ToInformation<PrimordialType> for lang::PrimordialType {
 impl ToInformation<TypeRef> for TypeName {
     fn to_info(&self, _world: &World) -> Result<TypeRef, Error> {
         Ok(TypeRef {
-            name: self.name(),
+            name: self.name().to_string(),
             package: self.package().map(|p| p.segments()).unwrap_or_default(),
         })
     }
