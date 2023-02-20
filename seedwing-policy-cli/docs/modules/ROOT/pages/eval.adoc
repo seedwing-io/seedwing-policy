@@ -1,0 +1,21 @@
+== `eval`
+
+The `eval` command allows for evaluation of an input against the policy and data directories and named policy provided.
+
+=== Usage
+
+==== Input type: `-t <TYPE>`
+
+The `-t <TYPE>` argument can take one of two arguments:
+
+* `json` - Specifies that the input document is in JSON format (*default*).
+* `yaml` - Specifies that the input document is in YAML format.
+
+==== Input document `-i <FILE>`
+
+Input can be provided via `STDIN` or using the `-i <FILE>` argument.
+
+==== Pattern name: `-n <PATTERN>`
+
+The pattern to evaluate the input document against must be specified using the `-n <PATTERN>` argument.
+

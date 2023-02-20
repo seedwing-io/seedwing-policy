@@ -5,7 +5,9 @@
 You can use the existing pattern `cyclonedx::v1_4::bom` for that:
 
 ```bash
-curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/cyclonedx/v1_4/
+curl -X POST -H "Content-type: application/json" \
+  -d @bom.json \
+  http://localhost:8080/policy/cyclonedx/v1_4/
 ```
 == Check that there are no security vulnerabilities in your SBOM
 
@@ -27,5 +29,7 @@ You can validate this SBOM against Seedwing using the following command:
 
 [source,bash]
 ----
-curl -X POST -H "Content-type: application/json" -d @bom.json http://localhost:8080/policy/vuln/not-affected
+curl -X POST -H "Content-type: application/json" \
+  -d @bom.json \
+  http://localhost:8080/policy/vuln/not-affected
 ----
