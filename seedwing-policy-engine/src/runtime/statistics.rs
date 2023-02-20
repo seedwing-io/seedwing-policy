@@ -35,28 +35,28 @@ impl PrometheusStats {
     fn new(registry: &'static prometheus::Registry) -> Self {
         Self {
             eval_time: prometheus::register_histogram_vec_with_registry!(
-                "eval_time",
+                "seedwing_eval_time_seconds",
                 "help",
                 &["name"],
                 registry
             )
             .unwrap(),
             satisfied: prometheus::register_counter_vec_with_registry!(
-                "satisfied",
+                "seedwing_satisfied_count",
                 "help",
                 &["name"],
                 registry
             )
             .unwrap(),
             unsatisfied: prometheus::register_counter_vec_with_registry!(
-                "unsatisfied",
+                "seedwing_unsatisfied_count",
                 "help",
                 &["name"],
                 registry
             )
             .unwrap(),
             error: prometheus::register_counter_vec_with_registry!(
-                "error",
+                "seedwing_error_count",
                 "help",
                 &["name"],
                 registry
