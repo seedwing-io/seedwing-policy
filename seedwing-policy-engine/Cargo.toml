@@ -45,8 +45,9 @@ spdx = "0.10.0"
 prometheus = { version = "0.13.3", optional = true }
 
 [features]
-default = ["sigstore", "prometheus"]
+default = ["sigstore", "monitor"]
 sigstore = ["dep:sigstore"]
+monitor = ["prometheus"]
 debug = []
 
 [dev-dependencies]
