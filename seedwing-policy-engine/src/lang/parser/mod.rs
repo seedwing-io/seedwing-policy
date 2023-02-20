@@ -79,7 +79,7 @@ impl Use {
         if let Some(as_name) = &self.as_name {
             as_name.clone()
         } else {
-            Located::new(self.type_path.name(), self.type_path.location())
+            Located::new(self.type_path.name().to_string(), self.type_path.location())
         }
     }
 }

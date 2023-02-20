@@ -563,8 +563,8 @@ impl TypeName {
         Self { package, name }
     }
 
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn is_qualified(&self) -> bool {

@@ -402,7 +402,7 @@ pub fn type_ref(
     type_name()
         .then(type_arguments(expr).or_not())
         .validate(move |(name, arguments), span, emit| {
-            if visible_parameters.contains(&name.name())
+            if visible_parameters.contains(&name.name().to_string())
                 && !arguments.clone().unwrap_or_default().is_empty()
             {
                 emit(ParserError::custom(
@@ -415,8 +415,9 @@ pub fn type_ref(
         .map_with_span(|(name, arguments, visible_parameters), span| {
             let loc = name.location();
             let arguments = arguments.unwrap_or_default();
-            if visible_parameters.contains(&name.name()) {
-                Located::new(Type::Parameter(Located::new(name.name(), span)), loc)
+            let name_s = name.name().to_string();
+            if visible_parameters.contains(&name_s) {
+                Located::new(Type::Parameter(Located::new(name_s, span)), loc)
             } else {
                 let type_str = name.as_type_str();
                 Located::new(
