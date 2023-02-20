@@ -1,8 +1,3 @@
-:toc:
-:toc-placement!:
-:toclevels: 4
-toc::[]
-
 == Basic Syntax
 
 === `.dog` Files

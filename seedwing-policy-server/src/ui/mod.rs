@@ -25,7 +25,7 @@ pub async fn index() -> HttpResponse {
     }
 }
 
-#[get("/docs{path:.*}")]
+#[get("/ROOT{path:.*}")]
 pub async fn documentation(
     req: HttpRequest,
     path: web::Path<String>,
@@ -137,14 +137,14 @@ pub async fn examples(
 
     let doc = if doc.is_none() {
         if path.is_empty() {
-            path = "README.adoc".into();
+            path = "index.adoc".into();
             docs.0.get(path.as_str())
         } else if path.ends_with('/') {
-            path.push_str("README.adoc");
+            path.push_str("index.adoc");
             docs.0.get(path.as_str())
         } else {
             let mut possible_redirect = path.clone();
-            possible_redirect.push_str("/README.adoc");
+            possible_redirect.push_str("/index.adoc");
             if docs.0.get(possible_redirect.as_str()).is_some() {
                 let mut response = HttpResponse::TemporaryRedirect();
                 response.insert_header((header::LOCATION, format!("{}/", req.path())));

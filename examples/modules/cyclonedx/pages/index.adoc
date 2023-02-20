@@ -13,14 +13,14 @@ Given an example SBOM like this:
 
 [source,json]
 ----
-include::bom.json[]
+include::example$bom.json[]
 ----
 
 You can construct a pattern that checks all package URLs in this SBOM for vulnerabilities:
 
 [source]
 ----
-include::vuln.dog[]
+include::example$vuln.dog[]
 ----
 
 You can validate this SBOM against Seedwing using the following command:

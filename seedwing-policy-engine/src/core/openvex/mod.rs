@@ -100,7 +100,7 @@ fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
             metadata: Metadata {
                 context: "https://openvex.dev/ns".to_string(),
                 id: format!(
-                    "https://seedwing.io/docs/generated/{}",
+                    "https://seedwing.io/ROOT/generated/{}",
                     uuid::Uuid::new_v4()
                 ),
                 author: "Seedwing Policy Engine".to_string(),
@@ -125,7 +125,7 @@ fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
         metadata: Metadata {
             context: "https://openvex.dev/ns".to_string(),
             id: format!(
-                "https://seedwing.io/docs/generated/{}",
+                "https://seedwing.io/ROOT/generated/{}",
                 uuid::Uuid::new_v4()
             ),
             author: "Seedwing Policy Engine".to_string(),

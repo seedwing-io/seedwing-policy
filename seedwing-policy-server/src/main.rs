@@ -28,7 +28,7 @@ use crate::cli::Cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
 use crate::ui::{documentation, examples, index};
 
-include!(concat!(env!("OUT_DIR"), "/generated-docs.rs"));
+include!(concat!(env!("OUT_DIR"), "/generated-ROOT.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-examples.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));

@@ -7,11 +7,11 @@ fn main() -> std::io::Result<()> {
 
     // documentation
 
-    println!("cargo:rerun-if-changed=docs/");
+    println!("cargo:rerun-if-changed=ROOT/");
 
-    let mut docs = resource_dir("../docs");
+    let mut docs = resource_dir("../dogma");
     docs.with_generated_filename(
-        Path::new(&env::var("OUT_DIR").unwrap()).join("generated-docs.rs"),
+        Path::new(&env::var("OUT_DIR").unwrap()).join("generated-ROOT.rs"),
     )
     .with_generated_fn("generate_docs");
 

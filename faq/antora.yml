@@ -1,0 +1,5 @@
+name: faq
+title: FAQ
+version: dev
+nav:
+  - modules/ROOT/nav.adoc

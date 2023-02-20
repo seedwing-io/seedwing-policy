@@ -1,0 +1,5 @@
+name: dogma
+title: Dogma
+version: dev
+nav:
+  - modules/ROOT/nav.adoc
