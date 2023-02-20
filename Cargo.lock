@@ -3090,6 +3090,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "static-files",
+ "thiserror",
  "tokio",
 ]
 
