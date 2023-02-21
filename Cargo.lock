@@ -3086,12 +3086,20 @@ dependencies = [
  "mime",
  "prometheus",
  "seedwing-policy-engine",
+ "seedwing-policy-server-embedded-frontend",
  "serde",
  "serde_json",
  "serde_yaml",
  "static-files",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "seedwing-policy-server-embedded-frontend"
+version = "0.1.0-alpha.2"
+dependencies = [
+ "static-files",
 ]
 
 [[package]]

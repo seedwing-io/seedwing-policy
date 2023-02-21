@@ -61,5 +61,7 @@ fn main() -> std::io::Result<()> {
 
     npm_assets.build()?;
 
+    // done
+
     Ok(())
 }

@@ -11,6 +11,7 @@ keywords = ["policy"]
 
 [dependencies]
 seedwing-policy-engine = { path = "../seedwing-policy-engine", features = ["sigstore", "prometheus"] }
+seedwing-policy-server-embedded-frontend = { path = "embedded-frontend" }
 prometheus = "0.13.3"
 actix-web = "4"
 log = "0.4.17"
