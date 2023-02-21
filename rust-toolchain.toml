@@ -2,3 +2,4 @@
 # https://rust-lang.github.io/rustup-components-history
 [toolchain]
 channel = "stable"
+targets = ["wasm32-unknown-unknown"]
