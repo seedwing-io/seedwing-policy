@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 #[cfg_attr(debug_assertions, wasm_bindgen(module = "/js/debug/asciidoctor.js"))]
 #[cfg_attr(
     not(debug_assertions),
-    wasm_bindgen(module = "/js/release/asciidoctor.min.js")
+    wasm_bindgen(module = "/js/release/asciidoctor.js")
 )]
 extern "C" {
     pub type Asciidoctor;
