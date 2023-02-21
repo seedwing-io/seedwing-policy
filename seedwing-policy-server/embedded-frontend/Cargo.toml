@@ -1,0 +1,16 @@
+[package]
+name = "seedwing-policy-server-embedded-frontend"
+version = "0.1.0-alpha.2"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/seedwing-io/seedwing-policy"
+
+description = "A server to evaluate and explore seedwing policies"
+categories = ["development-tools", "parser-implementations"]
+keywords = ["policy"]
+
+[dependencies]
+static-files = "0.2.1"
+
+[build-dependencies]
+static-files = "0.2.1"

@@ -111,6 +111,7 @@ async fn main() -> std::io::Result<()> {
                 let raw_examples = generate_examples();
                 let assets = generate_assets();
                 let ui = generate_npm_assets();
+                let console = seedwing_policy_server_embedded_frontend::console_assets();
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
@@ -126,6 +127,8 @@ async fn main() -> std::io::Result<()> {
                     )))
                     .service(ResourceFiles::new("/assets", assets))
                     .service(ResourceFiles::new("/ui", ui))
+                    .service(web::redirect("/console", "/console/"))
+                    .service(ResourceFiles::new("/console", console))
                     .service(index)
                     .service(
                         web::scope("/api")

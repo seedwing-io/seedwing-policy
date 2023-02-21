@@ -9,7 +9,7 @@ use yew_nested_router::prelude::{Switch as RouterSwitch, *};
 #[function_component(Console)]
 pub fn console() -> Html {
     let logo = html! (
-        <Logo src="/images/logo-inverted.png" alt="Seedwing Logo" />
+        <Logo src="images/logo-inverted.png" alt="Seedwing Logo" />
     );
 
     let sidebar = html_nested!(
