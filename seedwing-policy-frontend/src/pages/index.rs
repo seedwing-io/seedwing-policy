@@ -37,7 +37,7 @@ pub fn index() -> Html {
                 <Bullseye>
                     <EmptyState
                         full_height=true
-                        title="Seeding Policy Engine"
+                        title="Seedwing Policy Engine"
                         icon={Icon::Catalog}
                         {primary}
                         {secondaries}
