@@ -65,14 +65,14 @@ pub struct TypeRef {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct ObjectType {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    fields: Vec<Field>,
+    pub fields: Vec<Field>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Field {
-    name: String,
-    ty: TypeOrReference,
-    optional: bool,
+    pub name: String,
+    pub ty: TypeOrReference,
+    pub optional: bool,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -106,7 +106,7 @@ pub enum PrimordialType {
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Bindings {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    bindings: HashMap<String, TypeOrReference>,
+    pub bindings: HashMap<String, TypeOrReference>,
 }
 
 impl ToInformation<InnerTypeInformation> for InnerType {

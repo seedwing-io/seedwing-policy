@@ -5,5 +5,29 @@
 }
 
 p {
-  margin-top: 1em;
+  margin-top: .5em;
+  margin-bottom: .5em;
+}
+
+.admonitionblock {
+  padding: 0.5rem;
+  margin: 1rem 0;
+
+  box-shadow: var(--pf-global--BoxShadow--md);
+  border-top: solid 3px;
+
+  td.icon {
+    font-weight: bold;
+    padding-right: 1em;
+  }
+}
+
+.admonitionblock.note {
+
+  .icon {
+    color: var(--pf-global--info-color--200);
+  }
+
+  // background-color: var(--pf-global--info-color--100);
+  border-color: var(--pf-global--info-color--100);
 }

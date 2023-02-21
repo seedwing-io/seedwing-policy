@@ -1,10 +1,12 @@
-use crate::pages::playground::marker::MarkerData;
-use monaco::yew::CodeEditor;
 use monaco::{
     api::{CodeEditorOptions, DisposableClosure, TextModel},
     sys::editor::{BuiltinTheme, IModelContentChangedEvent, IStandaloneEditorConstructionOptions},
+    yew::CodeEditor,
 };
 use yew::prelude::*;
+
+mod marker;
+pub use marker::*;
 
 #[derive(PartialEq, Properties)]
 pub struct EditorProps {

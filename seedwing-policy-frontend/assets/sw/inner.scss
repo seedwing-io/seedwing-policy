@@ -1,0 +1,37 @@
+.sw-in-inner {
+
+  background-color: var(--pf-global--BackgroundColor--200);
+  padding: 1.5rem;
+  line-height: 150%;
+  font-family: var(--pf-global--FontFamily--monospace);
+
+  --sw-in--op-color: var(--pf-global--primary-color--200);
+  --sw-in--field-color: var(--pf-global--primary-color--200);
+  --sw-in--keyword-color: var(--pf-global--primary-color--100);
+  --sw-in--constant-color: var(--pf-global--info-color--200);
+  --sw-in--type-ref-color: var(--pf-global--primary-color--100);
+
+  .sw-in-object {
+    display: block;
+  }
+
+  .sw-in-field {
+    display: block;
+    margin-left: 1rem;
+
+    .sw-in-field__name {
+      color: var(--sw-in--field-color);
+    }
+
+  }
+
+  .sw-in-value {
+    color: var(--sw-in--constant-color);
+  }
+
+  .sw-in-type-ref {
+    color: var(--sw-in--type-ref-color);
+    text-decoration: underline;
+  }
+
+}

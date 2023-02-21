@@ -1,14 +1,13 @@
-use crate::pages::playground::marker::{ByteRange, MarkerData};
-use editor::Editor;
+use crate::common::{
+    editor::{self, ByteRange, Editor, MarkerData},
+    eval::{eval, ResultView},
+};
 use monaco::sys::MarkerSeverity;
 use patternfly_yew::*;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::Value;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
-
-mod editor;
-mod marker;
 
 const INITIAL_POLICY: &str = r#"pattern dog = {
     name: string,
@@ -26,7 +25,7 @@ fn test_compile(value: &str) -> Result<(), Vec<MarkerData>> {
     builder.build(source.iter()).map_err(|err| {
         err.into_iter()
             .map(|err| {
-                let range: std::ops::Range<marker::Position> =
+                let range: std::ops::Range<editor::Position> =
                     ByteRange(&rope, err.span()).try_into().unwrap_or_default();
 
                 MarkerData::new(err.to_string(), MarkerSeverity::Error, range)
@@ -180,9 +179,7 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
                     ..
                 } => {
                     html!(
-                        <>
-                            <ResultView rationale={rationale.clone()}/>
-                        </>
+                        <ResultView rationale={rationale.clone()}/>
                     )
                 }
                 _ => html!("Click eval"),
@@ -190,52 +187,4 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
         }
         </>
     )
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Properties)]
-pub struct ResultViewProps {
-    #[prop_or_default]
-    rationale: String,
-}
-
-#[function_component(ResultView)]
-pub fn result(props: &ResultViewProps) -> Html {
-    // yes, we need to wrap it into a div (or some other element)
-    let html = format!("<div>{}</div>", props.rationale.clone());
-    log::info!("Html: {html}");
-    html!(
-        <div class="rationale">
-            { Html::from_html_unchecked(html.into()) }
-        </div>
-    )
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct EvaluateRequest {
-    name: String,
-    policy: String,
-    value: Value,
-}
-
-/// Do a remote evaluation with the server
-async fn eval(policy: String, name: String, value: Value) -> Result<String, String> {
-    let request = EvaluateRequest {
-        name,
-        policy,
-        value,
-    };
-
-    log::info!("Request: {request:?}");
-
-    let response = gloo_net::http::Request::post(&format!("/api/playground/v1alpha1/evaluate"))
-        .json(&request)
-        .map_err(|err| format!("Failed to encode request: {err}"))?
-        .send()
-        .await
-        .map_err(|err| format!("Failed to send eval request: {err}"))?;
-
-    response
-        .text()
-        .await
-        .map_err(|err| format!("Failed to read response: {err}"))
 }
