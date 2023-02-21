@@ -1,7 +1,19 @@
+
+// font awesome
+
+$fa-font-path: "webfonts";
+@import "../node_modules/@fortawesome/fontawesome-free/scss/fontawesome";
+@import "../node_modules/@fortawesome/fontawesome-free/scss/brands";
+
+// patternfly
+
+@import "../node_modules/@patternfly/patternfly/patternfly.scss";
+@import "../node_modules/@patternfly/patternfly/patternfly-addons.scss";
+
+// local styles
+
 @import "sw/rationale";
 @import "sw/inner";
-
-@import "../node_modules/@fortawesome/fontawesome-free/scss/brands.scss";
 
 .asciidoctor {
   @import "asciidoctor";
