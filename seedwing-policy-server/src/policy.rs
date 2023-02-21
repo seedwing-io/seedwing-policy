@@ -9,7 +9,6 @@ use actix_web::{get, post};
 use actix_web::{web, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::lir::TraceConfig;
-use std::sync::Arc;
 //use seedwing_policy_engine::lang::lir::{Component, ModuleHandle, World};
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use crate::ui::breadcrumbs::Breadcrumbs;
@@ -30,7 +29,7 @@ pub struct PolicyQuery {
 #[post("/policy/{path:.*}")]
 pub async fn evaluate(
     world: web::Data<World>,
-    monitor: web::Data<Arc<Mutex<Monitor>>>,
+    monitor: web::Data<Mutex<Monitor>>,
     path: web::Path<String>,
     params: web::Query<PolicyQuery>,
     accept: web::Header<header::Accept>,
@@ -40,7 +39,7 @@ pub async fn evaluate(
         Ok(result) => {
             let value = RuntimeValue::from(result);
             let path = path.replace('/', "::");
-            let trace = TraceConfig::Enabled(monitor.get_ref().clone());
+            let trace = TraceConfig::Enabled(monitor.into_inner());
             match world.evaluate(&*path, value, EvalContext::new(trace)).await {
                 Ok(result) => {
                     let mime = accept.preference();

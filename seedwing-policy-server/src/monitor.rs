@@ -7,7 +7,6 @@ use seedwing_policy_engine::runtime::monitor::{Completion, Monitor, MonitorEvent
 use seedwing_policy_engine::runtime::Output;
 use serde::Serialize;
 use serde_json::Value;
-use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 
@@ -30,7 +29,7 @@ pub async fn monitor() -> HttpResponse {
 #[get("/stream/monitor/{path:.*}")]
 pub async fn monitor_stream(
     req: HttpRequest,
-    monitor_manager: web::Data<Arc<Mutex<Monitor>>>,
+    monitor_manager: web::Data<Mutex<Monitor>>,
     path: web::Path<String>,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {

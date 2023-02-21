@@ -114,8 +114,10 @@ async fn main() -> std::io::Result<()> {
 
                 App::new()
                     .app_data(web::Data::new(world.clone()))
-                    .app_data(web::Data::new(monitor.clone()))
-                    .app_data(web::Data::new(statistics.clone()))
+                    // use "from" in case of an existing Arc
+                    .app_data(web::Data::from(monitor.clone()))
+                    // use "from" in case of an existing Arc
+                    .app_data(web::Data::from(statistics.clone()))
                     .app_data(web::Data::new(Documentation(raw_docs)))
                     .app_data(web::Data::new(Examples(raw_examples)))
                     .app_data(web::Data::new(PlaygroundState::new(

@@ -16,7 +16,7 @@ const STATISTICS_HTML: &str = include_str!("ui/_statistics.html");
 
 #[get("/statistics/{path:.*}")]
 pub async fn statistics(
-    statistics: web::Data<Arc<Mutex<Statistics>>>,
+    statistics: web::Data<Mutex<Statistics>>,
     path: web::Path<String>,
     accept: web::Header<header::Accept>,
 ) -> HttpResponse {
@@ -25,7 +25,7 @@ pub async fn statistics(
     let pref: Mime = accept.preference();
 
     if pref == mime::APPLICATION_JSON {
-        statistics_json(path, statistics.get_ref().clone()).await
+        statistics_json(path, statistics.into_inner()).await
     } else {
         statistics_html(path).await
     }
@@ -74,7 +74,7 @@ pub async fn prometheus() -> HttpResponse {
 #[get("/stream/statistics/{path:.*}")]
 pub async fn statistics_stream(
     req: HttpRequest,
-    stats: web::Data<Arc<Mutex<Statistics>>>,
+    stats: web::Data<Mutex<Statistics>>,
     path: web::Path<String>,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {

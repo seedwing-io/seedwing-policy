@@ -7,8 +7,7 @@ use actix_web::{
 use seedwing_policy_engine::{
     api::*,
     lang::lir::EvalContext,
-    runtime::{monitor::Monitor, RuntimeError, World},
-    value::RuntimeValue,
+    runtime::{monitor::Monitor, EvaluationResult, RuntimeError, World},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -30,6 +29,18 @@ pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> imp
     }
 }
 
+#[post("/policy/v1alpha1/{path:.*}")]
+pub async fn post_policy(
+    world: web::Data<World>,
+    monitor: web::Data<Mutex<Monitor>>,
+    path: web::Path<String>,
+    value: web::Json<Value>,
+) -> impl Responder {
+    let path = path.into_inner().trim_matches('/').replace('/', "::");
+
+    run_eval(monitor.into_inner(), &world, path, value.0).await
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EvaluateRequest {
     name: String,
@@ -40,40 +51,24 @@ pub struct EvaluateRequest {
 #[post("/playground/v1alpha1/evaluate/")]
 pub async fn evaluate(
     state: web::Data<PlaygroundState>,
-    monitor: web::Data<Arc<Mutex<Monitor>>>,
+    monitor: web::Data<Mutex<Monitor>>,
     body: web::Json<EvaluateRequest>,
 ) -> HttpResponse {
-    let context = EvalContext::new(seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
-        monitor.get_ref().clone(),
-    ));
-
     match state.build(body.policy.as_bytes()) {
         Ok(mut builder) => match builder.finish().await {
             Ok(world) => {
-                let value = RuntimeValue::from(&body.value);
-                match world
-                    .evaluate(format!("playground::{}", body.name), value, context)
-                    .await
-                {
-                    Ok(result) => {
-                        let rationale = Rationalizer::new(&result);
-                        let rationale = rationale.rationale();
-
-                        if result.satisfied() {
-                            HttpResponse::Ok().body(rationale)
-                        } else {
-                            HttpResponse::NotAcceptable().body(rationale)
-                        }
-                    }
-                    Err(RuntimeError::NoSuchType(name)) => HttpResponse::BadRequest().json(json!({
-                        "reason": "NoSuchType",
-                        "name": name.as_type_str(),
-                    })),
-                    Err(err) => {
-                        log::warn!("failed to run: {err}");
-                        HttpResponse::InternalServerError().finish()
-                    }
-                }
+                let EvaluateRequest {
+                    name,
+                    value,
+                    policy: _,
+                } = body.0;
+                run_eval(
+                    monitor.into_inner(),
+                    &world,
+                    format!("playground::{}", name),
+                    value,
+                )
+                .await
             }
             Err(e) => {
                 log::error!("err {:?}", e);
@@ -89,5 +84,39 @@ pub async fn evaluate(
             log::error!("unable to build policy [{:?}]", e);
             HttpResponse::NotAcceptable().body(e.to_string())
         }
+    }
+}
+
+async fn run_eval(
+    monitor: Arc<Mutex<Monitor>>,
+    world: &World,
+    path: String,
+    value: Value,
+) -> HttpResponse {
+    let context = EvalContext::new(seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
+        monitor.clone(),
+    ));
+
+    match world.evaluate(path, value, context).await {
+        Ok(result) => return_rationale(result),
+        Err(RuntimeError::NoSuchType(name)) => HttpResponse::BadRequest().json(json!({
+            "reason": "NoSuchType",
+            "name": name.as_type_str(),
+        })),
+        Err(err) => {
+            log::warn!("failed to run: {err}");
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+fn return_rationale(result: EvaluationResult) -> HttpResponse {
+    let rationale = Rationalizer::new(&result);
+    let rationale = rationale.rationale();
+
+    if result.satisfied() {
+        HttpResponse::Ok().body(rationale)
+    } else {
+        HttpResponse::NotAcceptable().body(rationale)
     }
 }

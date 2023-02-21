@@ -12,7 +12,6 @@ use seedwing_policy_engine::runtime::monitor::Monitor;
 use seedwing_policy_engine::runtime::sources::{Directory, Ephemeral};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
@@ -93,7 +92,7 @@ pub struct EvaluateRequest {
 pub async fn evaluate(
     req: HttpRequest,
     state: web::Data<PlaygroundState>,
-    monitor: web::Data<Arc<Mutex<Monitor>>>,
+    monitor: web::Data<Mutex<Monitor>>,
     path: web::Path<String>,
     mut body: Payload,
 ) -> HttpResponse {
@@ -116,7 +115,7 @@ pub async fn evaluate(
                                 value,
                                 EvalContext::new(
                                     seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
-                                        monitor.get_ref().clone(),
+                                        monitor.into_inner(),
                                     ),
                                 ),
                             )
