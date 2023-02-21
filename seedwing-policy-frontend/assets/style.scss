@@ -1,4 +1,5 @@
-@import "rationale";
+@import "sw/rationale";
+@import "sw/inner";
 
 @import "../node_modules/@fortawesome/fontawesome-free/scss/brands.scss";
 
@@ -8,5 +9,9 @@
 
 .playground div.monaco-wrapper {
   padding-top: 2em;
+  height: 23em;
+}
+
+.experiment div.monaco-wrapper {
   height: 23em;
 }

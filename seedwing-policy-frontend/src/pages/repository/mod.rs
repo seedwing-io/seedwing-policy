@@ -1,6 +1,10 @@
-mod inner;
-
-use crate::pages::AppRoute;
+use crate::{
+    common::{
+        editor::Editor,
+        eval::{validate, ResultView},
+    },
+    pages::AppRoute,
+};
 use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::*;
@@ -9,10 +13,13 @@ use seedwing_policy_engine::{
     runtime::ModuleHandle,
 };
 use seedwing_policy_frontend_asciidoctor::Asciidoc;
+use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
 use yew_nested_router::components::Link;
+
+mod inner;
 
 #[derive(Clone, Debug, Eq, PartialEq, Properties)]
 pub struct Props {
@@ -165,8 +172,6 @@ pub struct BreadcrumbsProps {
 fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     let mut path = String::new();
 
-    log::info!("Path: {:?}", props.parent);
-
     let root = vec![String::new()];
     let bpath = root.iter().chain(props.parent.iter());
 
@@ -209,6 +214,8 @@ fn render_full_type(r#type: &TypeInformation) -> Html {
 }
 
 fn render_type(r#type: Rc<TypeInformation>) -> Html {
+    let path = r#type.name.as_deref().unwrap_or_default().to_string();
+
     html!(
         <>
             <Content>
@@ -218,9 +225,27 @@ fn render_type(r#type: Rc<TypeInformation>) -> Html {
                         { render_full_type(&r#type) }
                     </dd>
                 </dl>
-                <Asciidoc content={r#type.documentation.as_deref().unwrap_or_default().to_string()}/>
-                <Inner {r#type}/>
             </Content>
+
+            <Flex>
+
+                <FlexItem modifiers={[FlexModifier::Flex1]}>
+                    <Title level={Level::H2}> { "Documentation" } </Title>
+                    <ExpandableSection initial_state=true>
+                        <Asciidoc content={r#type.documentation.as_deref().unwrap_or_default().to_string()}/>
+                    </ExpandableSection>
+                    <Title level={Level::H2}> { "Definition" } </Title>
+                    <ExpandableSection>
+                        <Inner {r#type}/>
+                    </ExpandableSection>
+                </FlexItem>
+
+                <FlexItem modifiers={[FlexModifier::Flex1]}>
+                    <Experiment {path} />
+                </FlexItem>
+
+            </Flex>
+
         </>
     )
 }
@@ -239,5 +264,80 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
                 html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Repository {path}}>{&r#type}</Link<AppRoute>></li>)
             })}
         </ul>
+    )
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Properties)]
+pub struct ExperimentProperties {
+    pub path: String,
+}
+
+#[function_component(Experiment)]
+pub fn experiment(props: &ExperimentProperties) -> Html {
+    let value = use_state_eq(|| Value::Null);
+    let on_change = use_callback(
+        |text: String, value| {
+            value.set(serde_yaml::from_str(&text).unwrap_or(Value::Null));
+        },
+        value.clone(),
+    );
+
+    let editor = use_memo(
+        |()| html!(<Editor initial_content="" {on_change} language="yaml"/>),
+        (),
+    );
+
+    let eval = {
+        let value = value.clone();
+        let path = props.path.clone();
+        use_async(async move { validate(&path, (*value).clone()).await })
+    };
+
+    let onclick = {
+        let eval = eval.clone();
+        Callback::from(move |_| {
+            eval.run();
+        })
+    };
+
+    html!(
+        <>
+            <Toolbar>
+                <ToolbarItem>
+                    <Title level={Level::H2}> { "Experiment" } </Title>
+                </ToolbarItem>
+                <ToolbarItem modifiers={[ToolbarElementModifier::Right]}>
+                    <Button label="POST" variant={Variant::Secondary} {onclick} disabled={eval.loading} />
+                </ToolbarItem>
+            </Toolbar>
+            <Panel>
+                <PanelMain>
+                    <div class="experiment">
+                    { (*editor).clone() }
+                    </div>
+                </PanelMain>
+                <PanelFooter>
+                {
+                    match &*eval {
+                        UseAsyncState { loading: true, .. } => {
+                            html!("Loading...")
+                        }
+                        UseAsyncState {
+                            error: Some(err), ..
+                        } => {
+                            html!(format!("Failed: {err}"))
+                        }
+                        UseAsyncState {
+                            data: Some(rationale),
+                            ..
+                        } => {
+                            html!(<ResultView rationale={rationale.clone()}/>)
+                        }
+                        _ => html!("Click eval"),
+                    }
+                }
+                </PanelFooter>
+            </Panel>
+        </>
     )
 }

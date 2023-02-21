@@ -2,6 +2,7 @@
 #![allow(clippy::needless_return)]
 
 mod app;
+mod common;
 mod console;
 mod pages;
 mod utils;
