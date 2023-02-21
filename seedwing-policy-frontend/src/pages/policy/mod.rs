@@ -333,7 +333,7 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
                         } => {
                             html!(<ResultView rationale={rationale.clone()}/>)
                         }
-                        _ => html!("Click eval"),
+                        _ => html!(),
                     }
                 }
                 </PanelFooter>
