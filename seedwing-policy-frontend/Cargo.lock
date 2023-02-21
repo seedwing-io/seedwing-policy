@@ -2290,7 +2290,9 @@ dependencies = [
 
 [[package]]
 name = "yew-nested-router"
-version = "0.1.1"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "259ee0b72951cca086f13ea7e192d3727dc955d2838cd8d9e5c579fe960a7d4e"
 dependencies = [
  "gloo-history",
  "gloo-utils",
@@ -2302,7 +2304,9 @@ dependencies = [
 
 [[package]]
 name = "yew-nested-router-macros"
-version = "0.1.0"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c72bd09df0e2c79e5f2b0b0082e1c5447a2371625ce6bbb24ab53e5754cc3bb0"
 dependencies = [
  "convert_case",
  "darling",
