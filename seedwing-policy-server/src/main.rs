@@ -24,7 +24,7 @@ use clap::Parser;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::monitor::{Monitor, MonitorEvent};
 use seedwing_policy_engine::runtime::sources::Directory;
-use seedwing_policy_engine::runtime::statistics::Statistics;
+use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 
 use crate::cli::Cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
@@ -132,7 +132,8 @@ async fn main() -> std::io::Result<()> {
                             .wrap(NormalizePath::new(TrailingSlash::Always))
                             .service(api::get_policy)
                             .service(api::post_policy)
-                            .service(api::evaluate),
+                            .service(api::evaluate)
+                            .service(api::statistics),
                     )
                     .service(display_root_no_slash)
                     .service(display_root)

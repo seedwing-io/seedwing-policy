@@ -165,7 +165,7 @@ pub fn component(props: &ComponentProps) -> Html {
 
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]
 pub struct BreadcrumbsProps {
-    parent: Rc<Vec<String>>,
+    pub(crate) parent: Rc<Vec<String>>,
 }
 
 #[function_component(Breadcrumbs)]

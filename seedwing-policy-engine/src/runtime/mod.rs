@@ -26,7 +26,6 @@ pub mod monitor;
 pub mod rationale;
 pub mod response;
 pub mod sources;
-#[cfg(feature = "monitor")]
 pub mod statistics;
 
 pub use response::Response;

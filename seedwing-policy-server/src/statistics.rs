@@ -8,7 +8,8 @@ use mime::Mime;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 
-use seedwing_policy_engine::runtime::statistics::{Snapshot, Statistics};
+use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
+use seedwing_policy_engine::runtime::statistics::Snapshot;
 
 use crate::ui::LAYOUT_HTML;
 
@@ -25,8 +26,10 @@ pub async fn statistics(
     let pref: Mime = accept.preference();
 
     if pref == mime::APPLICATION_JSON {
+        println!("sending json stats");
         statistics_json(path, statistics.into_inner()).await
     } else {
+        println!("sending html stats");
         statistics_html(path).await
     }
 }

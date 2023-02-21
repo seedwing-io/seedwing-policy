@@ -4,6 +4,7 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
+use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::{
     api::*,
     lang::lir::EvalContext,
@@ -119,4 +120,10 @@ fn return_rationale(result: EvaluationResult) -> HttpResponse {
     } else {
         HttpResponse::NotAcceptable().body(rationale)
     }
+}
+
+#[get("/statistics/v1alpha1/{path:.*}")]
+pub async fn statistics(stats: web::Data<Mutex<Statistics>>) -> HttpResponse {
+    let snapshot = stats.lock().await.snapshot();
+    HttpResponse::Ok().json(snapshot)
 }

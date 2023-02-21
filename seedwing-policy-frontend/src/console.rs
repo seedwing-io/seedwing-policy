@@ -19,13 +19,16 @@ pub fn console() -> Html {
                     <NavExpandable title="Home">
                         <NavRouterItem<AppRoute> to={AppRoute::Index}>{ "Overview" }</NavRouterItem<AppRoute>>
                         <NavRouterItem<AppRoute> to={AppRoute::Playground}>{ "Playground" }</NavRouterItem<AppRoute>>
-                        <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
-                        <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
+                        <NavItem to="https://docs.seedwing.io/" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
+                        <NavItem to="https://docs.seedwing.io/examples/dev/index.html" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
                     </NavExpandable>
                     <NavExpandable title="Policy">
                         <NavRouterItem<AppRoute> to={AppRoute::Policy{path: "".into()}}
                             predicate={AppRoute::is_policy}
                             >{ "Library" }</NavRouterItem<AppRoute>>
+                        <NavRouterItem<AppRoute> to={AppRoute::Statistics{path: "".into()}}
+                            predicate={AppRoute::is_statistics}
+                            >{ "Statistics" }</NavRouterItem<AppRoute>>
                     </NavExpandable>
                 </NavList>
             </Nav>
@@ -65,5 +68,6 @@ fn render(route: AppRoute) -> Html {
         AppRoute::Index => html!(<pages::Index/>),
         AppRoute::Policy { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
+        AppRoute::Statistics { path } => html!(<pages::Statistics {path}/>)
     }
 }

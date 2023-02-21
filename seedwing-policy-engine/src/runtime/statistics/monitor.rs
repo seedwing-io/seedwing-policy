@@ -1,8 +1,8 @@
 use crate::lang::lir::Type;
 use crate::runtime::monitor::Completion;
+use crate::runtime::statistics::Snapshot;
 use crate::runtime::{Output, TypeName};
 use num_integer::Roots;
-use prometheus::register_histogram_with_registry;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use serde::Serialize;
@@ -14,71 +14,15 @@ use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 
+#[cfg(feature = "prometheus")]
+use crate::runtime::statistics::prometheus::PrometheusStats;
+
 pub struct Statistics<const N: usize = 100> {
     stats: HashMap<TypeName, TypeStats<N>>,
     subscribers: Mutex<Vec<Subscriber>>,
 
     #[cfg(feature = "prometheus")]
     prom_stats: PrometheusStats,
-}
-
-#[cfg(feature = "prometheus")]
-struct PrometheusStats {
-    eval_time: prometheus::HistogramVec,
-    satisfied: prometheus::CounterVec,
-    unsatisfied: prometheus::CounterVec,
-    error: prometheus::CounterVec,
-}
-
-#[cfg(feature = "prometheus")]
-impl PrometheusStats {
-    fn new(registry: &'static prometheus::Registry) -> Self {
-        Self {
-            eval_time: prometheus::register_histogram_vec_with_registry!(
-                "seedwing_eval_time_seconds",
-                "help",
-                &["name"],
-                registry
-            )
-            .unwrap(),
-            satisfied: prometheus::register_counter_vec_with_registry!(
-                "seedwing_satisfied_count",
-                "help",
-                &["name"],
-                registry
-            )
-            .unwrap(),
-            unsatisfied: prometheus::register_counter_vec_with_registry!(
-                "seedwing_unsatisfied_count",
-                "help",
-                &["name"],
-                registry
-            )
-            .unwrap(),
-            error: prometheus::register_counter_vec_with_registry!(
-                "seedwing_error_count",
-                "help",
-                &["name"],
-                registry
-            )
-            .unwrap(),
-        }
-    }
-
-    fn record(&mut self, name: &TypeName, elapsed: Duration, completion: &Completion) {
-        match completion {
-            Completion::Output(output) => match output {
-                Output::None => self.unsatisfied.with_label_values(&[name.name()]).inc(),
-                _ => self.satisfied.with_label_values(&[name.name()]).inc(),
-                _ => {}
-            },
-            Completion::Err(_) => self.error.with_label_values(&[name.name()]).inc(),
-        }
-
-        self.eval_time
-            .with_label_values(&[name.name()])
-            .observe(elapsed.as_secs_f64());
-    }
 }
 
 #[cfg(not(feature = "prometheus"))]
@@ -257,18 +201,6 @@ impl<const N: usize> TypeStats<N> {
 
         variance.sqrt()
     }
-}
-
-#[derive(Serialize, Clone)]
-pub struct Snapshot {
-    pub name: String,
-    pub mean: u128,
-    pub median: u128,
-    pub stddev: u128,
-    pub invocations: u64,
-    pub satisfied_invocations: u64,
-    pub unsatisfied_invocations: u64,
-    pub error_invocations: u64,
 }
 
 #[derive(Clone)]
