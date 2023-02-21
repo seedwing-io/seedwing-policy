@@ -184,7 +184,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                 path.push_str(&segment);
                 path.push_str("::");
 
-                let target = AppRoute::Repository { path: path.clone() };
+                let target = AppRoute::Policy { path: path.clone() };
 
                 html_nested!(
                     <BreadcrumbRouterItem<AppRoute>
@@ -257,11 +257,11 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
         <ul>
             { for module.modules.iter().map(|module| {
                 let path = format!("{path}{module}::");
-                html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Repository {path}}>{&module}</Link<AppRoute>></li>)
+                html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
             })}
             { for module.types.iter().map(|r#type| {
                 let path = format!("{path}{type}");
-                html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Repository {path}}>{&r#type}</Link<AppRoute>></li>)
+                html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
             })}
         </ul>
     )

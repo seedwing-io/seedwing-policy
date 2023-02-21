@@ -22,10 +22,10 @@ pub fn console() -> Html {
                         <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
                         <NavItem to="https://github.com/seedwing-io/seedwing-policy" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
                     </NavExpandable>
-                    <NavExpandable title="Repository">
-                        <NavRouterItem<AppRoute> to={AppRoute::Repository{path: "".into()}}
-                            predicate={AppRoute::is_repository}
-                            >{ "Repository" }</NavRouterItem<AppRoute>>
+                    <NavExpandable title="Policy">
+                        <NavRouterItem<AppRoute> to={AppRoute::Policy{path: "".into()}}
+                            predicate={AppRoute::is_policy}
+                            >{ "Library" }</NavRouterItem<AppRoute>>
                     </NavExpandable>
                 </NavList>
             </Nav>
@@ -63,7 +63,7 @@ fn render(route: AppRoute) -> Html {
     log::info!("Route: {route:?}");
     match route {
         AppRoute::Index => html!(<pages::Index/>),
-        AppRoute::Repository { path } => html!(<pages::Repository {path}/>),
+        AppRoute::Policy { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
     }
 }

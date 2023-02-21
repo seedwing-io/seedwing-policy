@@ -237,7 +237,7 @@ fn render_type_ref(r: &TypeRef) -> Html {
 
     html!(
         <span class="sw-in-type-ref">
-        <Link<AppRoute> target={AppRoute::Repository {path: {name.clone()}}}>
+        <Link<AppRoute> target={AppRoute::Policy {path: {name.clone()}}}>
             { name }
         </Link<AppRoute>>
         </span>
