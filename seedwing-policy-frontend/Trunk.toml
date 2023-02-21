@@ -2,11 +2,6 @@
 port = 8010
 open = false
 
-[watch]
-ignore = [
-    "dist"
-]
-
 [[proxy]]
 backend = "http://localhost:8080/api/"
 
