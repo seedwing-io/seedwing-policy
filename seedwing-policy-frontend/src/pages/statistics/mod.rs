@@ -1,14 +1,6 @@
-use crate::pages::BreadcrumbsProps;
-use crate::{
-    common::{
-        editor::Editor,
-        eval::{validate, ResultView},
-    },
-    pages::AppRoute,
-};
+use crate::pages::{AppRoute, BreadcrumbsProps};
 use gloo_net::http::Request;
 use patternfly_yew::*;
-use seedwing_policy_engine::api::ComponentInformation;
 use seedwing_policy_engine::runtime::statistics::Snapshot;
 use yew::prelude::*;
 use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};
@@ -22,7 +14,6 @@ pub struct Props {
 pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> {
     log::info!("fetching: {path:?}");
 
-    // FIXME: urlencode segments
     let path = path.join("/");
 
     let response = Request::get(&format!("/api/statistics/v1alpha1/{}", path))
@@ -81,7 +72,7 @@ pub fn statistics(props: &Props) -> Html {
         UseAsyncState {
             data: Some(Some(snapshots)),
             ..
-        } => (html!(<Snapshots snapshots={snapshots.clone()}/>)),
+        } => html!(<Snapshots snapshots={snapshots.clone()}/>),
         _ => html!("Unknown state"),
     };
 

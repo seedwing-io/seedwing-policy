@@ -29,7 +29,6 @@ pub struct Props {
 pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentInformation>, String> {
     log::info!("fetching: {path:?}");
 
-    // FIXME: urlencode segments
     let path = path.join("/");
 
     let response = Request::get(&format!("/api/policy/v1alpha1/{}", path))
