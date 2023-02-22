@@ -1,10 +1,3 @@
-use gloo_net::http::Request;
-use yew::{AttrValue, Html, html, use_effect_with_deps, use_memo};
-use yew_hooks::{use_async, UseAsyncState};
-use yew::prelude::*;
-use patternfly_yew::*;
-use seedwing_policy_engine::api::ComponentInformation;
-use seedwing_policy_engine::runtime::statistics::Snapshot;
 use crate::pages::BreadcrumbsProps;
 use crate::{
     common::{
@@ -13,6 +6,13 @@ use crate::{
     },
     pages::AppRoute,
 };
+use gloo_net::http::Request;
+use patternfly_yew::*;
+use seedwing_policy_engine::api::ComponentInformation;
+use seedwing_policy_engine::runtime::statistics::Snapshot;
+use yew::prelude::*;
+use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};
+use yew_hooks::{use_async, UseAsyncState};
 
 #[derive(Clone, Debug, Eq, PartialEq, Properties)]
 pub struct Props {
@@ -42,7 +42,7 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> 
         }
         Err(e) => {
             println!("got an error {}", e);
-            Err( e.to_string())
+            Err(e.to_string())
         }
     }
 }
@@ -81,9 +81,7 @@ pub fn statistics(props: &Props) -> Html {
         UseAsyncState {
             data: Some(Some(snapshots)),
             ..
-        } => (
-            html!(<Snapshots snapshots={snapshots.clone()}/>)
-        ),
+        } => (html!(<Snapshots snapshots={snapshots.clone()}/>)),
         _ => html!("Unknown state"),
     };
 
@@ -144,7 +142,6 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     )
 }
 
-
 fn last(parent: &Vec<String>) -> String {
     parent
         .iter()
@@ -194,10 +191,13 @@ fn snapshots(props: &StatisticsProps) -> Html {
             <TableColumn label="StdDev"/>
         </TableHeader>
     };
-    let snapshots = props.snapshots.iter().map(|e| RenderableSnapshot(e.clone())).collect();
+    let snapshots = props
+        .snapshots
+        .iter()
+        .map(|e| RenderableSnapshot(e.clone()))
+        .collect();
     let entries = SharedTableModel::new(snapshots);
     html!(
         <Table<SharedTableModel<RenderableSnapshot>> {header} {entries}/>
     )
 }
-
