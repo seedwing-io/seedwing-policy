@@ -171,7 +171,7 @@ impl TableRenderer for RenderableSnapshot {
 #[function_component(Snapshots)]
 fn snapshots(props: &StatisticsProps) -> Html {
     let header = html_nested! {
-        <TableHeader>
+        <TableHeader sticky=true >
             <TableColumn label="Pattern"/>
             <TableColumn label="Total"/>
             <TableColumn label="Satisfied"/>
@@ -189,6 +189,6 @@ fn snapshots(props: &StatisticsProps) -> Html {
         .collect();
     let entries = SharedTableModel::new(snapshots);
     html!(
-        <Table<SharedTableModel<RenderableSnapshot>> {header} {entries}/>
+        <Table<SharedTableModel<RenderableSnapshot>> {header} {entries} mode={TableMode::Compact}/>
     )
 }
