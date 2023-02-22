@@ -5,5 +5,8 @@ members = [
   "seedwing-policy-cli",
 ]
 exclude = [
+  # We need to exclude the frontend, as it uses different cargo build settings
+  # which can only be applied on the root/workspace level, but conflict with other crates
+  # in this project.
   "seedwing-policy-frontend"
 ]
