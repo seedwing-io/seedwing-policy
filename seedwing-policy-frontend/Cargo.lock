@@ -51,6 +51,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "asciidoctor-web"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e571e1d6bc82cb71b755a0beb51ba819aa6a67ee74c190cf9be3832214c0717d"
+dependencies = [
+ "serde-wasm-bindgen",
+ "serde_json",
+ "wasm-bindgen",
+ "yew",
+]
+
+[[package]]
 name = "asn1-rs"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1496,6 +1508,7 @@ name = "seedwing-policy-frontend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "asciidoctor-web",
  "gloo-console",
  "gloo-net",
  "gloo-utils",
@@ -1506,7 +1519,6 @@ dependencies = [
  "patternfly-yew",
  "ropey",
  "seedwing-policy-engine",
- "seedwing-policy-frontend-asciidoctor",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -1516,16 +1528,6 @@ dependencies = [
  "yew",
  "yew-hooks",
  "yew-nested-router",
-]
-
-[[package]]
-name = "seedwing-policy-frontend-asciidoctor"
-version = "0.1.0"
-dependencies = [
- "serde-wasm-bindgen",
- "serde_json",
- "wasm-bindgen",
- "yew",
 ]
 
 [[package]]
