@@ -1,16 +1,14 @@
-use std::time::Duration;
+use crate::pages::AppRoute;
+use crate::pages::BreadcrumbsProps;
 use anyhow::Error;
 use gloo_net::http::Request;
-use yew::{AttrValue, Html, html, use_effect_with_deps, use_memo};
-use yew_hooks::{use_async, UseAsyncState};
-use yew::prelude::*;
 use patternfly_yew::*;
-use yew_websocket::macros::Json;
 use seedwing_policy_engine::runtime::statistics::Snapshot;
-use crate::pages::BreadcrumbsProps;
-use crate::{
-    pages::AppRoute,
-};
+use std::time::Duration;
+use yew::prelude::*;
+use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};
+use yew_hooks::{use_async, UseAsyncState};
+use yew_websocket::macros::Json;
 use yew_websocket::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
 #[derive(Clone, Debug, Eq, PartialEq, Properties)]
@@ -84,7 +82,7 @@ pub fn statistics(props: &Props) -> Html {
         UseAsyncState {
             data: Some(None), ..
         } => html!( <StatisticsStream stats={vec![]}/> ),
-        _ => html!({ "Unknown state" })
+        _ => html!({ "Unknown state" }),
     };
 
     let title = html!( <Title>{"Statistics"}</Title> );
@@ -176,11 +174,11 @@ fn format_ns(ns: u128) -> String {
     let ms = ms - (sec * 1_000);
 
     if sec > 0 {
-        format!( "{}s {}ms", sec, ms)
+        format!("{}s {}ms", sec, ms)
     } else if ms > 0 {
-        format!( "{}ms", ms)
+        format!("{}ms", ms)
     } else {
-        format!( "{}ns", ns)
+        format!("{}ns", ns)
     }
 }
 
@@ -198,7 +196,11 @@ fn snapshots(props: &StatisticsProps) -> Html {
             <TableColumn label="StdDev"/>
         </TableHeader>
     };
-    let snapshots = props.snapshots.iter().map(|e| RenderableSnapshot(e.clone())).collect();
+    let snapshots = props
+        .snapshots
+        .iter()
+        .map(|e| RenderableSnapshot(e.clone()))
+        .collect();
     let entries = SharedTableModel::new(snapshots);
     html!(
         <Table<SharedTableModel<RenderableSnapshot>> {header} {entries} mode={TableMode::Compact}/>
@@ -230,48 +232,36 @@ impl StatisticsStream {
             self.stats.push(snapshot);
         }
 
-        self.stats.sort_by(|l, r| {
-            l.name.cmp(&r.name)
-        });
+        self.stats.sort_by(|l, r| l.name.cmp(&r.name));
 
         log::info!("sorted {:?}", self.stats)
     }
 }
-
 
 impl Component for StatisticsStream {
     type Message = StatisticsMessage;
     type Properties = StatisticsStreamProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let callback = ctx.link().callback(|Json(snapshot)| {
-            StatisticsMessage::Data(snapshot)
-        });
-        let notification = ctx.link().batch_callback(|status| {
-            match status {
-                WebSocketStatus::Opened => {
-                    Some(StatisticsMessage::Connected)
-                }
-                WebSocketStatus::Closed => {
-                    Some(StatisticsMessage::Lost)
-                }
-                WebSocketStatus::Error => {
-                    Some(StatisticsMessage::Lost)
-                }
-            }
+        let callback = ctx
+            .link()
+            .callback(|Json(snapshot)| StatisticsMessage::Data(snapshot));
+        let notification = ctx.link().batch_callback(|status| match status {
+            WebSocketStatus::Opened => Some(StatisticsMessage::Connected),
+            WebSocketStatus::Closed => Some(StatisticsMessage::Lost),
+            WebSocketStatus::Error => Some(StatisticsMessage::Lost),
         });
         let task = WebSocketService::connect_text(
             //todo figure out why trunk ws proxy isn't --> format!("ws://localhost:8010/stream/statistics/v1alpha1/").as_str(),
             format!("ws://localhost:8080/stream/statistics/v1alpha1/").as_str(),
             callback,
             notification,
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut stats = ctx.props().stats.clone();
 
-        stats.sort_by(|l, r| {
-            l.name.cmp(&r.name)
-        });
+        stats.sort_by(|l, r| l.name.cmp(&r.name));
 
         Self {
             ws: Some(task),
@@ -308,7 +298,11 @@ impl Component for StatisticsStream {
                 <TableColumn label="StdDev"/>
             </TableHeader>
         };
-        let snapshots = self.stats.iter().map(|e| RenderableSnapshot(e.clone())).collect();
+        let snapshots = self
+            .stats
+            .iter()
+            .map(|e| RenderableSnapshot(e.clone()))
+            .collect();
         let entries = SharedTableModel::new(snapshots);
         html!(
             <Table<SharedTableModel<RenderableSnapshot>> {header} {entries}/>
