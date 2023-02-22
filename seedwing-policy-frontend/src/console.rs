@@ -68,6 +68,6 @@ fn render(route: AppRoute) -> Html {
         AppRoute::Index => html!(<pages::Index/>),
         AppRoute::Policy { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
-        AppRoute::Statistics { path } => html!(<pages::Statistics {path}/>)
+        AppRoute::Statistics { path } => html!(<pages::Statistics {path}/>),
     }
 }

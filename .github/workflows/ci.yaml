@@ -36,7 +36,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check formatting
-        run: cargo fmt --check
+        run:
+          cargo fmt --check
+          cargo fmt --check --manifest-path seedwing-policy-frontend/Cargo.toml
 
       - name: Check
         run: cargo check
