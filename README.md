@@ -19,7 +19,7 @@ With Seedwing Policy, you can:
 * Check for trusted signatures against [Sigstore](https://sigstore.dev).
 * Check SBOM dependencies for vulnerabilities against [OSV](https://osv.dev).
 
-All of the policies can be centrally managed in a server, or built in as part of a custom application.
+All the policies can be centrally managed in a server, or built in as part of a custom application.
 
 See the [documentation](https://docs.seedwing.io/docs/index.html) for more information.
 
@@ -33,30 +33,7 @@ Seedwing Policy is guaranteed to compile on the latest stable Rust version at th
 
 ## Development setup
 
-You will need the following tools and components:
-
-* **Rust**: For the overall project
-* **Node.js & Yarn**: For the web bits in the server
-* **Podman or Docker**: For building the container image
-* **Trunk**: For building the dedicated web frontend
-
-Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
-
-`trunk` can be installed by executing `cargo install trunk`. It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
-
-For more information on the frontend, see: [seedwing-policy-frontend/](seedwing-policy-frontend/).
-
-### Fedora
-
-```shell
-dnf install nodejs yarnpkg
-```
-
-### Mac OS
-
-```shell
-brew install yarn node
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md#setup)
 
 ## License
 
