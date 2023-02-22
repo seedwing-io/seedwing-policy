@@ -23,7 +23,7 @@ All of the policies can be centrally managed in a server, or built in as part of
 
 ### Other use cases
 
-Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apacke Kafka.
+Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apache Kafka.
 
 ## Minimum supported Rust version (MSRV)
 
@@ -41,6 +41,8 @@ You will need the following tools and components:
 Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
 
 `trunk` can be installed by executing `cargo install trunk`. It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
+
+For more information on the frontend, see: [seedwing-policy-frontend/](seedwing-policy-frontend/).
 
 ### Fedora
 
