@@ -5,6 +5,7 @@ use crate::{
     },
     pages::AppRoute,
 };
+use asciidoctor_web::yew::Asciidoc;
 use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::*;
@@ -12,7 +13,6 @@ use seedwing_policy_engine::{
     api::{ComponentInformation, TypeInformation},
     runtime::ModuleHandle,
 };
-use seedwing_policy_frontend_asciidoctor::Asciidoc;
 use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;

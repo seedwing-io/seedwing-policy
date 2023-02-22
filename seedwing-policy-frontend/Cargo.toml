@@ -28,7 +28,7 @@ serde_json = "1"
 serde_yaml = "0.9"
 serde-wasm-bindgen = "0.4.5"
 
-seedwing-policy-frontend-asciidoctor = { path = "seedwing-policy-frontend-asciidoctor" }
+asciidoctor-web = { version = "0.1", features = ["yew"] }
 seedwing-policy-engine = { path = "../seedwing-policy-engine", default-features = false, features = [] }
 
 [profile.release]
@@ -36,11 +36,6 @@ panic = 'abort'
 codegen-units = 1
 opt-level = 's'
 lto = true
-
-[workspace]
-members = [
-    "seedwing-policy-frontend-asciidoctor"
-]
 
 [patch.crates-io]
 patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "e012d37698eeaaed138653f4c486124180e0a810" }
