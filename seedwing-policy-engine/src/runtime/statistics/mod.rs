@@ -5,7 +5,7 @@ pub mod monitor;
 #[cfg(feature = "monitor")]
 pub mod prometheus;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
     pub name: String,
     pub mean: u128,
@@ -15,4 +15,10 @@ pub struct Snapshot {
     pub satisfied_invocations: u64,
     pub unsatisfied_invocations: u64,
     pub error_invocations: u64,
+}
+
+impl PartialEq for Snapshot {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(&other.name)
+    }
 }

@@ -1,19 +1,14 @@
+use std::time::Duration;
 use anyhow::Error;
 use gloo_net::http::Request;
 use yew::{AttrValue, Html, html, use_effect_with_deps, use_memo};
 use yew_hooks::{use_async, UseAsyncState};
 use yew::prelude::*;
 use patternfly_yew::*;
-use yew::platform::spawn_local;
 use yew_websocket::macros::Json;
-use seedwing_policy_engine::api::ComponentInformation;
 use seedwing_policy_engine::runtime::statistics::Snapshot;
 use crate::pages::BreadcrumbsProps;
 use crate::{
-    common::{
-        editor::Editor,
-        eval::{validate, ResultView},
-    },
     pages::AppRoute,
 };
 use yew_websocket::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
@@ -149,18 +144,6 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     )
 }
 
-
-fn last(parent: &Vec<String>) -> String {
-    parent
-        .iter()
-        .rev()
-        .filter(|s| !s.is_empty())
-        .next()
-        .map(|s| s.as_str())
-        .unwrap_or("Root")
-        .to_string()
-}
-
 #[derive(Clone, PartialEq, Properties)]
 struct StatisticsProps {
     snapshots: Vec<Snapshot>,
@@ -177,11 +160,27 @@ impl TableRenderer for RenderableSnapshot {
             2 => html!(&self.0.satisfied_invocations),
             3 => html!(&self.0.unsatisfied_invocations),
             4 => html!(&self.0.error_invocations),
-            5 => html!(&self.0.mean),
-            6 => html!(&self.0.median),
-            7 => html!(&self.0.stddev),
+            5 => html!(&format_ns(self.0.mean)),
+            6 => html!(&format_ns(self.0.median)),
+            7 => html!(&format_ns(self.0.stddev)),
             _ => html!(),
         }
+    }
+}
+
+fn format_ns(ns: u128) -> String {
+    let ms = ns / 1_000_000;
+    let ns = ns - (ms * 1_000_000);
+
+    let sec = ms / 1_000;
+    let ms = ms - (sec * 1_000);
+
+    if sec > 0 {
+        format!( "{}s {}ms", sec, ms)
+    } else if ms > 0 {
+        format!( "{}ms", ms)
+    } else {
+        format!( "{}ns", ns)
     }
 }
 
@@ -233,7 +232,9 @@ impl StatisticsStream {
 
         self.stats.sort_by(|l, r| {
             l.name.cmp(&r.name)
-        })
+        });
+
+        log::info!("sorted {:?}", self.stats)
     }
 }
 
@@ -266,13 +267,19 @@ impl Component for StatisticsStream {
             notification,
         ).unwrap();
 
+        let mut stats = ctx.props().stats.clone();
+
+        stats.sort_by(|l, r| {
+            l.name.cmp(&r.name)
+        });
+
         Self {
             ws: Some(task),
-            stats: ctx.props().stats.clone(),
+            stats,
         }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             StatisticsMessage::Data(response) => {
                 if let Ok(snapshot) = response {
@@ -288,8 +295,7 @@ impl Component for StatisticsStream {
         true
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        log::info!("rendering?");
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         let header = html_nested! {
             <TableHeader>
                 <TableColumn label="Pattern"/>
