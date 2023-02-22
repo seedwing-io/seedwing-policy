@@ -35,7 +35,7 @@ pub fn console() -> Html {
         </PageSidebar>
     );
 
-    let callback_help = use_open("https://github.com/seedwing-io/seedwing-policy", "_blank");
+    let callback_help = use_open("https://docs.seedwing.io/", "_blank");
     let callback_github = use_open("https://github.com/seedwing-io/seedwing-policy", "_blank");
 
     let tools = html!(

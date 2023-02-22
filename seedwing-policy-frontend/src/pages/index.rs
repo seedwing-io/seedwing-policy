@@ -23,6 +23,11 @@ pub fn index() -> Html {
         })
         .into_action("GitHub"),
         Callback::from(|_| {
+            let _ = gloo_utils::window()
+                .open_with_url_and_target("https://docs.seedwing.io/", "_blank");
+        })
+        .into_action("Documentation"),
+        Callback::from(|_| {
             let _ = gloo_utils::window().open_with_url_and_target(
                 "https://raw.githubusercontent.com/seedwing-io/seedwing-policy/main/LICENSE",
                 "_blank",
