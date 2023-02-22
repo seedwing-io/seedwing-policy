@@ -5,7 +5,7 @@ pub mod monitor;
 #[cfg(feature = "monitor")]
 pub mod prometheus;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct Snapshot {
     pub name: String,
     pub mean: u128,

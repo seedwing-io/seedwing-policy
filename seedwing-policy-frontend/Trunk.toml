@@ -6,4 +6,5 @@ open = false
 backend = "http://localhost:8080/api/"
 
 [[proxy]]
-backend = "http://localhost:8080/docs/"
+backend = "ws://localhost:8080/stream/"
+ws = true

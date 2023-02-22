@@ -4,6 +4,7 @@ mod monitor;
 mod playground;
 mod policy;
 mod statistics;
+mod stream;
 mod ui;
 
 use actix_web::middleware::{NormalizePath, TrailingSlash};
@@ -138,6 +139,7 @@ async fn main() -> std::io::Result<()> {
                             .service(api::evaluate)
                             .service(api::statistics),
                     )
+                    .service(web::scope("/stream").service(stream::statistics_stream))
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
@@ -150,9 +152,7 @@ async fn main() -> std::io::Result<()> {
                     .service(playground::compile)
                     .service(monitor::monitor)
                     .service(monitor::monitor_stream)
-                    .service(statistics::statistics)
                     .service(statistics::prometheus)
-                    .service(statistics::statistics_stream)
             });
             log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
 

@@ -1,10 +1,22 @@
-use crate::pages::{AppRoute, BreadcrumbsProps};
+use anyhow::Error;
 use gloo_net::http::Request;
-use patternfly_yew::*;
-use seedwing_policy_engine::runtime::statistics::Snapshot;
-use yew::prelude::*;
-use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};
+use yew::{AttrValue, Html, html, use_effect_with_deps, use_memo};
 use yew_hooks::{use_async, UseAsyncState};
+use yew::prelude::*;
+use patternfly_yew::*;
+use yew::platform::spawn_local;
+use yew_websocket::macros::Json;
+use seedwing_policy_engine::api::ComponentInformation;
+use seedwing_policy_engine::runtime::statistics::Snapshot;
+use crate::pages::BreadcrumbsProps;
+use crate::{
+    common::{
+        editor::Editor,
+        eval::{validate, ResultView},
+    },
+    pages::AppRoute,
+};
+use yew_websocket::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
 #[derive(Clone, Debug, Eq, PartialEq, Properties)]
 pub struct Props {
@@ -14,6 +26,7 @@ pub struct Props {
 pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> {
     log::info!("fetching: {path:?}");
 
+    // FIXME: urlencode segments
     let path = path.join("/");
 
     let response = Request::get(&format!("/api/statistics/v1alpha1/{}", path))
@@ -62,7 +75,7 @@ pub fn statistics(props: &Props) -> Html {
     }
 
     let main = match &*state {
-        UseAsyncState { loading: true, .. } => html!({ "Loading..." }),
+        UseAsyncState { loading: true, .. } => html!({ "Connecting..." }),
         UseAsyncState {
             loading: false,
             error: Some(error),
@@ -70,10 +83,13 @@ pub fn statistics(props: &Props) -> Html {
         } => html!(<> {"Failed: "} {error} </>),
 
         UseAsyncState {
-            data: Some(Some(snapshots)),
+            data: Some(Some(data)),
             ..
-        } => html!(<Snapshots snapshots={snapshots.clone()}/>),
-        _ => html!("Unknown state"),
+        } => html!( <StatisticsStream stats={data.clone()}/> ),
+        UseAsyncState {
+            data: Some(None), ..
+        } => html!( <StatisticsStream stats={vec![]}/> ),
+        _ => html!({ "Unknown state" })
     };
 
     let title = html!( <Title>{"Statistics"}</Title> );
@@ -133,6 +149,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     )
 }
 
+
 fn last(parent: &Vec<String>) -> String {
     parent
         .iter()
@@ -171,7 +188,7 @@ impl TableRenderer for RenderableSnapshot {
 #[function_component(Snapshots)]
 fn snapshots(props: &StatisticsProps) -> Html {
     let header = html_nested! {
-        <TableHeader sticky=true >
+        <TableHeader sticky=true>
             <TableColumn label="Pattern"/>
             <TableColumn label="Total"/>
             <TableColumn label="Satisfied"/>
@@ -182,13 +199,113 @@ fn snapshots(props: &StatisticsProps) -> Html {
             <TableColumn label="StdDev"/>
         </TableHeader>
     };
-    let snapshots = props
-        .snapshots
-        .iter()
-        .map(|e| RenderableSnapshot(e.clone()))
-        .collect();
+    let snapshots = props.snapshots.iter().map(|e| RenderableSnapshot(e.clone())).collect();
     let entries = SharedTableModel::new(snapshots);
     html!(
         <Table<SharedTableModel<RenderableSnapshot>> {header} {entries} mode={TableMode::Compact}/>
     )
+}
+
+#[derive(Clone, Debug, PartialEq, Properties)]
+pub struct StatisticsStreamProps {
+    stats: Vec<Snapshot>,
+}
+
+#[derive(Debug)]
+pub enum StatisticsMessage {
+    Connected,
+    Data(Result<Snapshot, Error>),
+    Lost,
+}
+
+pub struct StatisticsStream {
+    pub ws: Option<WebSocketTask>,
+    pub stats: Vec<Snapshot>,
+}
+
+impl StatisticsStream {
+    fn integrate(&mut self, snapshot: Snapshot) {
+        if let Some(slot) = self.stats.iter_mut().find(|e| e.name == snapshot.name) {
+            *slot = snapshot
+        } else {
+            self.stats.push(snapshot);
+        }
+
+        self.stats.sort_by(|l, r| {
+            l.name.cmp(&r.name)
+        })
+    }
+}
+
+
+impl Component for StatisticsStream {
+    type Message = StatisticsMessage;
+    type Properties = StatisticsStreamProps;
+
+    fn create(ctx: &Context<Self>) -> Self {
+        let callback = ctx.link().callback(|Json(snapshot)| {
+            StatisticsMessage::Data(snapshot)
+        });
+        let notification = ctx.link().batch_callback(|status| {
+            match status {
+                WebSocketStatus::Opened => {
+                    Some(StatisticsMessage::Connected)
+                }
+                WebSocketStatus::Closed => {
+                    Some(StatisticsMessage::Lost)
+                }
+                WebSocketStatus::Error => {
+                    Some(StatisticsMessage::Lost)
+                }
+            }
+        });
+        let task = WebSocketService::connect_text(
+            //todo figure out why trunk ws proxy isn't --> format!("ws://localhost:8010/stream/statistics/v1alpha1/").as_str(),
+            format!("ws://localhost:8080/stream/statistics/v1alpha1/").as_str(),
+            callback,
+            notification,
+        ).unwrap();
+
+        Self {
+            ws: Some(task),
+            stats: ctx.props().stats.clone(),
+        }
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            StatisticsMessage::Data(response) => {
+                if let Ok(snapshot) = response {
+                    self.integrate(snapshot);
+                }
+            }
+            StatisticsMessage::Lost => {
+                self.ws = None;
+            }
+            StatisticsMessage::Connected => {}
+        }
+
+        true
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        log::info!("rendering?");
+        let header = html_nested! {
+            <TableHeader>
+                <TableColumn label="Pattern"/>
+                <TableColumn label="Total"/>
+                <TableColumn label="Satisfied"/>
+                <TableColumn label="Unsatisfied"/>
+                <TableColumn label="Error"/>
+                <TableColumn label="Mean"/>
+                <TableColumn label="Median"/>
+                <TableColumn label="StdDev"/>
+            </TableHeader>
+        };
+        let snapshots = self.stats.iter().map(|e| RenderableSnapshot(e.clone())).collect();
+        let entries = SharedTableModel::new(snapshots);
+        html!(
+            <Table<SharedTableModel<RenderableSnapshot>> {header} {entries}/>
+        )
+    }
 }

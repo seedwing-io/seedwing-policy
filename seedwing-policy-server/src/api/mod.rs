@@ -4,9 +4,9 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
+use seedwing_policy_engine::api::ToInformation;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::{
-    api::*,
     lang::lir::EvalContext,
     runtime::{monitor::Monitor, EvaluationResult, RuntimeError, World},
 };
@@ -78,12 +78,12 @@ pub async fn evaluate(
                     .map(|b| b.to_string())
                     .collect::<Vec<String>>()
                     .join(",");
-                HttpResponse::BadRequest().body(e.to_string())
+                HttpResponse::BadRequest().body(e)
             }
         },
         Err(e) => {
             log::error!("unable to build policy [{:?}]", e);
-            HttpResponse::NotAcceptable().body(e.to_string())
+            HttpResponse::NotAcceptable().body(e)
         }
     }
 }

@@ -21,6 +21,7 @@ wasm-logger = "0.2"
 yew = { version = "0.20", features = ["csr"] }
 yew-hooks = "0.2.0"
 yew-nested-router = "0.2.0"
+yew-websocket = "0.2.0"
 itertools = "0.10"
 
 serde = "1"
