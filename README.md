@@ -21,6 +21,8 @@ With Seedwing Policy, you can:
 
 All of the policies can be centrally managed in a server, or built in as part of a custom application.
 
+See the [documentation](https://docs.seedwing.io/docs/index.html) for more information.
+
 ### Other use cases
 
 Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apacke Kafka.
