@@ -17,6 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install trunk
+        run: |
+          curl -sL https://github.com/thedodd/trunk/releases/download/v0.16.0/trunk-x86_64-unknown-linux-gnu.tar.gz -o trunk-x86_64-unknown-linux-gnu.tar.gz
+          tar xzf trunk-x86_64-unknown-linux-gnu.tar.gz
+          sudo install trunk /usr/bin/trunk
+
       - uses: actions/cache@v3
         with:
           path: |
