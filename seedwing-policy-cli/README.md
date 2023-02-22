@@ -12,7 +12,7 @@ First we need to generate a rule:
 ```console
 $ echo "pattern nr = 18" > nr-rule.dog
 ```
-And we also need have an input file:
+And we also need to have an input file:
 ```console
 $ echo 18 > input.txt
 ```
@@ -53,6 +53,7 @@ $ cargo r -q --bin seedwing-policy-cli -- \
      eval \
      --input input.json \
      --name json-rule::nr
+```
 
 ### YAML input format
 First we create our rule, and save it in a file named `yaml-rule.dog`:
@@ -93,3 +94,18 @@ Rationale:
 ok!
 ```
 
+### Using a configuration file
+
+The following config file end up applying the same arguments showed above :
+```toml
+[enforcer]
+[enforcer.evaluate]
+policy="yaml-rule.dog"
+requires="yaml-rule::nr"
+
+[enforcer.verify]
+policy="path/to/policy"
+```
+
+Seedwing policy cli `evaluate` and `verify` commands will look for a `.enforcer.toml` file in the current working directory and apply it if no 
+overriding arguments are provided.
