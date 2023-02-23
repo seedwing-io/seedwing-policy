@@ -156,10 +156,13 @@ pub fn component_title(props: &ComponentProps) -> Html {
 
 #[function_component(Component)]
 pub fn component(props: &ComponentProps) -> Html {
-
     let nav_path = props.base_path.join("::");
-    let monitor = AppRoute::Monitor { path: nav_path.clone() };
-    let statistics = AppRoute::Statistics { path: nav_path.clone() };
+    let monitor = AppRoute::Monitor {
+        path: nav_path.clone(),
+    };
+    let statistics = AppRoute::Statistics {
+        path: nav_path.clone(),
+    };
 
     html!(
         <>

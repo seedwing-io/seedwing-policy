@@ -1,14 +1,16 @@
-use std::cmp::Ordering;
 use crate::pages::AppRoute;
 use crate::pages::BreadcrumbsProps;
 use anyhow::Error;
 use patternfly_yew::*;
+use seedwing_policy_engine::runtime::monitor::{
+    SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput,
+};
 use serde_json::Value;
+use std::cmp::Ordering;
 use yew::prelude::*;
 use yew::{html, use_memo, Html};
 use yew_websocket::macros::Json;
 use yew_websocket::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
-use seedwing_policy_engine::runtime::monitor::{SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput};
 
 #[derive(Clone, Debug, Eq, PartialEq, Properties)]
 pub struct MonitorProps {
@@ -112,7 +114,6 @@ impl MonitorEntry {
         } else {
             &self.start_timestamp
         }
-
     }
 }
 
@@ -134,17 +135,19 @@ impl TableRenderer for MonitorEntry {
                       <Status output={self.output.clone()}/>
                     </>
                 )
-            },
-            1 => if let Some(ts) = &self.complete_timestamp {
-                html!(
-                    <>
-                      <div>{&self.start_timestamp}</div>
-                      <div>{ts}</div>
-                    </>
-                )
-            } else {
-                html!(<div>{&self.start_timestamp}</div>)
-            },
+            }
+            1 => {
+                if let Some(ts) = &self.complete_timestamp {
+                    html!(
+                        <>
+                          <div>{&self.start_timestamp}</div>
+                          <div>{ts}</div>
+                        </>
+                    )
+                } else {
+                    html!(<div>{&self.start_timestamp}</div>)
+                }
+            }
             2 => {
                 html!(
                     <InputOutput input={self.input.clone()} output={self.output.clone()}/>
@@ -261,7 +264,6 @@ fn output(props: &OutputProps) -> Html {
     }
 }
 
-
 impl TryFrom<SimpleMonitorStart> for MonitorEntry {
     type Error = ();
 
@@ -291,7 +293,9 @@ impl MonitorStream {
                 }
             }
             SimpleMonitorEvent::Complete(complete) => {
-                if let Some(entry) = self.entries.iter_mut().find(|e| e.correlation == complete.correlation && e.complete_timestamp.is_none()) {
+                if let Some(entry) = self.entries.iter_mut().find(|e| {
+                    e.correlation == complete.correlation && e.complete_timestamp.is_none()
+                }) {
                     entry.complete_timestamp = Some(complete.timestamp);
                     entry.output = Some(complete.output);
                 }
@@ -315,12 +319,15 @@ impl Component for MonitorStream {
         });
         let task = WebSocketService::connect_text(
             //todo figure out why trunk ws proxy isn't --> format!("ws://localhost:8010/stream/statistics/v1alpha1/").as_str(),
-            format!("ws://localhost:8080/stream/monitor/v1alpha1/{}", ctx.props().path).as_str(),
+            format!(
+                "ws://localhost:8080/stream/monitor/v1alpha1/{}",
+                ctx.props().path
+            )
+            .as_str(),
             callback,
             notification,
         )
-            .unwrap();
-
+        .unwrap();
 
         Self {
             ws: Some(task),
@@ -355,12 +362,11 @@ impl Component for MonitorStream {
 
         let mut rows = self.entries.clone();
 
-        rows.sort_by( |l, r| r.effective_timestamp().cmp( l.effective_timestamp()));
-        let entries = SharedTableModel::new(rows );
+        rows.sort_by(|l, r| r.effective_timestamp().cmp(l.effective_timestamp()));
+        let entries = SharedTableModel::new(rows);
 
         html!(
             <Table<SharedTableModel<MonitorEntry>> {header} {entries} mode={TableMode::Compact}/>
         )
     }
 }
-

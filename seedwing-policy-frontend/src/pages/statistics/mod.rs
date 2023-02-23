@@ -253,7 +253,11 @@ impl Component for StatisticsStream {
         });
         let task = WebSocketService::connect_text(
             //todo figure out why trunk ws proxy isn't --> format!("ws://localhost:8010/stream/statistics/v1alpha1/").as_str(),
-            format!("ws://localhost:8080/stream/statistics/v1alpha1/{}", ctx.props().path.clone()).as_str(),
+            format!(
+                "ws://localhost:8080/stream/statistics/v1alpha1/{}",
+                ctx.props().path.clone()
+            )
+            .as_str(),
             callback,
             notification,
         )
