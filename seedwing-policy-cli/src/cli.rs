@@ -10,6 +10,7 @@ use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
 use tokio::fs;
+use tokio::time::Instant;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum InputType {
@@ -27,6 +28,16 @@ pub enum Command {
         input: Option<PathBuf>,
         #[arg(short = 'n', long = "name")]
         name: String,
+    },
+    Bench {
+        #[arg(short='t', value_name = "TYPE", value_enum, default_value_t=InputType::Json)]
+        typ: InputType,
+        #[arg(short, long)]
+        input: Option<PathBuf>,
+        #[arg(short = 'n', long = "name")]
+        name: String,
+        #[arg(short = 'i', long = "iterations")]
+        iterations: usize,
     },
     Test,
 }
@@ -93,6 +104,82 @@ impl Cli {
                         exit(-10);
                     }
                 }
+            }
+            Command::Bench {
+                typ,
+                input,
+                name,
+                iterations,
+            } => {
+                let verify = Verify::new(
+                    self.policy_directories.clone(),
+                    self.data_directories.clone(),
+                );
+
+                let world = verify.run().await.map_err(|_| ())?;
+
+                let value = load_value(*typ, input.clone()).await.map_err(|_| ())?;
+
+                let eval = Eval::new(world, name.clone(), value);
+
+                use hdrhistogram::Histogram;
+                let mut hist = Histogram::<u64>::new(2).unwrap();
+
+                // Warm up for 1/10th of the iterations
+                for _iter in 0..(*iterations / 10) {
+                    match eval.run().await {
+                        Ok(_result) => {}
+                        Err(e) => {
+                            match e {
+                                RuntimeError::NoSuchType(name) => {
+                                    println!("error: no such pattern: {}", name.as_type_str());
+                                }
+                                _ => {
+                                    println!("error");
+                                }
+                            }
+                            exit(-10);
+                        }
+                    }
+                }
+
+                for _iter in 0..*iterations {
+                    let start = Instant::now();
+                    match eval.run().await {
+                        Ok(_result) => {
+                            let end = Instant::now();
+                            let duration = end - start;
+                            hist.record(duration.as_nanos() as u64).unwrap();
+                        }
+                        Err(e) => {
+                            match e {
+                                RuntimeError::NoSuchType(name) => {
+                                    println!("error: no such pattern: {}", name.as_type_str());
+                                }
+                                _ => {
+                                    println!("error");
+                                }
+                            }
+                            exit(-10);
+                        }
+                    }
+                }
+
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json! ({
+                        "samples": hist.len(),
+                        "latency": {
+                            "avg": hist.mean() as u64,
+                            "stdev": hist.stdev() as u64,
+                            "min": hist.min() as u64,
+                            "max": hist.max() as u64,
+                            "p50": hist.value_at_quantile(0.50) as u64,
+                            "p99": hist.value_at_quantile(0.99) as u64,
+                        }
+                    }))
+                    .unwrap()
+                );
             }
             Command::Test => {
                 println!("test!");
