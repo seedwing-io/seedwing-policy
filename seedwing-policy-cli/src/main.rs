@@ -2,6 +2,7 @@ use crate::cli::Cli;
 
 use clap::Parser;
 
+mod bench;
 mod cli;
 mod eval;
 mod explain;
