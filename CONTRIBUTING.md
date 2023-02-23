@@ -34,6 +34,10 @@ Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow install
 
 `trunk` can be installed by executing `cargo install trunk`. It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
 
+**NOTE:** Trunk will re-use existing tooling when found on the local system. However, that tooling must be compatible
+with the trunk toolchain. If it is not, it may lead to a failed build. See [trunk tooling](#trunk-tooling) for
+setup instructions.
+
 For more information on developing for the frontend, see: [seedwing-policy-frontend/](seedwing-policy-frontend/).
 
 ### Fedora
@@ -46,6 +50,15 @@ dnf install nodejs yarnpkg
 
 ```shell
 brew install yarn node
+```
+
+### Trunk tooling
+
+**NOTE:** In addition of installing these tools, please also ensure they can be located. You might need to add
+them to the `$PATH` of your system and ensure there is no overlap wither other commands, having the same name.
+
+```shell
+npm install -g sass@1.58.3 && sass --version
 ```
 
 ## Contributing your work
