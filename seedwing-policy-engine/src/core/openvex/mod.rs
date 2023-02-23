@@ -74,7 +74,7 @@ impl Function for FromOsv {
                                 let json: serde_json::Value = serde_json::to_value(vex).unwrap();
                                 Ok(Output::Transform(Arc::new(json.into())).into())
                             } else {
-                                Ok(Output::None.into())
+                                Ok(Output::Identity.into())
                             }
                         }
                         Err(e) => {
