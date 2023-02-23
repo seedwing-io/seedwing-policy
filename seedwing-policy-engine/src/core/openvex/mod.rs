@@ -87,36 +87,8 @@ impl Function for FromOsv {
     }
 }
 
-fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
-    if vexes.is_empty() {
-        None
-    } else {
-        let mut vex = OpenVex {
-            metadata: Metadata {
-                context: "https://openvex.dev/ns".to_string(),
-                id: format!(
-                    "https://seedwing.io/ROOT/generated/{}",
-                    uuid::Uuid::new_v4()
-                ),
-                author: "Seedwing Policy Engine".to_string(),
-                role: "Document Creator".to_string(),
-                timestamp: Some(Utc::now()),
-                version: format!("{}", VERSION.fetch_add(1, Ordering::Relaxed)),
-                tooling: Some("Seedwing Policy Engine".to_string()),
-                supplier: Some("seedwing.io".to_string()),
-            },
-            statements: Vec::new(),
-        };
-        for v in vexes.drain(..) {
-            vex.statements.extend(v.statements);
-        }
-        Some(vex)
-    }
-}
-
-static VERSION: AtomicU64 = AtomicU64::new(1);
-fn osv2vex(osv: OsvResponse) -> OpenVex {
-    let mut vex = OpenVex {
+fn openvex() -> OpenVex {
+    OpenVex {
         metadata: Metadata {
             context: "https://openvex.dev/ns".to_string(),
             id: format!(
@@ -131,7 +103,24 @@ fn osv2vex(osv: OsvResponse) -> OpenVex {
             supplier: Some("seedwing.io".to_string()),
         },
         statements: Vec::new(),
-    };
+    }
+}
+
+fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
+    if vexes.is_empty() {
+        None
+    } else {
+        let mut vex = openvex();
+        for v in vexes.drain(..) {
+            vex.statements.extend(v.statements);
+        }
+        Some(vex)
+    }
+}
+
+static VERSION: AtomicU64 = AtomicU64::new(1);
+fn osv2vex(osv: OsvResponse) -> OpenVex {
+    let mut vex = openvex();
 
     for vuln in osv.vulns.iter() {
         let mut products = HashSet::new();
