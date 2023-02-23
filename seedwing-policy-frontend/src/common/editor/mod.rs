@@ -1,11 +1,12 @@
 use monaco::{
     api::{CodeEditorOptions, DisposableClosure, TextModel},
     sys::editor::{BuiltinTheme, IModelContentChangedEvent, IStandaloneEditorConstructionOptions},
-    yew::CodeEditor,
+    yew::{CodeEditor, CodeEditorLink},
 };
 use yew::prelude::*;
 
 mod marker;
+
 pub use marker::*;
 
 #[derive(PartialEq, Properties)]
@@ -17,6 +18,8 @@ pub struct EditorProps {
     pub on_change: Callback<String>,
     #[prop_or_default]
     pub markers: Vec<MarkerData>,
+    #[prop_or_default]
+    pub on_editor_created: Callback<CodeEditorLink>,
 }
 
 pub struct Editor {
@@ -82,7 +85,7 @@ impl Component for Editor {
         false
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let classes = classes!("monaco-wrapper");
 
         html!(
@@ -90,6 +93,7 @@ impl Component for Editor {
                 {classes}
                 model={self.model.clone()}
                 options={self.options.clone()}
+                on_editor_created={ctx.props().on_editor_created.clone()}
             />
         )
     }
