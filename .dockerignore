@@ -1,1 +1,6 @@
+.git/
+.idea/
 target/
+seedwing-policy-frontend/target/
+seedwing-policy-frontend/node_modules/
+Dockerfile
