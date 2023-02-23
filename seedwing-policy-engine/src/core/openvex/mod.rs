@@ -52,9 +52,7 @@ impl Function for FromOsv {
                     for item in items.iter() {
                         match serde_json::from_value::<OsvResponse>(item.as_json()) {
                             Ok(osv) => {
-                                if let Some(vex) = osv2vex(osv) {
-                                    result.push(vex);
-                                }
+                                result.push(osv2vex(osv));
                             }
                             Err(e) => {
                                 log::warn!("Error looking up {:?}", e);
@@ -70,12 +68,9 @@ impl Function for FromOsv {
                 RuntimeValue::Object(osv) => {
                     match serde_json::from_value::<OsvResponse>(osv.as_json()) {
                         Ok(osv) => {
-                            if let Some(vex) = osv2vex(osv) {
-                                let json: serde_json::Value = serde_json::to_value(vex).unwrap();
-                                Ok(Output::Transform(Arc::new(json.into())).into())
-                            } else {
-                                Ok(Output::Identity.into())
-                            }
+                            let vex = osv2vex(osv);
+                            let json: serde_json::Value = serde_json::to_value(vex).unwrap();
+                            Ok(Output::Transform(Arc::new(json.into())).into())
                         }
                         Err(e) => {
                             log::warn!("Error looking up {:?}", e);
@@ -120,7 +115,7 @@ fn merge(mut vexes: Vec<OpenVex>) -> Option<OpenVex> {
 }
 
 static VERSION: AtomicU64 = AtomicU64::new(1);
-fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
+fn osv2vex(osv: OsvResponse) -> OpenVex {
     let mut vex = OpenVex {
         metadata: Metadata {
             context: "https://openvex.dev/ns".to_string(),
@@ -172,9 +167,5 @@ fn osv2vex(osv: OsvResponse) -> Option<OpenVex> {
         vex.statements.push(statement);
     }
 
-    if vex.statements.is_empty() {
-        None
-    } else {
-        Some(vex)
-    }
+    vex
 }
