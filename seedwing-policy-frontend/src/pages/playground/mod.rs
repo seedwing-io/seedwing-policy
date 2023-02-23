@@ -2,10 +2,18 @@ use crate::common::{
     editor::{self, ByteRange, Editor, MarkerData},
     eval::{eval, ResultView},
 };
-use monaco::sys::MarkerSeverity;
+use monaco::{
+    sys::{
+        languages::{CommentRule, LanguageConfiguration},
+        MarkerSeverity,
+    },
+    yew::CodeEditorLink,
+};
+use monaco_editor_textmate_web::prelude::*;
 use patternfly_yew::*;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::Value;
+use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
 
@@ -15,6 +23,10 @@ const INITIAL_POLICY: &str = r#"pattern dog = {
 }"#;
 const INITIAL_VALUE: &str = r#"name: goodboy
 trained: true"#;
+
+const DOGMA_TEXTMATE: &str = include_str!("../../../textmate/dogma.tmLanguage.json");
+const DOGMA_LANGUAGE_ID: &str = "dogma";
+const DOGMA_SCOPE_ID: &str = "source.dog";
 
 fn test_compile(value: &str) -> Result<(), Vec<MarkerData>> {
     let source = Ephemeral::new("test", value);
@@ -64,8 +76,38 @@ pub fn playground() -> Html {
 
     let policy_editor = use_memo(
         |markers| {
+            let on_editor_created = Callback::from(|editor: CodeEditorLink| {
+                // ensure language is registered
+
+                register_language(DOGMA_LANGUAGE_ID);
+
+                // and configured
+
+                let comments: CommentRule = js_sys::Object::new().unchecked_into();
+                comments.set_line_comment(Some("//"));
+
+                let lang: LanguageConfiguration = js_sys::Object::new().unchecked_into();
+                lang.set_comments(Some(&comments));
+                monaco::sys::languages::set_language_configuration(DOGMA_LANGUAGE_ID, &lang);
+
+                // set textmate provider
+
+                set_textmate_provider(
+                    &editor,
+                    GrammarDefinition::new("json", DOGMA_TEXTMATE),
+                    DOGMA_LANGUAGE_ID,
+                    DOGMA_SCOPE_ID,
+                );
+            });
+
             use std::ops::Deref;
-            html!(<Editor language="dogma" initial_content={INITIAL_POLICY} on_change={on_pattern_change} markers={markers.deref().clone()}/>)
+            html!(<Editor
+                language={DOGMA_LANGUAGE_ID}
+                initial_content={INITIAL_POLICY}
+                markers={markers.deref().clone()}
+                on_change={on_pattern_change}
+                {on_editor_created}
+            />)
         },
         markers,
     );
