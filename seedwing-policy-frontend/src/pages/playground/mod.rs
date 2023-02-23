@@ -182,7 +182,7 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
                         <ResultView rationale={rationale.clone()}/>
                     )
                 }
-                _ => html!("Click eval"),
+                _ => html!(""),
             }
         }
         </>
