@@ -23,7 +23,8 @@ use tokio::sync::Mutex;
 
 use clap::Parser;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
-use seedwing_policy_engine::runtime::monitor::{Monitor, MonitorEvent};
+use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
+use seedwing_policy_engine::runtime::monitor::MonitorEvent;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 
@@ -145,7 +146,11 @@ async fn main() -> std::io::Result<()> {
                             .service(api::evaluate)
                             .service(api::statistics),
                     )
-                    .service(web::scope("/stream").service(stream::statistics_stream))
+                    .service(
+                        web::scope("/stream")
+                            .service(stream::statistics_stream)
+                            .service(stream::monitor_stream),
+                    )
                     .service(display_root_no_slash)
                     .service(display_root)
                     .service(display_component)
@@ -156,8 +161,8 @@ async fn main() -> std::io::Result<()> {
                     .service(playground::display_root_no_slash)
                     .service(playground::evaluate)
                     .service(playground::compile)
-                    .service(monitor::monitor)
-                    .service(monitor::monitor_stream)
+                    //.service(monitor::monitor)
+                    //.service(monitor::monitor_stream)
                     .service(statistics::prometheus)
             });
 

@@ -8,7 +8,7 @@ use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::lang::lir::EvalContext;
-use seedwing_policy_engine::runtime::monitor::Monitor;
+use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
 use seedwing_policy_engine::runtime::sources::{Directory, Ephemeral};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::{Deserialize, Serialize};

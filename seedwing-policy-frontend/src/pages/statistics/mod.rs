@@ -4,7 +4,6 @@ use anyhow::Error;
 use gloo_net::http::Request;
 use patternfly_yew::*;
 use seedwing_policy_engine::runtime::statistics::Snapshot;
-use std::time::Duration;
 use yew::prelude::*;
 use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};
 use yew_hooks::{use_async, UseAsyncState};
@@ -78,10 +77,10 @@ pub fn statistics(props: &Props) -> Html {
         UseAsyncState {
             data: Some(Some(data)),
             ..
-        } => html!( <StatisticsStream stats={data.clone()}/> ),
+        } => html!( <StatisticsStream stats={data.clone()} path={props.path.clone()}/> ),
         UseAsyncState {
             data: Some(None), ..
-        } => html!( <StatisticsStream stats={vec![]}/> ),
+        } => html!( <StatisticsStream stats={vec![]} path={props.path.clone()}/> ),
         _ => html!({ "Unknown state" }),
     };
 
@@ -209,6 +208,7 @@ fn snapshots(props: &StatisticsProps) -> Html {
 
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct StatisticsStreamProps {
+    path: AttrValue,
     stats: Vec<Snapshot>,
 }
 
@@ -253,7 +253,7 @@ impl Component for StatisticsStream {
         });
         let task = WebSocketService::connect_text(
             //todo figure out why trunk ws proxy isn't --> format!("ws://localhost:8010/stream/statistics/v1alpha1/").as_str(),
-            format!("ws://localhost:8080/stream/statistics/v1alpha1/").as_str(),
+            format!("ws://localhost:8080/stream/statistics/v1alpha1/{}", ctx.props().path.clone()).as_str(),
             callback,
             notification,
         )
@@ -305,7 +305,7 @@ impl Component for StatisticsStream {
             .collect();
         let entries = SharedTableModel::new(snapshots);
         html!(
-            <Table<SharedTableModel<RenderableSnapshot>> {header} {entries}/>
+            <Table<SharedTableModel<RenderableSnapshot>> {header} {entries} mode={TableMode::Compact}/>
         )
     }
 }

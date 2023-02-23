@@ -13,7 +13,7 @@ use seedwing_policy_engine::lang::lir::TraceConfig;
 //use seedwing_policy_engine::lang::{PackagePath, TypeName};
 use crate::ui::breadcrumbs::Breadcrumbs;
 use seedwing_policy_engine::lang::lir::EvalContext;
-use seedwing_policy_engine::runtime::monitor::Monitor;
+use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
 use seedwing_policy_engine::runtime::{Component, ModuleHandle, PackagePath, TypeName, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde::Serialize;

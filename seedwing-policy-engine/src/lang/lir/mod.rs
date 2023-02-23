@@ -22,7 +22,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "monitor")]
-use crate::runtime::monitor::Monitor;
+use crate::runtime::monitor::dispatcher::Monitor;
 #[cfg(feature = "monitor")]
 use tokio::sync::Mutex;
 

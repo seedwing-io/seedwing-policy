@@ -4,11 +4,13 @@ mod index;
 mod playground;
 mod policy;
 mod statistics;
+mod monitor;
 
 pub use index::*;
 pub use playground::*;
 pub use policy::*;
 pub use statistics::*;
+pub use monitor::*;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Target)]
 pub enum AppRoute {
@@ -19,6 +21,9 @@ pub enum AppRoute {
         path: String,
     },
     Statistics {
+        path: String,
+    },
+    Monitor {
         path: String,
     },
     Playground,

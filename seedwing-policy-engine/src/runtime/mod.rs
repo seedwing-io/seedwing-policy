@@ -21,7 +21,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub mod cache;
-#[cfg(feature = "monitor")]
 pub mod monitor;
 pub mod rationale;
 pub mod response;
@@ -64,7 +63,7 @@ impl From<(SourceLocation, ParserError)> for BuildError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Output {
     None,
     Identity,

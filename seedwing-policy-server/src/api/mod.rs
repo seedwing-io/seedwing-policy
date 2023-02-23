@@ -8,7 +8,7 @@ use seedwing_policy_engine::api::ToInformation;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::{
     lang::lir::EvalContext,
-    runtime::{monitor::Monitor, EvaluationResult, RuntimeError, World},
+    runtime::{monitor::dispatcher::Monitor, EvaluationResult, RuntimeError, World},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

@@ -29,6 +29,9 @@ pub fn console() -> Html {
                         <NavRouterItem<AppRoute> to={AppRoute::Statistics{path: "".into()}}
                             predicate={AppRoute::is_statistics}
                             >{ "Statistics" }</NavRouterItem<AppRoute>>
+                        <NavRouterItem<AppRoute> to={AppRoute::Monitor{path: "".into()}}
+                            predicate={AppRoute::is_monitor}
+                            >{ "Evaluation Monitor" }</NavRouterItem<AppRoute>>
                     </NavExpandable>
                 </NavList>
             </Nav>
@@ -69,5 +72,6 @@ fn render(route: AppRoute) -> Html {
         AppRoute::Policy { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
         AppRoute::Statistics { path } => html!(<pages::Statistics {path}/>),
+        AppRoute::Monitor { path } => html!(<pages::Monitor {path}/>),
     }
 }

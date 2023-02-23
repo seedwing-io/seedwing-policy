@@ -156,10 +156,31 @@ pub fn component_title(props: &ComponentProps) -> Html {
 
 #[function_component(Component)]
 pub fn component(props: &ComponentProps) -> Html {
-    match &props.component {
-        ComponentInformation::Type(r#type) => render_type(Rc::new(r#type.clone())),
-        ComponentInformation::Module(module) => render_module(props.base_path.clone(), module),
-    }
+
+    let nav_path = props.base_path.join("::");
+    let monitor = AppRoute::Monitor { path: nav_path.clone() };
+    let statistics = AppRoute::Statistics { path: nav_path.clone() };
+
+    html!(
+        <>
+          <Toolbar>
+              <ToolbarItem>
+                <Link<AppRoute> target={monitor}>
+                  <Button label="Monitor" variant={Variant::Secondary}/>
+                </Link<AppRoute>>
+              </ToolbarItem>
+              <ToolbarItem>
+                <Link<AppRoute> target={statistics}>
+                  <Button label="Statistics" variant={Variant::Secondary}/>
+                </Link<AppRoute>>
+              </ToolbarItem>
+          </Toolbar>
+          {match &props.component {
+              ComponentInformation::Type(r#type) => render_type(Rc::new(r#type.clone())),
+              ComponentInformation::Module(module) => render_module(props.base_path.clone(), module),
+          }}
+        </>
+    )
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]

@@ -1,64 +1,14 @@
-use crate::lang::lir::{EvalContext, TraceHandle, Type};
-use crate::runtime::{EvaluationResult, Output, RuntimeError};
+use crate::lang::lir::Type;
+use crate::runtime::monitor::{CompleteEvent, Completion, MonitorEvent, StartEvent};
+use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
-use chrono::{DateTime, Utc};
-use std::collections::HashMap;
+use chrono::Utc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
-
-#[derive(Debug, Clone)]
-pub enum MonitorEvent {
-    Start(StartEvent),
-    Complete(CompleteEvent),
-}
-
-impl MonitorEvent {
-    pub fn ty(&self) -> Arc<Type> {
-        match self {
-            MonitorEvent::Start(inner) => inner.ty.clone(),
-            MonitorEvent::Complete(inner) => inner.ty.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StartEvent {
-    pub correlation: u64,
-    pub timestamp: DateTime<Utc>,
-    pub input: Arc<RuntimeValue>,
-    pub ty: Arc<Type>,
-}
-
-impl From<StartEvent> for MonitorEvent {
-    fn from(event: StartEvent) -> Self {
-        MonitorEvent::Start(event)
-    }
-}
-
-impl From<CompleteEvent> for MonitorEvent {
-    fn from(event: CompleteEvent) -> Self {
-        MonitorEvent::Complete(event)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CompleteEvent {
-    pub correlation: u64,
-    pub timestamp: DateTime<Utc>,
-    pub ty: Arc<Type>,
-    pub completion: Completion,
-    pub elapsed: Option<Duration>,
-}
-
-#[derive(Debug, Clone)]
-pub enum Completion {
-    Output(Output),
-    Err(String),
-}
 
 pub struct Monitor {
     correlation: AtomicU64,
