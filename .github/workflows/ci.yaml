@@ -58,7 +58,7 @@ jobs:
           cargo check --target wasm32-unknown-unknown
 
       - name: Check
-        run: cargo check
+        run: cargo check --features frontend
 
       - name: Test
         run: cargo test -- --nocapture
