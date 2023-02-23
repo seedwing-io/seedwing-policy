@@ -112,9 +112,11 @@ async fn main() -> std::io::Result<()> {
                 let raw_examples = generate_examples();
                 let assets = generate_assets();
                 let ui = generate_npm_assets();
+
+                #[cfg(feature = "frontend")]
                 let console = seedwing_policy_server_embedded_frontend::console_assets();
 
-                App::new()
+                let app = App::new()
                     .app_data(web::Data::new(world.clone()))
                     // use "from" in case of an existing Arc
                     .app_data(web::Data::from(monitor.clone()))
@@ -125,11 +127,15 @@ async fn main() -> std::io::Result<()> {
                     .app_data(web::Data::new(PlaygroundState::new(
                         builder.clone(),
                         sources.clone(),
-                    )))
-                    .service(ResourceFiles::new("/assets", assets))
-                    .service(ResourceFiles::new("/ui", ui))
+                    )));
+
+                #[cfg(feature = "frontend")]
+                let app = app
                     .service(web::redirect("/console", "/console/"))
-                    .service(ResourceFiles::new("/console", console))
+                    .service(ResourceFiles::new("/console", console));
+
+                app.service(ResourceFiles::new("/assets", assets))
+                    .service(ResourceFiles::new("/ui", ui))
                     .service(index)
                     .service(
                         web::scope("/api")
@@ -154,6 +160,7 @@ async fn main() -> std::io::Result<()> {
                     .service(monitor::monitor_stream)
                     .service(statistics::prometheus)
             });
+
             log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
 
             server.bind((cli.bind, cli.port))?.run().await

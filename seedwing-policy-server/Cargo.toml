@@ -11,7 +11,6 @@ keywords = ["policy"]
 
 [dependencies]
 seedwing-policy-engine = { path = "../seedwing-policy-engine", features = ["sigstore", "prometheus"] }
-seedwing-policy-server-embedded-frontend = { path = "embedded-frontend" }
 prometheus = "0.13.3"
 actix-web = "4"
 log = "0.4.17"
@@ -19,7 +18,7 @@ env_logger = "0.10.0"
 futures-util = "0.3.25"
 serde_json = "1.0.89"
 serde_yaml = "0.9"
-clap = { version = "4.0.29", features = [ "derive"] }
+clap = { version = "4.0.29", features = ["derive"] }
 handlebars = "4.3.6"
 serde = { version = "1.0.152" }
 actix-web-static-files = "4.0"
@@ -32,8 +31,11 @@ chrono = "0.4.23"
 mime = "0.3.16"
 thiserror = "1"
 
+seedwing-policy-server-embedded-frontend = { path = "embedded-frontend", optional = true }
+
 [build-dependencies]
 static-files = "0.2.1"
 
 [features]
 debug = ["seedwing-policy-engine/debug"]
+frontend = ["seedwing-policy-server-embedded-frontend"]
