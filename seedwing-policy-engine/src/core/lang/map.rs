@@ -55,12 +55,15 @@ impl Function for Map {
                         }
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
                     }
-                    _ => Ok(map_fn
-                        .evaluate(input, ctx, bindings, world)
-                        .await?
-                        .raw_output()
-                        .clone()
-                        .into()),
+                    _ => match map_fn.evaluate(input, ctx, bindings, world).await?.output() {
+                        Some(value) => {
+                            Ok(Output::Transform(Arc::new(RuntimeValue::List(vec![value]))).into())
+                        }
+                        None => {
+                            let msg = "No output from map function";
+                            Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                        }
+                    },
                 }
             } else {
                 let msg = "Unable to lookup map function";
@@ -89,13 +92,13 @@ mod tests {
         assert_eq!(
             result.output(),
             Some(Arc::new(
-                json!({
+                json!([{
                     "type": "github",
                     "namespace": "package-url",
                     "name": "purl-spec",
                     "version": "244fd47e07d1004",
                     "subpath": "everybody/loves/dogs",
-                })
+                }])
                 .into()
             ))
         );
