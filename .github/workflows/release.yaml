@@ -100,7 +100,7 @@ jobs:
 
       - name: Rename cli binary
         shell: bash
-        run: cp -pv target/release/seedwing-policy-cli${{ matrix.exe }} target/release/seedwing-policy-cli-${{ matrix.suffix }}${{ matrix.exe }}
+        run: cp -pv target/release/cli${{ matrix.exe }} target/release/cli-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Upload server binary
         uses: actions/upload-artifact@v3
@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: cli-binary-${{ matrix.suffix }}
-          path: target/release/seedwing-policy-cli-${{ matrix.suffix }}${{ matrix.exe }}
+          path: target/release/cli-${{ matrix.suffix }}${{ matrix.exe }}
           if-no-files-found: error
 
 

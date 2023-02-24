@@ -30,10 +30,8 @@ use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 
 use crate::cli::Cli;
 use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
-use crate::ui::{documentation, examples, index};
+use crate::ui::index;
 
-include!(concat!(env!("OUT_DIR"), "/generated-ROOT.rs"));
-include!(concat!(env!("OUT_DIR"), "/generated-examples.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
 include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));
 
@@ -109,8 +107,6 @@ async fn main() -> std::io::Result<()> {
             });
 
             let server = HttpServer::new(move || {
-                let raw_docs = generate_docs();
-                let raw_examples = generate_examples();
                 let assets = generate_assets();
                 let ui = generate_npm_assets();
 
@@ -123,8 +119,6 @@ async fn main() -> std::io::Result<()> {
                     .app_data(web::Data::from(monitor.clone()))
                     // use "from" in case of an existing Arc
                     .app_data(web::Data::from(statistics.clone()))
-                    .app_data(web::Data::new(Documentation(raw_docs)))
-                    .app_data(web::Data::new(Examples(raw_examples)))
                     .app_data(web::Data::new(PlaygroundState::new(
                         builder.clone(),
                         sources.clone(),
@@ -155,8 +149,6 @@ async fn main() -> std::io::Result<()> {
                     .service(display_root)
                     .service(display_component)
                     .service(evaluate)
-                    .service(documentation)
-                    .service(examples)
                     .service(playground::display)
                     .service(playground::display_root_no_slash)
                     .service(playground::evaluate)

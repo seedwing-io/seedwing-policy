@@ -10,7 +10,7 @@ categories = ["development-tools", "parser-implementations"]
 keywords = ["policy"]
 
 [dependencies]
-seedwing-policy-engine = { path = "../seedwing-policy-engine" }
+seedwing-policy-engine = { path = "../engine" }
 log = "0.4.17"
 is-terminal = "0.4.3"
 termcolor = "1.2.0"

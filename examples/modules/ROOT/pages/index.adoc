@@ -1,4 +1,0 @@
-= Seedwing examples
-
-Example Seedwing patterns for solving real world use cases.
-

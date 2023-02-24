@@ -38,7 +38,7 @@ Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow install
 with the trunk toolchain. If it is not, it may lead to a failed build. See [trunk tooling](#trunk-tooling) for
 setup instructions.
 
-For more information on developing for the frontend, see: [seedwing-policy-frontend/](seedwing-policy-frontend/).
+For more information on developing for the frontend, see: [seedwing-policy-frontend/](frontend/).
 
 ### Fedora
 
@@ -76,7 +76,7 @@ Here is what you should do:
 
   ```shell
   cargo fmt --check
-  cargo fmt --check --manifest-path seedwing-policy-frontend/Cargo.toml
+  cargo fmt --check --manifest-path frontend/Cargo.toml
   ```
 
 * Ensure that the code builds. You can check using:

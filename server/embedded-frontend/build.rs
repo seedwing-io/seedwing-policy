@@ -8,24 +8,24 @@ fn main() -> std::io::Result<()> {
 
     // console assets
 
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/Cargo.toml");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/Cargo.lock");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/Trunk.toml");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/package.json");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/yarn.lock");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/src");
-    println!("cargo:rerun-if-changed=../../seedwing-policy-frontend/assets");
+    println!("cargo:rerun-if-changed=../../frontend/Cargo.toml");
+    println!("cargo:rerun-if-changed=../../frontend/Cargo.lock");
+    println!("cargo:rerun-if-changed=../../frontend/Trunk.toml");
+    println!("cargo:rerun-if-changed=../../frontend/package.json");
+    println!("cargo:rerun-if-changed=../../frontend/yarn.lock");
+    println!("cargo:rerun-if-changed=../../frontend/src");
+    println!("cargo:rerun-if-changed=../../frontend/assets");
 
     let output = Command::new("trunk")
         .args([
             "build",
             "--release",
             "-d",
-            "../seedwing-policy-server/embedded-frontend/dist",
+            "../server/embedded-frontend/dist",
             "--public-url",
             "/console",
         ])
-        .current_dir("../../seedwing-policy-frontend")
+        .current_dir("../../frontend")
         .output()
         .expect("failed to execute frontend build");
 

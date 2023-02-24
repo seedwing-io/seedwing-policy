@@ -31,7 +31,7 @@ serde-wasm-bindgen = "0.4.5"
 
 asciidoctor-web = { version = "0.1", features = ["yew"] }
 monaco-editor-textmate-web = { git = "https://github.com/ctron/monaco-editor-textmate-web", features = ["yew"] }
-seedwing-policy-engine = { path = "../seedwing-policy-engine", default-features = false, features = [] }
+seedwing-policy-engine = { path = "../engine", default-features = false, features = [] }
 
 [profile.release]
 panic = 'abort'

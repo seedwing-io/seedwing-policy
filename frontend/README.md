@@ -36,14 +36,14 @@ In order to work on the frontend you need to:
 * Materialize the NodeJS dependencies (at least once)
 
   ```shell
-  cd seedwing-policy-frontend
+  cd frontend
   yarn install
   ```
 
 * Run the frontend in development mode
 
   ```shell
-  cd seedwing-policy-frontend
+  cd frontend
   trunk serve
   ```
 
