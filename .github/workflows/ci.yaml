@@ -37,24 +37,24 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-            seedwing-policy-frontend/target/
+            frontend/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install nodejs dependencies
         run: |
-          cd seedwing-policy-frontend
+          cd frontend
           npm i
 
       - name: Check formatting
         run: |
           cargo fmt --check
-          cargo fmt --check --manifest-path seedwing-policy-frontend/Cargo.toml
+          cargo fmt --check --manifest-path frontend/Cargo.toml
 
       - name: Check frontend
         # we check the frontend before the main build, as the main build will spawn a build of the
         # frontend, embedding it into the server binary.
         run: |
-          cd seedwing-policy-frontend
+          cd frontend
           cargo check --target wasm32-unknown-unknown
 
       - name: Check

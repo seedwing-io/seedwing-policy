@@ -23,7 +23,7 @@ fn main() -> std::io::Result<()> {
             "-d",
             "../server/embedded-frontend/dist",
             "--public-url",
-            "/console",
+            "/",
         ])
         .current_dir("../../frontend")
         .output()

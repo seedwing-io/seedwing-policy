@@ -1,22 +1,18 @@
 mod api;
 mod cli;
-mod monitor;
+mod metrics;
 mod playground;
-mod policy;
-mod statistics;
 mod stream;
 mod ui;
 
+use actix_web::dev::{ServiceFactory, ServiceRequest};
 use actix_web::middleware::{NormalizePath, TrailingSlash};
-use actix_web::{rt, web, App, HttpServer};
-use actix_web_static_files::ResourceFiles;
+use actix_web::{rt, web, App, HttpResponse, HttpServer};
 use env_logger::Builder;
 use log::LevelFilter;
 use playground::PlaygroundState;
 use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::error_printer::ErrorPrinter;
-use static_files::Resource;
-use std::collections::HashMap;
 use std::process::exit;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -29,11 +25,6 @@ use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 
 use crate::cli::Cli;
-use crate::policy::{display_component, display_root, display_root_no_slash, evaluate};
-use crate::ui::index;
-
-include!(concat!(env!("OUT_DIR"), "/generated-assets.rs"));
-include!(concat!(env!("OUT_DIR"), "/generated-npm-assets.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -107,12 +98,6 @@ async fn main() -> std::io::Result<()> {
             });
 
             let server = HttpServer::new(move || {
-                let assets = generate_assets();
-                let ui = generate_npm_assets();
-
-                #[cfg(feature = "frontend")]
-                let console = seedwing_policy_server_embedded_frontend::console_assets();
-
                 let app = App::new()
                     .app_data(web::Data::new(world.clone()))
                     // use "from" in case of an existing Arc
@@ -124,14 +109,7 @@ async fn main() -> std::io::Result<()> {
                         sources.clone(),
                     )));
 
-                #[cfg(feature = "frontend")]
                 let app = app
-                    .service(web::redirect("/console", "/console/"))
-                    .service(ResourceFiles::new("/console", console));
-
-                app.service(ResourceFiles::new("/assets", assets))
-                    .service(ResourceFiles::new("/ui", ui))
-                    .service(index)
                     .service(
                         web::scope("/api")
                             .wrap(NormalizePath::new(TrailingSlash::Always))
@@ -145,17 +123,22 @@ async fn main() -> std::io::Result<()> {
                             .service(stream::statistics_stream)
                             .service(stream::monitor_stream),
                     )
-                    .service(display_root_no_slash)
-                    .service(display_root)
-                    .service(display_component)
-                    .service(evaluate)
-                    .service(playground::display)
-                    .service(playground::display_root_no_slash)
-                    .service(playground::evaluate)
-                    .service(playground::compile)
-                    //.service(monitor::monitor)
-                    //.service(monitor::monitor_stream)
-                    .service(statistics::prometheus)
+                    .service(metrics::prometheus);
+
+                #[cfg(feature = "frontend")]
+                let app = {
+                    use actix_web_static_files::ResourceFiles;
+                    let spa = seedwing_policy_server_embedded_frontend::console_assets();
+                    let spa = ResourceFiles::new("/", spa).resolve_not_found_to_root();
+                    app.default_service(spa)
+                };
+                #[cfg(not(feature = "frontend"))]
+                let app = {
+                    use crate::ui::index;
+                    app.service(index)
+                };
+
+                app
             });
 
             log::info!("starting up at http://{}:{}/", cli.bind, cli.port);
@@ -168,7 +151,3 @@ async fn main() -> std::io::Result<()> {
         }
     }
 }
-
-pub struct Documentation(pub HashMap<&'static str, Resource>);
-
-pub struct Examples(pub HashMap<&'static str, Resource>);
