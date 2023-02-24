@@ -8,7 +8,10 @@ use std::path::PathBuf;
 use std::process::exit;
 
 #[derive(clap::Args, Debug)]
-#[command(args_conflicts_with_subcommands = true)]
+#[command(
+    about = "Verify compilation of patterns",
+    args_conflicts_with_subcommands = true
+)]
 pub struct Verify {}
 
 impl Verify {

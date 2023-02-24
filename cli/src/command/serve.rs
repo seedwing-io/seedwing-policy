@@ -4,7 +4,10 @@ use log::LevelFilter;
 use std::fmt::Arguments;
 
 #[derive(clap::Args, Debug)]
-#[command(args_conflicts_with_subcommands = true)]
+#[command(
+    about = "Launch an API and UI server",
+    args_conflicts_with_subcommands = true
+)]
 pub struct Serve {
     #[arg(short, long, default_value = "0.0.0.0")]
     pub(crate) bind: String,

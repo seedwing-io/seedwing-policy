@@ -9,7 +9,7 @@ use std::process::exit;
 use std::time::Instant;
 
 #[derive(clap::Args, Debug)]
-#[command(args_conflicts_with_subcommands = true)]
+#[command(about = "Execute benchmarks", args_conflicts_with_subcommands = true)]
 pub struct Bench {
     #[arg(short = 't', value_name = "TYPE", value_enum, default_value_t = InputType::Json)]
     typ: InputType,

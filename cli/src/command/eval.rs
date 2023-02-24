@@ -9,7 +9,10 @@ use std::path::PathBuf;
 use std::process::exit;
 
 #[derive(clap::Args, Debug)]
-#[command(args_conflicts_with_subcommands = true)]
+#[command(
+    about = "Evaluate a pattern against an input",
+    args_conflicts_with_subcommands = true
+)]
 pub struct Eval {
     #[arg(short='t', value_name = "TYPE", value_enum, default_value_t=InputType::Json)]
     typ: InputType,

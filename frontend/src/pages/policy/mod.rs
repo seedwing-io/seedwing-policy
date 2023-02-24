@@ -214,7 +214,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                         to={target}
                     >
                         { if segment.is_empty() {
-                            "Root"
+                            "Library"
                         } else {
                             &segment
                         } }
@@ -277,16 +277,20 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
     let path = base.join("::");
 
     html!(
+        <>
         <ul>
             { for module.modules.iter().map(|module| {
                 let path = format!("{path}{module}::");
                 html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
             })}
+        </ul>
+        <ul>
             { for module.types.iter().map(|r#type| {
                 let path = format!("{path}{type}");
                 html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
             })}
         </ul>
+        </>
     )
 }
 

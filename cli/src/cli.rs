@@ -21,7 +21,12 @@ pub enum Command {
 }
 
 #[derive(clap::Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+  author,
+  version,
+  about="Seedwing Policy Tool",
+  long_about = None
+)]
 pub struct Cli {
     #[arg(short, long = "policy", value_name = "DIR")]
     pub(crate) policy_directories: Vec<PathBuf>,
