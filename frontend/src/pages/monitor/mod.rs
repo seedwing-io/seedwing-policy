@@ -220,9 +220,7 @@ pub struct InputProps {
 fn input(props: &InputProps) -> Html {
     if let Ok(formatted) = serde_json::to_string_pretty(&props.input) {
         html!(
-            <pre><code>
-                {formatted}
-            </code></pre>
+            <pre><code>{formatted}</code></pre>
         )
     } else {
         html!()
@@ -245,7 +243,7 @@ fn output(props: &OutputProps) -> Html {
                 html!(<i>{"Identity"}</i>)
             }
             SimpleOutput::Transform(value) => {
-                if let Ok(formatted) = serde_json::to_string_pretty(&props.output) {
+                if let Ok(formatted) = serde_json::to_string_pretty(&value) {
                     html!(
                         <pre><code>{formatted}</code></pre>
                     )
