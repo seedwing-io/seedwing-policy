@@ -129,9 +129,7 @@ impl TableRenderer for MonitorEntry {
             0 => {
                 html!(
                     <>
-                      <div>
-                        {&self.name}
-                      </div>
+                      {&self.name} {" "}
                       <Status output={self.output.clone()}/>
                     </>
                 )
@@ -185,28 +183,28 @@ fn status(props: &OutputProps) -> Html {
         match output {
             SimpleOutput::None => {
                 html!(
-                    <Label label={"Unsatisfied"} color={Color::Red}/>
+                    <Label label={"Unsatisfied"} color={Color::Red} compact=true/>
                 )
             }
             SimpleOutput::Identity => {
                 html!(
-                    <Label label={"Identity"} color={Color::Green}/>
+                    <Label label={"Identity"} color={Color::Green} compact=true/>
                 )
             }
             SimpleOutput::Transform(_) => {
                 html!(
-                    <Label label={"Transform"} color={Color::Green}/>
+                    <Label label={"Transform"} color={Color::Green} compact=true/>
                 )
             }
             SimpleOutput::Err(_) => {
                 html!(
-                    <Label label={"Error"} color={Color::Purple}/>
+                    <Label label={"Error"} color={Color::Purple} compact=true/>
                 )
             }
         }
     } else {
         html!(
-          <Label label={"Running"}/>
+          <Label label={"Running"} compact=true/>
         )
     }
 }
