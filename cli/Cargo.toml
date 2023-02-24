@@ -25,3 +25,7 @@ tokio = "*"
 
 [features]
 debug = ["seedwing-policy-engine/debug"]
+
+[[bin]]
+name = "swio"
+path = "src/main.rs"

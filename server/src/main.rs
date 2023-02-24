@@ -5,9 +5,8 @@ mod playground;
 mod stream;
 mod ui;
 
-use actix_web::dev::{ServiceFactory, ServiceRequest};
 use actix_web::middleware::{NormalizePath, TrailingSlash};
-use actix_web::{rt, web, App, HttpResponse, HttpServer};
+use actix_web::{rt, web, App, HttpServer};
 use env_logger::Builder;
 use log::LevelFilter;
 use playground::PlaygroundState;

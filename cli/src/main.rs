@@ -2,11 +2,9 @@ use crate::cli::Cli;
 
 use clap::Parser;
 
-mod bench;
 mod cli;
-mod eval;
-mod explain;
-mod verify;
+mod command;
+mod util;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
