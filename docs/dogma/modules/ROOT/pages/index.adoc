@@ -1,0 +1,3 @@
+== Dogma Language
+
+The _Dogma Language_ is used to defined patterns which represent policies.

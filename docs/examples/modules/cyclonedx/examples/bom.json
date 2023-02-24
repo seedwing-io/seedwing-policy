@@ -1,0 +1,55 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.2",
+  "serialNumber": "urn:uuid:b4f2954f-a96d-4578-9509-1ae2d6476209",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2020-08-02T21:27:04Z",
+    "tools": [{
+      "vendor": "CycloneDX",
+      "name": "CycloneDX Maven plugin",
+      "version": "2.0.2"
+    }]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:maven/log4j/log4j@1.2.17?type=jar",
+      "publisher": "Apache Software Foundation",
+      "group": "log4j",
+      "name": "log4j",
+      "version": "1.2.17",
+      "description": "Apache Log4j 1.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1d31696445697720527091754369082a6651bd49781b6005deb94e56753406f9"
+        }
+      ],
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "purl": "pkg:maven/log4j/log4j@1.2.17?type=jar",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "http://www.apache.org"
+        },
+        {
+          "type": "build-system",
+          "url": "http://vmgump.apache.org/gump/public/logging-log4j-12/logging-log4j-12/index.html"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://issues.apache.org/bugzilla/describecomponents.cgi?product=Log4j"
+        },
+        {
+          "type": "mailing-list",
+          "url": "http://mail-archives.apache.org/mod_mbox/logging-log4j-user/"
+        },
+        {
+          "type": "vcs",
+          "url": "http://svn.apache.org/viewvc/logging/log4j/tags/v1_2_17_rc3"
+        }
+      ]
+    }
+ ]
+}

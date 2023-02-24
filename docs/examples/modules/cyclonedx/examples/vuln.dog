@@ -1,0 +1,9 @@
+/// For a given CycloneDX SBOM, check if any of the
+/// component package URLs for vulnerabilities and
+/// produce an OpenVEX document for it.
+pattern not-affected =
+  cyclonedx::component-purls
+  | lang::map<uri::purl>
+  | lang::map<osv::from-purl>
+  | lang::map<openvex::from-osv>
+  | list::none<openvex::affected>
