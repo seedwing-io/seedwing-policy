@@ -40,7 +40,7 @@ opt-level = 's'
 lto = true
 
 [patch.crates-io]
-patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "e012d37698eeaaed138653f4c486124180e0a810" }
+patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "a2a5d262e9271904b0a500294350a72377374bba" }
 monaco = { git = "https://github.com/siku2/rust-monaco" }
 #patternfly-yew = { path = "../../patternfly-yew" }
 #yew-nested-router = { path = "../../yew-nested-router" }
