@@ -2,6 +2,8 @@
 
 The Seedwing Policy CLI provides access to the functionality of the Seedwing Policy Engine without requiring access to a running Policy Server.
 
+The primary command is `swio`, derived from the domain of `seedwing.io`.
+
 === General Usage
 
 ==== Policy Directories: `-p <DIR>`
