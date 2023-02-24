@@ -11,6 +11,7 @@ keywords = ["policy"]
 
 [dependencies]
 seedwing-policy-engine = { path = "../engine" }
+seedwing-policy-server = { path = "../server" }
 log = "0.4.17"
 is-terminal = "0.4.3"
 termcolor = "1.2.0"
@@ -22,9 +23,15 @@ clap = { version = "4.0.29", features = [ "derive"] }
 serde = { version = "1.0.152" }
 hdrhistogram = "7.5.2"
 tokio = "*"
+actix-rt = "*"
 
 [features]
-debug = ["seedwing-policy-engine/debug"]
+default = [ "frontend"]
+debug = [
+    "seedwing-policy-engine/debug",
+    "seedwing-policy-server/debug",
+]
+frontend = ["seedwing-policy-server/frontend"]
 
 [[bin]]
 name = "swio"

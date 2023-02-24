@@ -1,5 +1,6 @@
 use crate::command::bench::Bench;
 use crate::command::eval::Eval;
+use crate::command::serve::Serve;
 use crate::command::verify::Verify;
 use clap::ValueEnum;
 use std::path::PathBuf;
@@ -15,6 +16,7 @@ pub enum Command {
     Verify(Verify),
     Eval(Eval),
     Bench(Bench),
+    Serve(Serve),
     Test,
 }
 
@@ -41,6 +43,7 @@ impl Cli {
             }
             Command::Eval(eval) => eval.run(self).await,
             Command::Bench(bench) => bench.run(self).await,
+            Command::Serve(serve) => serve.run(self).await,
             Command::Test => {
                 println!("test!");
                 Ok(())
