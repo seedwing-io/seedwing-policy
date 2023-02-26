@@ -1,3 +1,7 @@
+//! Value representations in the policy engine.
+//!
+//! Values are inputs or outputs from patterns, and can be constructed automatically from JSON and other primitives.
+
 use ::serde::Serialize;
 use indexmap::IndexMap;
 use serde_json::{json, Map, Number};
@@ -14,7 +18,7 @@ use std::ops::Index;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub mod serde;
+mod serde;
 
 mod json;
 mod yaml;
@@ -75,10 +79,12 @@ impl Display for RationaleResult {
 }
 
 impl RationaleResult {
+    /// Check if there is a result.
     pub fn is_some(&self) -> bool {
         !matches!(self, RationaleResult::None)
     }
 
+    /// Check if there is no result.
     pub fn is_none(&self) -> bool {
         !self.is_some()
     }
