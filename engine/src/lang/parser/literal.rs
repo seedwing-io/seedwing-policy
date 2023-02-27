@@ -4,8 +4,8 @@ use chumsky::primitive::{choice, filter, just};
 use chumsky::text::TextParser;
 use chumsky::{text, Parser};
 
-pub fn integer_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone
-{
+pub fn integer_literal(
+) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
     text::int::<char, ParserError>(10)
         .padded()
         .map_with_span(|s: String, span| {
@@ -13,8 +13,8 @@ pub fn integer_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Erro
         })
 }
 
-pub fn decimal_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone
-{
+pub fn decimal_literal(
+) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
     text::int(10)
         .then(just('.').then(text::int(10)))
         .padded()
@@ -28,8 +28,8 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Erro
         )
 }
 
-pub fn boolean_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone
-{
+pub fn boolean_literal(
+) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
     choice((
         just("true").map(|_| ValuePattern::Boolean(true)),
         just("false").map(|_| ValuePattern::Boolean(false)),
@@ -37,8 +37,8 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Erro
     .map_with_span(Located::new)
 }
 
-pub fn string_literal() -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone
-{
+pub fn string_literal(
+) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
     just('"')
         .ignored()
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())

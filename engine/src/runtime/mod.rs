@@ -1,7 +1,7 @@
 use crate::core::Function;
 
 use crate::lang::lir;
-use crate::lang::lir::{Bindings, EvalContext, TraceConfig, Pattern};
+use crate::lang::lir::{Bindings, EvalContext, Pattern, TraceConfig};
 use crate::lang::mir::PatternHandle;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
 

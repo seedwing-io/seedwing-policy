@@ -44,7 +44,11 @@ pub enum PrimordialPattern {
     Decimal,
     Boolean,
     String,
-    Function(SyntacticSugar, PatternName, #[serde(skip)] Arc<dyn Function>),
+    Function(
+        SyntacticSugar,
+        PatternName,
+        #[serde(skip)] Arc<dyn Function>,
+    ),
 }
 
 impl PrimordialPattern {

@@ -46,7 +46,12 @@ impl PrometheusStats {
         }
     }
 
-    pub(super) fn record(&mut self, name: &PatternName, elapsed: Duration, completion: &Completion) {
+    pub(super) fn record(
+        &mut self,
+        name: &PatternName,
+        elapsed: Duration,
+        completion: &Completion,
+    ) {
         match completion {
             Completion::Output(output) => match output {
                 Output::None => self.unsatisfied.with_label_values(&[name.name()]).inc(),

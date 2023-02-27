@@ -1,8 +1,8 @@
 use crate::pages::AppRoute;
 use itertools::intersperse;
 use seedwing_policy_engine::api::{
-    Field, InnerPatternInformation, ObjectPattern, PrimordialPattern, PatternInformation, PatternOrReference,
-    PatternRef,
+    Field, InnerPatternInformation, ObjectPattern, PatternInformation, PatternOrReference,
+    PatternRef, PrimordialPattern,
 };
 use seedwing_policy_engine::lang::{
     lir::{Expr, ValuePattern},
