@@ -1566,6 +1566,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "asciidoctor-web",
+ "chrono",
  "gloo-console",
  "gloo-net",
  "gloo-utils",

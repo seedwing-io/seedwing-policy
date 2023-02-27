@@ -1,5 +1,7 @@
-use crate::pages::AppRoute;
-use crate::pages::BreadcrumbsProps;
+use crate::{
+    pages::{AppRoute, BreadcrumbsProps},
+    utils::format_ns,
+};
 use anyhow::Error;
 use gloo_net::http::Request;
 use patternfly_yew::*;
@@ -163,22 +165,6 @@ impl TableEntryRenderer for RenderableSnapshot {
             _ => html!(),
         }
         .into()
-    }
-}
-
-fn format_ns(ns: u128) -> String {
-    let ms = ns / 1_000_000;
-    let ns = ns - (ms * 1_000_000);
-
-    let sec = ms / 1_000;
-    let ms = ms - (sec * 1_000);
-
-    if sec > 0 {
-        format!("{}s {}ms", sec, ms)
-    } else if ms > 0 {
-        format!("{}ms", ms)
-    } else {
-        format!("{}ns", ns)
     }
 }
 

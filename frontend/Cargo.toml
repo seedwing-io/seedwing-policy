@@ -8,6 +8,7 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
+chrono = "0.4.23"
 gloo-console = "0.2.3"
 gloo-net = { version = "0.2.6", features = ["json"] }
 gloo-utils = "0.1.6"

@@ -1,6 +1,7 @@
-use crate::pages::AppRoute;
-use crate::pages::BreadcrumbsProps;
+use crate::pages::{AppRoute, BreadcrumbsProps};
+use crate::utils::format_duration;
 use anyhow::Error;
+use chrono::DateTime;
 use patternfly_yew::*;
 use seedwing_policy_engine::runtime::monitor::{
     SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput,
@@ -134,20 +135,16 @@ impl TableEntryRenderer for MonitorEntry {
                 )
             }
             1 => {
-                if let Some(ts) = &self.complete_timestamp {
-                    html!(
-                        <>
-                          <div>{&self.start_timestamp}</div>
-                          <div>{ts}</div>
-                        </>
-                    )
-                } else {
-                    html!(<div>{&self.start_timestamp}</div>)
-                }
+                html!(<Timing start={self.start_timestamp.clone()} complete={self.complete_timestamp.clone()}/>)
             }
             2 => {
                 html!(
-                    <InputOutput input={self.input.clone()} output={self.output.clone()}/>
+                    <Input input={self.input.clone()}/>
+                )
+            }
+            3 => {
+                html!(
+                    <Output output={self.output.clone()}/>
                 )
             }
             _ => html!(),
@@ -156,24 +153,29 @@ impl TableEntryRenderer for MonitorEntry {
     }
 }
 
-#[derive(Clone, PartialEq, Properties)]
-pub struct InputOutputProps {
-    input: Value,
-    output: Option<SimpleOutput>,
+#[derive(PartialEq, Properties)]
+struct TimingProps {
+    start: String,
+    complete: Option<String>,
 }
 
-#[function_component(InputOutput)]
-fn input_output(props: &InputOutputProps) -> Html {
-    let input_formatted = serde_json::to_string_pretty(&props.input);
+#[function_component(Timing)]
+fn timing(props: &TimingProps) -> Html {
+    let duration = match (
+        DateTime::parse_from_rfc2822(&props.start),
+        props.complete.as_deref().map(DateTime::parse_from_rfc2822),
+    ) {
+        (Ok(start), Some(Ok(end))) => format_duration(end - start)
+            .map(|d| html!(<span>{" ("} {d} {")"}</span>))
+            .unwrap_or_default(),
+        _ => html!(),
+    };
+
     html!(
-        <Tabs>
-          <Tab label="Input">
-            <Input input={props.input.clone()}/>
-          </Tab>
-          <Tab label="Output">
-            <Output output={props.output.clone()}/>
-          </Tab>
-        </Tabs>
+        <div>
+            {&props.start}
+            {duration}
+        </div>
     )
 }
 
@@ -350,9 +352,10 @@ impl Component for MonitorStream {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let header = html_nested! {
             <TableHeader>
-                <TableColumn label="Pattern"/>
-                <TableColumn label="Timing"/>
-                <TableColumn label="Input/Output"/>
+                <TableColumn label="Pattern" width={ColumnWidth::Percent(20)}/>
+                <TableColumn label="Timing" width={ColumnWidth::Percent(20)}/>
+                <TableColumn label="Input" width={ColumnWidth::Percent(30)}/>
+                <TableColumn label="Output" width={ColumnWidth::Percent(30)}/>
             </TableHeader>
         };
 
