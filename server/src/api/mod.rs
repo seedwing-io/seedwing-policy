@@ -1,5 +1,6 @@
+use crate::api::format::Format;
 use crate::playground::PlaygroundState;
-use crate::ui::rationale::Rationalizer;
+use actix_web::http::header;
 use actix_web::{
     get, post,
     web::{self},
@@ -16,6 +17,8 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+mod format;
+
 #[get("/policy/v1alpha1/{path:.*}")]
 pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> impl Responder {
     let path = path.into_inner().trim_matches('/').replace('/', "::");
@@ -31,16 +34,58 @@ pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> imp
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct PolicyQuery {
+    opa: Option<bool>,
+    collapse: Option<bool>,
+    format: Option<Format>,
+}
+
+#[derive(Copy, Clone)]
+pub enum OutputEncoding {
+    Seedwing { format: Format, collapse: bool },
+    Opa,
+}
+
+impl Default for OutputEncoding {
+    fn default() -> Self {
+        Self::Seedwing {
+            format: Format::Html,
+            collapse: false,
+        }
+    }
+}
+
+impl OutputEncoding {
+    fn from_request(accept: header::Accept, query: PolicyQuery) -> Self {
+        if let Some(true) = query.opa {
+            return OutputEncoding::Opa;
+        }
+
+        let mime = accept.preference();
+        let format = query.format.unwrap_or(mime.to_string().into());
+
+        Self::Seedwing {
+            format,
+            collapse: query.collapse.unwrap_or_default(),
+        }
+    }
+}
+
 #[post("/policy/v1alpha1/{path:.*}")]
 pub async fn post_policy(
     world: web::Data<World>,
     monitor: web::Data<Mutex<Monitor>>,
     path: web::Path<String>,
+    accept: web::Header<header::Accept>,
+    query: web::Query<PolicyQuery>,
     value: web::Json<Value>,
 ) -> impl Responder {
     let path = path.into_inner().trim_matches('/').replace('/', "::");
 
-    run_eval(monitor.into_inner(), &world, path, value.0).await
+    let encoding = OutputEncoding::from_request(accept.into_inner(), query.into_inner());
+
+    run_eval(monitor.into_inner(), &world, path, value.0, encoding).await
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -69,6 +114,7 @@ pub async fn evaluate(
                     &world,
                     format!("playground::{}", name),
                     value,
+                    Default::default(),
                 )
                 .await
             }
@@ -94,13 +140,14 @@ async fn run_eval(
     world: &World,
     path: String,
     value: Value,
+    encoding: OutputEncoding,
 ) -> HttpResponse {
     let context = EvalContext::new(seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
         monitor.clone(),
     ));
 
     match world.evaluate(path, value, context).await {
-        Ok(result) => return_rationale(result),
+        Ok(result) => return_rationale(result, encoding),
         Err(RuntimeError::NoSuchPattern(name)) => HttpResponse::BadRequest().json(json!({
             "reason": "NoSuchPattern",
             "name": name.as_type_str(),
@@ -112,14 +159,25 @@ async fn run_eval(
     }
 }
 
-fn return_rationale(result: EvaluationResult) -> HttpResponse {
-    let rationale = Rationalizer::new(&result);
-    let rationale = rationale.rationale();
+fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpResponse {
+    match encoding {
+        OutputEncoding::Opa => {
+            let satisfied = result.satisfied();
+            HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
+        }
+        OutputEncoding::Seedwing { format, collapse } => {
+            let rationale = format.format(&result, collapse);
 
-    if result.satisfied() {
-        HttpResponse::Ok().body(rationale)
-    } else {
-        HttpResponse::UnprocessableEntity().body(rationale)
+            if result.satisfied() {
+                HttpResponse::Ok()
+                    .content_type(format.content_type())
+                    .body(rationale)
+            } else {
+                HttpResponse::UnprocessableEntity()
+                    .content_type(format.content_type())
+                    .body(rationale)
+            }
+        }
     }
 }
 
