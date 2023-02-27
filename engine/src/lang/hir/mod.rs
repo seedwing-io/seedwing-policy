@@ -83,7 +83,11 @@ pub struct PatternDefn {
 }
 
 impl PatternDefn {
-    pub fn new(name: Located<String>, ty: Located<Pattern>, parameters: Vec<Located<String>>) -> Self {
+    pub fn new(
+        name: Located<String>,
+        ty: Located<Pattern>,
+        parameters: Vec<Located<String>>,
+    ) -> Self {
         Self {
             name,
             ty,

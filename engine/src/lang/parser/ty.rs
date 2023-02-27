@@ -125,8 +125,8 @@ pub fn doc_comment() -> impl Parser<ParserInput, String, Error = ParserError> + 
     })
 }
 
-pub fn type_definition() -> impl Parser<ParserInput, Located<PatternDefn>, Error = ParserError> + Clone
-{
+pub fn type_definition(
+) -> impl Parser<ParserInput, Located<PatternDefn>, Error = ParserError> + Clone {
     doc_comment()
         .or_not()
         .then(
@@ -147,7 +147,10 @@ pub fn type_definition() -> impl Parser<ParserInput, Located<PatternDefn>, Error
                     });
 
                     let loc = ty_name.span().start()..ty.span().end();
-                    Located::new(PatternDefn::new(ty_name, ty, params.unwrap_or_default()), loc)
+                    Located::new(
+                        PatternDefn::new(ty_name, ty, params.unwrap_or_default()),
+                        loc,
+                    )
                 }),
         )
         .map(|(doc, mut defn)| {
@@ -363,7 +366,10 @@ pub fn ty(
                             }
                         }
                         Postfix::Traversal(step) => {
-                            terms.push(Located::new(Pattern::Traverse(step.clone()), step.location()));
+                            terms.push(Located::new(
+                                Pattern::Traverse(step.clone()),
+                                step.location(),
+                            ));
                         }
                     }
                 }

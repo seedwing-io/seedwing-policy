@@ -229,7 +229,8 @@ impl Pattern {
                 {
                     Box::pin(async move {
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
-                            if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
+                            if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner
+                            {
                                 if let Some(resolved_type) = world.get_by_slot(*slot) {
                                     if resolved_type.parameters().is_empty() {
                                         bindings.bind(param.clone(), resolved_type.clone())
@@ -249,7 +250,10 @@ impl Pattern {
                                                 resolved_type.name(),
                                                 resolved_type.documentation(),
                                                 resolved_type.parameters(),
-                                                InnerPattern::Bound(resolved_type, resolved_bindings),
+                                                InnerPattern::Bound(
+                                                    resolved_type,
+                                                    resolved_bindings,
+                                                ),
                                             )),
                                         )
                                     }
@@ -414,19 +418,21 @@ impl Pattern {
                         ))
                     }
                 })),
-                PrimordialPattern::Function(_sugar, _name, func) => trace.run(Box::pin(async move {
-                    let result = func.call(value.clone(), ctx, bindings, world).await?;
-                    Ok(EvaluationResult::new(
-                        value.clone(),
-                        self.clone(),
-                        Rationale::Function(
-                            result.output().is_some(),
-                            result.rationale().map(Box::new),
-                            result.supporting(),
-                        ),
-                        result.output(),
-                    ))
-                })),
+                PrimordialPattern::Function(_sugar, _name, func) => {
+                    trace.run(Box::pin(async move {
+                        let result = func.call(value.clone(), ctx, bindings, world).await?;
+                        Ok(EvaluationResult::new(
+                            value.clone(),
+                            self.clone(),
+                            Rationale::Function(
+                                result.output().is_some(),
+                                result.rationale().map(Box::new),
+                                result.supporting(),
+                            ),
+                            result.output(),
+                        ))
+                    }))
+                }
             },
             InnerPattern::Const(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
@@ -623,9 +629,13 @@ impl Debug for InnerPattern {
             InnerPattern::Expr(inner) => write!(f, "$({:?})", inner),
             InnerPattern::List(inner) => write!(f, "[{:?}]", inner),
             InnerPattern::Argument(name) => write!(f, "{:?}", name),
-            InnerPattern::Ref(_sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerPattern::Ref(_sugar, slot, bindings) => {
+                write!(f, "ref {:?}<{:?}>", slot, bindings)
+            }
             InnerPattern::Deref(inner) => write!(f, "* {:?}", inner),
-            InnerPattern::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
+            InnerPattern::Bound(primary, bindings) => {
+                write!(f, "bound {:?}<{:?}>", primary, bindings)
+            }
             InnerPattern::Nothing => write!(f, "nothing"),
         }
     }
@@ -702,7 +712,9 @@ impl From<Arc<RuntimeValue>> for Pattern {
             Vec::default(),
             match &*val {
                 RuntimeValue::Null => InnerPattern::Const(ValuePattern::Null),
-                RuntimeValue::String(inner) => InnerPattern::Const(ValuePattern::String(inner.clone())),
+                RuntimeValue::String(inner) => {
+                    InnerPattern::Const(ValuePattern::String(inner.clone()))
+                }
                 RuntimeValue::Integer(inner) => InnerPattern::Const(ValuePattern::Integer(*inner)),
                 RuntimeValue::Decimal(inner) => InnerPattern::Const(ValuePattern::Decimal(*inner)),
                 RuntimeValue::Boolean(inner) => InnerPattern::Const(ValuePattern::Boolean(*inner)),
@@ -715,7 +727,9 @@ impl From<Arc<RuntimeValue>> for Pattern {
                         .map(|e| Arc::new(Self::from(e.clone())))
                         .collect(),
                 ),
-                RuntimeValue::Octets(inner) => InnerPattern::Const(ValuePattern::Octets(inner.clone())),
+                RuntimeValue::Octets(inner) => {
+                    InnerPattern::Const(ValuePattern::Octets(inner.clone()))
+                }
             },
         )
     }

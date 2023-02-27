@@ -295,7 +295,10 @@ impl World {
     }
 
     #[allow(clippy::result_large_err)]
-    fn convert<'c>(&'c self, ty: &'c Located<hir::Pattern>) -> Result<Arc<PatternHandle>, BuildError> {
+    fn convert<'c>(
+        &'c self,
+        ty: &'c Located<hir::Pattern>,
+    ) -> Result<Arc<PatternHandle>, BuildError> {
         match &**ty {
             hir::Pattern::Anything => Ok(Arc::new(
                 PatternHandle::new(None).with(Located::new(mir::Pattern::Anything, ty.location())),
@@ -329,18 +332,15 @@ impl World {
                     ))))
                 }
             }
-            hir::Pattern::Parameter(name) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                mir::Pattern::Argument(name.inner()),
-                name.location(),
-            )))),
-            hir::Pattern::Const(inner) => Ok(Arc::new(
-                PatternHandle::new(None)
-                    .with(Located::new(mir::Pattern::Const(inner.inner()), ty.location())),
-            )),
-            hir::Pattern::Deref(inner) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                mir::Pattern::Deref(self.convert(inner)?),
-                ty.location(),
-            )))),
+            hir::Pattern::Parameter(name) => Ok(Arc::new(PatternHandle::new(None).with(
+                Located::new(mir::Pattern::Argument(name.inner()), name.location()),
+            ))),
+            hir::Pattern::Const(inner) => Ok(Arc::new(PatternHandle::new(None).with(
+                Located::new(mir::Pattern::Const(inner.inner()), ty.location()),
+            ))),
+            hir::Pattern::Deref(inner) => Ok(Arc::new(PatternHandle::new(None).with(
+                Located::new(mir::Pattern::Deref(self.convert(inner)?), ty.location()),
+            ))),
             hir::Pattern::Object(inner) => {
                 let mut fields = Vec::new();
 
@@ -379,7 +379,8 @@ impl World {
                 let primary_type_handle = self.types[&(String::from("lang::or").into())];
 
                 let bindings = vec![Arc::new(
-                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
+                    PatternHandle::new(None)
+                        .with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
                 Ok(Arc::new(PatternHandle::new(None).with(Located::new(
@@ -396,7 +397,8 @@ impl World {
                 let primary_type_handle = self.types[&(String::from("lang::and").into())];
 
                 let bindings = vec![Arc::new(
-                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
+                    PatternHandle::new(None)
+                        .with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
                 Ok(Arc::new(PatternHandle::new(None).with(Located::new(
@@ -436,7 +438,8 @@ impl World {
                 }
 
                 let bindings = vec![Arc::new(
-                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
+                    PatternHandle::new(None)
+                        .with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
                 Ok(Arc::new(PatternHandle::new(None).with(Located::new(
@@ -449,9 +452,10 @@ impl World {
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
-                Ok(Arc::new(
-                    PatternHandle::new(None).with(Located::new(mir::Pattern::List(inner), ty.location())),
-                ))
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::List(inner),
+                    ty.location(),
+                ))))
             }
             hir::Pattern::Nothing => Ok(Arc::new(
                 PatternHandle::new(None).with(Located::new(mir::Pattern::Nothing, ty.location())),

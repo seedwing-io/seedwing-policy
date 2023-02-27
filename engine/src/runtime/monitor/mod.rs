@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
-use crate::lang::lir::{EvalContext, TraceHandle, Pattern};
+use crate::lang::lir::{EvalContext, Pattern, TraceHandle};
 use crate::runtime::{EvaluationResult, Output, RuntimeError};
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
