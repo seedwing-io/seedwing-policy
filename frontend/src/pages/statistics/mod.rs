@@ -149,9 +149,9 @@ struct StatisticsProps {
 #[derive(PartialEq, Clone)]
 struct RenderableSnapshot(Snapshot);
 
-impl TableRenderer for RenderableSnapshot {
-    fn render(&self, column: ColumnIndex) -> Html {
-        match column.index {
+impl TableEntryRenderer for RenderableSnapshot {
+    fn render_cell(&self, context: &CellContext) -> Cell {
+        match context.column {
             0 => html!(&self.0.name),
             1 => html!(&self.0.invocations),
             2 => html!(&self.0.satisfied_invocations),
@@ -162,6 +162,7 @@ impl TableRenderer for RenderableSnapshot {
             7 => html!(&format_ns(self.0.stddev)),
             _ => html!(),
         }
+        .into()
     }
 }
 

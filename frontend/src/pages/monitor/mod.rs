@@ -6,7 +6,6 @@ use seedwing_policy_engine::runtime::monitor::{
     SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput,
 };
 use serde_json::Value;
-use std::cmp::Ordering;
 use yew::prelude::*;
 use yew::{html, use_memo, Html};
 use yew_websocket::macros::Json;
@@ -123,9 +122,9 @@ impl PartialEq<Self> for MonitorEntry {
     }
 }
 
-impl TableRenderer for MonitorEntry {
-    fn render(&self, column: ColumnIndex) -> Html {
-        match column.index {
+impl TableEntryRenderer for MonitorEntry {
+    fn render_cell(&self, context: &CellContext) -> Cell {
+        match context.column {
             0 => {
                 html!(
                     <>
@@ -153,6 +152,7 @@ impl TableRenderer for MonitorEntry {
             }
             _ => html!(),
         }
+        .into()
     }
 }
 

@@ -203,7 +203,7 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
                 <TextInput {onchange} value="dog" required=true placeholder="Name of the pattern to evaluate" />
             </ToolbarItem>
             <ToolbarItem>
-                <Button label="Evaluate" disabled={eval.loading} variant={Variant::Primary} {onclick}/>
+                <Button label="Evaluate" disabled={eval.loading} variant={ButtonVariant::Primary} {onclick}/>
             </ToolbarItem>
         </Toolbar>
         {

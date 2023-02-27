@@ -1015,7 +1015,7 @@ dependencies = [
 [[package]]
 name = "monaco"
 version = "0.3.0"
-source = "git+https://github.com/siku2/rust-monaco#f913990ef3e62d5f22a95a9d6fd6e7b62aea8cc8"
+source = "git+https://github.com/siku2/rust-monaco?rev=794a4cc7819f9ed7eb06559e24f75a41e23cf22a#794a4cc7819f9ed7eb06559e24f75a41e23cf22a"
 dependencies = [
  "js-sys",
  "paste",
@@ -1182,8 +1182,8 @@ checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 
 [[package]]
 name = "patternfly-yew"
-version = "0.4.0-alpha.1"
-source = "git+https://github.com/ctron/patternfly-yew?rev=a2a5d262e9271904b0a500294350a72377374bba#a2a5d262e9271904b0a500294350a72377374bba"
+version = "0.4.0-alpha.2"
+source = "git+https://github.com/ctron/patternfly-yew?rev=56299f5da42551677415a34a2bb2f49ef142b444#56299f5da42551677415a34a2bb2f49ef142b444"
 dependencies = [
  "chrono",
  "gloo-events",

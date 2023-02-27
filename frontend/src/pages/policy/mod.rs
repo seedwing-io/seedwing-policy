@@ -169,12 +169,12 @@ pub fn component(props: &ComponentProps) -> Html {
           <Toolbar>
               <ToolbarItem>
                 <Link<AppRoute> target={monitor}>
-                  <Button label="Monitor" variant={Variant::Secondary}/>
+                  <Button label="Monitor" variant={ButtonVariant::Secondary}/>
                 </Link<AppRoute>>
               </ToolbarItem>
               <ToolbarItem>
                 <Link<AppRoute> target={statistics}>
-                  <Button label="Statistics" variant={Variant::Secondary}/>
+                  <Button label="Statistics" variant={ButtonVariant::Secondary}/>
                 </Link<AppRoute>>
               </ToolbarItem>
           </Toolbar>
@@ -334,7 +334,7 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
                     <Title level={Level::H2}> { "Experiment" } </Title>
                 </ToolbarItem>
                 <ToolbarItem modifiers={[ToolbarElementModifier::Right]}>
-                    <Button label="POST" variant={Variant::Secondary} {onclick} disabled={eval.loading} />
+                    <Button label="POST" variant={ButtonVariant::Secondary} {onclick} disabled={eval.loading} />
                 </ToolbarItem>
             </Toolbar>
             <Panel>
