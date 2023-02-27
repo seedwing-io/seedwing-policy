@@ -1,8 +1,8 @@
 use crate::core::Function;
 
 use crate::lang::lir;
-use crate::lang::lir::{Bindings, EvalContext, TraceConfig, Type};
-use crate::lang::mir::TypeHandle;
+use crate::lang::lir::{Bindings, EvalContext, TraceConfig, Pattern};
+use crate::lang::mir::PatternHandle;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
 
 use crate::runtime::rationale::Rationale;
@@ -32,7 +32,7 @@ pub use response::Response;
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {
     #[error("type ({2}) not found (@ {0}:{1:?})")]
-    TypeNotFound(SourceLocation, SourceSpan, String),
+    PatternNotFound(SourceLocation, SourceSpan, String),
     #[error("failed to parse (@ {0}): {1}")]
     Parser(SourceLocation, ParserError),
     #[error("argument mismatch (@ {0}:{1:?})")]
@@ -42,7 +42,7 @@ pub enum BuildError {
 impl BuildError {
     pub fn source_location(&self) -> SourceLocation {
         match self {
-            BuildError::TypeNotFound(loc, _, _) => loc.clone(),
+            BuildError::PatternNotFound(loc, _, _) => loc.clone(),
             BuildError::Parser(loc, _) => loc.clone(),
             BuildError::ArgumentMismatch(loc, _) => loc.clone(),
         }
@@ -50,7 +50,7 @@ impl BuildError {
 
     pub fn span(&self) -> SourceSpan {
         match self {
-            BuildError::TypeNotFound(_, span, _) => span.clone(),
+            BuildError::PatternNotFound(_, span, _) => span.clone(),
             BuildError::Parser(_, err) => err.span(),
             BuildError::ArgumentMismatch(_, span) => span.clone(),
         }
@@ -79,7 +79,7 @@ impl Output {
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
     input: Arc<RuntimeValue>,
-    ty: Arc<Type>,
+    ty: Arc<Pattern>,
     rationale: Rationale,
     output: Output,
     trace: Option<TraceResult>,
@@ -88,7 +88,7 @@ pub struct EvaluationResult {
 impl EvaluationResult {
     pub fn new(
         input: Arc<RuntimeValue>,
-        ty: Arc<Type>,
+        ty: Arc<Pattern>,
         rationale: Rationale,
         output: Output,
     ) -> Self {
@@ -105,7 +105,7 @@ impl EvaluationResult {
         self.rationale.satisfied()
     }
 
-    pub fn ty(&self) -> Arc<Type> {
+    pub fn ty(&self) -> Arc<Pattern> {
         self.ty.clone()
     }
 
@@ -142,10 +142,10 @@ impl EvaluationResult {
 pub enum RuntimeError {
     #[error("invalid state")]
     InvalidState,
-    #[error("no such type: {0}")]
-    NoSuchType(TypeName),
+    #[error("no such pattern: {0}")]
+    NoSuchPattern(PatternName),
     #[error("no such type slot: {0}")]
-    NoSuchTypeSlot(usize),
+    NoSuchPatternSlot(usize),
     #[error("error parsing JSON file {0}: {1}")]
     JsonError(PathBuf, serde_json::Error),
     #[error("error parsing YAML file {0}: {1}")]
@@ -411,8 +411,8 @@ mod test {
 
 #[derive(Clone, Debug)]
 pub struct World {
-    types: HashMap<TypeName, usize>,
-    type_slots: Vec<Arc<Type>>,
+    types: HashMap<PatternName, usize>,
+    type_slots: Vec<Arc<Pattern>>,
     trace: TraceConfig,
 }
 
@@ -431,7 +431,7 @@ impl World {
         }
     }
 
-    pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Type>> {
+    pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>> {
         if slot < self.type_slots.len() {
             Some(self.type_slots[slot].clone())
         } else {
@@ -439,7 +439,7 @@ impl World {
         }
     }
 
-    pub(crate) fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
+    pub(crate) fn add(&mut self, path: PatternName, handle: Arc<PatternHandle>) {
         let ty = handle.ty();
         let name = handle.name();
         let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
@@ -459,24 +459,24 @@ impl World {
         mut ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Arc::new(value.into());
-        let path = TypeName::from(path.into());
+        let path = PatternName::from(path.into());
         let slot = self.types.get(&path);
         if let Some(slot) = slot {
             let ty = self.type_slots[*slot].clone();
             let bindings = Bindings::default();
             ty.evaluate(value.clone(), &ctx, &bindings, self).await
         } else {
-            Err(RuntimeError::NoSuchType(path))
+            Err(RuntimeError::NoSuchPattern(path))
         }
     }
 
     pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
         let name = name.into();
-        let path = TypeName::from(name);
+        let path = PatternName::from(name);
 
         if let Some(slot) = self.types.get(&path) {
             let ty = self.type_slots[*slot].clone();
-            return Some(Component::Type(ty));
+            return Some(Component::Pattern(ty));
         }
 
         let mut module_handle = ModuleHandle::new();
@@ -528,12 +528,12 @@ impl ModuleHandle {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct TypeName {
+pub struct PatternName {
     package: Option<PackagePath>,
     name: String,
 }
 
-impl Serialize for TypeName {
+impl Serialize for PatternName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -542,7 +542,7 @@ impl Serialize for TypeName {
     }
 }
 
-impl<'de> Deserialize<'de> for TypeName {
+impl<'de> Deserialize<'de> for PatternName {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -552,13 +552,13 @@ impl<'de> Deserialize<'de> for TypeName {
     }
 }
 
-impl Display for TypeName {
+impl Display for PatternName {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_type_str())
     }
 }
 
-impl TypeName {
+impl PatternName {
     pub fn new(package: Option<PackagePath>, name: String) -> Self {
         Self { package, name }
     }
@@ -598,7 +598,7 @@ impl TypeName {
     }
 }
 
-impl From<String> for TypeName {
+impl From<String> for PatternName {
     fn from(path: String) -> Self {
         let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
         if segments.is_empty() {
@@ -708,11 +708,11 @@ impl PackagePath {
         self.path.len() > 1
     }
 
-    pub fn type_name(&self, name: String) -> TypeName {
+    pub fn type_name(&self, name: String) -> PatternName {
         if self.path.is_empty() {
-            TypeName::new(None, name)
+            PatternName::new(None, name)
         } else {
-            TypeName::new(Some(self.clone()), name)
+            PatternName::new(Some(self.clone()), name)
         }
     }
 
@@ -758,7 +758,7 @@ impl From<SourceLocation> for PackagePath {
 #[derive(Debug)]
 pub enum Component {
     Module(ModuleHandle),
-    Type(Arc<Type>),
+    Pattern(Arc<Pattern>),
 }
 
 /// Tracing information such as evaluation time.

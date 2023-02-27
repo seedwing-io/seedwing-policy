@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
-use crate::lang::lir::{EvalContext, TraceHandle, Type};
+use crate::lang::lir::{EvalContext, TraceHandle, Pattern};
 use crate::runtime::{EvaluationResult, Output, RuntimeError};
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub enum MonitorEvent {
 }
 
 impl MonitorEvent {
-    pub fn ty(&self) -> Arc<Type> {
+    pub fn ty(&self) -> Arc<Pattern> {
         match self {
             MonitorEvent::Start(inner) => inner.ty.clone(),
             MonitorEvent::Complete(inner) => inner.ty.clone(),
@@ -33,7 +33,7 @@ pub struct StartEvent {
     pub correlation: u64,
     pub timestamp: DateTime<Utc>,
     pub input: Arc<RuntimeValue>,
-    pub ty: Arc<Type>,
+    pub ty: Arc<Pattern>,
 }
 
 impl From<StartEvent> for MonitorEvent {
@@ -52,7 +52,7 @@ impl From<CompleteEvent> for MonitorEvent {
 pub struct CompleteEvent {
     pub correlation: u64,
     pub timestamp: DateTime<Utc>,
-    pub ty: Arc<Type>,
+    pub ty: Arc<Pattern>,
     pub completion: Completion,
     pub elapsed: Option<Duration>,
 }

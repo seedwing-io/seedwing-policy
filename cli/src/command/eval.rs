@@ -47,7 +47,7 @@ impl Eval {
             }
             Err(e) => {
                 match e {
-                    RuntimeError::NoSuchType(name) => {
+                    RuntimeError::NoSuchPattern(name) => {
                         println!("error: no such pattern: {}", name.as_type_str());
                     }
                     _ => {

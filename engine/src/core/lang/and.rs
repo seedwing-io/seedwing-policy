@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType};
+use crate::lang::lir::{Bindings, EvalContext, InnerPattern};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -35,7 +35,7 @@ impl Function for And {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(terms) = bindings.get(TERMS) {
-                if let InnerType::List(terms) = terms.inner() {
+                if let InnerPattern::List(terms) = terms.inner() {
                     let mut satisified = true;
                     let mut rationale = Vec::new();
                     let mut terms = terms.clone();

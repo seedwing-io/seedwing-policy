@@ -1,4 +1,4 @@
-use crate::lang::lir::Type;
+use crate::lang::lir::Pattern;
 use crate::runtime::monitor::{CompleteEvent, Completion, MonitorEvent, StartEvent};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
@@ -43,7 +43,7 @@ impl Monitor {
         self.correlation.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
+    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
         let event = StartEvent {
             correlation,
             timestamp: Utc::now(),
@@ -56,7 +56,7 @@ impl Monitor {
     pub async fn complete_ok(
         &self,
         correlation: u64,
-        ty: Arc<Type>,
+        ty: Arc<Pattern>,
         output: Output,
         elapsed: Option<Duration>,
     ) {
@@ -73,7 +73,7 @@ impl Monitor {
     pub async fn complete_err(
         &self,
         correlation: u64,
-        ty: Arc<Type>,
+        ty: Arc<Pattern>,
         err: &RuntimeError,
         elapsed: Option<Duration>,
     ) {
@@ -119,7 +119,7 @@ pub struct Subscriber {
 }
 
 impl Subscriber {
-    pub fn interested_in(&self, ty: Arc<Type>) -> bool {
+    pub fn interested_in(&self, ty: Arc<Pattern>) -> bool {
         if let Some(name) = ty.name() {
             name.as_type_str().starts_with(&self.path)
         } else {

@@ -1,17 +1,17 @@
 
-== Primordial Types & Values
+== Primordial Patterns & Values
 
 At the core of every pattern ultimately lies _primordials_.
 They can be viewed as the foundational atoms from which all else grows.
 
-The primordial types are:
+The primordial patterns are:
 
 * boolean
 * string
 * integer
 * decimal
 
-=== The `boolean` type
+=== The `boolean` pattern 
 
 The `boolean` primordial matches any boolean value; either `true` or `false`.
 
@@ -25,7 +25,7 @@ pattern dog = {
 }
 ```
 
-In addition to specifying the general `boolean` type, the values of `true` and `false` may also be used, to restrict acceptable inputs to exactly match `true` or `false`.
+In addition to specifying the general `boolean` pattern, the values of `true` and `false` may also be used, to restrict acceptable inputs to exactly match `true` or `false`.
 
 ```
 pattern trained-dog = {
@@ -33,9 +33,9 @@ pattern trained-dog = {
 }
 ```
 
-=== The `string` Type
+=== The `string` pattern
 
-The `string` primordial type matches any string as input.
+The `string` primordial pattern matches any string as input.
 
 For instance, this pattern `named` will match any string:
 
@@ -51,7 +51,7 @@ For example, this pattern `named-bob` will only match the string `"bob"`:
 pattern named-bob = "bob"
 ```
 
-=== The `integer` type
+=== The `integer` pattern 
 
 The `integer` primordial matches any integral value, signed or unsigned.
 
@@ -65,7 +65,7 @@ A specific integer value may be used to match _exactly_ that specific value.
 pattern old-enough-to-retire = 65
 ```
 
-=== The `decimal` type
+=== The `decimal` pattern
 
 The `decimal` primordial matches any number that involves a decimal component.
 

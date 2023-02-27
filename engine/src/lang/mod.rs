@@ -1,6 +1,6 @@
 use crate::core::Function;
 
-use crate::runtime::TypeName;
+use crate::runtime::PatternName;
 use serde::{Deserialize, Serialize};
 
 use std::hash::{Hash, Hasher};
@@ -24,8 +24,8 @@ pub enum SyntacticSugar {
     Not,
 }
 
-impl From<TypeName> for SyntacticSugar {
-    fn from(name: TypeName) -> Self {
+impl From<PatternName> for SyntacticSugar {
+    fn from(name: PatternName) -> Self {
         match name.as_type_str().as_str() {
             "lang::and" => Self::And,
             "lang::or" => Self::Or,
@@ -39,15 +39,15 @@ impl From<TypeName> for SyntacticSugar {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum PrimordialType {
+pub enum PrimordialPattern {
     Integer,
     Decimal,
     Boolean,
     String,
-    Function(SyntacticSugar, TypeName, #[serde(skip)] Arc<dyn Function>),
+    Function(SyntacticSugar, PatternName, #[serde(skip)] Arc<dyn Function>),
 }
 
-impl PrimordialType {
+impl PrimordialPattern {
     fn order(&self) -> u8 {
         match self {
             Self::Function(_, _, f) => f.order(),
@@ -58,19 +58,19 @@ impl PrimordialType {
     }
 }
 
-impl Hash for PrimordialType {
+impl Hash for PrimordialPattern {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            PrimordialType::Integer => "integer".hash(state),
-            PrimordialType::Decimal => "decimal".hash(state),
-            PrimordialType::Boolean => "boolean".hash(state),
-            PrimordialType::String => "string".hash(state),
-            PrimordialType::Function(_, name, _) => name.hash(state),
+            PrimordialPattern::Integer => "integer".hash(state),
+            PrimordialPattern::Decimal => "decimal".hash(state),
+            PrimordialPattern::Boolean => "boolean".hash(state),
+            PrimordialPattern::String => "string".hash(state),
+            PrimordialPattern::Function(_, name, _) => name.hash(state),
         }
     }
 }
 
-impl PartialEq for PrimordialType {
+impl PartialEq for PrimordialPattern {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Integer, Self::Integer) => true,

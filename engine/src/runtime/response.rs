@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::{rationale::Rationale, EvaluationResult, TypeName};
+use super::{rationale::Rationale, EvaluationResult, PatternName};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<TypeName>,
+    name: Option<PatternName>,
     input: Value,
     satisfied: bool,
     #[serde(skip_serializing_if = "String::is_empty")]

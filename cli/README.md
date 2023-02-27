@@ -22,7 +22,7 @@ $ cargo r -q --bin seedwing-policy-cli -- \
      --input input.txt \
      --name nr-rule::nr
 evaluate pattern: nr-rule::nr
-Type: nr-rule::nr
+Pattern: nr-rule::nr
 Satisfied: true
 Value:
   18
@@ -77,13 +77,13 @@ $ cargo r -q --bin seedwing-policy-cli -- \
      --input input.yaml \
      --name yaml-rule::nr
 evaluate pattern: yaml-rule::nr
-Type: yaml-rule::nr
+Pattern: yaml-rule::nr
 Satisfied: true
 Value:
   nr: <<integer>>
 Rationale:
   field: nr
-    Type: <none>
+    Pattern: <none>
     Satisfied: true
     Value:
       18

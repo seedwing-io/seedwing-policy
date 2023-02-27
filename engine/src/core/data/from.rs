@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::data::DataSource;
-use crate::lang::lir::{Bindings, EvalContext, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, ValuePattern};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -55,7 +55,7 @@ impl Function for From {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(val) = bindings.get(PATH) {
-                if let Some(ValueType::String(path)) = val.try_get_resolved_value() {
+                if let Some(ValuePattern::String(path)) = val.try_get_resolved_value() {
                     for ds in &*self.data_sources {
                         if let Ok(Some(value)) = ds.get(path.clone()) {
                             return Ok(Output::Transform(Arc::new(value)).into());

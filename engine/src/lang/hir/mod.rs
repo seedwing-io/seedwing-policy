@@ -1,10 +1,10 @@
 use crate::data::DataSource;
-use crate::lang::lir::ValueType;
+use crate::lang::lir::ValuePattern;
 use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
 use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::{BuildError, PackagePath, TypeName};
+use crate::runtime::{BuildError, PackagePath, PatternName};
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub enum Expr {
     SelfLiteral(#[serde(skip)] Location),
     /* self */
-    Value(Located<ValueType>),
+    Value(Located<ValuePattern>),
     Add(Box<Located<Expr>>, Box<Located<Expr>>),
     Subtract(Box<Located<Expr>>, Box<Located<Expr>>),
     Multiply(Box<Located<Expr>>, Box<Located<Expr>>),
@@ -75,15 +75,15 @@ impl Expr {
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeDefn {
+pub struct PatternDefn {
     name: Located<String>,
-    ty: Located<Type>,
+    ty: Located<Pattern>,
     parameters: Vec<Located<String>>,
     documentation: Option<String>,
 }
 
-impl TypeDefn {
-    pub fn new(name: Located<String>, ty: Located<Type>, parameters: Vec<Located<String>>) -> Self {
+impl PatternDefn {
+    pub fn new(name: Located<String>, ty: Located<Pattern>, parameters: Vec<Located<String>>) -> Self {
         Self {
             name,
             ty,
@@ -100,15 +100,15 @@ impl TypeDefn {
         self.name.clone()
     }
 
-    pub fn ty(&self) -> &Located<Type> {
+    pub fn ty(&self) -> &Located<Pattern> {
         &self.ty
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<PatternName>> {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<PatternName>>>) {
         self.ty.qualify_types(types);
     }
 
@@ -118,22 +118,22 @@ impl TypeDefn {
 }
 
 #[derive(Clone)]
-pub enum Type {
+pub enum Pattern {
     Anything,
-    Ref(SyntacticSugar, Located<TypeName>, Vec<Located<Type>>),
-    Deref(Box<Located<Type>>),
+    Ref(SyntacticSugar, Located<PatternName>, Vec<Located<Pattern>>),
+    Deref(Box<Located<Pattern>>),
     Parameter(Located<String>),
-    Const(Located<ValueType>),
-    Object(ObjectType),
+    Const(Located<ValuePattern>),
+    Object(ObjectPattern),
     Expr(Located<Expr>),
-    Join(Vec<Located<Type>>),
-    Meet(Vec<Located<Type>>),
-    List(Vec<Located<Type>>),
+    Join(Vec<Located<Pattern>>),
+    Meet(Vec<Located<Pattern>>),
+    List(Vec<Located<Pattern>>),
     // postfix
-    Chain(Vec<Located<Type>>),
+    Chain(Vec<Located<Pattern>>),
     Traverse(Located<String>),
-    Refinement(Box<Located<Type>>),
-    Not(Box<Located<Type>>),
+    Refinement(Box<Located<Pattern>>),
+    Not(Box<Located<Pattern>>),
     Nothing,
 }
 
@@ -145,33 +145,33 @@ pub enum MemberQualifier {
     N(Located<u32>),
 }
 
-impl Type {
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
+impl Pattern {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<PatternName>> {
         match self {
-            Type::Anything => Vec::default(),
-            Type::Ref(_, inner, arguuments) => once(inner.clone())
+            Pattern::Anything => Vec::default(),
+            Pattern::Ref(_, inner, arguuments) => once(inner.clone())
                 .chain(arguuments.iter().flat_map(|e| e.referenced_types()))
                 .collect(),
-            Type::Const(_) => Vec::default(),
-            Type::Object(inner) => inner.referenced_types(),
-            Type::Expr(_) => Vec::default(),
-            Type::Join(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
-            Type::Meet(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
-            Type::Refinement(refinement) => refinement.referenced_types(),
-            Type::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
-            Type::Chain(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
-            Type::Not(inner) => inner.referenced_types(),
-            Type::Deref(inner) => inner.referenced_types(),
-            Type::Traverse(_) => Vec::default(),
-            Type::Nothing => Vec::default(),
-            Type::Parameter(_) => Vec::default(),
+            Pattern::Const(_) => Vec::default(),
+            Pattern::Object(inner) => inner.referenced_types(),
+            Pattern::Expr(_) => Vec::default(),
+            Pattern::Join(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Pattern::Meet(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Pattern::Refinement(refinement) => refinement.referenced_types(),
+            Pattern::List(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Pattern::Chain(terms) => terms.iter().flat_map(|e| e.referenced_types()).collect(),
+            Pattern::Not(inner) => inner.referenced_types(),
+            Pattern::Deref(inner) => inner.referenced_types(),
+            Pattern::Traverse(_) => Vec::default(),
+            Pattern::Nothing => Vec::default(),
+            Pattern::Parameter(_) => Vec::default(),
         }
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<PatternName>>>) {
         match self {
-            Type::Anything => {}
-            Type::Ref(_, ref mut name, arguments) => {
+            Pattern::Anything => {}
+            Pattern::Ref(_, ref mut name, arguments) => {
                 if !name.is_qualified() {
                     // it's a simple single-word name, needs qualifying, perhaps.
                     if let Some(Some(qualified)) = types.get(name.name()) {
@@ -182,70 +182,70 @@ impl Type {
                     arg.qualify_types(types);
                 }
             }
-            Type::Const(_) => {}
-            Type::Object(inner) => {
+            Pattern::Const(_) => {}
+            Pattern::Object(inner) => {
                 inner.qualify_types(types);
             }
-            Type::Expr(_) => {}
-            Type::Join(terms) => {
+            Pattern::Expr(_) => {}
+            Pattern::Join(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Meet(terms) => {
+            Pattern::Meet(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Refinement(refinement) => {
+            Pattern::Refinement(refinement) => {
                 refinement.qualify_types(types);
             }
-            Type::List(terms) => {
+            Pattern::List(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Chain(terms) => {
+            Pattern::Chain(terms) => {
                 terms.iter_mut().for_each(|e| e.qualify_types(types));
             }
-            Type::Not(inner) => inner.qualify_types(types),
-            Type::Deref(inner) => inner.qualify_types(types),
-            Type::Traverse(_) => {}
-            Type::Nothing => {}
-            Type::Parameter(_) => {}
+            Pattern::Not(inner) => inner.qualify_types(types),
+            Pattern::Deref(inner) => inner.qualify_types(types),
+            Pattern::Traverse(_) => {}
+            Pattern::Nothing => {}
+            Pattern::Parameter(_) => {}
         }
     }
 }
 
-impl Debug for Type {
+impl Debug for Pattern {
     #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Anything => write!(f, "Anything"),
-            Type::Ref(_, r, args) => write!(f, "{:?}<{:?}>", r, args),
-            Type::Const(value) => write!(f, "{:?}", value),
-            Type::Join(terms) => write!(f, "Join({:?})", terms),
-            Type::Meet(terms) => write!(f, "Meet({:?})", terms),
-            Type::Nothing => write!(f, "Nothing"),
-            Type::Object(obj) => write!(f, "{:?}", obj),
-            Type::Refinement(ty) => write!(f, "({:?})", ty),
-            Type::List(ty) => write!(f, "[{:?}]", ty),
-            Type::Expr(expr) => write!(f, "$({:?})", expr),
-            Type::Chain(terms) => write!(f, "{:?}", terms),
-            Type::Traverse(step) => write!(f, ".{}", step.inner()),
-            Type::Not(inner) => write!(f, "!{:?}", inner),
-            Type::Deref(inner) => write!(f, "*{:?}", inner),
-            Type::Parameter(name) => write!(f, "{:?}", name),
+            Pattern::Anything => write!(f, "Anything"),
+            Pattern::Ref(_, r, args) => write!(f, "{:?}<{:?}>", r, args),
+            Pattern::Const(value) => write!(f, "{:?}", value),
+            Pattern::Join(terms) => write!(f, "Join({:?})", terms),
+            Pattern::Meet(terms) => write!(f, "Meet({:?})", terms),
+            Pattern::Nothing => write!(f, "Nothing"),
+            Pattern::Object(obj) => write!(f, "{:?}", obj),
+            Pattern::Refinement(ty) => write!(f, "({:?})", ty),
+            Pattern::List(ty) => write!(f, "[{:?}]", ty),
+            Pattern::Expr(expr) => write!(f, "$({:?})", expr),
+            Pattern::Chain(terms) => write!(f, "{:?}", terms),
+            Pattern::Traverse(step) => write!(f, ".{}", step.inner()),
+            Pattern::Not(inner) => write!(f, "!{:?}", inner),
+            Pattern::Deref(inner) => write!(f, "*{:?}", inner),
+            Pattern::Parameter(name) => write!(f, "{:?}", name),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ObjectType {
+pub struct ObjectPattern {
     fields: Vec<Located<Field>>,
 }
 
-impl Default for ObjectType {
+impl Default for ObjectPattern {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ObjectType {
+impl ObjectPattern {
     pub fn new() -> Self {
         Self { fields: vec![] }
     }
@@ -255,14 +255,14 @@ impl ObjectType {
         self
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<PatternName>> {
         self.fields
             .iter()
             .flat_map(|e| e.referenced_types())
             .collect()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<PatternName>>>) {
         for field in &mut self.fields {
             field.qualify_types(types);
         }
@@ -276,12 +276,12 @@ impl ObjectType {
 #[derive(Clone, Debug)]
 pub struct Field {
     name: Located<String>,
-    ty: Located<Type>,
+    ty: Located<Pattern>,
     optional: bool,
 }
 
 impl Field {
-    pub fn new(name: Located<String>, ty: Located<Type>, optional: bool) -> Self {
+    pub fn new(name: Located<String>, ty: Located<Pattern>, optional: bool) -> Self {
         Self { name, ty, optional }
     }
 
@@ -289,7 +289,7 @@ impl Field {
         &self.name
     }
 
-    pub fn ty(&self) -> &Located<Type> {
+    pub fn ty(&self) -> &Located<Pattern> {
         &self.ty
     }
 
@@ -297,11 +297,11 @@ impl Field {
         self.optional
     }
 
-    pub(crate) fn referenced_types(&self) -> Vec<Located<TypeName>> {
+    pub(crate) fn referenced_types(&self) -> Vec<Located<PatternName>> {
         self.ty.referenced_types()
     }
 
-    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<TypeName>>>) {
+    pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<PatternName>>>) {
         self.ty.qualify_types(types)
     }
 }
@@ -480,7 +480,7 @@ impl<'b> Lowerer<'b> {
                         )),
                     )
                 }))
-                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+                .collect::<HashMap<String, Option<Located<PatternName>>>>();
 
             //visible_types.insert("int".into(), None);
             for primordial in world.known_world() {
@@ -492,7 +492,7 @@ impl<'b> Lowerer<'b> {
 
                 for ty in &referenced_types {
                     if !ty.is_qualified() && !visible_types.contains_key(ty.name()) {
-                        errors.push(BuildError::TypeNotFound(
+                        errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             ty.location().span(),
                             ty.clone().as_type_str(),
@@ -510,7 +510,7 @@ impl<'b> Lowerer<'b> {
 
         let mut known_world = world.known_world();
 
-        //world.push(TypeName::new(None, "int".into()));
+        //world.push(PatternName::new(None, "int".into()));
 
         //world.push("int".into());
 
@@ -522,7 +522,7 @@ impl<'b> Lowerer<'b> {
                     .function_names()
                     .iter()
                     .map(|e| package_path.type_name(e.clone()))
-                    .collect::<Vec<TypeName>>(),
+                    .collect::<Vec<PatternName>>(),
             );
         }
 
@@ -533,7 +533,7 @@ impl<'b> Lowerer<'b> {
                 .types()
                 .iter()
                 .map(|e| unit_path.type_name(e.name().inner()))
-                .collect::<Vec<TypeName>>();
+                .collect::<Vec<PatternName>>();
 
             known_world.extend_from_slice(&unit_types);
         }
@@ -549,7 +549,7 @@ impl<'b> Lowerer<'b> {
 
                 for each in referenced {
                     if !known_world.contains(&each.clone().inner()) {
-                        errors.push(BuildError::TypeNotFound(
+                        errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             each.location().span(),
                             each.clone().as_type_str(),

@@ -1,5 +1,5 @@
 use crate::core::{EvalContext, Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerType, Type, ValueType};
+use crate::lang::lir::{Bindings, InnerPattern, Pattern, ValuePattern};
 use crate::package::Package;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -42,7 +42,7 @@ impl Function for DelayMs {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(delay) = bindings.get(DELAY) {
-                if let Some(ValueType::Integer(val)) = delay.try_get_resolved_value() {
+                if let Some(ValuePattern::Integer(val)) = delay.try_get_resolved_value() {
                     sleep(Duration::from_millis(val as u64))
                 }
             }

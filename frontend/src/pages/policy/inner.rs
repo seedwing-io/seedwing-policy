@@ -1,11 +1,11 @@
 use crate::pages::AppRoute;
 use itertools::intersperse;
 use seedwing_policy_engine::api::{
-    Field, InnerTypeInformation, ObjectType, PrimordialType, TypeInformation, TypeOrReference,
-    TypeRef,
+    Field, InnerPatternInformation, ObjectPattern, PrimordialPattern, PatternInformation, PatternOrReference,
+    PatternRef,
 };
 use seedwing_policy_engine::lang::{
-    lir::{Expr, ValueType},
+    lir::{Expr, ValuePattern},
     SyntacticSugar,
 };
 use std::rc::Rc;
@@ -14,7 +14,7 @@ use yew_nested_router::components::Link;
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
-    pub r#type: Rc<TypeInformation>,
+    pub r#type: Rc<PatternInformation>,
 }
 
 #[function_component(Inner)]
@@ -28,23 +28,23 @@ pub fn inner(props: &Props) -> Html {
     )
 }
 
-fn render_inner(info: &InnerTypeInformation) -> Html {
+fn render_inner(info: &InnerPatternInformation) -> Html {
     match info {
-        InnerTypeInformation::Anything => "anything".into(),
-        InnerTypeInformation::Primordial(primordial) => render_primordial(primordial),
-        InnerTypeInformation::Argument(arg) => html!(<>{arg}</>),
-        InnerTypeInformation::Deref(inner) => html!(<span>{"*"} {render_type(inner)}</span>),
-        InnerTypeInformation::Const(val) => render_val(val),
-        InnerTypeInformation::Bound(primary, bindings) => {
+        InnerPatternInformation::Anything => "anything".into(),
+        InnerPatternInformation::Primordial(primordial) => render_primordial(primordial),
+        InnerPatternInformation::Argument(arg) => html!(<>{arg}</>),
+        InnerPatternInformation::Deref(inner) => html!(<span>{"*"} {render_type(inner)}</span>),
+        InnerPatternInformation::Const(val) => render_val(val),
+        InnerPatternInformation::Bound(primary, bindings) => {
             render_ty_and_bindings(primary, bindings.bindings.values())
         }
-        InnerTypeInformation::Ref(sugar, ty, bindings) => render_ref(sugar, ty, bindings),
-        InnerTypeInformation::Object(object) => render_object(object),
-        InnerTypeInformation::List(terms) => render_list(terms),
-        InnerTypeInformation::Expr(expr) => {
+        InnerPatternInformation::Ref(sugar, ty, bindings) => render_ref(sugar, ty, bindings),
+        InnerPatternInformation::Object(object) => render_object(object),
+        InnerPatternInformation::List(terms) => render_list(terms),
+        InnerPatternInformation::Expr(expr) => {
             html!( <> { "$(" } { render_expr(expr) } { ")" } </> )
         }
-        InnerTypeInformation::Nothing => "nothing".into(),
+        InnerPatternInformation::Nothing => "nothing".into(),
     }
 }
 
@@ -73,29 +73,29 @@ fn render_expr_2(lhs: &Expr, op: &str, rhs: &Expr) -> Html {
     html!( <> { render_expr(lhs) } { " " } { op } { " " } { render_expr(rhs) } </> )
 }
 
-fn render_val(val: &ValueType) -> Html {
+fn render_val(val: &ValuePattern) -> Html {
     html!(
         <span class="sw-in-value"> {
             match val {
-                ValueType::Null => "null".into(),
-                ValueType::String(val) => {
+                ValuePattern::Null => "null".into(),
+                ValuePattern::String(val) => {
                     html!(<>
                         {"\""} { val.replace("\\","\\\\").replace("\"", "\\\"") } {"\""}
                     </>)
                 }
-                ValueType::Integer(val) => val.into(),
-                ValueType::Decimal(val) => val.into(),
-                ValueType::Boolean(val) => val.into(),
-                ValueType::List(val) => html!(<>
+                ValuePattern::Integer(val) => val.into(),
+                ValuePattern::Decimal(val) => val.into(),
+                ValuePattern::Boolean(val) => val.into(),
+                ValuePattern::List(val) => html!(<>
                     { for intersperse(val.iter().map(|v| render_val(&v)), html!(", ")) }
                 </>),
-                ValueType::Octets(val) => html!(<span>{ val.len() } { "octets"}</span>),
+                ValuePattern::Octets(val) => html!(<span>{ val.len() } { "octets"}</span>),
             }
         } </span>
     )
 }
 
-fn render_list(terms: &Vec<TypeOrReference>) -> Html {
+fn render_list(terms: &Vec<PatternOrReference>) -> Html {
     html!(
         <span>
         { "[" }
@@ -105,9 +105,9 @@ fn render_list(terms: &Vec<TypeOrReference>) -> Html {
     )
 }
 
-fn render_ty_and_bindings<'a, I>(ty: &TypeOrReference, bindings: I) -> Html
+fn render_ty_and_bindings<'a, I>(ty: &PatternOrReference, bindings: I) -> Html
 where
-    I: Iterator<Item = &'a TypeOrReference>,
+    I: Iterator<Item = &'a PatternOrReference>,
 {
     let bindings: Vec<_> = bindings.map(|v| render_type(v)).collect();
 
@@ -123,8 +123,8 @@ where
 
 fn render_ref(
     sugar: &SyntacticSugar,
-    ty: &TypeOrReference,
-    bindings: &Vec<TypeOrReference>,
+    ty: &PatternOrReference,
+    bindings: &Vec<PatternOrReference>,
 ) -> Html {
     match sugar {
         SyntacticSugar::None => render_ty_and_bindings(ty, bindings.iter()),
@@ -148,40 +148,40 @@ fn render_ref(
         }
         #[rustfmt::skip]
         SyntacticSugar::Traverse => {
-            html!(if let Some(InnerTypeInformation::Const(ValueType::String(step))) = inner(bindings) {
+            html!(if let Some(InnerPatternInformation::Const(ValuePattern::String(step))) = inner(bindings) {
                 {"."} { step }
             })
         }
         SyntacticSugar::Chain => {
-            html!(if let Some(InnerTypeInformation::List(terms)) = inner(bindings) {
+            html!(if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
                 { for terms.iter().map(render_type) }
             })
         }
         SyntacticSugar::Not => {
-            html!(if let Some(InnerTypeInformation::List(terms)) = inner(bindings) {
+            html!(if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
                 { "!" }{ for terms.iter().map(render_type) }
             })
         }
     }
 }
 
-fn inner(bindings: &Vec<TypeOrReference>) -> Option<&InnerTypeInformation> {
-    if let Some(TypeOrReference::Type(rc)) = bindings.first() {
+fn inner(bindings: &Vec<PatternOrReference>) -> Option<&InnerPatternInformation> {
+    if let Some(PatternOrReference::Pattern(rc)) = bindings.first() {
         Some(&rc)
     } else {
         None
     }
 }
 
-fn terms(bindings: &Vec<TypeOrReference>) -> Option<&Vec<TypeOrReference>> {
-    if let Some(InnerTypeInformation::List(terms)) = inner(bindings) {
+fn terms(bindings: &Vec<PatternOrReference>) -> Option<&Vec<PatternOrReference>> {
+    if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
         Some(terms)
     } else {
         None
     }
 }
 
-fn render_object(object: &ObjectType) -> Html {
+fn render_object(object: &ObjectPattern) -> Html {
     let last = object.fields.len() - 1;
 
     html!(
@@ -209,24 +209,24 @@ fn render_field(field: &Field, last: bool) -> Html {
     )
 }
 
-fn render_primordial(primordial: &PrimordialType) -> Html {
+fn render_primordial(primordial: &PrimordialPattern) -> Html {
     match primordial {
-        PrimordialType::Integer => "integer".into(),
-        PrimordialType::Decimal => "decimal".into(),
-        PrimordialType::Boolean => "boolean".into(),
-        PrimordialType::String => "string".into(),
-        PrimordialType::Function(_sugar, _type) => "built-in function".into(),
+        PrimordialPattern::Integer => "integer".into(),
+        PrimordialPattern::Decimal => "decimal".into(),
+        PrimordialPattern::Boolean => "boolean".into(),
+        PrimordialPattern::String => "string".into(),
+        PrimordialPattern::Function(_sugar, _type) => "built-in function".into(),
     }
 }
 
-fn render_type(ty: &TypeOrReference) -> Html {
+fn render_type(ty: &PatternOrReference) -> Html {
     match ty {
-        TypeOrReference::Type(inner) => render_inner(&inner),
-        TypeOrReference::Ref(reference) => render_type_ref(reference),
+        PatternOrReference::Pattern(inner) => render_inner(&inner),
+        PatternOrReference::Ref(reference) => render_type_ref(reference),
     }
 }
 
-fn render_type_ref(r: &TypeRef) -> Html {
+fn render_type_ref(r: &PatternRef) -> Html {
     let name = r
         .package
         .iter()

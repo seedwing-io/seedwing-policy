@@ -1,5 +1,5 @@
 use crate::{
-    lang::lir::Type,
+    lang::lir::Pattern,
     package::Package,
     runtime::{PackagePath, RuntimeError, World},
     value::RuntimeValue,
@@ -33,7 +33,7 @@ pub(crate) async fn split_fill<I>(
     ctx: &EvalContext,
     world: &World,
     mut i: I,
-    count: Option<Arc<Type>>,
+    count: Option<Arc<Pattern>>,
 ) -> Result<(Vec<Arc<RuntimeValue>>, Vec<Arc<RuntimeValue>>), RuntimeError>
 where
     I: Iterator<Item = Arc<RuntimeValue>> + DoubleEndedIterator,
