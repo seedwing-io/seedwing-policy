@@ -56,3 +56,35 @@ impl Function for Or {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lang::builder::Builder;
+    use crate::runtime::sources::Ephemeral;
+    use serde_json::json;
+
+    #[actix_rt::test]
+    async fn list_operation() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern test-or = lang::or<["foo", "bar"]>
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let _result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let value = json!("foo");
+
+        let result = runtime
+            .evaluate("test::test-or", value, EvalContext::default())
+            .await;
+
+        assert!(result.unwrap().satisfied())
+    }
+}
