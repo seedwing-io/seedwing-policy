@@ -1,13 +1,13 @@
 use crate::core::Function;
 use crate::lang::hir::Expr;
-use crate::lang::lir::ValueType;
+use crate::lang::lir::ValuePattern;
 use crate::lang::parser::Located;
-use crate::lang::PrimordialType;
+use crate::lang::PrimordialPattern;
 use crate::lang::SyntacticSugar;
 use crate::lang::{hir, mir};
 use crate::runtime;
 use crate::runtime::BuildError;
-use crate::runtime::TypeName;
+use crate::runtime::PatternName;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -16,15 +16,15 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 #[derive(Default, Debug)]
-pub struct TypeHandle {
-    name: Option<TypeName>,
+pub struct PatternHandle {
+    name: Option<PatternName>,
     documentation: Option<String>,
-    ty: RefCell<Option<Arc<Located<Type>>>>,
+    ty: RefCell<Option<Arc<Located<Pattern>>>>,
     parameters: Vec<Located<String>>,
 }
 
-impl TypeHandle {
-    pub fn new(name: Option<TypeName>) -> Self {
+impl PatternHandle {
+    pub fn new(name: Option<PatternName>) -> Self {
         Self {
             name,
             documentation: None,
@@ -37,7 +37,7 @@ impl TypeHandle {
         self.documentation.clone()
     }
 
-    pub fn new_with(name: Option<TypeName>, ty: Located<mir::Type>) -> Self {
+    pub fn new_with(name: Option<PatternName>, ty: Located<mir::Pattern>) -> Self {
         Self {
             name,
             documentation: None,
@@ -51,7 +51,7 @@ impl TypeHandle {
         self
     }
 
-    pub fn with(self, ty: Located<mir::Type>) -> Self {
+    pub fn with(self, ty: Located<mir::Pattern>) -> Self {
         self.define(Arc::new(ty));
         self
     }
@@ -65,58 +65,58 @@ impl TypeHandle {
         self.parameters.clone()
     }
 
-    pub fn define(&self, ty: Arc<Located<mir::Type>>) {
+    pub fn define(&self, ty: Arc<Located<mir::Pattern>>) {
         self.ty.borrow_mut().replace(ty);
     }
 
-    pub fn define_from(&self, ty: Arc<TypeHandle>) {
+    pub fn define_from(&self, ty: Arc<PatternHandle>) {
         let inbound = ty.ty.borrow_mut().as_ref().cloned().unwrap();
         self.ty.borrow_mut().replace(inbound);
     }
 
-    pub fn ty(&self) -> Arc<Located<mir::Type>> {
+    pub fn ty(&self) -> Arc<Located<mir::Pattern>> {
         self.ty.borrow().as_ref().unwrap().clone()
     }
 
-    pub fn name(&self) -> Option<TypeName> {
+    pub fn name(&self) -> Option<PatternName> {
         self.name.clone()
     }
 }
 
-pub enum Type {
+pub enum Pattern {
     Anything,
-    Primordial(PrimordialType),
-    Ref(SyntacticSugar, usize, Vec<Arc<TypeHandle>>),
-    Deref(Arc<TypeHandle>),
+    Primordial(PrimordialPattern),
+    Ref(SyntacticSugar, usize, Vec<Arc<PatternHandle>>),
+    Deref(Arc<PatternHandle>),
     Argument(String),
-    Const(ValueType),
-    Object(ObjectType),
+    Const(ValuePattern),
+    Object(ObjectPattern),
     Expr(Arc<Located<Expr>>),
-    List(Vec<Arc<TypeHandle>>),
+    List(Vec<Arc<PatternHandle>>),
     Nothing,
 }
 
-impl Debug for Type {
+impl Debug for Pattern {
     #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Anything => write!(f, "anything"),
-            Type::Primordial(inner) => write!(f, "{:?}", inner),
-            Type::Const(inner) => write!(f, "{:?}", inner),
-            Type::Object(inner) => write!(f, "{:?}", inner),
-            Type::Expr(inner) => write!(f, "$({:?})", inner),
-            Type::List(inner) => write!(f, "[{:?}]", inner),
-            Type::Argument(name) => write!(f, "{:?}", name),
-            Type::Ref(_sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
-            Type::Deref(inner) => write!(f, "*{:?}", inner),
-            Type::Nothing => write!(f, "nothing"),
+            Pattern::Anything => write!(f, "anything"),
+            Pattern::Primordial(inner) => write!(f, "{:?}", inner),
+            Pattern::Const(inner) => write!(f, "{:?}", inner),
+            Pattern::Object(inner) => write!(f, "{:?}", inner),
+            Pattern::Expr(inner) => write!(f, "$({:?})", inner),
+            Pattern::List(inner) => write!(f, "[{:?}]", inner),
+            Pattern::Argument(name) => write!(f, "{:?}", name),
+            Pattern::Ref(_sugar, slot, bindings) => write!(f, "{:?}<{:?}>", slot, bindings),
+            Pattern::Deref(inner) => write!(f, "*{:?}", inner),
+            Pattern::Nothing => write!(f, "nothing"),
         }
     }
 }
 
 #[derive(Default, Debug)]
 pub struct Bindings {
-    bindings: HashMap<String, Arc<TypeHandle>>,
+    bindings: HashMap<String, Arc<PatternHandle>>,
 }
 
 impl Bindings {
@@ -126,15 +126,15 @@ impl Bindings {
         }
     }
 
-    pub fn bind(&mut self, name: String, ty: Arc<TypeHandle>) {
+    pub fn bind(&mut self, name: String, ty: Arc<PatternHandle>) {
         self.bindings.insert(name, ty);
     }
 
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<TypeHandle>> {
+    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<PatternHandle>> {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<TypeHandle>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<PatternHandle>)> {
         self.bindings.iter()
     }
 }
@@ -142,12 +142,12 @@ impl Bindings {
 #[derive(Debug)]
 pub struct Field {
     name: Located<String>,
-    ty: Arc<TypeHandle>,
+    ty: Arc<PatternHandle>,
     optional: bool,
 }
 
 impl Field {
-    pub fn new(name: Located<String>, ty: Arc<TypeHandle>, optional: bool) -> Self {
+    pub fn new(name: Located<String>, ty: Arc<PatternHandle>, optional: bool) -> Self {
         Self { name, ty, optional }
     }
 
@@ -155,7 +155,7 @@ impl Field {
         self.name.clone()
     }
 
-    pub fn ty(&self) -> Arc<TypeHandle> {
+    pub fn ty(&self) -> Arc<PatternHandle> {
         self.ty.clone()
     }
 
@@ -165,11 +165,11 @@ impl Field {
 }
 
 #[derive(Debug)]
-pub struct ObjectType {
+pub struct ObjectPattern {
     fields: Vec<Arc<Located<Field>>>,
 }
 
-impl ObjectType {
+impl ObjectPattern {
     pub fn new(fields: Vec<Arc<Located<Field>>>) -> Self {
         Self { fields }
     }
@@ -181,12 +181,12 @@ impl ObjectType {
 
 macro_rules! primordial_type {
     ($obj: expr, $name: literal, $primordial: expr) => {
-        let name = TypeName::new(None, $name.into());
+        let name = PatternName::new(None, $name.into());
         $obj.insert(
             name.clone(),
-            Arc::new(TypeHandle::new_with(
+            Arc::new(PatternHandle::new_with(
                 Some(name),
-                Located::new(mir::Type::Primordial($primordial), 0..0),
+                Located::new(mir::Pattern::Primordial($primordial), 0..0),
             )),
         );
     };
@@ -194,51 +194,51 @@ macro_rules! primordial_type {
 
 #[derive(Debug)]
 pub struct World {
-    type_slots: Vec<Arc<TypeHandle>>,
-    types: HashMap<TypeName, usize>,
+    type_slots: Vec<Arc<PatternHandle>>,
+    types: HashMap<PatternName, usize>,
 }
 
 impl World {
     pub(crate) fn new() -> Self {
         //let mut initial_types = HashMap::new();
 
-        //primordial_type!(initial_types, "integer", PrimordialType::Integer);
-        //primordial_type!(initial_types, "string", PrimordialType::String);
-        //primordial_type!(initial_types, "boolean", PrimordialType::Boolean);
-        //primordial_type!(initial_types, "decimal", PrimordialType::Decimal);
+        //primordial_type!(initial_types, "integer", PrimordialPattern::Integer);
+        //primordial_type!(initial_types, "string", PrimordialPattern::String);
+        //primordial_type!(initial_types, "boolean", PrimordialPattern::Boolean);
+        //primordial_type!(initial_types, "decimal", PrimordialPattern::Decimal);
 
         let mut this = Self {
             type_slots: vec![],
             types: Default::default(),
         };
 
-        this.define_primordial("integer", PrimordialType::Integer);
-        this.define_primordial("string", PrimordialType::String);
-        this.define_primordial("boolean", PrimordialType::Boolean);
-        this.define_primordial("decimal", PrimordialType::Decimal);
+        this.define_primordial("integer", PrimordialPattern::Integer);
+        this.define_primordial("string", PrimordialPattern::String);
+        this.define_primordial("boolean", PrimordialPattern::Boolean);
+        this.define_primordial("decimal", PrimordialPattern::Decimal);
 
         this
     }
 
-    fn define_primordial(&mut self, name: &str, ty: PrimordialType) {
-        let name = TypeName::new(None, name.into());
+    fn define_primordial(&mut self, name: &str, ty: PrimordialPattern) {
+        let name = PatternName::new(None, name.into());
 
-        let ty = Arc::new(TypeHandle::new_with(
+        let ty = Arc::new(PatternHandle::new_with(
             Some(name.clone()),
-            Located::new(mir::Type::Primordial(ty), 0..0),
+            Located::new(mir::Pattern::Primordial(ty), 0..0),
         ));
 
         self.type_slots.push(ty);
         self.types.insert(name, self.type_slots.len() - 1);
     }
 
-    pub(crate) fn known_world(&self) -> Vec<TypeName> {
+    pub(crate) fn known_world(&self) -> Vec<PatternName> {
         self.types.keys().cloned().collect()
     }
 
     pub(crate) fn declare(
         &mut self,
-        path: TypeName,
+        path: PatternName,
         documentation: Option<String>,
         parameters: Vec<Located<String>>,
     ) {
@@ -248,7 +248,7 @@ impl World {
         }
 
         let runtime_type = Arc::new(
-            TypeHandle::new(Some(path.clone()))
+            PatternHandle::new(Some(path.clone()))
                 .with_parameters(parameters)
                 .with_documentation(documentation),
         );
@@ -265,8 +265,8 @@ impl World {
     #[allow(clippy::result_large_err)]
     pub(crate) fn define(
         &mut self,
-        path: TypeName,
-        ty: &Located<hir::Type>,
+        path: PatternName,
+        ty: &Located<hir::Pattern>,
     ) -> Result<(), BuildError> {
         log::info!("define type {}", path);
         let converted = self.convert(ty)?;
@@ -278,10 +278,10 @@ impl World {
         Ok(())
     }
 
-    pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
+    pub(crate) fn define_function(&mut self, path: PatternName, func: Arc<dyn Function>) {
         log::info!("define function {}", path);
         let runtime_type = Located::new(
-            mir::Type::Primordial(PrimordialType::Function(
+            mir::Pattern::Primordial(PrimordialPattern::Function(
                 SyntacticSugar::from(path.clone()),
                 path.clone(),
                 func,
@@ -295,16 +295,16 @@ impl World {
     }
 
     #[allow(clippy::result_large_err)]
-    fn convert<'c>(&'c self, ty: &'c Located<hir::Type>) -> Result<Arc<TypeHandle>, BuildError> {
+    fn convert<'c>(&'c self, ty: &'c Located<hir::Pattern>) -> Result<Arc<PatternHandle>, BuildError> {
         match &**ty {
-            hir::Type::Anything => Ok(Arc::new(
-                TypeHandle::new(None).with(Located::new(mir::Type::Anything, ty.location())),
+            hir::Pattern::Anything => Ok(Arc::new(
+                PatternHandle::new(None).with(Located::new(mir::Pattern::Anything, ty.location())),
             )),
-            hir::Type::Ref(sugar, inner, arguments) => {
+            hir::Pattern::Ref(sugar, inner, arguments) => {
                 let primary_type_handle = self.types[&(inner.inner())];
                 if arguments.is_empty() {
-                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                        mir::Type::Ref(sugar.clone(), primary_type_handle, Vec::default()),
+                    Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(sugar.clone(), primary_type_handle, Vec::default()),
                         inner.location(),
                     ))))
                 } else {
@@ -323,25 +323,25 @@ impl World {
                     for (_name, arg) in parameter_names.iter().zip(arguments.iter()) {
                         bindings.push(self.convert(arg)?)
                     }
-                    Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                        mir::Type::Ref(sugar.clone(), primary_type_handle, bindings),
+                    Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(sugar.clone(), primary_type_handle, bindings),
                         inner.location(),
                     ))))
                 }
             }
-            hir::Type::Parameter(name) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                mir::Type::Argument(name.inner()),
+            hir::Pattern::Parameter(name) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                mir::Pattern::Argument(name.inner()),
                 name.location(),
             )))),
-            hir::Type::Const(inner) => Ok(Arc::new(
-                TypeHandle::new(None)
-                    .with(Located::new(mir::Type::Const(inner.inner()), ty.location())),
+            hir::Pattern::Const(inner) => Ok(Arc::new(
+                PatternHandle::new(None)
+                    .with(Located::new(mir::Pattern::Const(inner.inner()), ty.location())),
             )),
-            hir::Type::Deref(inner) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                mir::Type::Deref(self.convert(inner)?),
+            hir::Pattern::Deref(inner) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                mir::Pattern::Deref(self.convert(inner)?),
                 ty.location(),
             )))),
-            hir::Type::Object(inner) => {
+            hir::Pattern::Object(inner) => {
                 let mut fields = Vec::new();
 
                 for f in inner.fields().iter() {
@@ -351,26 +351,26 @@ impl World {
                     )));
                 }
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Object(ObjectType::new(fields)),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Object(ObjectPattern::new(fields)),
                     ty.location(),
                 ))))
             }
-            hir::Type::Expr(inner) => Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                mir::Type::Expr(Arc::new(inner.clone())),
+            hir::Pattern::Expr(inner) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                mir::Pattern::Expr(Arc::new(inner.clone())),
                 ty.location(),
             )))),
-            hir::Type::Not(inner) => {
+            hir::Pattern::Not(inner) => {
                 let primary_type_handle = self.types[&(String::from("lang::not").into())];
 
                 let bindings = vec![self.convert(inner)?];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::Not, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::Not, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::Join(terms) => {
+            hir::Pattern::Join(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
@@ -379,15 +379,15 @@ impl World {
                 let primary_type_handle = self.types[&(String::from("lang::or").into())];
 
                 let bindings = vec![Arc::new(
-                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::Meet(terms) => {
+            hir::Pattern::Meet(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
@@ -396,38 +396,38 @@ impl World {
                 let primary_type_handle = self.types[&(String::from("lang::and").into())];
 
                 let bindings = vec![Arc::new(
-                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::And, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::And, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::Refinement(refinement) => {
+            hir::Pattern::Refinement(refinement) => {
                 let primary_type_handle = self.types[&(String::from("lang::refine").into())];
 
                 let bindings = vec![self.convert(refinement)?];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::Traverse(step) => {
+            hir::Pattern::Traverse(step) => {
                 let primary_type_handle = self.types[&(String::from("lang::traverse").into())];
 
-                let bindings = vec![Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Const(ValueType::String(step.inner())),
+                let bindings = vec![Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Const(ValuePattern::String(step.inner())),
                     step.location(),
                 )))];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::Traverse, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::Traverse, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::Chain(terms) => {
+            hir::Pattern::Chain(terms) => {
                 let primary_type_handle = self.types[&(String::from("lang::chain").into())];
 
                 let mut inner = Vec::new();
@@ -436,25 +436,25 @@ impl World {
                 }
 
                 let bindings = vec![Arc::new(
-                    TypeHandle::new(None).with(Located::new(Type::List(inner), ty.location())),
+                    PatternHandle::new(None).with(Located::new(Pattern::List(inner), ty.location())),
                 )];
 
-                Ok(Arc::new(TypeHandle::new(None).with(Located::new(
-                    mir::Type::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),
+                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),
                     ty.location(),
                 ))))
             }
-            hir::Type::List(terms) => {
+            hir::Pattern::List(terms) => {
                 let mut inner = Vec::new();
                 for e in terms {
                     inner.push(self.convert(e)?)
                 }
                 Ok(Arc::new(
-                    TypeHandle::new(None).with(Located::new(mir::Type::List(inner), ty.location())),
+                    PatternHandle::new(None).with(Located::new(mir::Pattern::List(inner), ty.location())),
                 ))
             }
-            hir::Type::Nothing => Ok(Arc::new(
-                TypeHandle::new(None).with(Located::new(mir::Type::Nothing, ty.location())),
+            hir::Pattern::Nothing => Ok(Arc::new(
+                PatternHandle::new(None).with(Located::new(mir::Pattern::Nothing, ty.location())),
             )),
         }
     }

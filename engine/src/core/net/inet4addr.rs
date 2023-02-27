@@ -1,7 +1,7 @@
 use crate::lang::lir::EvalContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
-    lang::lir::{Bindings, ValueType},
+    lang::lir::{Bindings, ValuePattern},
     runtime::{rationale::Rationale, EvaluationResult, Output, RuntimeError, World},
     value::RuntimeValue,
 };
@@ -36,7 +36,7 @@ impl Function for Inet4Addr {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(address_pattern) = bindings.get(ADDRESS) {
-                if let Some(ValueType::String(range)) = address_pattern.try_get_resolved_value() {
+                if let Some(ValuePattern::String(range)) = address_pattern.try_get_resolved_value() {
                     match Ipv4Cidr::from_str(&range) {
                         Ok(range) => {
                             if let Some(addr) = input.try_get_string() {

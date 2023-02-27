@@ -1,5 +1,5 @@
 use crate::lang::hir::Expr;
-use crate::lang::lir::ValueType;
+use crate::lang::lir::ValuePattern;
 use crate::lang::parser::{Located, Location, ParserError, ParserInput, SourceSpan};
 
 use chumsky::prelude::*;
@@ -32,13 +32,13 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .padded()
         .map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(ValueType::Boolean(true), span.clone())),
+                Expr::Value(Located::new(ValuePattern::Boolean(true), span.clone())),
                 span,
             )
         })
         .or(just("false").padded().map_with_span(|_, span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(ValueType::Boolean(false), span.clone())),
+                Expr::Value(Located::new(ValuePattern::Boolean(false), span.clone())),
                 span,
             )
         }))
@@ -47,7 +47,7 @@ pub fn boolean_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
 pub fn integer_literal() -> impl Parser<ParserInput, Located<Expr>, Error = ParserError> + Clone {
     text::int::<char, ParserError>(10)
         .map_with_span(|s: String, span| {
-            Located::new(ValueType::Integer(s.parse::<i64>().unwrap()), span)
+            Located::new(ValuePattern::Integer(s.parse::<i64>().unwrap()), span)
         })
         .padded()
         .map_with_span(|value, span| Located::new(Expr::Value(value), span))
@@ -60,7 +60,7 @@ pub fn decimal_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Pars
         .map_with_span(
             |(integral, (_dot, decimal)): (String, (char, String)), span| {
                 Located::new(
-                    ValueType::Decimal(format!("{integral}.{decimal}").parse::<f64>().unwrap()),
+                    ValuePattern::Decimal(format!("{integral}.{decimal}").parse::<f64>().unwrap()),
                     span,
                 )
             },
@@ -76,7 +76,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .padded()
         .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(ValueType::String(x), span.clone())),
+                Expr::Value(Located::new(ValuePattern::String(x), span.clone())),
                 span,
             )
         })

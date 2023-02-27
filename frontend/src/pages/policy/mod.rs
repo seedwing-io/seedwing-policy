@@ -10,7 +10,7 @@ use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::*;
 use seedwing_policy_engine::{
-    api::{ComponentInformation, TypeInformation},
+    api::{ComponentInformation, PatternInformation},
     runtime::ModuleHandle,
 };
 use serde_json::Value;
@@ -137,7 +137,7 @@ pub struct ComponentProps {
 #[function_component(ComponentTitle)]
 pub fn component_title(props: &ComponentProps) -> Html {
     match &props.component {
-        ComponentInformation::Type(r#type) => html!(
+        ComponentInformation::Pattern(r#type) => html!(
             <>
                 <Label color={Color::Blue} label={"T"} /> { " " }
                 { render_full_type(r#type) }
@@ -179,7 +179,7 @@ pub fn component(props: &ComponentProps) -> Html {
               </ToolbarItem>
           </Toolbar>
           {match &props.component {
-              ComponentInformation::Type(r#type) => render_type(Rc::new(r#type.clone())),
+              ComponentInformation::Pattern(r#type) => render_type(Rc::new(r#type.clone())),
               ComponentInformation::Module(module) => render_module(props.base_path.clone(), module),
           }}
         </>
@@ -225,7 +225,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     )
 }
 
-fn render_full_type(r#type: &TypeInformation) -> Html {
+fn render_full_type(r#type: &PatternInformation) -> Html {
     html!(<>
         {r#type.name.as_deref().unwrap_or_default()}
         if !r#type.parameters.is_empty() {
@@ -236,7 +236,7 @@ fn render_full_type(r#type: &TypeInformation) -> Html {
     </>)
 }
 
-fn render_type(r#type: Rc<TypeInformation>) -> Html {
+fn render_type(r#type: Rc<PatternInformation>) -> Html {
     let path = r#type.name.as_deref().unwrap_or_default().to_string();
 
     html!(

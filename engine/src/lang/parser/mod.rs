@@ -1,9 +1,9 @@
 //use crate::lang::expr::expr;
-use crate::lang::hir::TypeDefn;
+use crate::lang::hir::PatternDefn;
 use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
 
 use crate::runtime::PackagePath;
-use crate::runtime::TypeName;
+use crate::runtime::PatternName;
 use chumsky::prelude::*;
 use chumsky::{Error, Parser, Stream};
 
@@ -23,7 +23,7 @@ pub type SourceSpan = std::ops::Range<usize>;
 pub struct CompilationUnit {
     source: SourceLocation,
     uses: Vec<Located<Use>>,
-    types: Vec<Located<TypeDefn>>,
+    types: Vec<Located<PatternDefn>>,
 }
 
 impl CompilationUnit {
@@ -43,7 +43,7 @@ impl CompilationUnit {
         self.uses.push(ty)
     }
 
-    pub fn add_type(&mut self, ty: Located<TypeDefn>) {
+    pub fn add_type(&mut self, ty: Located<PatternDefn>) {
         self.types.push(ty)
     }
 
@@ -51,27 +51,27 @@ impl CompilationUnit {
         &self.uses
     }
 
-    pub(crate) fn types(&self) -> &Vec<Located<TypeDefn>> {
+    pub(crate) fn types(&self) -> &Vec<Located<PatternDefn>> {
         &self.types
     }
 
-    pub(crate) fn types_mut(&mut self) -> &mut Vec<Located<TypeDefn>> {
+    pub(crate) fn types_mut(&mut self) -> &mut Vec<Located<PatternDefn>> {
         &mut self.types
     }
 }
 
 #[derive(Debug)]
 pub struct Use {
-    type_path: Located<TypeName>,
+    type_path: Located<PatternName>,
     as_name: Option<Located<String>>,
 }
 
 impl Use {
-    pub fn new(type_path: Located<TypeName>, as_name: Option<Located<String>>) -> Self {
+    pub fn new(type_path: Located<PatternName>, as_name: Option<Located<String>>) -> Self {
         Self { type_path, as_name }
     }
 
-    pub fn type_name(&self) -> Located<TypeName> {
+    pub fn type_name(&self) -> Located<PatternName> {
         self.type_path.clone()
     }
 

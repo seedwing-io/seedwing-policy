@@ -63,7 +63,7 @@ NOTE: Currently only full patterns can be imported using `use` statements, not p
 
 ==== Simple `use`
 
-The simplest `use` statement brings a type into visible scope for use by its simple name.
+The simplest `use` statement brings a pattern into visible scope for use by its simple name.
 
 ```
 use list::all
@@ -85,7 +85,7 @@ These two patterns can now be used unambiguous as `build-allowed` and `promote-a
 
 === Patterns
 
-Patterns define named type patterns that ultimately end up being policies.
+Patterns define named patterns that ultimately end up being policies.
 
 Patterns are defined using the `pattern` keyword, followed by the name of the pattern, followed by an equal sign (`=`) and then the definition of the pattern.
 
@@ -97,11 +97,11 @@ Functions, by convention, start with a capital letter, while pattern identifiers
 ====
 
 Every pattern is built up from other patterns.
-It's turtles all the way down, until you reach the _primordial_ types and patterns.
+It's turtles all the way down, until you reach the _primordial_ patterns.
 
-==== Simple Primordial type-based Patterns
+==== Simple Primordial Patterns
 
-The simplest pattern is one that match a link:./primordial[primordial] _type_.
+The simplest pattern is a link:./primordial[primordial] _pattern_.
 
 ```
 pattern all-the-things = anything
@@ -211,13 +211,13 @@ but it would not match
 
 List-based patterns are dependent on the content and the _sequence_ of items contained within the input value.
 
-A list pattern is constructed using `[` and `]`, with a sequence of types denoting which patterns each term should satisfy.
+A list pattern is constructed using `[` and `]`, with a sequence of patterns denoting which patterns each term should satisfy.
 
 Just as with strings matching a specific sequence of characters, a list pattern matches a sequence of items, aligned to the terms within the pattern.
 
 [NOTE]
 ====
-Lists may be somewhat counter-intuitive if you're familiar with type syntax from other languages
+Lists may be somewhat counter-intuitive if you're familiar with syntax from other languages
 
 For instance, `pattern list-of-numbers = [ integer ]` actually only defines a pattern that matches a list with exactly a single integer value.
 ====
@@ -293,15 +293,15 @@ Some patterns need to match _uncountable sets_.
 This includes things such as "all numbers greater than 42".
 It would be impossible to construct a concrete set of all numbers greater than *42*.
 
-_Expression types_ allow for defining types using basic arithmetic expressions.
+_Expression patterns_ allow for defining patterns using basic arithmetic expressions.
 
 NOTE: The expression langauge may grow or shrink; we are still iterating.
 
-Expression types are denoted by the `$(` prefix and the `)` suffix.
+Expression patterns are denoted by the `$(` prefix and the `)` suffix.
 
 ===== The `self` keyword
 
-Within an expression type, the `self` keyword refers to the input value.
+Within an expression pattern, the `self` keyword refers to the input value.
 
 ```
 pattern alpha-sofware = {
@@ -322,10 +322,10 @@ pattern patched-software = {
 ==== Traversals
 
 A traversal looks not unlike dot-notation in object-oriented languages to navigate within an object.
-When combining patterns, traversals provide a terser way of specifying details for small portions of a larger type.
+When combining patterns, traversals provide a terser way of specifying details for small portions of a larger pattern.
 
 
-For instance, if we have a `versioned` type as before:
+For instance, if we have a `versioned` pattern as before:
 
 ```
 pattern versioned = {
@@ -348,14 +348,14 @@ pattern patched = versioned && self.version.patch
 Within a traversal, the `self` keyword once again refers to the input value.
 Navigation to deeper levels uses the dot (`.`) and nested field names.
 If traversing does not succeed, it is considered to fail matching.
-Traversals (and all types) are combinable with _refinements_ described below.
+Traversals (and all patterns) are combinable with _refinements_ described below.
 
 ==== Refinements
 
 While the above simply tested for the existance of a given field, sometimes we want to *refine* the acceptability of a field.
 
 The _refinement_ construct allows applying additional patterns to the value _at that point in the evaluation_.
-Refinements are specified using parentheses as a postfix to any other type.
+Refinements are specified using parentheses as a postfix to any other pattern.
 
 Within the parentheses, any pattern can be specified to further restrict viable values.
 
@@ -371,8 +371,8 @@ Refinements are also useful when working with _functions_, described below.
 
 ==== Functions
 
-_Functions_ are another construct that effectively work as types.
-Unlike simpler pattern types, the output of the function can be not only the identity (or failure), but can be a different transformed value.
+_Functions_ are another construct that effectively work as patterns.
+Unlike simpler patterns, the output of the function can be not only the identity (or failure), but can be a different transformed value.
 
 Like traversals, the function construct takes the input value under consideration as an implicit argument, does *whatever it wants to do*, and produces a result, which roughly boils down to:
 
@@ -420,7 +420,7 @@ pattern named<NAME> = {
 pattern named-bob-or-jim = named<"bob"> || named<"jim">
 ```
 
-Parameters can be _any type or pattern_; they are not required to be value-esque types or patterns.
+Parameters can be _any pattern_; they are not required to be value-esque patterns.
 
 For instance, the logical `||` operator is actually syntactic sugar for `lang::or<TERMS>`.
 
@@ -460,13 +460,13 @@ pattern people = lang::or[ "bob", "jim" ]>
 ```
 
 But alas, it is not.
-Instead of receiving the array of people that `data::from<...>` provides, it receives the _actual type_ `data::from<...>`.
-That type has not yet been evaluated to provide the underlying data.
-The `lang::or<...>` function expects a list-shaped type with terms to be _or_'d together.
-Instead, it's receiving the function type underlying `data::from<...>`.
+Instead of receiving the array of people that `data::from<...>` provides, it receives the _actual pattern_ `data::from<...>`.
+That pattern has not yet been evaluated to provide the underlying data.
+The `lang::or<...>` function expects a list-shaped pattern with terms to be _or_'d together.
+Instead, it's receiving the function pattern underlying `data::from<...>`.
 
-To resolve a type against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `\*`.
-By placing a `*` as a prefix to a type, it will be evaluated, and the resulting value is then treated as a type and passed further.
+To resolve a pattern against the input _prior_ to passing it as a parameter, the dereference/eager-evaluation operator is used: `\*`.
+By placing a `*` as a prefix to a pattern, it will be evaluated, and the resulting value is then treated as a pattern and passed further.
 
 The pattern that behaves the way one might expect looks like:
 
@@ -474,5 +474,5 @@ The pattern that behaves the way one might expect looks like:
 pattern people = lang::or<*data::from<"people.json">>
 ```
 
-Now indeed the `lang::or` will received a list-ish type full of string-ish types (the values `bob` and `jim`) and perform as expected.
+Now indeed the `lang::or` will received a list-ish pattern full of string-ish patterns (the values `bob` and `jim`) and perform as expected.
 

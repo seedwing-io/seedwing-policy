@@ -1,10 +1,10 @@
 use crate::core::Function;
 
 use crate::lang::parser::Located;
-use crate::lang::{lir, mir, PrimordialType, SyntacticSugar};
+use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvaluationResult, Output, RuntimeError, TraceResult};
-use crate::runtime::{TypeName, World};
+use crate::runtime::{PatternName, World};
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +29,7 @@ use tokio::sync::Mutex;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Expr {
     SelfLiteral(),
-    Value(ValueType),
+    Value(ValuePattern),
     Function(String, Arc<Expr>),
     Add(Arc<Expr>, Arc<Expr>),
     Subtract(Arc<Expr>, Arc<Expr>),
@@ -148,19 +148,19 @@ impl Expr {
 }
 
 #[derive(Debug, Serialize)]
-pub struct Type {
-    name: Option<TypeName>,
+pub struct Pattern {
+    name: Option<PatternName>,
     documentation: Option<String>,
     parameters: Vec<String>,
-    inner: InnerType,
+    inner: InnerPattern,
 }
 
-impl Type {
+impl Pattern {
     pub(crate) fn new(
-        name: Option<TypeName>,
+        name: Option<PatternName>,
         documentation: Option<String>,
         parameters: Vec<String>,
-        inner: InnerType,
+        inner: InnerPattern,
     ) -> Self {
         Self {
             name,
@@ -174,7 +174,7 @@ impl Type {
         self.inner.order(world)
     }
 
-    pub fn name(&self) -> Option<TypeName> {
+    pub fn name(&self) -> Option<PatternName> {
         self.name.clone()
     }
 
@@ -182,7 +182,7 @@ impl Type {
         self.documentation.clone()
     }
 
-    pub fn inner(&self) -> &InnerType {
+    pub fn inner(&self) -> &InnerPattern {
         &self.inner
     }
 
@@ -191,8 +191,8 @@ impl Type {
     }
 
     /// Attempt to retrieve a const-ish value from this type.
-    pub fn try_get_resolved_value(&self) -> Option<ValueType> {
-        if let InnerType::Const(val) = &self.inner {
+    pub fn try_get_resolved_value(&self) -> Option<ValuePattern> {
+        if let InnerPattern::Const(val) = &self.inner {
             Some(val.clone())
         } else {
             None
@@ -208,7 +208,7 @@ impl Type {
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         let trace = ctx.trace(value.clone(), self.clone());
         match &self.inner {
-            InnerType::Anything => trace.run(Box::pin(async move {
+            InnerPattern::Anything => trace.run(Box::pin(async move {
                 Ok(EvaluationResult::new(
                     value.clone(),
                     self.clone(),
@@ -216,20 +216,20 @@ impl Type {
                     Output::Identity,
                 ))
             })),
-            InnerType::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
+            InnerPattern::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
                 #[allow(clippy::ptr_arg)]
                 fn build_bindings<'b>(
                     value: Arc<RuntimeValue>,
                     mut bindings: Bindings,
                     ctx: &'b EvalContext,
                     parameters: Vec<String>,
-                    arguments: &'b Vec<Arc<Type>>,
+                    arguments: &'b Vec<Arc<Pattern>>,
                     world: &'b World,
                 ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
                 {
                     Box::pin(async move {
                         for (param, arg) in parameters.iter().zip(arguments.iter()) {
-                            if let InnerType::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
+                            if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
                                 if let Some(resolved_type) = world.get_by_slot(*slot) {
                                     if resolved_type.parameters().is_empty() {
                                         bindings.bind(param.clone(), resolved_type.clone())
@@ -245,18 +245,18 @@ impl Type {
                                         .await?;
                                         bindings.bind(
                                             param.clone(),
-                                            Arc::new(Type::new(
+                                            Arc::new(Pattern::new(
                                                 resolved_type.name(),
                                                 resolved_type.documentation(),
                                                 resolved_type.parameters(),
-                                                InnerType::Bound(resolved_type, resolved_bindings),
+                                                InnerPattern::Bound(resolved_type, resolved_bindings),
                                             )),
                                         )
                                     }
                                 }
-                            } else if let InnerType::Argument(name) = &arg.inner {
+                            } else if let InnerPattern::Argument(name) = &arg.inner {
                                 bindings.bind(param.clone(), bindings.get(name).unwrap());
-                            } else if let InnerType::Deref(_inner) = &arg.inner {
+                            } else if let InnerPattern::Deref(_inner) = &arg.inner {
                                 let result = arg
                                     .evaluate(value.clone(), ctx, &Bindings::default(), world)
                                     .await?;
@@ -267,22 +267,22 @@ impl Type {
                                     } else {
                                         bindings.bind(
                                             param.clone(),
-                                            Arc::new(Type::new(
+                                            Arc::new(Pattern::new(
                                                 None,
                                                 None,
                                                 Vec::default(),
-                                                InnerType::Nothing,
+                                                InnerPattern::Nothing,
                                             )),
                                         )
                                     }
                                 } else {
                                     bindings.bind(
                                         param.clone(),
-                                        Arc::new(Type::new(
+                                        Arc::new(Pattern::new(
                                             None,
                                             None,
                                             Vec::default(),
-                                            InnerType::Nothing,
+                                            InnerPattern::Nothing,
                                         )),
                                     )
                                 }
@@ -319,16 +319,16 @@ impl Type {
                         Ok(result)
                     }
                 } else {
-                    Err(RuntimeError::NoSuchTypeSlot(*slot))
+                    Err(RuntimeError::NoSuchPatternSlot(*slot))
                 }
             })),
-            InnerType::Deref(inner) => trace.run(Box::pin(async move {
+            InnerPattern::Deref(inner) => trace.run(Box::pin(async move {
                 inner.evaluate(value.clone(), ctx, bindings, world).await
             })),
-            InnerType::Bound(ty, bindings) => trace.run(Box::pin(async move {
+            InnerPattern::Bound(ty, bindings) => trace.run(Box::pin(async move {
                 ty.evaluate(value, ctx, bindings, world).await
             })),
-            InnerType::Argument(name) => trace.run(Box::pin(async move {
+            InnerPattern::Argument(name) => trace.run(Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
                     bound.evaluate(value.clone(), ctx, bindings, world).await
                 } else {
@@ -340,8 +340,8 @@ impl Type {
                     ))
                 }
             })),
-            InnerType::Primordial(inner) => match inner {
-                PrimordialType::Integer => trace.run(Box::pin(async move {
+            InnerPattern::Primordial(inner) => match inner {
+                PrimordialPattern::Integer => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_integer() {
                         Ok(EvaluationResult::new(
@@ -359,7 +359,7 @@ impl Type {
                         ))
                     }
                 })),
-                PrimordialType::Decimal => trace.run(Box::pin(async move {
+                PrimordialPattern::Decimal => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_decimal() {
                         Ok(EvaluationResult::new(
@@ -377,7 +377,7 @@ impl Type {
                         ))
                     }
                 })),
-                PrimordialType::Boolean => trace.run(Box::pin(async move {
+                PrimordialPattern::Boolean => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
 
                     if locked_value.is_boolean() {
@@ -396,7 +396,7 @@ impl Type {
                         ))
                     }
                 })),
-                PrimordialType::String => trace.run(Box::pin(async move {
+                PrimordialPattern::String => trace.run(Box::pin(async move {
                     let locked_value = (*value).borrow();
                     if locked_value.is_string() {
                         Ok(EvaluationResult::new(
@@ -414,7 +414,7 @@ impl Type {
                         ))
                     }
                 })),
-                PrimordialType::Function(_sugar, _name, func) => trace.run(Box::pin(async move {
+                PrimordialPattern::Function(_sugar, _name, func) => trace.run(Box::pin(async move {
                     let result = func.call(value.clone(), ctx, bindings, world).await?;
                     Ok(EvaluationResult::new(
                         value.clone(),
@@ -428,7 +428,7 @@ impl Type {
                     ))
                 })),
             },
-            InnerType::Const(inner) => trace.run(Box::pin(async move {
+            InnerPattern::Const(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
                 if inner.is_equal(locked_value).await {
                     Ok(EvaluationResult::new(
@@ -446,7 +446,7 @@ impl Type {
                     ))
                 }
             })),
-            InnerType::Object(inner) => trace.run(Box::pin(async move {
+            InnerPattern::Object(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
                 if let Some(obj) = locked_value.try_get_object() {
                     let mut result = HashMap::new();
@@ -488,7 +488,7 @@ impl Type {
                     ))
                 }
             })),
-            InnerType::Expr(expr) => trace.run(Box::pin(async move {
+            InnerPattern::Expr(expr) => trace.run(Box::pin(async move {
                 let result = expr.evaluate(value.clone()).await?;
                 let _locked_value = (*value).borrow();
                 let locked_result = (*result).borrow();
@@ -508,7 +508,7 @@ impl Type {
                     ))
                 }
             })),
-            InnerType::List(terms) => trace.run(Box::pin(async move {
+            InnerPattern::List(terms) => trace.run(Box::pin(async move {
                 if let Some(list_value) = value.try_get_list() {
                     if list_value.len() == terms.len() {
                         let mut result = Vec::new();
@@ -531,7 +531,7 @@ impl Type {
                     Output::None,
                 ))
             })),
-            InnerType::Nothing => trace.run(Box::pin(async move {
+            InnerPattern::Nothing => trace.run(Box::pin(async move {
                 Ok(EvaluationResult::new(
                     value.clone(),
                     self.clone(),
@@ -544,21 +544,21 @@ impl Type {
 }
 
 #[derive(Serialize)]
-pub enum InnerType {
+pub enum InnerPattern {
     Anything,
-    Primordial(PrimordialType),
-    Bound(Arc<Type>, Bindings),
-    Ref(SyntacticSugar, usize, Vec<Arc<Type>>),
-    Deref(Arc<Type>),
+    Primordial(PrimordialPattern),
+    Bound(Arc<Pattern>, Bindings),
+    Ref(SyntacticSugar, usize, Vec<Arc<Pattern>>),
+    Deref(Arc<Pattern>),
     Argument(String),
-    Const(ValueType),
-    Object(ObjectType),
+    Const(ValuePattern),
+    Object(ObjectPattern),
     Expr(Arc<Expr>),
-    List(Vec<Arc<Type>>),
+    List(Vec<Arc<Pattern>>),
     Nothing,
 }
 
-impl InnerType {
+impl InnerPattern {
     fn order(&self, world: &World) -> u8 {
         match self {
             Self::Anything => 128,
@@ -581,7 +581,7 @@ impl InnerType {
 
 #[derive(Serialize, Default, Debug, Clone)]
 pub struct Bindings {
-    bindings: HashMap<String, Arc<Type>>,
+    bindings: HashMap<String, Arc<Pattern>>,
 }
 
 impl Bindings {
@@ -591,15 +591,15 @@ impl Bindings {
         }
     }
 
-    pub fn bind(&mut self, name: String, ty: Arc<Type>) {
+    pub fn bind(&mut self, name: String, ty: Arc<Pattern>) {
         self.bindings.insert(name, ty);
     }
 
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<Type>> {
+    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<Pattern>> {
         self.bindings.get(&name.into()).cloned()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Type>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Pattern>)> {
         self.bindings.iter()
     }
 
@@ -612,21 +612,21 @@ impl Bindings {
     }
 }
 
-impl Debug for InnerType {
+impl Debug for InnerPattern {
     #[allow(clippy::uninlined_format_args)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            InnerType::Anything => write!(f, "anything"),
-            InnerType::Primordial(inner) => write!(f, "{:?}", inner),
-            InnerType::Const(inner) => write!(f, "{:?}", inner),
-            InnerType::Object(inner) => write!(f, "{:?}", inner),
-            InnerType::Expr(inner) => write!(f, "$({:?})", inner),
-            InnerType::List(inner) => write!(f, "[{:?}]", inner),
-            InnerType::Argument(name) => write!(f, "{:?}", name),
-            InnerType::Ref(_sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
-            InnerType::Deref(inner) => write!(f, "* {:?}", inner),
-            InnerType::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
-            InnerType::Nothing => write!(f, "nothing"),
+            InnerPattern::Anything => write!(f, "anything"),
+            InnerPattern::Primordial(inner) => write!(f, "{:?}", inner),
+            InnerPattern::Const(inner) => write!(f, "{:?}", inner),
+            InnerPattern::Object(inner) => write!(f, "{:?}", inner),
+            InnerPattern::Expr(inner) => write!(f, "$({:?})", inner),
+            InnerPattern::List(inner) => write!(f, "[{:?}]", inner),
+            InnerPattern::Argument(name) => write!(f, "{:?}", name),
+            InnerPattern::Ref(_sugar, slot, bindings) => write!(f, "ref {:?}<{:?}>", slot, bindings),
+            InnerPattern::Deref(inner) => write!(f, "* {:?}", inner),
+            InnerPattern::Bound(primary, bindings) => write!(f, "bound {:?}<{:?}>", primary, bindings),
+            InnerPattern::Nothing => write!(f, "nothing"),
         }
     }
 }
@@ -634,7 +634,7 @@ impl Debug for InnerType {
 #[derive(Serialize, Debug)]
 pub struct Field {
     name: String,
-    ty: Arc<Type>,
+    ty: Arc<Pattern>,
     optional: bool,
 }
 
@@ -645,7 +645,7 @@ impl Display for Field {
 }
 
 impl Field {
-    pub fn new(name: String, ty: Arc<Type>, optional: bool) -> Self {
+    pub fn new(name: String, ty: Arc<Pattern>, optional: bool) -> Self {
         Self { name, ty, optional }
     }
 
@@ -653,7 +653,7 @@ impl Field {
         self.name.clone()
     }
 
-    pub fn ty(&self) -> Arc<Type> {
+    pub fn ty(&self) -> Arc<Pattern> {
         self.ty.clone()
     }
 
@@ -663,25 +663,25 @@ impl Field {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum ValueType {
+pub enum ValuePattern {
     Null,
     String(String),
     Integer(i64),
     Decimal(f64),
     Boolean(bool),
-    List(Vec<Arc<ValueType>>),
+    List(Vec<Arc<ValuePattern>>),
     Octets(Vec<u8>),
 }
 
-impl From<&ValueType> for RuntimeValue {
-    fn from(ty: &ValueType) -> Self {
+impl From<&ValuePattern> for RuntimeValue {
+    fn from(ty: &ValuePattern) -> Self {
         match ty {
-            ValueType::Null => RuntimeValue::null(),
-            ValueType::String(val) => val.clone().into(),
-            ValueType::Integer(val) => (*val).into(),
-            ValueType::Decimal(val) => (*val).into(),
-            ValueType::Boolean(val) => (*val).into(),
-            ValueType::List(val) => Self::List(
+            ValuePattern::Null => RuntimeValue::null(),
+            ValuePattern::String(val) => val.clone().into(),
+            ValuePattern::Integer(val) => (*val).into(),
+            ValuePattern::Decimal(val) => (*val).into(),
+            ValuePattern::Boolean(val) => (*val).into(),
+            ValuePattern::List(val) => Self::List(
                 val.iter()
                     .map(|e| {
                         let copy = &*e.clone();
@@ -689,58 +689,58 @@ impl From<&ValueType> for RuntimeValue {
                     })
                     .collect(),
             ),
-            ValueType::Octets(val) => Self::Octets(val.clone()),
+            ValuePattern::Octets(val) => Self::Octets(val.clone()),
         }
     }
 }
 
-impl From<Arc<RuntimeValue>> for Type {
+impl From<Arc<RuntimeValue>> for Pattern {
     fn from(val: Arc<RuntimeValue>) -> Self {
-        Type::new(
+        Pattern::new(
             None,
             None,
             Vec::default(),
             match &*val {
-                RuntimeValue::Null => InnerType::Const(ValueType::Null),
-                RuntimeValue::String(inner) => InnerType::Const(ValueType::String(inner.clone())),
-                RuntimeValue::Integer(inner) => InnerType::Const(ValueType::Integer(*inner)),
-                RuntimeValue::Decimal(inner) => InnerType::Const(ValueType::Decimal(*inner)),
-                RuntimeValue::Boolean(inner) => InnerType::Const(ValueType::Boolean(*inner)),
+                RuntimeValue::Null => InnerPattern::Const(ValuePattern::Null),
+                RuntimeValue::String(inner) => InnerPattern::Const(ValuePattern::String(inner.clone())),
+                RuntimeValue::Integer(inner) => InnerPattern::Const(ValuePattern::Integer(*inner)),
+                RuntimeValue::Decimal(inner) => InnerPattern::Const(ValuePattern::Decimal(*inner)),
+                RuntimeValue::Boolean(inner) => InnerPattern::Const(ValuePattern::Boolean(*inner)),
                 RuntimeValue::Object(_) => {
                     todo!()
                 }
-                RuntimeValue::List(inner) => InnerType::List(
+                RuntimeValue::List(inner) => InnerPattern::List(
                     inner
                         .iter()
                         .map(|e| Arc::new(Self::from(e.clone())))
                         .collect(),
                 ),
-                RuntimeValue::Octets(inner) => InnerType::Const(ValueType::Octets(inner.clone())),
+                RuntimeValue::Octets(inner) => InnerPattern::Const(ValuePattern::Octets(inner.clone())),
             },
         )
     }
 }
 
-impl ValueType {
+impl ValuePattern {
     pub fn is_equal<'e>(
         &'e self,
         other: &'e RuntimeValue,
     ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
         match (self, &other) {
-            (ValueType::Null, RuntimeValue::Null) => Box::pin(ready(true)),
-            (ValueType::String(lhs), RuntimeValue::String(rhs)) => {
+            (ValuePattern::Null, RuntimeValue::Null) => Box::pin(ready(true)),
+            (ValuePattern::String(lhs), RuntimeValue::String(rhs)) => {
                 Box::pin(async move { lhs.eq(rhs) })
             }
-            (ValueType::Integer(lhs), RuntimeValue::Integer(rhs)) => {
+            (ValuePattern::Integer(lhs), RuntimeValue::Integer(rhs)) => {
                 Box::pin(async move { lhs.eq(rhs) })
             }
-            (ValueType::Decimal(lhs), RuntimeValue::Decimal(rhs)) => {
+            (ValuePattern::Decimal(lhs), RuntimeValue::Decimal(rhs)) => {
                 Box::pin(async move { lhs.eq(rhs) })
             }
-            (ValueType::Boolean(lhs), RuntimeValue::Boolean(rhs)) => {
+            (ValuePattern::Boolean(lhs), RuntimeValue::Boolean(rhs)) => {
                 Box::pin(async move { lhs.eq(rhs) })
             }
-            (ValueType::List(lhs), RuntimeValue::List(rhs)) => Box::pin(async move {
+            (ValuePattern::List(lhs), RuntimeValue::List(rhs)) => Box::pin(async move {
                 if lhs.len() != rhs.len() {
                     false
                 } else {
@@ -752,7 +752,7 @@ impl ValueType {
                     true
                 }
             }),
-            (ValueType::Octets(lhs), RuntimeValue::Octets(rhs)) => {
+            (ValuePattern::Octets(lhs), RuntimeValue::Octets(rhs)) => {
                 Box::pin(async move { lhs.eq(rhs) })
             }
             _ => Box::pin(ready(false)),
@@ -761,11 +761,11 @@ impl ValueType {
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct ObjectType {
+pub struct ObjectPattern {
     fields: Vec<Arc<Field>>,
 }
 
-impl ObjectType {
+impl ObjectPattern {
     pub fn new(fields: Vec<Arc<Field>>) -> Self {
         Self { fields }
     }
@@ -776,25 +776,25 @@ impl ObjectType {
 }
 
 pub(crate) fn convert(
-    name: Option<TypeName>,
+    name: Option<PatternName>,
     documentation: Option<String>,
     parameters: Vec<String>,
-    ty: &Arc<Located<mir::Type>>,
-) -> Arc<Type> {
+    ty: &Arc<Located<mir::Pattern>>,
+) -> Arc<Pattern> {
     match &***ty {
-        mir::Type::Anything => Arc::new(lir::Type::new(
+        mir::Pattern::Anything => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Anything,
+            lir::InnerPattern::Anything,
         )),
-        mir::Type::Primordial(primordial) => Arc::new(lir::Type::new(
+        mir::Pattern::Primordial(primordial) => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Primordial(primordial.clone()),
+            lir::InnerPattern::Primordial(primordial.clone()),
         )),
-        mir::Type::Ref(sugar, slot, bindings) => {
+        mir::Pattern::Ref(sugar, slot, bindings) => {
             let mut lir_bindings = Vec::default();
             for e in bindings {
                 lir_bindings.push(convert(
@@ -805,37 +805,37 @@ pub(crate) fn convert(
                 ));
             }
 
-            Arc::new(lir::Type::new(
+            Arc::new(lir::Pattern::new(
                 name,
                 documentation,
                 parameters,
-                lir::InnerType::Ref(sugar.clone(), *slot, lir_bindings),
+                lir::InnerPattern::Ref(sugar.clone(), *slot, lir_bindings),
             ))
         }
-        mir::Type::Deref(inner) => Arc::new(lir::Type::new(
+        mir::Pattern::Deref(inner) => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Deref(convert(
+            lir::InnerPattern::Deref(convert(
                 inner.name(),
                 inner.documentation(),
                 inner.parameters().iter().map(|e| e.inner()).collect(),
                 &inner.ty(),
             )),
         )),
-        mir::Type::Argument(arg_name) => Arc::new(lir::Type::new(
+        mir::Pattern::Argument(arg_name) => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Argument(arg_name.clone()),
+            lir::InnerPattern::Argument(arg_name.clone()),
         )),
-        mir::Type::Const(value) => Arc::new(lir::Type::new(
+        mir::Pattern::Const(value) => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Const(value.clone()),
+            lir::InnerPattern::Const(value.clone()),
         )),
-        mir::Type::Object(mir_object) => {
+        mir::Pattern::Object(mir_object) => {
             let mut fields: Vec<Arc<Field>> = Default::default();
             for f in mir_object.fields().iter() {
                 let ty = f.ty();
@@ -851,21 +851,21 @@ pub(crate) fn convert(
                 ));
                 fields.push(field);
             }
-            let object = ObjectType::new(fields);
-            Arc::new(lir::Type::new(
+            let object = ObjectPattern::new(fields);
+            Arc::new(lir::Pattern::new(
                 name,
                 documentation,
                 parameters,
-                lir::InnerType::Object(object),
+                lir::InnerPattern::Object(object),
             ))
         }
-        mir::Type::Expr(expr) => Arc::new(lir::Type::new(
+        mir::Pattern::Expr(expr) => Arc::new(lir::Pattern::new(
             name,
             documentation,
             parameters,
-            lir::InnerType::Expr(Arc::new(expr.lower())),
+            lir::InnerPattern::Expr(Arc::new(expr.lower())),
         )),
-        mir::Type::List(terms) => {
+        mir::Pattern::List(terms) => {
             let mut inner = Vec::new();
             for e in terms {
                 inner.push(convert(
@@ -876,18 +876,18 @@ pub(crate) fn convert(
                 ))
             }
 
-            Arc::new(lir::Type::new(
+            Arc::new(lir::Pattern::new(
                 name,
                 documentation,
                 parameters,
-                lir::InnerType::List(inner),
+                lir::InnerPattern::List(inner),
             ))
         }
-        mir::Type::Nothing => Arc::new(lir::Type::new(
+        mir::Pattern::Nothing => Arc::new(lir::Pattern::new(
             name,
             documentation,
             Vec::default(),
-            lir::InnerType::Nothing,
+            lir::InnerPattern::Nothing,
         )),
     }
 }
@@ -910,7 +910,7 @@ impl EvalContext {
         Self { trace }
     }
 
-    pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Type>) -> TraceHandle {
+    pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {
         match &self.trace {
             #[cfg(feature = "monitor")]
             TraceConfig::Enabled(monitor) => TraceHandle {
@@ -936,7 +936,7 @@ impl EvalContext {
         }
     }
 
-    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Type>) {
+    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
         #[cfg(feature = "monitor")]
         if let TraceConfig::Enabled(monitor) = &self.trace {
             monitor.lock().await.start(correlation, input, ty).await;
@@ -946,7 +946,7 @@ impl EvalContext {
     async fn complete(
         &self,
         correlation: u64,
-        ty: Arc<Type>,
+        ty: Arc<Pattern>,
         result: &mut Result<EvaluationResult, RuntimeError>,
         elapsed: Option<Duration>,
     ) {
@@ -999,7 +999,7 @@ impl Debug for TraceConfig {
 #[derive(Clone, Debug)]
 pub struct TraceHandle<'ctx> {
     context: &'ctx EvalContext,
-    ty: Arc<Type>,
+    ty: Arc<Pattern>,
     input: Arc<RuntimeValue>,
     start: Option<Instant>,
 }

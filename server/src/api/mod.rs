@@ -101,8 +101,8 @@ async fn run_eval(
 
     match world.evaluate(path, value, context).await {
         Ok(result) => return_rationale(result),
-        Err(RuntimeError::NoSuchType(name)) => HttpResponse::BadRequest().json(json!({
-            "reason": "NoSuchType",
+        Err(RuntimeError::NoSuchPattern(name)) => HttpResponse::BadRequest().json(json!({
+            "reason": "NoSuchPattern",
             "name": name.as_type_str(),
         })),
         Err(err) => {

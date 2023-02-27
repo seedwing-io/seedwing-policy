@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, ValuePattern};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use regex::Regex;
@@ -35,7 +35,7 @@ impl Function for Regexp {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(regexp) = bindings.get(REGEXP) {
-                if let Some(ValueType::String(regexp)) = regexp.try_get_resolved_value() {
+                if let Some(ValuePattern::String(regexp)) = regexp.try_get_resolved_value() {
                     if let Some(value) = input.try_get_string() {
                         if let Ok(regexp) = Regex::new(regexp.as_str()) {
                             if regexp.is_match(value.as_str()) {

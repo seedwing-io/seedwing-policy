@@ -27,8 +27,8 @@ impl<'c> ErrorPrinter<'c> {
             )
             .with_label(Label::new(full_span).with_message(match error {
                 BuildError::ArgumentMismatch(_, _) => "argument mismatch".to_string(),
-                BuildError::TypeNotFound(_, _, name) => {
-                    format!("type not found: {name}")
+                BuildError::PatternNotFound(_, _, name) => {
+                    format!("pattern not found: {name}")
                 }
                 BuildError::Parser(_, inner) => match inner.reason() {
                     SimpleReason::Unexpected => {

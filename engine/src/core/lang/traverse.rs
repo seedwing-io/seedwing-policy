@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, InnerPattern, ValuePattern};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -35,7 +35,7 @@ impl Function for Traverse {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(step) = bindings.get(STEP) {
-                if let InnerType::Const(ValueType::String(step)) = step.inner() {
+                if let InnerPattern::Const(ValuePattern::String(step)) = step.inner() {
                     if let Some(input) = input.try_get_object() {
                         if let Some(output) = input.get(step) {
                             return Ok(Output::Transform(output).into());

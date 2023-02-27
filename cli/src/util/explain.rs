@@ -28,7 +28,7 @@ fn explain_inner(
 
     writeln!(
         w,
-        "{:indent$}Type: {}",
+        "{:indent$}Pattern: {}",
         "",
         result
             .ty()

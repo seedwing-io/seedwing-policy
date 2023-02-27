@@ -41,11 +41,11 @@ impl<'r> Rationalizer<'r> {
             html.push_str("<div>");
             if result.satisfied() {
                 html.push_str(
-                    format!("<div>Type <code>{name}</code> was satisfied</div>").as_str(),
+                    format!("<div>Pattern <code>{name}</code> was satisfied</div>").as_str(),
                 );
             } else {
                 html.push_str(
-                    format!("<div>Type <code>{name}</code> was not satisfied</div>").as_str(),
+                    format!("<div>Pattern <code>{name}</code> was not satisfied</div>").as_str(),
                 );
             }
 

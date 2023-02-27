@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerType, ValueType};
+use crate::lang::lir::{Bindings, EvalContext, InnerPattern, ValuePattern};
 use crate::runtime::{Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use spdx;
@@ -38,16 +38,16 @@ impl Function for Compatible {
             // Gather parameters
             let authorized_licenses = if let Some(val) = bindings.get(LICENSE_REQUIREMENT) {
                 match val.inner() {
-                    InnerType::List(license_list) => license_list
+                    InnerPattern::List(license_list) => license_list
                         .to_vec()
                         .iter()
                         .filter_map(|t| t.try_get_resolved_value())
                         .filter_map(|t| match t {
-                            ValueType::String(val) => Some(val),
+                            ValuePattern::String(val) => Some(val),
                             _ => None,
                         })
                         .collect::<Vec<String>>(),
-                    InnerType::Const(ValueType::String(license)) => vec![license.clone()],
+                    InnerPattern::Const(ValuePattern::String(license)) => vec![license.clone()],
                     _ => return Ok(Output::None.into()),
                 }
             } else {

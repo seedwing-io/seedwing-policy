@@ -1,5 +1,5 @@
 use crate::runtime::monitor::Completion;
-use crate::runtime::{Output, TypeName};
+use crate::runtime::{Output, PatternName};
 use prometheus::register_histogram_with_registry;
 use std::time::Duration;
 
@@ -46,7 +46,7 @@ impl PrometheusStats {
         }
     }
 
-    pub(super) fn record(&mut self, name: &TypeName, elapsed: Duration, completion: &Completion) {
+    pub(super) fn record(&mut self, name: &PatternName, elapsed: Duration, completion: &Completion) {
         match completion {
             Completion::Output(output) => match output {
                 Output::None => self.unsatisfied.with_label_values(&[name.name()]).inc(),

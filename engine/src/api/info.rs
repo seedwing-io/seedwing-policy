@@ -1,52 +1,62 @@
 use crate::{
     lang::{
         self,
-        lir::{self, Expr, InnerType, Type, ValueType},
+        lir::{self, Expr, InnerPattern, Pattern, ValuePattern},
         SyntacticSugar,
     },
-    runtime::{Component, ModuleHandle, TypeName, World},
+    runtime::{Component, ModuleHandle, PatternName, World},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::Deref, rc::Rc};
 
+#[allow(missing_docs)]
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum Error {
-    #[error("unknown type slot: {0}")]
-    UnknownTypeSlot(usize),
+    #[error("unknown pattern slot: {0}")]
+    UnknownPatternSlot(usize),
 }
 
+/// Convert type information into an `*Information` struct.
 pub trait ToInformation<T> {
     /// Convert internal type information into an `*Information` struct.
     fn to_info(&self, world: &World) -> Result<T, Error>;
 }
 
+/// Information for different component types.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum ComponentInformation {
+    /// Module component type.
     Module(ModuleHandle),
-    Type(TypeInformation),
+    /// Pattern component type.
+    Pattern(PatternInformation),
 }
 
 impl ToInformation<ComponentInformation> for Component {
     fn to_info(&self, world: &World) -> Result<ComponentInformation, Error> {
         Ok(match self {
             Self::Module(module) => ComponentInformation::Module(module.clone()),
-            Self::Type(r#type) => ComponentInformation::Type(r#type.to_info(world)?),
+            Self::Pattern(pattern) => ComponentInformation::Pattern(pattern.to_info(world)?),
         })
     }
 }
 
+/// Information about a pattern.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
-pub struct TypeInformation {
+pub struct PatternInformation {
+    /// Pattern name.
     pub name: Option<String>,
+    /// Pattern documentation.
     pub documentation: Option<String>,
+    /// Pattern parameters.
     pub parameters: Vec<String>,
-    pub inner: InnerTypeInformation,
+    /// Inner pattern information.
+    pub inner: InnerPatternInformation,
 }
 
-impl ToInformation<TypeInformation> for Type {
-    fn to_info(&self, world: &World) -> Result<TypeInformation, Error> {
-        Ok(TypeInformation {
+impl ToInformation<PatternInformation> for Pattern {
+    fn to_info(&self, world: &World) -> Result<PatternInformation, Error> {
+        Ok(PatternInformation {
             documentation: self.documentation(),
             parameters: self.parameters(),
             name: self.name().map(|name| name.as_type_str()),
@@ -56,14 +66,14 @@ impl ToInformation<TypeInformation> for Type {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct TypeRef {
+pub struct PatternRef {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub package: Vec<String>,
     pub name: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct ObjectType {
+pub struct ObjectPattern {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<Field>,
 }
@@ -71,115 +81,115 @@ pub struct ObjectType {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Field {
     pub name: String,
-    pub ty: TypeOrReference,
+    pub ty: PatternOrReference,
     pub optional: bool,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
-pub enum InnerTypeInformation {
+pub enum InnerPatternInformation {
     Anything,
-    Primordial(PrimordialType),
-    Bound(TypeOrReference, Bindings),
+    Primordial(PrimordialPattern),
+    Bound(PatternOrReference, Bindings),
     Ref(
         SyntacticSugar,
-        TypeOrReference,
-        #[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<TypeOrReference>,
+        PatternOrReference,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<PatternOrReference>,
     ),
-    Deref(TypeOrReference),
+    Deref(PatternOrReference),
     Argument(String),
-    Const(ValueType),
-    Object(ObjectType),
+    Const(ValuePattern),
+    Object(ObjectPattern),
     Expr(Expr),
-    List(#[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<TypeOrReference>),
+    List(#[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<PatternOrReference>),
     Nothing,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PrimordialType {
+pub enum PrimordialPattern {
     Integer,
     Decimal,
     Boolean,
     String,
-    Function(SyntacticSugar, TypeRef),
+    Function(SyntacticSugar, PatternRef),
 }
 
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Bindings {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub bindings: HashMap<String, TypeOrReference>,
+    pub bindings: HashMap<String, PatternOrReference>,
 }
 
-impl ToInformation<InnerTypeInformation> for InnerType {
-    fn to_info(&self, world: &World) -> Result<InnerTypeInformation, Error> {
+impl ToInformation<InnerPatternInformation> for InnerPattern {
+    fn to_info(&self, world: &World) -> Result<InnerPatternInformation, Error> {
         Ok(match self {
-            Self::Anything => InnerTypeInformation::Anything,
-            Self::Primordial(r#type) => InnerTypeInformation::Primordial(r#type.to_info(world)?),
+            Self::Anything => InnerPatternInformation::Anything,
+            Self::Primordial(r#type) => InnerPatternInformation::Primordial(r#type.to_info(world)?),
             Self::Bound(r#type, bindings) => {
-                InnerTypeInformation::Bound(r#type.to_info(world)?, bindings.to_info(world)?)
+                InnerPatternInformation::Bound(r#type.to_info(world)?, bindings.to_info(world)?)
             }
-            Self::Ref(sugar, slot, types) => InnerTypeInformation::Ref(
+            Self::Ref(sugar, slot, types) => InnerPatternInformation::Ref(
                 sugar.clone(),
                 world
                     .get_by_slot(*slot)
-                    .ok_or_else(|| Error::UnknownTypeSlot(*slot))?
+                    .ok_or_else(|| Error::UnknownPatternSlot(*slot))?
                     .to_info(world)?,
                 types
                     .iter()
                     .map(|t| t.to_info(world))
                     .collect::<Result<_, _>>()?,
             ),
-            Self::Deref(r#type) => InnerTypeInformation::Deref(r#type.to_info(world)?),
-            Self::Argument(name) => InnerTypeInformation::Argument(name.clone()),
-            Self::Const(r#type) => InnerTypeInformation::Const(r#type.clone()),
-            Self::Object(r#type) => InnerTypeInformation::Object(r#type.to_info(world)?),
-            Self::Expr(expr) => InnerTypeInformation::Expr(expr.deref().clone()),
-            Self::List(types) => InnerTypeInformation::List(
+            Self::Deref(r#type) => InnerPatternInformation::Deref(r#type.to_info(world)?),
+            Self::Argument(name) => InnerPatternInformation::Argument(name.clone()),
+            Self::Const(r#type) => InnerPatternInformation::Const(r#type.clone()),
+            Self::Object(r#type) => InnerPatternInformation::Object(r#type.to_info(world)?),
+            Self::Expr(expr) => InnerPatternInformation::Expr(expr.deref().clone()),
+            Self::List(types) => InnerPatternInformation::List(
                 types
                     .iter()
                     .map(|t| t.to_info(world))
                     .collect::<Result<_, _>>()?,
             ),
-            Self::Nothing => InnerTypeInformation::Nothing,
+            Self::Nothing => InnerPatternInformation::Nothing,
         })
     }
 }
 
-impl ToInformation<PrimordialType> for lang::PrimordialType {
-    fn to_info(&self, world: &World) -> Result<PrimordialType, Error> {
+impl ToInformation<PrimordialPattern> for lang::PrimordialPattern {
+    fn to_info(&self, world: &World) -> Result<PrimordialPattern, Error> {
         Ok(match self {
-            Self::Integer => PrimordialType::Integer,
-            Self::Decimal => PrimordialType::Decimal,
-            Self::Boolean => PrimordialType::Boolean,
-            Self::String => PrimordialType::String,
+            Self::Integer => PrimordialPattern::Integer,
+            Self::Decimal => PrimordialPattern::Decimal,
+            Self::Boolean => PrimordialPattern::Boolean,
+            Self::String => PrimordialPattern::String,
             Self::Function(sugar, r#type, _) => {
-                PrimordialType::Function(sugar.clone(), r#type.to_info(world)?)
+                PrimordialPattern::Function(sugar.clone(), r#type.to_info(world)?)
             }
         })
     }
 }
 
-impl ToInformation<TypeRef> for TypeName {
-    fn to_info(&self, _world: &World) -> Result<TypeRef, Error> {
-        Ok(TypeRef {
+impl ToInformation<PatternRef> for PatternName {
+    fn to_info(&self, _world: &World) -> Result<PatternRef, Error> {
+        Ok(PatternRef {
             name: self.name().to_string(),
             package: self.package().map(|p| p.segments()).unwrap_or_default(),
         })
     }
 }
 
-impl ToInformation<TypeOrReference> for Type {
-    fn to_info(&self, world: &World) -> Result<TypeOrReference, Error> {
+impl ToInformation<PatternOrReference> for Pattern {
+    fn to_info(&self, world: &World) -> Result<PatternOrReference, Error> {
         Ok(match self.name() {
-            Some(name) => TypeOrReference::Ref(name.to_info(world)?),
-            None => TypeOrReference::Type(Rc::new(self.inner().to_info(world)?)),
+            Some(name) => PatternOrReference::Ref(name.to_info(world)?),
+            None => PatternOrReference::Pattern(Rc::new(self.inner().to_info(world)?)),
         })
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TypeOrReference {
-    Type(Rc<InnerTypeInformation>),
-    Ref(TypeRef),
+pub enum PatternOrReference {
+    Pattern(Rc<InnerPatternInformation>),
+    Ref(PatternRef),
 }
 
 impl ToInformation<Bindings> for lir::Bindings {
@@ -193,9 +203,9 @@ impl ToInformation<Bindings> for lir::Bindings {
     }
 }
 
-impl ToInformation<ObjectType> for lir::ObjectType {
-    fn to_info(&self, world: &World) -> Result<ObjectType, Error> {
-        Ok(ObjectType {
+impl ToInformation<ObjectPattern> for lir::ObjectPattern {
+    fn to_info(&self, world: &World) -> Result<ObjectPattern, Error> {
+        Ok(ObjectPattern {
             fields: self
                 .fields()
                 .iter()

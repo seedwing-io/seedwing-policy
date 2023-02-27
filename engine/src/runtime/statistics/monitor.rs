@@ -1,7 +1,7 @@
-use crate::lang::lir::Type;
+use crate::lang::lir::Pattern;
 use crate::runtime::monitor::Completion;
 use crate::runtime::statistics::Snapshot;
-use crate::runtime::{Output, TypeName};
+use crate::runtime::{Output, PatternName};
 use num_integer::Roots;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -18,7 +18,7 @@ use tokio::sync::Mutex;
 use crate::runtime::statistics::prometheus::PrometheusStats;
 
 pub struct Statistics<const N: usize = 100> {
-    stats: HashMap<TypeName, TypeStats<N>>,
+    stats: HashMap<PatternName, PatternStats<N>>,
     subscribers: Mutex<Vec<Subscriber>>,
 
     #[cfg(feature = "prometheus")]
@@ -50,12 +50,12 @@ impl<const N: usize> Statistics<N> {
         }
     }
 
-    pub async fn record(&mut self, name: TypeName, elapsed: Duration, completion: &Completion) {
+    pub async fn record(&mut self, name: PatternName, elapsed: Duration, completion: &Completion) {
         let snapshot = if let Some(stats) = self.stats.get_mut(&name) {
             stats.record(elapsed, completion);
             stats.snapshot(&name)
         } else {
-            let stats = TypeStats::new(elapsed, completion);
+            let stats = PatternStats::new(elapsed, completion);
             let snapshot = stats.snapshot(&name);
             self.stats.insert(name.clone(), stats);
             snapshot
@@ -109,7 +109,7 @@ impl<const N: usize> Statistics<N> {
 }
 
 #[derive(Clone)]
-pub struct TypeStats<const N: usize> {
+pub struct PatternStats<const N: usize> {
     invocations: u64,
     satisfied_invocations: u64,
     unsatisfied_invocations: u64,
@@ -118,7 +118,7 @@ pub struct TypeStats<const N: usize> {
     num_samples: u8,
 }
 
-impl<const N: usize> TypeStats<N> {
+impl<const N: usize> PatternStats<N> {
     pub fn new(elapsed: Duration, completion: &Completion) -> Self {
         let mut this = Self {
             invocations: 0,
@@ -155,7 +155,7 @@ impl<const N: usize> TypeStats<N> {
         }
     }
 
-    fn snapshot(&self, name: &TypeName) -> Snapshot {
+    fn snapshot(&self, name: &PatternName) -> Snapshot {
         Snapshot {
             name: name.as_type_str(),
             mean: self.mean(),
