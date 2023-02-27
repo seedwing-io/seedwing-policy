@@ -119,7 +119,7 @@ fn return_rationale(result: EvaluationResult) -> HttpResponse {
     if result.satisfied() {
         HttpResponse::Ok().body(rationale)
     } else {
-        HttpResponse::NotAcceptable().body(rationale)
+        HttpResponse::UnprocessableEntity().body(rationale)
     }
 }
 
