@@ -1,0 +1,30 @@
+== `test`
+
+The `test` command runs a set of inputs against policies to test that their output is as expected.
+
+=== Usage
+
+==== Input test directory: `-t <DIR>`
+
+The `-t <DIR>` argument specifies the a directory containing input and expected output documents.
+
+The directory structure should contain a subdirectory matching the path to the pattern under consideration.
+Within the pattern directory, each directory specifies a named test.
+Within each named test directory, at least `input.json` is required, specifying the input to consider.
+If no other files are present, then the result of the test is expected to be `none` or unsatisfied.
+If an empty file named exactly `IDENTITY` is present, the test expects the pattern to evaluate to exactly the input document.
+If a file named `output.json` exists, that file describes the expected output transformation value.
+
+For instance:
+
+```
+  policy-tests/
+    base64/
+      base64/             # tests base64::base64
+        valid-document/   # named test of "valid-document"
+          input.json      # the input value
+          output.json     # the expected output value
+        invalid-document/ # named test of "invalid-document"
+          input.json      # the input value
+                          # no output, expects the input to not satisfy the pattern
+```

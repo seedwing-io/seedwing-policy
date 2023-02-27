@@ -1,4 +1,5 @@
 use crate::core::Function;
+use std::cmp::Ordering;
 
 use crate::lang::lir;
 use crate::lang::lir::{Bindings, EvalContext, Pattern, TraceConfig};

@@ -24,6 +24,7 @@ serde = { version = "1.0.152" }
 hdrhistogram = "7.5.2"
 tokio = "*"
 actix-rt = "*"
+walkdir = "2.3.2"
 
 [features]
 default = [ "frontend"]

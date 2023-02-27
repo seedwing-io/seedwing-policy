@@ -101,6 +101,9 @@ impl PartialEq<Self> for RuntimeValue {
             (Self::Octets(lhs), Self::Octets(rhs)) => lhs == rhs,
             (Self::Object(lhs), Self::Object(rhs)) => lhs == rhs,
             (Self::Null, Self::Null) => true,
+            // more specialness
+            (Self::Octets(lhs), Self::String(rhs)) => lhs == rhs.as_bytes(),
+            (Self::String(lhs), Self::Octets(rhs)) => lhs.as_bytes() == rhs,
             _ => false,
         }
     }

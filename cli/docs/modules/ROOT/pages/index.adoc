@@ -21,4 +21,5 @@ Subcommands are used to adjust the mode of function.
 * xref:verify.adoc[`verify`] - To verify successful parsing and compilation of a set of policies.
 * xref:eval.adoc[`eval`] - To evaluate an input against policies.
 * xref:serve.adoc[`serve`] - To launch an API and UI server.
+* xref:test.adoc[`serve`] - To test policies against inputs.
 
