@@ -6,6 +6,7 @@ mod cli;
 mod eval;
 mod explain;
 mod verify;
+mod config;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {

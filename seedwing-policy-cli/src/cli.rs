@@ -28,7 +28,6 @@ pub enum Command {
         #[arg(short = 'n', long = "name")]
         name: String,
     },
-    Test,
 }
 
 #[derive(clap::Parser, Debug)]
@@ -93,9 +92,6 @@ impl Cli {
                         exit(-10);
                     }
                 }
-            }
-            Command::Test => {
-                println!("test!");
             }
         }
         Ok(())
