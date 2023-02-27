@@ -6,8 +6,8 @@ use crate::core::Function;
 use crate::runtime::PatternName;
 use serde::{Deserialize, Serialize};
 
+use std::fmt;
 use std::hash::{Hash, Hasher};
-
 use std::sync::Arc;
 
 pub mod builder;
@@ -43,6 +43,20 @@ impl From<PatternName> for SyntacticSugar {
             "lang::chain" => Self::Chain,
             "lang::not" => Self::Not,
             _ => Self::None,
+        }
+    }
+}
+
+impl fmt::Display for SyntacticSugar {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SyntacticSugar::None => write!(f, "None"),
+            SyntacticSugar::And => write!(f, "And"),
+            SyntacticSugar::Or => write!(f, "Or"),
+            SyntacticSugar::Refine => write!(f, "Refine"),
+            SyntacticSugar::Traverse => write!(f, "Traverse"),
+            SyntacticSugar::Chain => write!(f, "Chain"),
+            SyntacticSugar::Not => write!(f, "Not"),
         }
     }
 }
