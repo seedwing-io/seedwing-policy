@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use seedwing_policy_engine::lang::lir::EvalContext;
+use seedwing_policy_engine::runtime::EvalContext;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::json;
 use serde_json::Value as JsonValue;

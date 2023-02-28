@@ -1,4 +1,4 @@
-use seedwing_policy_engine::lang::lir::EvalContext;
+use seedwing_policy_engine::runtime::EvalContext;
 use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError, World};
 use seedwing_policy_engine::value::RuntimeValue;
 

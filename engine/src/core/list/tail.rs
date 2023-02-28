@@ -1,8 +1,8 @@
 use super::COUNT;
 use crate::core::list::split_fill;
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext};
-use crate::runtime::{Output, RuntimeError, World};
+use crate::lang::lir::Bindings;
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;

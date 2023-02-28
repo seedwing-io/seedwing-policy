@@ -1,8 +1,8 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext};
+use crate::lang::lir::Bindings;
 use crate::package::Package;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{Output, RuntimeError};
+use crate::runtime::{EvalContext, Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 

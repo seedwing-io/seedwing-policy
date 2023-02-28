@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, ValuePattern};
-use crate::runtime::{Output, RuntimeError, World};
+use crate::lang::lir::{Bindings, ValuePattern};
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use regex::Regex;
 use std::future::Future;

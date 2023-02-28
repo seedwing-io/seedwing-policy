@@ -1,3 +1,4 @@
+//! A data source is a way to provide mostly static data available to the engine to use during evaluation.
 use crate::runtime::RuntimeError;
 use crate::value::RuntimeValue;
 
@@ -6,16 +7,22 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
+/// A source of data can be used when evaluating policies.
 pub trait DataSource: Send + Sync + Debug {
+    /// Retrieve the data at the provided path, if found.
     fn get(&self, path: String) -> Result<Option<RuntimeValue>, RuntimeError>;
 }
 
+/// A source of data read from a directory.
+///
+/// The path parameter is used to locate the source file within the root directory.
 #[derive(Debug)]
 pub struct DirectoryDataSource {
     root: PathBuf,
 }
 
 impl DirectoryDataSource {
+    /// Create a directory data source based on the root directory parameter.
     pub fn new(root: PathBuf) -> Self {
         Self { root }
     }

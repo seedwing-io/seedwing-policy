@@ -6,7 +6,7 @@ use crate::{
 };
 use std::sync::Arc;
 
-use crate::lang::lir::EvalContext;
+use crate::runtime::EvalContext;
 
 pub mod all;
 pub mod any;
@@ -76,7 +76,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::lang::builder::Builder;
-    use crate::lang::lir::EvalContext;
+    use crate::runtime::EvalContext;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvaluationResult;
     use serde_json::Value;

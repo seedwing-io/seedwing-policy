@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext, InnerPattern, ValuePattern};
-use crate::runtime::{Output, RuntimeError, World};
+use crate::lang::lir::{Bindings, InnerPattern, ValuePattern};
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;

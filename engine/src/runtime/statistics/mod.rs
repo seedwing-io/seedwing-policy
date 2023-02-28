@@ -1,3 +1,4 @@
+//! Statistics for policy evaluation.
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "monitor")]

@@ -3,7 +3,7 @@ use crate::core::Function;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, Output, RuntimeError, TraceResult};
+use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, TraceResult};
 use crate::runtime::{PatternName, World};
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
@@ -21,12 +21,9 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-#[cfg(feature = "monitor")]
-use crate::runtime::monitor::dispatcher::Monitor;
-#[cfg(feature = "monitor")]
-use tokio::sync::Mutex;
-
+/// Represents an expression of patterns.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub enum Expr {
     SelfLiteral(),
     Value(ValuePattern),
@@ -147,6 +144,7 @@ impl Expr {
     }
 }
 
+/// A compiled pattern that can be evaluated.
 #[derive(Debug, Serialize)]
 pub struct Pattern {
     name: Option<PatternName>,
@@ -170,22 +168,27 @@ impl Pattern {
         }
     }
 
+    /// Computational order of this pattern.
     pub fn order(&self, world: &World) -> u8 {
         self.inner.order(world)
     }
 
+    /// Name of the pattern.
     pub fn name(&self) -> Option<PatternName> {
         self.name.clone()
     }
 
+    /// Documentation for the pattern.
     pub fn documentation(&self) -> Option<String> {
         self.documentation.clone()
     }
 
-    pub fn inner(&self) -> &InnerPattern {
+    /// The inner pattern type.
+    pub(crate) fn inner(&self) -> &InnerPattern {
         &self.inner
     }
 
+    /// Parameters accepted by this pattern.
     pub fn parameters(&self) -> Vec<String> {
         self.parameters.clone()
     }
@@ -199,6 +202,7 @@ impl Pattern {
         }
     }
 
+    /// Evaluate this pattern with the given input and bindings with the world and context for additional lookups.
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<RuntimeValue>,
@@ -436,7 +440,7 @@ impl Pattern {
             },
             InnerPattern::Const(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();
-                if inner.is_equal(locked_value).await {
+                if inner.is_equal(locked_value) {
                     Ok(EvaluationResult::new(
                         value.clone(),
                         self.clone(),
@@ -550,7 +554,7 @@ impl Pattern {
 }
 
 #[derive(Serialize)]
-pub enum InnerPattern {
+pub(crate) enum InnerPattern {
     Anything,
     Primordial(PrimordialPattern),
     Bound(Arc<Pattern>, Bindings),
@@ -585,34 +589,39 @@ impl InnerPattern {
     }
 }
 
+/// Bindings from names to patterns.
 #[derive(Serialize, Default, Debug, Clone)]
 pub struct Bindings {
     bindings: HashMap<String, Arc<Pattern>>,
 }
 
 impl Bindings {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             bindings: Default::default(),
         }
     }
 
-    pub fn bind(&mut self, name: String, ty: Arc<Pattern>) {
+    pub(crate) fn bind(&mut self, name: String, ty: Arc<Pattern>) {
         self.bindings.insert(name, ty);
     }
 
+    /// Get the binding for a given name.
     pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<Pattern>> {
         self.bindings.get(&name.into()).cloned()
     }
 
+    /// Iterator over all bindings.
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Pattern>)> {
         self.bindings.iter()
     }
 
+    /// Number of bindings.
     pub fn len(&self) -> usize {
         self.bindings.len()
     }
 
+    /// Check if there are no bindings.
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
     }
@@ -641,6 +650,7 @@ impl Debug for InnerPattern {
     }
 }
 
+/// A field within an object pattern.
 #[derive(Serialize, Debug)]
 pub struct Field {
     name: String,
@@ -672,6 +682,7 @@ impl Field {
     }
 }
 
+/// Pattern matching a specific value.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum ValuePattern {
     Null,
@@ -700,6 +711,32 @@ impl From<&ValuePattern> for RuntimeValue {
                     .collect(),
             ),
             ValuePattern::Octets(val) => Self::Octets(val.clone()),
+        }
+    }
+}
+
+impl ValuePattern {
+    pub fn is_equal(&self, other: &RuntimeValue) -> bool {
+        match (self, &other) {
+            (ValuePattern::Null, RuntimeValue::Null) => true,
+            (ValuePattern::String(lhs), RuntimeValue::String(rhs)) => lhs.eq(rhs),
+            (ValuePattern::Integer(lhs), RuntimeValue::Integer(rhs)) => lhs.eq(rhs),
+            (ValuePattern::Decimal(lhs), RuntimeValue::Decimal(rhs)) => lhs.eq(rhs),
+            (ValuePattern::Boolean(lhs), RuntimeValue::Boolean(rhs)) => lhs.eq(rhs),
+            (ValuePattern::List(lhs), RuntimeValue::List(rhs)) => {
+                if lhs.len() != rhs.len() {
+                    false
+                } else {
+                    for (l, r) in lhs.iter().zip(rhs.iter()) {
+                        if !l.is_equal(r) {
+                            return false;
+                        }
+                    }
+                    true
+                }
+            }
+            (ValuePattern::Octets(lhs), RuntimeValue::Octets(rhs)) => lhs.eq(rhs),
+            _ => false,
         }
     }
 }
@@ -735,47 +772,8 @@ impl From<Arc<RuntimeValue>> for Pattern {
     }
 }
 
-impl ValuePattern {
-    pub fn is_equal<'e>(
-        &'e self,
-        other: &'e RuntimeValue,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'e>> {
-        match (self, &other) {
-            (ValuePattern::Null, RuntimeValue::Null) => Box::pin(ready(true)),
-            (ValuePattern::String(lhs), RuntimeValue::String(rhs)) => {
-                Box::pin(async move { lhs.eq(rhs) })
-            }
-            (ValuePattern::Integer(lhs), RuntimeValue::Integer(rhs)) => {
-                Box::pin(async move { lhs.eq(rhs) })
-            }
-            (ValuePattern::Decimal(lhs), RuntimeValue::Decimal(rhs)) => {
-                Box::pin(async move { lhs.eq(rhs) })
-            }
-            (ValuePattern::Boolean(lhs), RuntimeValue::Boolean(rhs)) => {
-                Box::pin(async move { lhs.eq(rhs) })
-            }
-            (ValuePattern::List(lhs), RuntimeValue::List(rhs)) => Box::pin(async move {
-                if lhs.len() != rhs.len() {
-                    false
-                } else {
-                    for (l, r) in lhs.iter().zip(rhs.iter()) {
-                        if !l.is_equal(r).await {
-                            return false;
-                        }
-                    }
-                    true
-                }
-            }),
-            (ValuePattern::Octets(lhs), RuntimeValue::Octets(rhs)) => {
-                Box::pin(async move { lhs.eq(rhs) })
-            }
-            _ => Box::pin(ready(false)),
-        }
-    }
-}
-
 #[derive(Serialize, Debug, Clone)]
-pub struct ObjectPattern {
+pub(crate) struct ObjectPattern {
     fields: Vec<Arc<Field>>,
 }
 
@@ -903,153 +901,5 @@ pub(crate) fn convert(
             Vec::default(),
             lir::InnerPattern::Nothing,
         )),
-    }
-}
-
-#[derive(Debug)]
-pub struct EvalContext {
-    trace: TraceConfig,
-}
-
-impl Default for EvalContext {
-    fn default() -> Self {
-        Self {
-            trace: TraceConfig::Disabled,
-        }
-    }
-}
-
-impl EvalContext {
-    pub fn new(trace: TraceConfig) -> Self {
-        Self { trace }
-    }
-
-    pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {
-        match &self.trace {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(monitor) => TraceHandle {
-                context: self,
-                ty,
-                input,
-                start: Some(Instant::now()),
-            },
-            TraceConfig::Disabled => TraceHandle {
-                context: self,
-                ty,
-                input,
-                start: None,
-            },
-        }
-    }
-
-    async fn correlation(&self) -> Option<u64> {
-        match &self.trace {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(monitor) => Some(monitor.lock().await.init()),
-            TraceConfig::Disabled => None,
-        }
-    }
-
-    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
-        #[cfg(feature = "monitor")]
-        if let TraceConfig::Enabled(monitor) = &self.trace {
-            monitor.lock().await.start(correlation, input, ty).await;
-        }
-    }
-
-    async fn complete(
-        &self,
-        correlation: u64,
-        ty: Arc<Pattern>,
-        result: &mut Result<EvaluationResult, RuntimeError>,
-        elapsed: Option<Duration>,
-    ) {
-        #[cfg(feature = "monitor")]
-        if let TraceConfig::Enabled(monitor) = &self.trace {
-            match result {
-                Ok(ref mut result) => {
-                    if let Some(elapsed) = elapsed {
-                        result.with_trace_result(TraceResult { duration: elapsed });
-                    }
-                    monitor
-                        .lock()
-                        .await
-                        .complete_ok(correlation, ty, result.raw_output().clone(), elapsed)
-                        .await
-                }
-                Err(err) => {
-                    monitor
-                        .lock()
-                        .await
-                        .complete_err(correlation, ty, err, elapsed)
-                        .await
-                }
-            }
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum TraceConfig {
-    #[cfg(feature = "monitor")]
-    Enabled(Arc<Mutex<Monitor>>),
-    Disabled,
-}
-
-impl Debug for TraceConfig {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(_) => {
-                write!(f, "Trace::Enabled")
-            }
-            TraceConfig::Disabled => {
-                write!(f, "Trace::Disabled")
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TraceHandle<'ctx> {
-    context: &'ctx EvalContext,
-    ty: Arc<Pattern>,
-    input: Arc<RuntimeValue>,
-    start: Option<Instant>,
-}
-
-impl From<EvaluationResult> for (Rationale, Output) {
-    fn from(result: EvaluationResult) -> Self {
-        (result.rationale().clone(), result.raw_output().clone())
-    }
-}
-
-impl<'ctx> TraceHandle<'ctx> {
-    fn run<'v>(
-        mut self,
-        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
-    where
-        'ctx: 'v,
-    {
-        if self.start.is_some() {
-            Box::pin(async move {
-                if let Some(correlation) = self.context.correlation().await {
-                    self.context
-                        .start(correlation, self.input.clone(), self.ty.clone())
-                        .await;
-                    let mut result = block.await;
-                    let elapsed = self.start.map(|e| e.elapsed());
-                    self.context
-                        .complete(correlation, self.ty.clone(), &mut result, elapsed)
-                        .await;
-                    result
-                } else {
-                    block.await
-                }
-            })
-        } else {
-            block
-        }
     }
 }

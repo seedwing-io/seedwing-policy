@@ -1,3 +1,4 @@
+//! Pretty printing errors when building policies.
 use crate::lang::parser::{SourceLocation, SourceSpan};
 use crate::runtime::cache::SourceCache;
 use crate::runtime::BuildError;
@@ -6,15 +7,18 @@ use chumsky::error::SimpleReason;
 
 use std::io;
 
+/// Provides readable error reports when building policies.
 pub struct ErrorPrinter<'c> {
     cache: &'c SourceCache,
 }
 
 impl<'c> ErrorPrinter<'c> {
+    /// Create a new printer instance.
     pub fn new(cache: &'c SourceCache) -> Self {
         Self { cache }
     }
 
+    /// Write errors in a pretty format that can be used to locate the source of the error.
     pub fn write_to<W: io::Write>(&self, errors: &[BuildError], mut w: &mut W) {
         for error in errors {
             let source_id = error.source_location();
@@ -47,6 +51,7 @@ impl<'c> ErrorPrinter<'c> {
         }
     }
 
+    /// Write errors to standard out.
     pub fn display(&self, errors: &[BuildError]) {
         self.write_to(errors, &mut std::io::stdout().lock())
     }

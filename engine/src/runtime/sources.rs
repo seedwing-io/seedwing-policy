@@ -1,3 +1,4 @@
+//! Policy source types.
 use crate::lang::parser::SourceLocation;
 use crate::runtime::PackagePath;
 use std::fs::File;
@@ -6,6 +7,7 @@ use std::iter::once;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+/// An in-memory source.
 #[derive(Clone)]
 pub struct Ephemeral {
     source: SourceLocation,
@@ -25,6 +27,7 @@ impl Ephemeral {
     }
 }
 
+/// A directory with policy files.
 #[derive(Debug, Clone)]
 pub struct Directory {
     dir: PathBuf,

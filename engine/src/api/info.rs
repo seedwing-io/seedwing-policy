@@ -1,7 +1,8 @@
 use crate::{
     lang::{
         self,
-        lir::{self, Expr, InnerPattern, Pattern, ValuePattern},
+        lir::{self, InnerPattern},
+        lir::{Expr, Pattern, ValuePattern},
         SyntacticSugar,
     },
     runtime::{Component, ModuleHandle, PatternName, World},
@@ -65,45 +66,67 @@ impl ToInformation<PatternInformation> for Pattern {
     }
 }
 
+/// Reference to a pattern in another package.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct PatternRef {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Package of referenced pattern.
     pub package: Vec<String>,
+    /// Name of referenced pattern.
     pub name: String,
 }
 
+/// An object pattern contains fields that are patterns or reference to other patterns.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct ObjectPattern {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Object fields.
     pub fields: Vec<Field>,
 }
 
+/// A field is a pattern within an object.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Field {
+    /// Field name.
     pub name: String,
+    /// Pattern for a given field.
     pub ty: PatternOrReference,
+    /// Whether the field is optional or not.
     pub optional: bool,
 }
 
+/// Pattern information specific to different pattern types.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum InnerPatternInformation {
+    /// Anything.
     Anything,
+    /// Primordial.
     Primordial(PrimordialPattern),
+    /// Bound.
     Bound(PatternOrReference, Bindings),
+    /// Reference.
     Ref(
         SyntacticSugar,
         PatternOrReference,
         #[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<PatternOrReference>,
     ),
+    /// Deref.
     Deref(PatternOrReference),
+    /// Argument.
     Argument(String),
+    /// Const.
     Const(ValuePattern),
+    /// Object.
     Object(ObjectPattern),
+    /// Expression.
     Expr(Expr),
+    /// List.
     List(#[serde(default, skip_serializing_if = "Vec::is_empty")] Vec<PatternOrReference>),
+    /// Nothing.
     Nothing,
 }
 
+/// Primordial patterns are the basic building blocks of all patterns.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PrimordialPattern {
     Integer,
@@ -113,6 +136,7 @@ pub enum PrimordialPattern {
     Function(SyntacticSugar, PatternRef),
 }
 
+/// Bindings used to retrieve parameters during evaluation.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Bindings {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -186,6 +210,7 @@ impl ToInformation<PatternOrReference> for Pattern {
     }
 }
 
+/// A pattern or a reference to another pattern.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PatternOrReference {
     Pattern(Rc<InnerPatternInformation>),

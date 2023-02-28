@@ -8,9 +8,8 @@ use actix_web::{
 };
 use seedwing_policy_engine::api::ToInformation;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
-use seedwing_policy_engine::{
-    lang::lir::EvalContext,
-    runtime::{monitor::dispatcher::Monitor, EvaluationResult, RuntimeError, World},
+use seedwing_policy_engine::runtime::{
+    monitor::dispatcher::Monitor, EvalContext, EvaluationResult, RuntimeError, World,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -142,7 +141,7 @@ async fn run_eval(
     value: Value,
     encoding: OutputEncoding,
 ) -> HttpResponse {
-    let context = EvalContext::new(seedwing_policy_engine::lang::lir::TraceConfig::Enabled(
+    let context = EvalContext::new(seedwing_policy_engine::runtime::TraceConfig::Enabled(
         monitor.clone(),
     ));
 
