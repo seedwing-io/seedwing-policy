@@ -99,10 +99,6 @@ impl FromPurl {
                 },
                 _ => Ok(None),
             },
-            _ => {
-                log::warn!("Expected object or array JSON value");
-                Ok(None)
-            }
         }
     }
 }

@@ -56,7 +56,6 @@ impl PrometheusStats {
             Completion::Output(output) => match output {
                 Output::None => self.unsatisfied.with_label_values(&[name.name()]).inc(),
                 _ => self.satisfied.with_label_values(&[name.name()]).inc(),
-                _ => {}
             },
             Completion::Err(_) => self.error.with_label_values(&[name.name()]).inc(),
         }

@@ -114,31 +114,6 @@ impl Debug for Pattern {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct Bindings {
-    bindings: HashMap<String, Arc<PatternHandle>>,
-}
-
-impl Bindings {
-    pub fn new() -> Self {
-        Self {
-            bindings: Default::default(),
-        }
-    }
-
-    pub fn bind(&mut self, name: String, ty: Arc<PatternHandle>) {
-        self.bindings.insert(name, ty);
-    }
-
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<PatternHandle>> {
-        self.bindings.get(&name.into()).cloned()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<PatternHandle>)> {
-        self.bindings.iter()
-    }
-}
-
 #[derive(Debug)]
 pub struct Field {
     name: Located<String>,
@@ -177,19 +152,6 @@ impl ObjectPattern {
     pub fn fields(&self) -> &Vec<Arc<Located<Field>>> {
         &self.fields
     }
-}
-
-macro_rules! primordial_type {
-    ($obj: expr, $name: literal, $primordial: expr) => {
-        let name = PatternName::new(None, $name.into());
-        $obj.insert(
-            name.clone(),
-            Arc::new(PatternHandle::new_with(
-                Some(name),
-                Located::new(mir::Pattern::Primordial($primordial), 0..0),
-            )),
-        );
-    };
 }
 
 #[derive(Debug)]

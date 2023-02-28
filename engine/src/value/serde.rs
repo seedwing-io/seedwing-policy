@@ -411,12 +411,6 @@ impl<'a> ser::SerializeStructVariant for SerializeMap<'a> {
     }
 }
 
-pub fn to_value<S: Serialize>(value: &S) -> Result<RuntimeValue, Error> {
-    let mut serializer = Serializer {};
-
-    value.serialize(&mut serializer)
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

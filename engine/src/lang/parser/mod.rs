@@ -199,16 +199,6 @@ pub type ParserError = Simple<char>;
 #[derive(Clone, Debug)]
 pub struct FieldName(String);
 
-impl FieldName {
-    pub fn new(name: String) -> Self {
-        Self(name)
-    }
-
-    pub fn name(&self) -> String {
-        self.0.clone()
-    }
-}
-
 #[derive(Hash, PartialEq, Eq, PartialOrd, Debug, Clone)]
 pub struct SourceLocation {
     name: String,

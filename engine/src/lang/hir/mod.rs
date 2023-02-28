@@ -27,7 +27,6 @@ pub enum Expr {
     GreaterThanEqual(Box<Located<Expr>>, Box<Located<Expr>>),
     Equal(Box<Located<Expr>>, Box<Located<Expr>>),
     NotEqual(Box<Located<Expr>>, Box<Located<Expr>>),
-    Not(Box<Located<Expr>>),
     LogicalAnd(Box<Located<Expr>>, Box<Located<Expr>>),
     LogicalOr(Box<Located<Expr>>, Box<Located<Expr>>),
 }
@@ -63,7 +62,6 @@ impl Expr {
             Expr::NotEqual(lhs, rhs) => {
                 lir::Expr::NotEqual(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
             }
-            Expr::Not(term) => lir::Expr::Not(Arc::new(term.lower())),
             Expr::LogicalAnd(lhs, rhs) => {
                 lir::Expr::LogicalAnd(Arc::new(lhs.lower()), Arc::new(rhs.lower()))
             }
@@ -139,14 +137,6 @@ pub enum Pattern {
     Refinement(Box<Located<Pattern>>),
     Not(Box<Located<Pattern>>),
     Nothing,
-}
-
-#[derive(Debug, Clone)]
-pub enum MemberQualifier {
-    All,
-    Any,
-    None,
-    N(Located<u32>),
 }
 
 impl Pattern {
@@ -609,7 +599,7 @@ impl<'b> Lowerer<'b> {
                     e.ty(),
                 )
             }) {
-                world.define(path.inner(), ty);
+                world.define(path.inner(), ty).map_err(|e| vec![e])?;
             }
         }
 

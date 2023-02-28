@@ -1,5 +1,3 @@
-use crate::core::Function;
-
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
@@ -14,7 +12,6 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
-use std::hash::Hasher;
 
 use std::pin::Pin;
 
@@ -595,12 +592,6 @@ pub struct Bindings {
 }
 
 impl Bindings {
-    pub(crate) fn new() -> Self {
-        Self {
-            bindings: Default::default(),
-        }
-    }
-
     pub(crate) fn bind(&mut self, name: String, ty: Arc<Pattern>) {
         self.bindings.insert(name, ty);
     }

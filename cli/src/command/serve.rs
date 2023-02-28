@@ -1,7 +1,6 @@
 use crate::Cli;
 use env_logger::Builder;
 use log::LevelFilter;
-use std::fmt::Arguments;
 
 #[derive(clap::Args, Debug)]
 #[command(

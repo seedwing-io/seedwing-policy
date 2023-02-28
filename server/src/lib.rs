@@ -6,9 +6,7 @@ mod stream;
 mod ui;
 
 use actix_web::middleware::{NormalizePath, TrailingSlash};
-use actix_web::{rt, web, App, HttpServer};
-use env_logger::Builder;
-use log::LevelFilter;
+use actix_web::{web, App, HttpServer};
 use playground::PlaygroundState;
 use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::runtime::ErrorPrinter;
@@ -17,14 +15,11 @@ use std::process::exit;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use clap::Parser;
 use seedwing_policy_engine::lang::builder::Builder as PolicyBuilder;
 use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
 use seedwing_policy_engine::runtime::monitor::MonitorEvent;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
-
-use crate::cli::Cli;
 
 pub async fn run(
     policy_directories: Vec<PathBuf>,

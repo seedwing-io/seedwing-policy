@@ -6,7 +6,7 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
-use seedwing_policy_engine::api::ToInformation;
+use seedwing_policy_engine::info::ToInformation;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::runtime::{
     monitor::dispatcher::Monitor, EvalContext, EvaluationResult, RuntimeError, World,

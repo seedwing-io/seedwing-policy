@@ -1,15 +1,10 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, InnerPattern, Pattern, ValuePattern};
-use crate::package::Package;
-use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, World};
+use crate::lang::lir::{Bindings, ValuePattern};
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::str::from_utf8;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -35,10 +30,10 @@ impl Function for DelayMs {
 
     fn call<'v>(
         &'v self,
-        input: Arc<RuntimeValue>,
-        ctx: &'v mut EvalContext,
+        _input: Arc<RuntimeValue>,
+        _ctx: &'v EvalContext,
         bindings: &'v Bindings,
-        world: &'v World,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(delay) = bindings.get(DELAY) {

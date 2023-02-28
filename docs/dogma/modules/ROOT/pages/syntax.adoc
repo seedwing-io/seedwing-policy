@@ -38,7 +38,7 @@ pattern ...
 
 When a directory is provided as a policy library, the directory will be traversed and all files with the extension of `.dog` will be parsed, compiled, and made available as evaluatable policies.
 
-From the root library directory, the organizational structure of the directories is reflected in both the names of the policies, and the URLs through which they are exposed if using the `seedwing-policy-server`.
+From the root library directory, the organizational structure of the directories is reflected in both the names of the policies, and the URLs through which they are exposed if using the `swio serve`.
 
 For instance, if the directory `./policies/` is used as the root and contains the following structure:
 

@@ -1,22 +1,7 @@
 use crate::ui::rationale::Rationalizer;
-use actix_web::{
-    http::header::ContentType,
-    web::{BytesMut, Payload},
-};
-use futures_util::StreamExt;
+use actix_web::http::header::ContentType;
 use seedwing_policy_engine::runtime::{EvaluationResult, Response};
 use serde::Deserialize;
-use serde_json::Error;
-
-pub async fn parse(body: &mut Payload) -> Result<serde_json::Value, Error> {
-    let mut content = BytesMut::new();
-    while let Some(Ok(bit)) = body.next().await {
-        content.extend_from_slice(&bit);
-    }
-    serde_json::from_slice(&content)
-        .or_else(|_| serde_yaml::from_slice::<serde_json::Value>(&content))
-        .map_err(serde::de::Error::custom)
-}
 
 #[derive(Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]

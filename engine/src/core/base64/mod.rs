@@ -62,7 +62,6 @@ impl Function for Base64 {
         match self.alphabet {
             Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
             Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
-            _ => None,
         }
     }
 

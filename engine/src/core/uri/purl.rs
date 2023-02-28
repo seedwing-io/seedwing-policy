@@ -104,10 +104,6 @@ impl Purl {
         Ok(Output::Transform(Arc::new(result.into())).into())
     }
 
-    fn error(rationale: Rationale) -> Result<FunctionEvaluationResult, RuntimeError> {
-        Ok((Output::None, rationale).into())
-    }
-
     fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
         Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
     }

@@ -1,6 +1,6 @@
 //! Value representations in the policy engine.
 //!
-//! Values are inputs or outputs from patterns, and can be constructed automatically from JSON and other primitives.
+//! Values are inputs or outputs from patterns, and can be serialized and deserialized from different types.
 
 use ::serde::Serialize;
 use indexmap::IndexMap;
@@ -12,7 +12,6 @@ use std::cmp::Ordering;
 
 use std::fmt::{Debug, Display, Formatter};
 
-use std::hash::Hasher;
 use std::ops::Index;
 
 use std::rc::Rc;
@@ -23,42 +22,13 @@ mod serde;
 mod json;
 mod yaml;
 
-struct Printer {
-    indent: u8,
-    content: String,
-}
-
-impl Printer {
-    fn new() -> Self {
-        Self {
-            indent: 0,
-            content: String::new(),
-        }
-    }
-
-    fn write(&mut self, value: &str) {
-        self.content.push_str(value);
-    }
-
-    fn write_with_indent(&mut self, value: &str) {
-        self.content.push('\n');
-        self.content.push_str(self.indent().as_str());
-        self.content.push_str(value);
-    }
-
-    fn indent(&self) -> String {
-        let mut spacing = String::new();
-        for _ in 0..(self.indent * 2) {
-            spacing.push(' ');
-        }
-        spacing
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum RationaleResult {
+    // No result.
     None,
+    // There was a result.
     Same(Rc<RuntimeValue>),
+    // Result was transformed.
     Transform(Rc<RuntimeValue>),
 }
 

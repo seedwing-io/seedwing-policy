@@ -66,7 +66,8 @@ impl DataSource for DirectoryDataSource {
                 } else if let Ok(mut file) = File::open(target.clone()) {
                     // just octets
                     let mut octets = Vec::new();
-                    file.read_to_end(&mut octets);
+                    file.read_to_end(&mut octets)
+                        .map_err(|_| RuntimeError::FileUnreadable(target))?;
                     Ok(Some(RuntimeValue::Octets(octets)))
                 } else {
                     Err(RuntimeError::FileUnreadable(target))

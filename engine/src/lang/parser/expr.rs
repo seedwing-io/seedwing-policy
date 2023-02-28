@@ -8,7 +8,6 @@ use chumsky::Parser;
 #[derive(Copy, Clone, Debug)]
 pub enum ExprError {
     Value(ValueError),
-    Simplify,
 }
 
 impl From<ValueError> for ExprError {
@@ -18,10 +17,7 @@ impl From<ValueError> for ExprError {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum ValueError {
-    NonArithmatic,
-    DivideByZero,
-}
+pub enum ValueError {}
 
 pub fn op(op: &str) -> impl Parser<ParserInput, &str, Error = ParserError> + Clone {
     just(op).padded()

@@ -1,5 +1,5 @@
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::hir::{Field, MemberQualifier, ObjectPattern, Pattern, PatternDefn};
+use crate::lang::hir::{Field, ObjectPattern, Pattern, PatternDefn};
 
 use crate::lang::parser::expr::expr;
 use crate::lang::parser::literal::{
@@ -9,7 +9,6 @@ use crate::lang::parser::{op, Located, ParserError, ParserInput};
 use crate::lang::SyntacticSugar;
 use crate::runtime::{PackageName, PackagePath, PatternName};
 
-use chumsky::chain::Chain;
 use chumsky::prelude::*;
 use chumsky::text::Character;
 use chumsky::Parser;
@@ -163,36 +162,6 @@ pub fn type_expr(
     visible_parameters: Vec<String>,
 ) -> impl Parser<ParserInput, Located<Pattern>, Error = ParserError> + Clone {
     recursive(|expr| logical_or(expr, visible_parameters.clone()))
-}
-
-pub fn simple_u32() -> impl Parser<ParserInput, Located<u32>, Error = ParserError> + Clone {
-    text::int::<char, ParserError>(10)
-        .padded()
-        .map_with_span(|s: String, span| Located::new(s.parse::<u32>().unwrap(), span))
-}
-
-pub fn member_qualifier(
-) -> impl Parser<ParserInput, Located<MemberQualifier>, Error = ParserError> + Clone {
-    just("any")
-        .padded()
-        .ignored()
-        .map_with_span(|_, span| Located::new(MemberQualifier::Any, span))
-        .or(just("none")
-            .padded()
-            .ignored()
-            .map_with_span(|_, span| Located::new(MemberQualifier::None, span)))
-        .or(just("all")
-            .padded()
-            .ignored()
-            .map_with_span(|_, span| Located::new(MemberQualifier::All, span)))
-        .or(just("n<")
-            .padded()
-            .ignored()
-            .then(simple_u32().padded())
-            .then(just(">").padded().ignored())
-            .map_with_span(|((_, n), _), span| Located::new(MemberQualifier::N(n), span)))
-        .then(just("::").padded().ignored())
-        .map(|(qualifier, _)| qualifier)
 }
 
 pub fn parenthesized_expr(

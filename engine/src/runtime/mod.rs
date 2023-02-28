@@ -1,7 +1,6 @@
 //! Policy evaluation runtime.
 //!
 //! All policies are parsed and compiled into a `World` used to evaluate policy decisions for different inputs.
-use crate::core::Function;
 use crate::runtime::cache::SourceCache;
 use ariadne::{Label, Report, ReportKind};
 use chumsky::error::SimpleReason;
@@ -117,7 +116,7 @@ impl<'c> ErrorPrinter<'c> {
             }))
             .finish();
 
-            report.write(self.cache, &mut w);
+            let _ = report.write(self.cache, &mut w);
         }
     }
 
@@ -477,7 +476,6 @@ mod test {
 pub struct World {
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
-    trace: TraceConfig,
 }
 
 impl Default for World {
@@ -491,7 +489,6 @@ impl World {
         Self {
             types: Default::default(),
             type_slots: Default::default(),
-            trace: TraceConfig::Disabled,
         }
     }
 
@@ -510,10 +507,6 @@ impl World {
         let converted = lir::convert(name, handle.documentation(), parameters, &ty);
         self.type_slots.push(converted);
         self.types.insert(path, self.type_slots.len() - 1);
-    }
-
-    pub(crate) fn trace(&self) -> &TraceConfig {
-        &self.trace
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
@@ -876,6 +869,7 @@ impl EvalContext {
         }
     }
 
+    #[allow(unused_variables)]
     pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
         #[cfg(feature = "monitor")]
         if let TraceConfig::Enabled(monitor) = &self.trace {
@@ -883,6 +877,7 @@ impl EvalContext {
         }
     }
 
+    #[allow(unused_variables)]
     async fn complete(
         &self,
         correlation: u64,
