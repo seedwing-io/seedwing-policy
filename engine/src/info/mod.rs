@@ -1,3 +1,4 @@
+//! Types used to provide information about policies and patterns in the policy engine.
 use crate::{
     lang::{
         self,
@@ -10,7 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::Deref, rc::Rc};
 
-#[allow(missing_docs)]
+/// Errors when generating information.
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum Error {
     #[error("unknown pattern slot: {0}")]

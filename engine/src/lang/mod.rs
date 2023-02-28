@@ -1,4 +1,6 @@
 //! Dogma language implementation.
+//!
+//! Types used for compiling policies and evaluating them.
 use crate::core::Function;
 
 use crate::runtime::PatternName;

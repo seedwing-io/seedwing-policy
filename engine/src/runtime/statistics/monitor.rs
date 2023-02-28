@@ -1,14 +1,12 @@
-use crate::lang::lir::Pattern;
 use crate::runtime::monitor::Completion;
 use crate::runtime::statistics::Snapshot;
 use crate::runtime::{Output, PatternName};
 use num_integer::Roots;
-use rand::rngs::ThreadRng;
+
 use rand::Rng;
-use serde::Serialize;
+
 use std::collections::HashMap;
-use std::env::var;
-use std::sync::Arc;
+
 use std::time::Duration;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -178,7 +176,7 @@ impl<const N: usize> PatternStats<N> {
     fn median(&self) -> u128 {
         let mut samples = [0; N];
         samples.clone_from_slice(&self.samples);
-        let mut samples = &mut samples[0..self.num_samples as usize];
+        let samples = &mut samples[0..self.num_samples as usize];
         samples.sort();
         samples[samples.len() / 2]
     }
@@ -189,7 +187,7 @@ impl<const N: usize> PatternStats<N> {
         let variance = self.samples[0..self.num_samples as usize]
             .iter()
             .map(|value| {
-                let diff = if (mean > *value) {
+                let diff = if mean > *value {
                     mean - (*value)
                 } else {
                     *value - mean

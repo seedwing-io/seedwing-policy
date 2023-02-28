@@ -3,7 +3,7 @@ use crate::lang::lir::{Bindings, InnerPattern, ValuePattern};
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use spdx;
-use spdx::{Expression, Licensee};
+
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc; // as spdx_parser;

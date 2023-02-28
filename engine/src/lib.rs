@@ -1,11 +1,9 @@
-#![allow(unused)]
 #![doc = include_str!("../../README.md")]
 //#![warn(missing_docs)]
 
-pub mod api;
 mod core;
 pub mod data;
-pub mod error_printer;
+pub mod info;
 pub mod lang;
 mod package;
 pub mod runtime;

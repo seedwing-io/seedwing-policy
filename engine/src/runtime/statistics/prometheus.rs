@@ -1,6 +1,6 @@
 use crate::runtime::monitor::Completion;
 use crate::runtime::{Output, PatternName};
-use prometheus::register_histogram_with_registry;
+
 use std::time::Duration;
 
 #[cfg(feature = "prometheus")]

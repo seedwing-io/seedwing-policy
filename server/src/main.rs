@@ -11,7 +11,7 @@ use env_logger::Builder;
 use log::LevelFilter;
 use playground::PlaygroundState;
 use seedwing_policy_engine::data::DirectoryDataSource;
-use seedwing_policy_engine::error_printer::ErrorPrinter;
+use seedwing_policy_engine::runtime::ErrorPrinter;
 use std::process::exit;
 use std::sync::Arc;
 use tokio::sync::Mutex;

@@ -3,7 +3,7 @@ use crate::core::Function;
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, TraceResult};
+use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError};
 use crate::runtime::{PatternName, World};
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
@@ -13,13 +13,12 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::future::{ready, Future};
+use std::future::Future;
 use std::hash::Hasher;
-use std::mem;
+
 use std::pin::Pin;
 
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 /// Represents an expression of patterns.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

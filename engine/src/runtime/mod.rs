@@ -1,8 +1,15 @@
+//! Policy evaluation runtime.
+//!
+//! All policies are parsed and compiled into a `World` used to evaluate policy decisions for different inputs.
 use crate::core::Function;
+use crate::runtime::cache::SourceCache;
+use ariadne::{Label, Report, ReportKind};
+use chumsky::error::SimpleReason;
 use core::future::Future;
 use core::pin::Pin;
-use std::cmp::Ordering;
 use std::time::Instant;
+
+use std::io;
 
 use crate::lang::lir;
 use crate::lang::lir::{Bindings, Pattern};
@@ -67,6 +74,56 @@ impl BuildError {
 impl From<(SourceLocation, ParserError)> for BuildError {
     fn from(inner: (SourceLocation, ParserError)) -> Self {
         Self::Parser(inner.0, inner.1)
+    }
+}
+
+/// Provides readable error reports when building policies.
+pub struct ErrorPrinter<'c> {
+    cache: &'c SourceCache,
+}
+
+impl<'c> ErrorPrinter<'c> {
+    /// Create a new printer instance.
+    pub fn new(cache: &'c SourceCache) -> Self {
+        Self { cache }
+    }
+
+    /// Write errors in a pretty format that can be used to locate the source of the error.
+    pub fn write_to<W: io::Write>(&self, errors: &[BuildError], mut w: &mut W) {
+        for error in errors {
+            let source_id = error.source_location();
+            let span = error.span();
+            let full_span = (source_id.clone(), error.span());
+            let report = Report::<(SourceLocation, SourceSpan)>::build(
+                ReportKind::Error,
+                source_id.clone(),
+                span.start,
+            )
+            .with_label(Label::new(full_span).with_message(match error {
+                BuildError::ArgumentMismatch(_, _) => "argument mismatch".to_string(),
+                BuildError::PatternNotFound(_, _, name) => {
+                    format!("pattern not found: {name}")
+                }
+                BuildError::Parser(_, inner) => match inner.reason() {
+                    SimpleReason::Unexpected => {
+                        println!("{inner:?}");
+                        format!("unexpected character found {}", inner.found().unwrap())
+                    }
+                    SimpleReason::Unclosed { span: _, delimiter } => {
+                        format!("unclosed delimiter {delimiter}")
+                    }
+                    SimpleReason::Custom(inner) => inner.clone(),
+                },
+            }))
+            .finish();
+
+            report.write(self.cache, &mut w);
+        }
+    }
+
+    /// Write errors to standard out.
+    pub fn display(&self, errors: &[BuildError]) {
+        self.write_to(errors, &mut std::io::stdout().lock())
     }
 }
 
@@ -463,7 +520,7 @@ impl World {
         &self,
         path: P,
         value: V,
-        mut ctx: EvalContext,
+        ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
         let value = Arc::new(value.into());
         let path = PatternName::from(path.into());
@@ -796,7 +853,7 @@ impl EvalContext {
     pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {
         match &self.trace {
             #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(monitor) => TraceHandle {
+            TraceConfig::Enabled(_monitor) => TraceHandle {
                 context: self,
                 ty,
                 input,
@@ -895,7 +952,7 @@ impl From<EvaluationResult> for (Rationale, Output) {
 
 impl<'ctx> TraceHandle<'ctx> {
     pub(crate) fn run<'v>(
-        mut self,
+        self,
         block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
     where

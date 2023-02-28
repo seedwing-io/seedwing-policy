@@ -1,5 +1,5 @@
 use crate::package::Package;
-use crate::runtime::{PackagePath, World};
+use crate::runtime::PackagePath;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["csaf"]));
@@ -9,9 +9,8 @@ pub fn package() -> Package {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+
     use crate::core::test::test_pattern;
-    use serde_json::json;
 
     #[tokio::test]
     async fn test_csaf_valid() {

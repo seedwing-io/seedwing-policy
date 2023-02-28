@@ -1,3 +1,5 @@
+//! Data sources for the policy engine.
+//!
 //! A data source is a way to provide mostly static data available to the engine to use during evaluation.
 use crate::runtime::RuntimeError;
 use crate::value::RuntimeValue;

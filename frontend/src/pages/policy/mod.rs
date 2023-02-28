@@ -10,7 +10,7 @@ use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::*;
 use seedwing_policy_engine::{
-    api::{ComponentInformation, PatternInformation},
+    info::{ComponentInformation, PatternInformation},
     runtime::ModuleHandle,
 };
 use serde_json::Value;

@@ -1,8 +1,5 @@
-use anyhow::anyhow;
-
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::rationale::Rationale;
 
 use crate::runtime::{EvalContext, World};
 use crate::runtime::{Output, RuntimeError};
@@ -72,7 +69,7 @@ impl FromPurl {
                                 Ok(vuln) => {
                                     processed.push(vuln);
                                 }
-                                Err(e) => {
+                                Err(_e) => {
                                     // Fallback to existing info
                                     processed.push(vuln);
                                 }
@@ -122,9 +119,9 @@ impl Function for FromPurl {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
-        bindings: &'v Bindings,
-        world: &'v World,
+        _ctx: &'v EvalContext,
+        _bindings: &'v Bindings,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             match FromPurl::from_purls(input.as_json()).await {

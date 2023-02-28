@@ -1,13 +1,12 @@
 //! Monitoring and statistics of evaluation time.
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+
 use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
 use crate::lang::lir::Pattern;
-use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, TraceHandle};
+use crate::runtime::Output;
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
 
