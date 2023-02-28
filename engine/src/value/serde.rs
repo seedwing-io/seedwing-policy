@@ -417,6 +417,12 @@ mod test {
     use crate::value::test::assert_yaml;
     use crate::value::{Object, RuntimeValue};
 
+    fn to_value<S: Serialize>(value: &S) -> Result<RuntimeValue, Error> {
+        let mut serializer = Serializer {};
+
+        value.serialize(&mut serializer)
+    }
+
     #[test]
     fn test_ser_none() {
         assert_eq!(Ok(RuntimeValue::Null), to_value(&None::<()>));
