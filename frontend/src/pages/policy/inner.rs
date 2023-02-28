@@ -4,10 +4,7 @@ use seedwing_policy_engine::api::{
     Field, InnerPatternInformation, ObjectPattern, PatternInformation, PatternOrReference,
     PatternRef, PrimordialPattern,
 };
-use seedwing_policy_engine::lang::{
-    lir::{Expr, ValuePattern},
-    SyntacticSugar,
-};
+use seedwing_policy_engine::lang::{Expr, SyntacticSugar, ValuePattern};
 use std::rc::Rc;
 use yew::prelude::*;
 use yew_nested_router::components::Link;

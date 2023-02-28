@@ -1,6 +1,8 @@
+//! Rationale for a policy decision.
 use crate::runtime::EvaluationResult;
 use std::collections::HashMap;
 
+/// Rationale for a policy decision.
 #[derive(Debug, Clone)]
 pub enum Rationale {
     Anything,

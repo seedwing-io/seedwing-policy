@@ -1,8 +1,10 @@
+//! Response handling a policy decision.
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
+/// A response is used to transform a policy result into different formats.
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -134,8 +136,9 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
 #[cfg(test)]
 mod test {
     use super::Response;
-    use crate::lang::{builder::Builder, lir::EvalContext};
+    use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use serde_json::json;
 
     #[tokio::test]

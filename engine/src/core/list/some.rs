@@ -1,7 +1,7 @@
 use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext};
-use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::lang::lir::Bindings;
+use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;

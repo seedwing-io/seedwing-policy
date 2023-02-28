@@ -1,6 +1,6 @@
-use crate::lang::lir::{Bindings, EvalContext};
+use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::fmt::Debug;
@@ -162,7 +162,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::lang::builder::Builder;
-    use crate::lang::lir::EvalContext;
+    use crate::runtime::EvalContext;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvaluationResult;
     use crate::value::RuntimeValue;

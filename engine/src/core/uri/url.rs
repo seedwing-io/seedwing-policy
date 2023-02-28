@@ -1,7 +1,7 @@
 use crate::core::{BlockingFunction, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext};
+use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{Output, RuntimeError, World};
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::fmt::Debug;
 

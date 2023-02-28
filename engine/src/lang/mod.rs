@@ -1,3 +1,4 @@
+//! Dogma language implementation.
 use crate::core::Function;
 
 use crate::runtime::PatternName;
@@ -8,11 +9,14 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 pub mod builder;
-pub mod hir;
-pub mod lir;
-pub mod mir;
-pub mod parser;
+pub(crate) mod hir;
+pub(crate) mod lir;
+pub(crate) mod mir;
+pub(crate) mod parser;
 
+pub use lir::{Expr, ValuePattern};
+
+/// Native functions that have syntactic sugar.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SyntacticSugar {
     None,
@@ -38,12 +42,22 @@ impl From<PatternName> for SyntacticSugar {
     }
 }
 
+/// Primordial patterns are the basic building blocks.
 #[derive(Debug, Clone, Serialize)]
 pub enum PrimordialPattern {
+    /// Match integers.
     Integer,
+
+    /// Match decimals.
     Decimal,
+
+    /// Match booleans.
     Boolean,
+
+    /// Match strings.
     String,
+
+    /// Match builtin sugared functions.
     Function(
         SyntacticSugar,
         PatternName,

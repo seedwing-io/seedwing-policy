@@ -1,3 +1,4 @@
+//! Sharing monitoring results in memory between modules.
 use crate::lang::lir::Pattern;
 use crate::runtime::monitor::{CompleteEvent, Completion, MonitorEvent, StartEvent};
 use crate::runtime::{Output, RuntimeError};

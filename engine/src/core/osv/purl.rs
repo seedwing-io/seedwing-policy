@@ -1,10 +1,10 @@
 use anyhow::anyhow;
 
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, EvalContext};
+use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
 
-use crate::runtime::World;
+use crate::runtime::{EvalContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
 

@@ -1,7 +1,7 @@
-use crate::core::{EvalContext, Function, FunctionEvaluationResult};
+use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern, Pattern, ValuePattern};
 use crate::package::Package;
-use crate::runtime::{EvaluationResult, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::borrow::Borrow;
 use std::cell::RefCell;
