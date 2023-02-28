@@ -15,6 +15,7 @@ pub mod cyclonedx;
 pub mod data;
 #[cfg(feature = "debug")]
 pub mod debug;
+pub mod external;
 pub mod iso;
 pub mod jsf;
 pub mod json;

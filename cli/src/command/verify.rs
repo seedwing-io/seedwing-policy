@@ -19,7 +19,34 @@ impl Verify {
         Verify {}.run(args).await
     }
 
+    pub async fn verify_with_builder(args: &Cli) -> Result<(Builder, World), ()> {
+        let verify = Verify {};
+        let mut builder = verify.builder(args).await?;
+        let result = builder.finish().await;
+
+        match result {
+            Ok(world) => Ok((builder, world)),
+            Err(errors) => {
+                ErrorPrinter::new(builder.source_cache()).display(&errors);
+                exit(-2);
+            }
+        }
+    }
+
     pub async fn run(&self, args: &Cli) -> Result<World, ()> {
+        let mut builder = self.builder(args).await?;
+        let result = builder.finish().await;
+
+        match result {
+            Ok(world) => Ok(world),
+            Err(errors) => {
+                ErrorPrinter::new(builder.source_cache()).display(&errors);
+                exit(-2);
+            }
+        }
+    }
+
+    pub async fn builder(&self, args: &Cli) -> Result<Builder, ()> {
         let mut errors = Vec::new();
 
         let mut builder = Builder::new();
@@ -50,14 +77,6 @@ impl Verify {
             builder.data(DirectoryDataSource::new(each.into()));
         }
 
-        let result = builder.finish().await;
-
-        match result {
-            Ok(world) => Ok(world),
-            Err(errors) => {
-                ErrorPrinter::new(builder.source_cache()).display(&errors);
-                exit(-2);
-            }
-        }
+        Ok(builder)
     }
 }

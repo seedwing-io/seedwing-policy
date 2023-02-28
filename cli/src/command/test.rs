@@ -1,5 +1,7 @@
 use crate::command::verify::Verify;
 use crate::Cli;
+use seedwing_policy_engine::lang::builder::Builder;
+use seedwing_policy_engine::runtime::sources::Ephemeral;
 use seedwing_policy_engine::runtime::{EvalContext, Output, PatternName, RuntimeError, World};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde_json::Value;
@@ -22,12 +24,12 @@ pub struct Test {
 
 impl Test {
     pub async fn run(&self, args: &Cli) -> Result<(), ()> {
-        let world = Verify::verify(args).await?;
+        let (builder, world) = Verify::verify_with_builder(args).await?;
         let mut plan = TestPlan::new(&self.test_directories, &self.r#match);
         println!();
         println!("running {} tests", plan.tests.len());
         println!();
-        plan.run(&world).await;
+        plan.run(&builder, &world).await;
         self.display_results(&plan);
         println!();
         let result = if plan.had_failures() { "failed" } else { "ok" };
@@ -64,7 +66,7 @@ impl Test {
                 width = plan
                     .tests
                     .iter()
-                    .filter(|e| e.pattern == test.pattern)
+                    .filter(|e| e.pattern.as_type_str() == test.pattern.as_type_str())
                     .map(|e| e.name.len())
                     .reduce(|accum, e| if e > accum { e } else { accum })
                     .unwrap_or(20)
@@ -115,8 +117,26 @@ impl TestPlan {
                                         ) {
                                             return None;
                                         }
-                                        let expected = if let Some(parent) = e.path().parent() {
-                                            if parent.join("output.json").exists() {
+                                        let (test_pattern, expected) = if let Some(parent) =
+                                            e.path().parent()
+                                        {
+                                            let test_pattern = if parent.join("test.dog").exists() {
+                                                TestPattern::Harness(
+                                                    pattern_name
+                                                        .to_string_lossy()
+                                                        .replace('/', "::")
+                                                        .into(),
+                                                    parent.join("test.dog"),
+                                                )
+                                            } else {
+                                                TestPattern::Direct(
+                                                    pattern_name
+                                                        .to_string_lossy()
+                                                        .replace('/', "::")
+                                                        .into(),
+                                                )
+                                            };
+                                            let expected = if parent.join("output.json").exists() {
                                                 Expected::Transform(parent.join("output.json"))
                                             } else if parent.join("output.identity").exists() {
                                                 Expected::Identity
@@ -126,17 +146,15 @@ impl TestPlan {
                                                 Expected::None
                                             } else {
                                                 Expected::Pending
-                                            }
+                                            };
+                                            (test_pattern, expected)
                                         } else {
-                                            Expected::None
+                                            return None;
                                         };
 
                                         Some(TestCase {
                                             name: (*test_name.to_string_lossy()).into(),
-                                            pattern: (pattern_name
-                                                .to_string_lossy()
-                                                .replace('/', "::"))
-                                            .into(),
+                                            pattern: test_pattern,
                                             input: e.path().into(),
                                             expected,
                                             result: None,
@@ -159,9 +177,9 @@ impl TestPlan {
         Self { tests }
     }
 
-    pub async fn run(&mut self, world: &World) {
+    pub async fn run(&mut self, builder: &Builder, world: &World) {
         for test in &mut self.tests.iter_mut() {
-            test.run(world).await;
+            test.run(builder, world).await;
         }
     }
 
@@ -203,14 +221,29 @@ impl TestPlan {
 #[derive(Debug)]
 pub struct TestCase {
     name: String,
-    pattern: PatternName,
+    pattern: TestPattern,
     input: PathBuf,
     expected: Expected,
     result: Option<TestResult>,
 }
 
+#[derive(Debug)]
+pub enum TestPattern {
+    Direct(PatternName),
+    Harness(PatternName, PathBuf),
+}
+
+impl TestPattern {
+    pub fn as_type_str(&self) -> String {
+        match self {
+            TestPattern::Direct(name) => name.as_type_str(),
+            TestPattern::Harness(name, _) => name.as_type_str(),
+        }
+    }
+}
+
 impl TestCase {
-    pub async fn run(&mut self, world: &World) {
+    pub async fn run(&mut self, builder: &Builder, world: &World) {
         if let Expected::Pending = &self.expected {
             self.result.replace(TestResult::Pending);
             return;
@@ -222,9 +255,69 @@ impl TestCase {
             if read_result.is_ok() {
                 let input: Result<Value, _> = serde_json::from_slice(&input);
                 if let Ok(input) = input {
-                    let result = world
-                        .evaluate(self.pattern.as_type_str(), input, EvalContext::default())
-                        .await;
+                    let result = match &self.pattern {
+                        TestPattern::Direct(pattern_name) => {
+                            world
+                                .evaluate(pattern_name.as_type_str(), input, EvalContext::default())
+                                .await
+                        }
+                        TestPattern::Harness(_, harness) => {
+                            let mut builder = builder.clone();
+                            /*
+                            // todo, bring in sources
+                            for source in self.sources.iter() {
+                                if let Err(e) = builder.build(source.iter()) {
+                                    log::error!("err {:?}", e);
+                                }
+                            }
+                             */
+
+                            if let Ok(mut harness_file) = File::open(harness).await {
+                                let mut harness = Vec::new();
+                                let harness_result = harness_file.read_to_end(&mut harness).await;
+                                if harness_result.is_ok() {
+                                    match core::str::from_utf8(&harness) {
+                                        Ok(s) => {
+                                            if let Err(e) =
+                                                builder.build(Ephemeral::new("test", s).iter())
+                                            {
+                                                println!("unable to build policy [{:?}]", e);
+                                            }
+                                        }
+                                        Err(e) => {
+                                            println!("unable to parse [{:?}]", e);
+                                        }
+                                    }
+                                    let world = builder.finish().await;
+                                    match world {
+                                        Ok(world) => {
+                                            world
+                                                .evaluate(
+                                                    "test::test",
+                                                    input,
+                                                    EvalContext::default(),
+                                                )
+                                                .await
+                                        }
+                                        Err(err) => {
+                                            self.result.replace(TestResult::Error(
+                                                TestError::HarnessSetup,
+                                            ));
+                                            return;
+                                        }
+                                    }
+                                } else {
+                                    self.result
+                                        .replace(TestResult::Error(TestError::HarnessSetup));
+                                    return;
+                                }
+                            } else {
+                                self.result
+                                    .replace(TestResult::Error(TestError::HarnessSetup));
+                                return;
+                            }
+                        }
+                    };
 
                     match result {
                         Ok(result) => match (result.raw_output(), &self.expected) {
@@ -316,5 +409,6 @@ impl Display for TestResult {
 pub enum TestError {
     ReadingInput,
     Deserialization,
+    HarnessSetup,
     Runtime(RuntimeError),
 }

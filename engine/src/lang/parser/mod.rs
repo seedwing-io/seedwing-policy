@@ -12,6 +12,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
 use std::ops::{Deref, DerefMut};
+use std::str::from_utf8;
 
 pub mod expr;
 pub mod literal;
@@ -264,6 +265,10 @@ impl PolicyParser {
     {
         let tokens = lexer().parse(stream)?;
         let tokens = remove_comments(&tokens);
+
+        //let bytes = tokens.iter().map(|e|e.0).collect::<String>();
+        //println!("{:?}", bytes);
+
         let (compilation_unit, errors) = compilation_unit(source).parse_recovery_verbose(
             Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
         );
@@ -286,11 +291,15 @@ fn remove_comments(tokens: &Vec<(ParserInput, SourceSpan)>) -> Vec<(ParserInput,
     let len = tokens.len();
 
     let mut i = 0;
+    let mut inside_string = false;
     loop {
         if i >= len {
             break;
         }
-        if tokens[i].0 == '/' {
+        if tokens[i].0 == '"' {
+            filtered_tokens.push(tokens[i].clone());
+            inside_string = !inside_string;
+        } else if tokens[i].0 == '/' && !inside_string {
             if tokens[i + 1].0 == '/' {
                 if tokens[i + 2].0 != '/' {
                     i += 2;

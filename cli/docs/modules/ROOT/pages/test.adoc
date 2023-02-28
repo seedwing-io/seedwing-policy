@@ -37,6 +37,14 @@ For instance:
           output.none      # no output, expects the input to not satisfy the pattern
 ```
 
+===== Test harness: `test.dog`
+
+Any given named test directory may include an option `test.dog` file, which must include at least a single pattern named `test`, which will actually be used to perform the test, instead of the primary pattern designated through the directory structure.
+
+It is assumed (but not required) that the two are somehow related.
+
+A test harness is generally useful for testing _parameterized patterns_ which are otherwise not usually directly invokable.
+
 This argument may be specified repeatedly to accumulate multiple test directories.
 
 ==== Pattern matching: `-m <MATCH>`
