@@ -62,7 +62,7 @@ impl Directory {
                         if let Ok(mut file) = File::open(e.path()) {
                             let mut content = String::new();
 
-                            if let Ok(_) = file.read_to_string(&mut content) {
+                            if file.read_to_string(&mut content).is_ok() {
                                 Some((src.into(), content))
                             } else {
                                 None

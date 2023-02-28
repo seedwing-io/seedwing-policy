@@ -11,20 +11,49 @@ The `-t <DIR>` argument specifies the a directory containing input and expected 
 The directory structure should contain a subdirectory matching the path to the pattern under consideration.
 Within the pattern directory, each directory specifies a named test.
 Within each named test directory, at least `input.json` is required, specifying the input to consider.
-If no other files are present, then the result of the test is expected to be `none` or unsatisfied.
-If an empty file named exactly `IDENTITY` is present, the test expects the pattern to evaluate to exactly the input document.
-If a file named `output.json` exists, that file describes the expected output transformation value.
+
+Specifying the output is done using an `output` file with an appropriate extension and optional content:
+
+* `output.identity`: The input value is expected to be unchanged as a satisfying output value.
+* `output.json`: A specific transformed output value is expected and contained within this file.
+* `output.any`: Any output is considered passing.
+* `output.none`: The input is expected to *not* satisfy the pattern.
+* If no output file is present, the test is considered *pending* and will neither pass nor fail.
 
 For instance:
 
 ```
   policy-tests/
     base64/
-      base64/             # tests base64::base64
-        valid-document/   # named test of "valid-document"
-          input.json      # the input value
-          output.json     # the expected output value
-        invalid-document/ # named test of "invalid-document"
-          input.json      # the input value
-                          # no output, expects the input to not satisfy the pattern
+      base64/              # tests base64::base64
+        valid-document/    # named test of "valid-document"
+          input.json       # the input value
+          output.json      # the expected output value
+        validish-document/ # named test of "valid-document"
+          input.json       # the input value
+          output.any       # an output value is expected, but no assertions about its content.
+        invalid-document/  # named test of "invalid-document"
+          input.json       # the input value
+          output.none      # no output, expects the input to not satisfy the pattern
 ```
+
+This argument may be specified repeatedly to accumulate multiple test directories.
+
+==== Pattern matching: `-m <MATCH>`
+
+The `-m <MATCH>` argument may be used to specify a subset of tests to execute.
+
+The `MATCH` argument prefix-matches against the name of the pattern under consideration joined with the named test.
+There is no requirement that the `MATCH` argument be a complete name of a module, pattern or test.
+Simple string-prefix matching occurs.
+
+This argument may only be specified once.
+
+For instance:
+
+* `-m base64`: would match all tests for all patterns in the `base64` module.
+* `-m base64::base64`: would match all tests for the `base64::base64` pattern.
+* `-m base64::base64::valid-document`: would match exactly the `valid-document` test for `base64::base64`.
+
+
+

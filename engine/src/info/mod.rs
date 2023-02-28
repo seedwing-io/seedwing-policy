@@ -156,7 +156,7 @@ impl ToInformation<InnerPatternInformation> for InnerPattern {
                 sugar.clone(),
                 world
                     .get_by_slot(*slot)
-                    .ok_or_else(|| Error::UnknownPatternSlot(*slot))?
+                    .ok_or(Error::UnknownPatternSlot(*slot))?
                     .to_info(world)?,
                 types
                     .iter()
