@@ -10,7 +10,7 @@ pub fn package() -> Package {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::test::test_pattern;
+    use crate::core::testutil::test_pattern;
     use serde_json::json;
 
     #[tokio::test]

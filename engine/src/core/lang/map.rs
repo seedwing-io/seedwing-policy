@@ -76,7 +76,7 @@ impl Function for Map {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::test::test_pattern;
+    use crate::core::testutil::test_pattern;
     use serde_json::json;
 
     #[tokio::test]

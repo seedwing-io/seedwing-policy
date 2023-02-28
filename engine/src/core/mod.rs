@@ -30,6 +30,7 @@ pub mod pem;
 pub mod sigstore;
 pub mod spdx;
 pub mod string;
+pub mod test;
 pub mod timestamp;
 pub mod uri;
 pub mod x509;
@@ -160,7 +161,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod testutil {
     use crate::lang::builder::Builder;
     use crate::lang::lir::EvalContext;
     use crate::runtime::sources::Ephemeral;

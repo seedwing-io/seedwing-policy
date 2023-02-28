@@ -1,0 +1,2 @@
+pattern test1 = test::satisfies<mypolicy::foo, "myfoo">
+pattern test2 = !test::satisfies<mypolicy::foo, "mybar">

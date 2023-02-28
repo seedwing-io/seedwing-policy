@@ -11,7 +11,7 @@ use tokio::io::AsyncReadExt;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(clap::Args, Debug)]
-#[command(about = "Execute benchmarks", args_conflicts_with_subcommands = true)]
+#[command(about = "Run policy tests", args_conflicts_with_subcommands = true)]
 pub struct Test {
     #[arg(short, long = "test", value_name = "DIR")]
     pub(crate) test_directories: Vec<PathBuf>,
