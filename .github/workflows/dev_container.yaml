@@ -1,4 +1,4 @@
-name: Developpement container
+name: Development container
 
 on:
   push:
