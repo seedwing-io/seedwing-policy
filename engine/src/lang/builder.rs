@@ -59,8 +59,8 @@ impl Builder {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::runtime::EvalContext;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
 
     use serde_json::json;
 
