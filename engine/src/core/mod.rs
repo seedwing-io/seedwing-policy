@@ -162,8 +162,8 @@ where
 #[cfg(test)]
 mod test {
     use crate::lang::builder::Builder;
-    use crate::runtime::EvalContext;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::runtime::EvaluationResult;
     use crate::value::RuntimeValue;
 
