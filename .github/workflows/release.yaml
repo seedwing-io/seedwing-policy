@@ -15,7 +15,7 @@ permissions:
 
 env:
   SYFT_VERSION: "0.68.1"
-  IMAGE_NAME: seedwing-policy-server
+  IMAGE_NAME: swio 
 
 jobs:
 
@@ -94,28 +94,16 @@ jobs:
         shell: bash
         run: ls -l target/release/
 
-      - name: Rename server binary
+      - name: Rename binary
         shell: bash
-        run: cp -pv target/release/seedwing-policy-server${{ matrix.exe }} target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
+        run: cp -pv target/release/swio${{ matrix.exe }} target/release/swio-${{ matrix.suffix }}${{ matrix.exe }}
 
-      - name: Rename cli binary
-        shell: bash
-        run: cp -pv target/release/cli${{ matrix.exe }} target/release/cli-${{ matrix.suffix }}${{ matrix.exe }}
-
-      - name: Upload server binary
+      - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
-          name: server-binary-${{ matrix.suffix }}
-          path: target/release/seedwing-policy-server-${{ matrix.suffix }}${{ matrix.exe }}
+          name: swio-binary-${{ matrix.suffix }}
+          path: target/release/swio-${{ matrix.suffix }}${{ matrix.exe }}
           if-no-files-found: error
-
-      - name: Upload cli binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: cli-binary-${{ matrix.suffix }}
-          path: target/release/cli-${{ matrix.suffix }}${{ matrix.exe }}
-          if-no-files-found: error
-
 
   containers:
     needs: [ init, ci ]
@@ -194,16 +182,14 @@ jobs:
       - name: Stage release
         run: |
           mkdir -p staging
-          cp -pv ~/download/*/seedwing-policy-server-* staging/
-          cp -pv ~/download/*/seedwing-policy-cli-* staging/
+          cp -pv ~/download/*/swio-* staging/
 
       - name: Create SBOM of the cargo projects
         # gather dependencies from cargo auditable build
         run: |
           cargo install cargo-cyclonedx
           cargo cyclonedx --all --format json
-          cp seedwing-policy-server/bom.json staging/server.project.sbom.json
-          cp seedwing-policy-cli/bom.json staging/cli.project.sbom.json
+          cp swio/bom.json staging/swio.project.sbom.json
 
       - name: Create SBOM of the web/yarn project
         # gather (embedded) dependencies from the yarn build
@@ -215,8 +201,7 @@ jobs:
         run: |
           cyclonedx merge \
             --input-files \
-            staging/server.project.sbom.json \
-            staging/cli.project.sbom.json \
+            staging/swio.project.sbom.json \
             staging/web.project.sbom.json \
             --output-file staging/project.sbom.json
 
@@ -224,7 +209,7 @@ jobs:
         # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
         # and amend the information with the web project SBOM
         run: |
-          for i in $(ls staging/seedwing-policy-server* staging/seedwing-policy-cli*); do
+          for i in $(ls staging/swio*); do
             syft ${i} --output cyclonedx-json > ${i}.sbom.cargo-auditable.json
             cyclonedx merge --input-files ${i}.sbom.cargo-auditable.json staging/web.project.sbom.json --output-file ${i}.sbom.json
           done
@@ -233,7 +218,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
-          for i in $(ls staging/seedwing-policy-server* staging/seedwing-policy-cli*); do
+          for i in $(ls staging/swio*); do
             cosign sign-blob --yes --b64=false ${i} --output-signature ${i}.cosign.sig --output-certificate ${i}.cosign.crt
           done
 

@@ -38,14 +38,14 @@ WORKDIR /usr/src/project
 RUN cd seedwing-policy-frontend && yarn install
 RUN cargo auditable build --release --features frontend
 
-RUN mkdir /result && cp -pv target/release/seedwing-policy-server /result/
+RUN mkdir /result && cp -pv target/release/swio /result/
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL org.opencontainers.image.source="https://github.com/seedwing-io/seedwing-policy"
 
-COPY --from=builder /result/seedwing-policy-server /
+COPY --from=builder /result/swio /
 
 EXPOSE 8080
 
-ENTRYPOINT ["/seedwing-policy-server"]
+ENTRYPOINT ["/swio", "serve"]

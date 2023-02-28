@@ -26,7 +26,7 @@ on:
         default: "linux/amd64"
 
 env:
-  IMAGE_NAME: seedwing-policy-server
+  IMAGE_NAME: swio
   IMAGE_TAG: ${{ inputs.imageTag }}
 
 jobs:
