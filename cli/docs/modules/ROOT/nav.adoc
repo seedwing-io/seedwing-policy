@@ -1,4 +1,5 @@
 * xref:index.adoc[General Usage]
 * xref:verify.adoc[`verify`]
 * xref:eval.adoc[`eval`]
+* xref:test.adoc[`test`]
 * xref:serve.adoc[`serve`]
