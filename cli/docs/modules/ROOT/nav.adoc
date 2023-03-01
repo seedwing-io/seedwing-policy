@@ -3,3 +3,4 @@
 * xref:eval.adoc[`eval`]
 * xref:test.adoc[`test`]
 * xref:serve.adoc[`serve`]
+* xref:bench.adoc[`bench`]
