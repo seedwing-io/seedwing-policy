@@ -56,7 +56,7 @@ impl Function for Tail {
 
 #[cfg(test)]
 mod test {
-    use crate::core::test::*;
+    use crate::runtime::testutil::*;
 
     use serde_json::json;
 

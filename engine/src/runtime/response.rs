@@ -1,4 +1,5 @@
 //! Response handling a policy decision.
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -136,26 +137,22 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
 #[cfg(test)]
 mod test {
     use super::Response;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
-    use crate::runtime::EvalContext;
+    use crate::runtime::testutil::test_pattern;
     use serde_json::json;
 
     #[tokio::test]
-    async fn happy_any_literal() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern foo = list::any<42>
-        "#,
+    async fn bindings() {
+        let result = test_pattern(r#"lang::or<["x", "y"]>"#, "foo").await;
+        assert!(!result.satisfied());
+        assert_eq!(
+            r#"{"name":"lang::or","input":"foo","satisfied":false,"rationale":[{"input":"foo","satisfied":false},{"input":"foo","satisfied":false}]}"#,
+            serde_json::to_string(&Response::new(&result)).unwrap()
         );
-        let mut builder = Builder::new();
-        let _ = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::foo", json!([1, 42, 99]), EvalContext::default())
-            .await
-            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn happy_any_literal() {
+        let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
             r#"{"name":"list::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
@@ -169,19 +166,7 @@ mod test {
 
     #[tokio::test]
     async fn sad_any_literal() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern foo = list::any<42>
-        "#,
-        );
-        let mut builder = Builder::new();
-        let _ = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::foo", json!([1, 99]), EvalContext::default())
-            .await
-            .unwrap();
+        let result = test_pattern("list::any<42>", json!([1, 99])).await;
         assert!(!result.satisfied());
         assert_eq!(
             r#"{"name":"list::any","input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,

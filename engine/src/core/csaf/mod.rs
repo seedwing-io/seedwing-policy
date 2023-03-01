@@ -10,7 +10,7 @@ pub fn package() -> Package {
 #[cfg(test)]
 mod test {
 
-    use crate::core::test::test_pattern;
+    use crate::runtime::testutil::test_pattern;
 
     #[tokio::test]
     async fn test_csaf_valid() {

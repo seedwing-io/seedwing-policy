@@ -159,29 +159,3 @@ where
         Box::pin(async { BlockingFunction::call(self, input, ctx, bindings, world) })
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
-    use crate::runtime::EvalContext;
-    use crate::runtime::EvaluationResult;
-    use crate::value::RuntimeValue;
-
-    pub(crate) async fn test_pattern<V>(pattern: &str, value: V) -> EvaluationResult
-    where
-        V: Into<RuntimeValue>,
-    {
-        let src = format!("pattern test-pattern = {pattern}");
-        let src = Ephemeral::new("test", src);
-
-        let mut builder = Builder::new();
-        builder.build(src.iter()).unwrap();
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::test-pattern", value, EvalContext::default())
-            .await;
-
-        result.unwrap()
-    }
-}

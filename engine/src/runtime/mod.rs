@@ -219,13 +219,38 @@ pub enum RuntimeError {
 }
 
 #[cfg(test)]
+pub mod testutil {
+    use crate::lang::builder::Builder;
+    use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
+    use crate::runtime::EvaluationResult;
+    use crate::value::RuntimeValue;
+
+    pub(crate) async fn test_pattern<V>(pattern: &str, value: V) -> EvaluationResult
+    where
+        V: Into<RuntimeValue>,
+    {
+        let src = format!("pattern test-pattern = {pattern}");
+        let src = Ephemeral::new("test", src);
+
+        let mut builder = Builder::new();
+        builder.build(src.iter()).unwrap();
+        let runtime = builder.finish().await.unwrap();
+        let result = runtime
+            .evaluate("test::test-pattern", value, EvalContext::default())
+            .await;
+
+        result.unwrap()
+    }
+}
+
+#[cfg(test)]
 mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::{Directory, Ephemeral};
 
     use serde_json::json;
-    use std::default::Default;
     use std::env;
 
     #[actix_rt::test]
@@ -233,11 +258,8 @@ mod test {
         let src = Ephemeral::new("foo::bar", "pattern bob");
 
         let mut builder = Builder::new();
-
         let _result = builder.build(src.iter());
-
         let result = builder.finish().await;
-
         assert!(matches!(result, Ok(_)));
     }
 
@@ -246,9 +268,7 @@ mod test {
         let src = Directory::new(env::current_dir().unwrap().join("test-data"));
 
         let mut builder = Builder::new();
-
         let _result = builder.build(src.iter());
-
         let result = builder.finish().await;
 
         assert!(matches!(result, Ok(_)));
@@ -256,11 +276,9 @@ mod test {
 
     #[actix_rt::test]
     async fn evaluate_function() {
-        let src = Ephemeral::new(
-            "foo::bar",
+        let result = testutil::test_pattern(
             r#"
-            // Single-line comment, yay
-            pattern signed-thing = {
+            {
                 digest: sigstore::sha256(
                     list::any<{
                         apiVersion: "0.0.1",
@@ -283,193 +301,80 @@ mod test {
                     }>
                 )
             }
-        "#,
-        );
-
-        let mut builder = Builder::new();
-
-        let result = builder.build(src.iter());
-        println!("---> {result:?}");
-        let runtime = builder.finish().await.unwrap();
-
-        let value = json!(
-            {
+            // Single-line comment, yay
+            "#,
+            json!({
                 "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
-            }
-        );
-
-        let result = runtime
-            .evaluate("foo::bar::signed-thing", value, EvalContext::default())
-            .await;
-
-        assert!(result.unwrap().satisfied())
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+            }),
+        )
+        .await;
+        assert!(result.satisfied())
     }
 
     #[actix_rt::test]
     async fn evaluate_parameterized_literals() {
-        let src = Ephemeral::new(
-            "foo::bar",
-            r#"
-        pattern named<name> = {
-            name: name
-        }
-
-        pattern jim = named<"Jim">
-        pattern bob = named<"Bob">
-
-        pattern folks = jim || bob
-
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-
-        let _good_bob = json!(
-            {
+        let pattern = r#"
+            jim || bob
+            pattern named<name> = {
+                name: name
+            }
+            pattern jim = named<"Jim">
+            pattern bob = named<"Bob">
+            "#;
+        let bob = json!({
                 "name": "Bob",
                 "age": 52,
-            }
-        );
-
-        assert!(runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Bob",
-                        "age": 52,
-                    }
-                ),
-                EvalContext::default()
-            )
-            .await
-            .unwrap()
-            .satisfied());
+        });
+        let frank = json!({
+                "name": "Frank",
+                "age": 66,
+        });
+        assert!(testutil::test_pattern(pattern, bob).await.satisfied());
+        assert!(!testutil::test_pattern(pattern, frank).await.satisfied());
     }
 
     #[actix_rt::test]
     async fn evaluate_parameterized_types() {
-        let src = Ephemeral::new(
-            "foo::bar",
-            r#"
-                pattern named<name> = {
-                    name: name
-                }
-
-                pattern jim = named<integer>
-                pattern bob = named<"Bob">
-
-                pattern folks = jim || bob
-
-                "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-
-        assert!(runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Bob",
-                        "age": 52,
-                    }
-                ),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap()
-            .satisfied());
+        let pattern = r#"
+            jim || bob
+            pattern named<name> = {
+                name: name
+            }
+            pattern jim = named<integer>
+            pattern bob = named<"Bob">
+            "#;
+        let bob = json!({
+                "name": "Bob",
+                "age": 52,
+        });
+        let jim = json!({
+                "name": 42,
+                "age": 69,
+        });
+        assert!(testutil::test_pattern(pattern, bob).await.satisfied());
+        assert!(testutil::test_pattern(pattern, jim).await.satisfied());
     }
 
     #[actix_rt::test]
     async fn evaluate_matches() {
-        let src = Ephemeral::new(
-            "foo::bar",
-            r#"
-        pattern bob = {
-            name: "Bob",
-            age: $(self > 48),
-        }
+        let pat = r#"
+            bob || jim
 
-        pattern jim = {
-            name: "Jim",
-            age: $(self > 52),
-        }
-
-        pattern folks = bob || jim
-
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-
-        assert!(runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Bob",
-                        "age": 49,
-                    }
-                ),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap()
-            .satisfied());
-
-        assert!(!runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Jim",
-                        "age": 49,
-                    }
-                ),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap()
-            .satisfied());
-
-        assert!(!runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Bob",
-                        "age": 42,
-                    }
-                ),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap()
-            .satisfied());
-
-        assert!(runtime
-            .evaluate(
-                "foo::bar::folks",
-                json!(
-                    {
-                        "name": "Jim",
-                        "age": 53,
-                    }
-                ),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap()
-            .satisfied());
+            pattern bob = {
+                name: "Bob",
+                age: $(self > 48),
+            }
+	    
+            pattern jim = {
+                name: "Jim",
+                age: $(self > 52),
+            }
+            "#;
+        let f = |name, age| json!({"name": name, "age": age});
+        assert!(testutil::test_pattern(pat, f("Bob", 49)).await.satisfied());
+        assert!(testutil::test_pattern(pat, f("Jim", 53)).await.satisfied());
+        assert!(!testutil::test_pattern(pat, f("Jim", 49)).await.satisfied());
+        assert!(!testutil::test_pattern(pat, f("Bob", 42)).await.satisfied());
     }
 }
 

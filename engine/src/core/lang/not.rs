@@ -57,7 +57,7 @@ impl Function for Not {
 #[cfg(test)]
 mod test {
 
-    use crate::core::test::test_pattern;
+    use crate::runtime::testutil::test_pattern;
 
     use serde_json::json;
 
