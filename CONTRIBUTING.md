@@ -26,11 +26,11 @@ definitely try to help you.
 In order to work with the code, you will need the following tools and components:
 
 * **Rust**: For the overall project
-* **Node.js & Yarn**: For the web bits in the server
+* **Node.js & npm**: For the web bits in the server
 * **Podman or Docker**: For building the container image
 * **Trunk**: For building the web frontend
 
-Building seedwing-policy requires `nodejs` and `yarnpkg`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
+Building seedwing-policy requires `nodejs` and `npm`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
 
 `trunk` can be installed by executing `cargo install trunk`. It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
 
@@ -43,13 +43,13 @@ For more information on developing for the frontend, see: [seedwing-policy-front
 ### Fedora
 
 ```shell
-dnf install nodejs yarnpkg
+dnf install nodejs
 ```
 
 ### Mac OS
 
 ```shell
-brew install yarn node
+brew install node
 ```
 
 ### Trunk tooling
