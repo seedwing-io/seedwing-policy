@@ -31,15 +31,15 @@ impl Function for Eval {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        _ctx: &'v EvalContext,
         bindings: &'v Bindings,
-        world: &'v World,
+        _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(url) = bindings.get(URL) {
                 if let Some(ValuePattern::String(url)) = url.try_get_resolved_value() {
                     let ext_input = input.as_json();
-                    if let Ok(ext_input) = serde_json::to_string(&ext_input) {
+                    if let Ok(_ext_input) = serde_json::to_string(&ext_input) {
                         let client = reqwest::Client::new();
                         let res = client
                             .post(url)

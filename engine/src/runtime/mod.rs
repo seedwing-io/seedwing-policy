@@ -196,6 +196,7 @@ impl EvaluationResult {
         self.trace
     }
 
+    #[allow(dead_code)]
     pub(crate) fn with_trace_result(&mut self, trace: TraceResult) {
         self.trace.replace(trace);
     }

@@ -12,7 +12,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
 use std::ops::{Deref, DerefMut};
-use std::str::from_utf8;
 
 pub mod expr;
 pub mod literal;
