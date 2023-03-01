@@ -37,7 +37,7 @@ In order to work on the frontend you need to:
 
   ```shell
   cd frontend
-  yarn install
+  npm ci
   ```
 
 * Run the frontend in development mode

@@ -12,11 +12,24 @@ fn main() -> std::io::Result<()> {
     println!("cargo:rerun-if-changed=../../frontend/Cargo.lock");
     println!("cargo:rerun-if-changed=../../frontend/Trunk.toml");
     println!("cargo:rerun-if-changed=../../frontend/package.json");
-    println!("cargo:rerun-if-changed=../../frontend/yarn.lock");
     println!("cargo:rerun-if-changed=../../frontend/src");
     println!("cargo:rerun-if-changed=../../frontend/assets");
 
-    let output = Command::new("trunk")
+    let npm = Command::new("npm")
+        .args(["ci"])
+        .current_dir("../../frontend")
+        .output()
+        .expect("failed to execute frontend build");
+
+    if !npm.status.success() {
+        panic!(
+            "Failed to run 'npm':\n{}\n{}",
+            String::from_utf8_lossy(&npm.stdout),
+            String::from_utf8_lossy(&npm.stderr)
+        );
+    }
+
+    let trunk = Command::new("trunk")
         .args([
             "build",
             "--release",
@@ -29,11 +42,11 @@ fn main() -> std::io::Result<()> {
         .output()
         .expect("failed to execute frontend build");
 
-    if !output.status.success() {
+    if !trunk.status.success() {
         panic!(
             "Failed to run 'trunk':\n{}\n{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
+            String::from_utf8_lossy(&trunk.stdout),
+            String::from_utf8_lossy(&trunk.stderr)
         );
     }
 

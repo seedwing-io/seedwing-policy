@@ -43,7 +43,7 @@ jobs:
       - name: Install nodejs dependencies
         run: |
           cd frontend
-          npm i
+          npm ci
 
       - name: Check formatting
         run: |
