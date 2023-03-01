@@ -1,3 +1,5 @@
 == Seedwing Policy Server
 
 The Seedwing Policy Server provides a collection of HTTP endpoints to allow remote evaluation of your policy patterns.
+
+To run the server, use the CLI tool.

@@ -22,4 +22,4 @@ Subcommands are used to adjust the mode of function.
 * xref:eval.adoc[`eval`] - To evaluate an input against policies.
 * xref:serve.adoc[`serve`] - To launch an API and UI server.
 * xref:test.adoc[`test`] - To test policies against inputs.
-
+* xref:bench.adoc[`bench`] - To benchmark a policy against an input.

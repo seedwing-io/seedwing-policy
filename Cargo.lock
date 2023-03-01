@@ -2973,7 +2973,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-cli"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.9"
 dependencies = [
  "actix-rt",
  "clap 4.1.6",
@@ -2994,7 +2994,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-engine"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.9"
 dependencies = [
  "actix-rt",
  "anyhow",
@@ -3030,7 +3030,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-server"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.9"
 dependencies = [
  "actix",
  "actix-rt",
@@ -3056,7 +3056,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-server-embedded-frontend"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.9"
 dependencies = [
  "static-files",
 ]

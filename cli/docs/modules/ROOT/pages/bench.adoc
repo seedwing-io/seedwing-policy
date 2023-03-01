@@ -1,0 +1,21 @@
+== `bench`
+
+The `bench` command allows for benchmarking the evaluation of an input against the policy and data directories and named policy provided.
+
+The benchmarking tool will perform a warmup sequence 1/10th of the `count` iterations configured, before running the policy evaluation `count` times.
+
+When done it prints a JSON output with statistics from the benchmark.
+
+=== Usage
+
+==== Input document `-i <FILE>`
+
+Input can be provided via `STDIN` or using the `-i <FILE>` argument.
+
+==== Pattern name: `-n <PATTERN>`
+
+The pattern to benchmark the input document against must be specified using the `-n <PATTERN>` argument.
+
+==== Count: `-c <COUNT>`
+
+The number of iterations the benchmark should be repeated to get a statistically significant result.
