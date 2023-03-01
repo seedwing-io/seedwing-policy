@@ -54,6 +54,13 @@ brew install yarn node
 
 ### Trunk tooling
 
+In addition to running `cargo install trunk`, you may also need to run the following commands in order for `seedwing` to build and run successfully:
+
+```shell
+cd frontend
+yarn install
+```
+
 **NOTE:** In addition of installing these tools, please also ensure they can be located. You might need to add
 them to the `$PATH` of your system and ensure there is no overlap wither other commands, having the same name.
 
