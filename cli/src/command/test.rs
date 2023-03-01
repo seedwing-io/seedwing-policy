@@ -2,7 +2,9 @@ use crate::command::verify::Verify;
 use crate::Cli;
 use seedwing_policy_engine::lang::builder::Builder;
 use seedwing_policy_engine::runtime::sources::Ephemeral;
-use seedwing_policy_engine::runtime::{EvalContext, Output, PatternName, RuntimeError, World};
+use seedwing_policy_engine::runtime::{
+    BuildError, EvalContext, Output, PatternName, RuntimeError, World,
+};
 use seedwing_policy_engine::value::RuntimeValue;
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
@@ -301,19 +303,19 @@ impl TestCase {
                                         }
                                         Err(err) => {
                                             self.result.replace(TestResult::Error(
-                                                TestError::HarnessSetup,
+                                                TestError::HarnessSetup(Some(err)),
                                             ));
                                             return;
                                         }
                                     }
                                 } else {
                                     self.result
-                                        .replace(TestResult::Error(TestError::HarnessSetup));
+                                        .replace(TestResult::Error(TestError::HarnessSetup(None)));
                                     return;
                                 }
                             } else {
                                 self.result
-                                    .replace(TestResult::Error(TestError::HarnessSetup));
+                                    .replace(TestResult::Error(TestError::HarnessSetup(None)));
                                 return;
                             }
                         }
@@ -409,6 +411,6 @@ impl Display for TestResult {
 pub enum TestError {
     ReadingInput,
     Deserialization,
-    HarnessSetup,
+    HarnessSetup(Option<Vec<BuildError>>),
     Runtime(RuntimeError),
 }
