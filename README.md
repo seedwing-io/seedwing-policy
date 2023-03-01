@@ -33,19 +33,19 @@ To use the policy engine, download the latest released `swio` binary for your pl
 
 To evaluate policies:
 
-```
+```ignore
 swio -p <policy dir> eval --name mypolicy::pattern --input input.json
 ```
 
 To run the HTTP server (point your browser to the http://localhost:8080 to view the console):
 
-```
+```ignore
 swio -p <policy dir> serve
 ```
 
 To benchmark policies:
 
-```
+```ignore
 swio -p <policy dir> bench --name mypolicy::pattern --input input.json --count 1000
 ```
 
