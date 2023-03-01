@@ -27,6 +27,28 @@ See the [documentation](https://docs.seedwing.io/docs/index.html) for more infor
 
 Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apache Kafka.
 
+## Usage
+
+To use the policy engine, download the latest released `swio` binary for your platform. 
+
+To evaluate policies:
+
+```
+swio -p <policy dir> eval --name mypolicy::pattern --input input.json
+```
+
+To run the HTTP server (point your browser to the http://localhost:8080 to view the console):
+
+```
+swio -p <policy dir> serve
+```
+
+To benchmark policies:
+
+```
+swio -p <policy dir> bench --name mypolicy::pattern --input input.json --count 1000
+```
+
 ## Minimum supported Rust version (MSRV)
 
 Seedwing Policy is guaranteed to compile on the latest stable Rust version at the time of release. It might compile with older versions.
