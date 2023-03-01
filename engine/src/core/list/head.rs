@@ -53,7 +53,7 @@ impl Function for Head {
 
 #[cfg(test)]
 mod test {
-    use super::super::test::*;
+    use crate::core::test::*;
 
     use serde_json::json;
 

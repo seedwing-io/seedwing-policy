@@ -72,25 +72,3 @@ where
 
     Ok((greedy, i.collect()))
 }
-
-#[cfg(test)]
-mod test {
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
-    use crate::runtime::EvalContext;
-    use crate::runtime::EvaluationResult;
-    use serde_json::Value;
-
-    pub(crate) async fn test_pattern(pattern: &str, value: Value) -> EvaluationResult {
-        let src = Ephemeral::new("test", format!("pattern test-pattern = {pattern}"));
-
-        let mut builder = Builder::new();
-        builder.build(src.iter()).unwrap();
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::test-pattern", value, EvalContext::default())
-            .await;
-
-        result.unwrap()
-    }
-}
