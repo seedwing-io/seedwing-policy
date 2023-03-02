@@ -201,7 +201,7 @@ jobs:
         run: |
           cargo install cargo-cyclonedx
           cargo cyclonedx --all --format json
-          cp swio/bom.json staging/swio.project.sbom.json
+          cp cli/bom.json staging/swio.project.sbom.json
 
       - name: Create SBOM of the frontend 
         # gather (embedded) dependencies from the yarn build
