@@ -111,7 +111,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.xcode }}" == "true" ]]; then
-            SDKROOT=$(xcrun -sdk macosx --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version) cargo auditable build --target=${{ matrix.rustTarget }} -p seedwing-policy-cli --no-default-features
+            SDKROOT=$(xcrun -sdk macosx --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version) cargo auditable build --target=${{ matrix.rustTarget }} -p seedwing-policy-cli --no-default-features --release
           else
             cargo auditable build --release -p seedwing-policy-cli --no-default-features
           fi
