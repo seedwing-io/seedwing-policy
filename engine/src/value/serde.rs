@@ -1,11 +1,14 @@
+//! Support for serialization/deserialization
+
 use crate::value::{Object, RuntimeValue};
 use serde::{ser, Serialize};
 use std::fmt::Display;
 
 use std::sync::Arc;
 
-pub struct Serializer {}
+struct Serializer;
 
+/// Serialization error
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum Error {
     #[error("missing key")]
@@ -15,11 +18,11 @@ pub enum Error {
 }
 
 impl ser::Error for Error {
-    fn custom<T>(_msg: T) -> Self
+    fn custom<T>(msg: T) -> Self
     where
         T: Display,
     {
-        todo!()
+        Self::Custom(msg.to_string())
     }
 }
 
@@ -411,17 +414,16 @@ impl<'a> ser::SerializeStructVariant for SerializeMap<'a> {
     }
 }
 
+/// Serialize a value into a Runtime value.
+pub fn to_value<S: Serialize>(value: &S) -> Result<RuntimeValue, Error> {
+    value.serialize(&mut Serializer)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::value::test::assert_yaml;
     use crate::value::{Object, RuntimeValue};
-
-    fn to_value<S: Serialize>(value: &S) -> Result<RuntimeValue, Error> {
-        let mut serializer = Serializer {};
-
-        value.serialize(&mut serializer)
-    }
 
     #[test]
     fn test_ser_none() {

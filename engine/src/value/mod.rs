@@ -17,7 +17,7 @@ use std::ops::Index;
 use std::rc::Rc;
 use std::sync::Arc;
 
-mod serde;
+pub mod serde;
 
 mod json;
 mod yaml;
