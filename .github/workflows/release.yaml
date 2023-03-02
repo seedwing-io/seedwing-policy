@@ -184,6 +184,11 @@ jobs:
           mkdir -p staging
           cp -pv ~/download/*/swio-* staging/
 
+      - name: Install nodejs dependencies
+        run: |
+          cd frontend
+          npm i
+
       - name: Create SBOM of the cargo projects
         # gather dependencies from cargo auditable build
         run: |
