@@ -94,9 +94,9 @@ pub trait Function: Sync + Send + Debug {
     /// 0 - 11 - Fast non-async lookup/conversion code
     /// 12 - 40 - More complex non-async code
     /// 40 - 120 - Async code
-    /// 120 - 255 - Code that uses network or disk. 
+    /// 120 - 255 - Code that uses network or disk.
     fn order(&self) -> u8 {
-	7
+        7
     }
 
     fn documentation(&self) -> Option<String> {
@@ -125,9 +125,9 @@ pub trait BlockingFunction: Sync + Send + Debug {
     /// 0 - 11 - Fast non-async lookup/conversion code
     /// 12 - 40 - More complex non-async code
     /// 40 - 120 - Async code
-    /// 120 - 255 - Code that uses network or disk. 
+    /// 120 - 255 - Code that uses network or disk.
     fn order(&self) -> u8 {
-	7
+        7
     }
 
     fn documentation(&self) -> Option<String> {
