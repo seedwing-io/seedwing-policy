@@ -1,6 +1,7 @@
 use crate::command::verify::Verify;
 use crate::Cli;
 use seedwing_policy_engine::lang::builder::Builder;
+use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::sources::Ephemeral;
 use seedwing_policy_engine::runtime::{
     BuildError, EvalContext, Output, PatternName, RuntimeError, World,
@@ -35,12 +36,14 @@ impl Test {
         self.display_results(&plan);
         println!();
         let result = if plan.had_failures() { "failed" } else { "ok" };
+
         println!(
-            "test result: {}. {} passed. {} failed. {} pending. {} errors.",
+            "test result: {}.   {} passed. {} failed. {} pending. {} ignored. {} errors.",
             result,
             plan.passed(),
             plan.failed(),
             plan.pending(),
+            plan.ignored(),
             plan.error()
         );
         println!();
@@ -52,7 +55,14 @@ impl Test {
 
     pub fn display_results(&self, plan: &TestPlan) {
         let mut last_pattern = None;
-        let mut width = 20;
+        let width = plan
+            .tests
+            .iter()
+            .map(|e| e.name.len())
+            .reduce(|accum, e| if e > accum { e } else { accum })
+            .unwrap_or(20)
+            + 3;
+
         let mut new_pattern = false;
         for test in &plan.tests {
             if let Some(prev) = &last_pattern {
@@ -65,14 +75,6 @@ impl Test {
 
             if new_pattern {
                 println!("{}", test.pattern.as_type_str());
-                width = plan
-                    .tests
-                    .iter()
-                    .filter(|e| e.pattern.as_type_str() == test.pattern.as_type_str())
-                    .map(|e| e.name.len())
-                    .reduce(|accum, e| if e > accum { e } else { accum })
-                    .unwrap_or(20)
-                    + 3;
             }
             last_pattern.replace(test.pattern.as_type_str());
             new_pattern = false;
@@ -119,9 +121,15 @@ impl TestPlan {
                                         ) {
                                             return None;
                                         }
-                                        let (test_pattern, expected) = if let Some(parent) =
+                                        let (config, test_pattern, expected) = if let Some(parent) =
                                             e.path().parent()
                                         {
+                                            let config = if parent.join("config.json").exists() {
+                                                Some(parent.join("config.json"))
+                                            } else {
+                                                None
+                                            };
+
                                             let test_pattern = if parent.join("test.dog").exists() {
                                                 TestPattern::Harness(
                                                     pattern_name
@@ -138,7 +146,9 @@ impl TestPlan {
                                                         .into(),
                                                 )
                                             };
-                                            let expected = if parent.join("output.json").exists() {
+                                            let expected = if parent.join("ignored").exists() {
+                                                Expected::Ignored
+                                            } else if parent.join("output.json").exists() {
                                                 Expected::Transform(parent.join("output.json"))
                                             } else if parent.join("output.identity").exists() {
                                                 Expected::Identity
@@ -149,7 +159,7 @@ impl TestPlan {
                                             } else {
                                                 Expected::Pending
                                             };
-                                            (test_pattern, expected)
+                                            (config, test_pattern, expected)
                                         } else {
                                             return None;
                                         };
@@ -157,6 +167,7 @@ impl TestPlan {
                                         Some(TestCase {
                                             name: (*test_name.to_string_lossy()).into(),
                                             pattern: test_pattern,
+                                            config,
                                             input: e.path().into(),
                                             expected,
                                             result: None,
@@ -191,31 +202,38 @@ impl TestPlan {
             .any(|e| matches!(e.result, Some(TestResult::Error(_) | TestResult::Failed)))
     }
 
+    fn ignored(&self) -> usize {
+        self.tests
+            .iter()
+            .filter(|e| matches!(e.result, Some(TestResult::Ignored)))
+            .count()
+    }
+
     fn passed(&self) -> usize {
         self.tests
             .iter()
-            .flat_map(|e| Some(matches!(e.result, Some(TestResult::Passed))))
+            .filter(|e| matches!(e.result, Some(TestResult::Passed)))
             .count()
     }
 
     fn pending(&self) -> usize {
         self.tests
             .iter()
-            .flat_map(|e| Some(matches!(e.result, Some(TestResult::Pending))))
+            .filter(|e| matches!(e.result, Some(TestResult::Pending)))
             .count()
     }
 
     fn error(&self) -> usize {
         self.tests
             .iter()
-            .flat_map(|e| Some(matches!(e.result, Some(TestResult::Error(_)))))
+            .filter(|e| matches!(e.result, Some(TestResult::Error(_))))
             .count()
     }
 
     fn failed(&self) -> usize {
         self.tests
             .iter()
-            .flat_map(|e| Some(matches!(e.result, Some(TestResult::Failed))))
+            .filter(|e| matches!(e.result, Some(TestResult::Failed)))
             .count()
     }
 }
@@ -224,6 +242,7 @@ impl TestPlan {
 pub struct TestCase {
     name: String,
     pattern: TestPattern,
+    config: Option<PathBuf>,
     input: PathBuf,
     expected: Expected,
     result: Option<TestResult>,
@@ -251,6 +270,33 @@ impl TestCase {
             return;
         }
 
+        if let Expected::Ignored = &self.expected {
+            self.result.replace(TestResult::Ignored);
+            return;
+        }
+
+        let config = if let Some(config) = &self.config {
+            if let Ok(mut config_file) = File::open(&config).await {
+                let mut config = Vec::new();
+                let read_result = config_file.read_to_end(&mut config).await;
+                if read_result.is_ok() {
+                    let config: Result<Value, _> = serde_json::from_slice(&config);
+                    if let Ok(config) = config {
+                        Some(config.into())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+        .unwrap_or(EvalConfig::default());
+
         if let Ok(mut input_file) = File::open(&self.input).await {
             let mut input = Vec::new();
             let read_result = input_file.read_to_end(&mut input).await;
@@ -260,19 +306,15 @@ impl TestCase {
                     let result = match &self.pattern {
                         TestPattern::Direct(pattern_name) => {
                             world
-                                .evaluate(pattern_name.as_type_str(), input, EvalContext::default())
+                                .evaluate(
+                                    pattern_name.as_type_str(),
+                                    input,
+                                    EvalContext::new_with_config(config),
+                                )
                                 .await
                         }
                         TestPattern::Harness(_, harness) => {
                             let mut builder = builder.clone();
-                            /*
-                            // todo, bring in sources
-                            for source in self.sources.iter() {
-                                if let Err(e) = builder.build(source.iter()) {
-                                    log::error!("err {:?}", e);
-                                }
-                            }
-                             */
 
                             if let Ok(mut harness_file) = File::open(harness).await {
                                 let mut harness = Vec::new();
@@ -297,7 +339,7 @@ impl TestCase {
                                                 .evaluate(
                                                     "test::test",
                                                     input,
-                                                    EvalContext::default(),
+                                                    EvalContext::new_with_config(config),
                                                 )
                                                 .await
                                         }
@@ -381,6 +423,7 @@ impl TestCase {
 
 #[derive(Debug, Clone)]
 pub enum Expected {
+    Ignored,
     Pending,
     Anything,
     Identity,
@@ -390,6 +433,7 @@ pub enum Expected {
 
 #[derive(Debug)]
 pub enum TestResult {
+    Ignored,
     Pending,
     Passed,
     Failed,
@@ -399,6 +443,7 @@ pub enum TestResult {
 impl Display for TestResult {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            TestResult::Ignored => write!(f, "ignored"),
             TestResult::Passed => write!(f, "passed"),
             TestResult::Failed => write!(f, "failed"),
             TestResult::Pending => write!(f, "pending"),

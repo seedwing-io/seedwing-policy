@@ -331,6 +331,7 @@ impl World {
             data_sources: Vec::default(),
         };
         world.add_package(crate::core::lang::package());
+        world.add_package(crate::core::config::package());
         world.add_package(crate::core::list::package());
         world.add_package(crate::core::string::package());
         world.add_package(crate::core::base64::package());
@@ -487,6 +488,7 @@ impl<'b> Lowerer<'b> {
 
                 for ty in &referenced_types {
                     if !ty.is_qualified() && !visible_types.contains_key(ty.name()) {
+                        println!("PNF A");
                         errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             ty.location().span(),
@@ -544,6 +546,7 @@ impl<'b> Lowerer<'b> {
 
                 for each in referenced {
                     if !known_world.contains(&each.clone().inner()) {
+                        println!("PNF B");
                         errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             each.location().span(),

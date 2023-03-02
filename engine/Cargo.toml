@@ -17,6 +17,7 @@ walkdir = "2.3.2"
 serde = { version = "1.0.152", features = [ "rc", "derive"] }
 serde_json = { version = "1.0.89", features = [ "float_roundtrip", "arbitrary_precision"] }
 serde_yaml = "0.9.17"
+toml = "0.7.2"
 log = "0.4.17"
 futures-util = "0.3.25"
 thiserror = "1"

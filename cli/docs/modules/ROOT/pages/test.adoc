@@ -1,10 +1,10 @@
-== `test`
+= `test`
 
 The `test` command runs a set of inputs against policies to test that their output is as expected.
 
-=== Usage
+== Usage
 
-==== Input test directory: `-t <DIR>`
+=== Input test directory: `-t <DIR>`
 
 The `-t <DIR>` argument specifies the a directory containing input and expected output documents.
 
@@ -19,6 +19,8 @@ Specifying the output is done using an `output` file with an appropriate extensi
 * `output.any`: Any output is considered passing.
 * `output.none`: The input is expected to *not* satisfy the pattern.
 * If no output file is present, the test is considered *pending* and will neither pass nor fail.
+
+Additionally, an `ignored` file may exist, in which case all other files are ignored and the test is skipped, neither passing nor failing, as with the pending case above.
 
 For instance:
 
@@ -37,7 +39,7 @@ For instance:
           output.none      # no output, expects the input to not satisfy the pattern
 ```
 
-===== Test harness: `test.dog`
+==== Test harness: `test.dog`
 
 Any given named test directory may include an option `test.dog` file, which must include at least a single pattern named `test`, which will actually be used to perform the test, instead of the primary pattern designated through the directory structure.
 
@@ -47,7 +49,11 @@ A test harness is generally useful for testing _parameterized patterns_ which ar
 
 This argument may be specified repeatedly to accumulate multiple test directories.
 
-==== Pattern matching: `-m <MATCH>`
+==== Configuration: `config.json`
+
+**Experimental**: Configuration values available through `config::of<KEY>` are settable per-test, through the precense of a `config.json` file.
+
+=== Pattern matching: `-m <MATCH>`
 
 The `-m <MATCH>` argument may be used to specify a subset of tests to execute.
 

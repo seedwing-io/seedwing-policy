@@ -7,6 +7,7 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use seedwing_policy_engine::info::ToInformation;
+use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::runtime::{
     monitor::dispatcher::Monitor, EvalContext, EvaluationResult, RuntimeError, World,
@@ -141,9 +142,10 @@ async fn run_eval(
     value: Value,
     encoding: OutputEncoding,
 ) -> HttpResponse {
-    let context = EvalContext::new(seedwing_policy_engine::runtime::TraceConfig::Enabled(
-        monitor.clone(),
-    ));
+    let context = EvalContext::new(
+        seedwing_policy_engine::runtime::TraceConfig::Enabled(monitor.clone()),
+        EvalConfig::default(),
+    );
 
     match world.evaluate(path, value, context).await {
         Ok(result) => return_rationale(result, encoding),

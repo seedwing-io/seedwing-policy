@@ -10,6 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 pub mod base64;
+pub mod config;
 pub mod csaf;
 pub mod cyclonedx;
 pub mod data;

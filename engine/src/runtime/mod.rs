@@ -30,10 +30,12 @@ use std::sync::Arc;
 
 use std::time::Duration;
 
+use config::EvalConfig;
 #[cfg(feature = "monitor")]
 use {monitor::dispatcher::Monitor, tokio::sync::Mutex};
 
 pub mod cache;
+pub mod config;
 pub mod monitor;
 pub mod rationale;
 pub mod response;
@@ -105,7 +107,6 @@ impl<'c> ErrorPrinter<'c> {
                 }
                 BuildError::Parser(_, inner) => match inner.reason() {
                     SimpleReason::Unexpected => {
-                        println!("{inner:?}");
                         format!("unexpected character found {}", inner.found().unwrap())
                     }
                     SimpleReason::Unclosed { span: _, delimiter } => {
@@ -740,13 +741,31 @@ impl Default for EvalContext {
     fn default() -> Self {
         Self {
             trace: TraceConfig::Disabled,
+            config: EvalConfig::default(),
         }
     }
 }
 
+#[derive(Debug)]
+pub struct EvalContext {
+    trace: TraceConfig,
+    config: EvalConfig,
+}
+
 impl EvalContext {
-    pub fn new(trace: TraceConfig) -> Self {
-        Self { trace }
+    pub fn new(trace: TraceConfig, config: EvalConfig) -> Self {
+        Self { trace, config }
+    }
+
+    pub fn new_with_config(config: EvalConfig) -> Self {
+        Self {
+            trace: TraceConfig::Disabled,
+            config,
+        }
+    }
+
+    pub fn config(&self) -> &EvalConfig {
+        &self.config
     }
 
     pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {
@@ -879,9 +898,4 @@ impl<'ctx> TraceHandle<'ctx> {
             block
         }
     }
-}
-
-#[derive(Debug)]
-pub struct EvalContext {
-    trace: TraceConfig,
 }
