@@ -26,9 +26,6 @@ pub struct ComponentPurls;
 const DOCUMENTATION: &str = include_str!("component-purls.adoc");
 
 impl Function for ComponentPurls {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

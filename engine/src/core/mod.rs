@@ -90,7 +90,14 @@ pub trait Function: Sync + Send + Debug {
     /// A number between 0 and u8::MAX indicating the evaluation order.
     ///
     /// 0 means the function is likely to be fast, 255 means likely to be slow.
-    fn order(&self) -> u8;
+    /// Guidance:
+    /// 0 - 11 - Fast non-async lookup/conversion code
+    /// 12 - 40 - More complex non-async code
+    /// 40 - 120 - Async code
+    /// 120 - 255 - Code that uses network or disk. 
+    fn order(&self) -> u8 {
+	7
+    }
 
     fn documentation(&self) -> Option<String> {
         None
@@ -114,7 +121,14 @@ pub trait BlockingFunction: Sync + Send + Debug {
     /// A number between 0 and u8::MAX indicating the evaluation order.
     ///
     /// 0 means the function is likely to be fast, 255 means likely to be slow.
-    fn order(&self) -> u8;
+    /// Guidance:
+    /// 0 - 11 - Fast non-async lookup/conversion code
+    /// 12 - 40 - More complex non-async code
+    /// 40 - 120 - Async code
+    /// 120 - 255 - Code that uses network or disk. 
+    fn order(&self) -> u8 {
+	7
+    }
 
     fn documentation(&self) -> Option<String> {
         None

@@ -15,9 +15,6 @@ const DOCUMENTATION: &str = include_str!("all.adoc");
 pub struct All;
 
 impl Function for All {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![PATTERN.into()]
     }

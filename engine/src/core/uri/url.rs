@@ -13,10 +13,6 @@ pub struct Url;
 const DOCUMENTATION: &str = include_str!("url.adoc");
 
 impl BlockingFunction for Url {
-    fn order(&self) -> u8 {
-        0
-    }
-
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

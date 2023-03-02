@@ -28,9 +28,6 @@ pub fn package() -> Package {
 pub struct PEM;
 
 impl Function for PEM {
-    fn order(&self) -> u8 {
-        128
-    }
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,

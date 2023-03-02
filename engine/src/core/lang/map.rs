@@ -16,9 +16,6 @@ const MAP_FN: &str = "map-fn";
 pub struct Map;
 
 impl Function for Map {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![MAP_FN.into()]
     }

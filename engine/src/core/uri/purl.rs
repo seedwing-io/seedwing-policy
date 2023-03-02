@@ -13,10 +13,6 @@ pub struct Purl;
 const DOCUMENTATION: &str = include_str!("purl.adoc");
 
 impl BlockingFunction for Purl {
-    fn order(&self) -> u8 {
-        0
-    }
-
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

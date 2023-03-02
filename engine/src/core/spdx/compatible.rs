@@ -16,9 +16,6 @@ const LICENSE_REQUIREMENT: &str = "license_id";
 pub struct Compatible;
 
 impl Function for Compatible {
-    fn order(&self) -> u8 {
-        255
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

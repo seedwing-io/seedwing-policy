@@ -15,9 +15,6 @@ const PATTERN: &str = "pattern";
 pub struct Not;
 
 impl Function for Not {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![PATTERN.into()]
     }

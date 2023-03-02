@@ -14,9 +14,6 @@ use std::sync::Arc;
 pub struct None;
 
 impl Function for None {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![PATTERN.into()]
     }

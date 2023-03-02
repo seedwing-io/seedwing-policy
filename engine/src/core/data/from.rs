@@ -35,9 +35,6 @@ impl Default for From {
 }
 
 impl Function for From {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

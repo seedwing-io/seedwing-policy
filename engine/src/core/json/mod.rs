@@ -25,9 +25,6 @@ pub struct JSON;
 const DOCUMENTATION: &str = include_str!("JSON.adoc");
 
 impl Function for JSON {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

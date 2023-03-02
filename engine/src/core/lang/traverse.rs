@@ -15,9 +15,6 @@ const STEP: &str = "step";
 pub struct Traverse;
 
 impl Function for Traverse {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![STEP.into()]
     }

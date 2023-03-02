@@ -16,9 +16,6 @@ const ADDRESS: &str = "address";
 pub struct Inet4Addr;
 
 impl Function for Inet4Addr {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

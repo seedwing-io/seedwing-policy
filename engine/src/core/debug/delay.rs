@@ -18,7 +18,7 @@ pub struct DelayMs;
 
 impl Function for DelayMs {
     fn order(&self) -> u8 {
-        192
+        60
     }
     fn parameters(&self) -> Vec<String> {
         vec![DELAY.into()]

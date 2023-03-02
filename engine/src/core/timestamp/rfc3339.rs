@@ -13,9 +13,6 @@ const DOCUMENTATION: &str = include_str!("rfc3339.adoc");
 pub struct Rfc3339;
 
 impl Function for Rfc3339 {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

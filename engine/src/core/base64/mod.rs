@@ -54,10 +54,6 @@ impl Base64 {
 }
 
 impl Function for Base64 {
-    fn order(&self) -> u8 {
-        128
-    }
-
     fn documentation(&self) -> Option<String> {
         match self.alphabet {
             Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
@@ -94,9 +90,6 @@ impl Function for Base64 {
 pub struct Base64Encode;
 
 impl Function for Base64Encode {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION_BASE64_ENCODE.into())
     }

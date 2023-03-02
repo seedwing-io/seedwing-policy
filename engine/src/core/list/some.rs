@@ -13,9 +13,6 @@ use std::sync::Arc;
 pub struct Some;
 
 impl Function for Some {
-    fn order(&self) -> u8 {
-        128
-    }
     fn parameters(&self) -> Vec<String> {
         vec![COUNT.into(), PATTERN.into()]
     }

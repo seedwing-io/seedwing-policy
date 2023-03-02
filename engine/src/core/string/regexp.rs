@@ -16,7 +16,7 @@ pub struct Regexp;
 
 impl Function for Regexp {
     fn order(&self) -> u8 {
-        140
+        10
     }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())

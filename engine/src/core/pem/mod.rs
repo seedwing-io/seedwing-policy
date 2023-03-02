@@ -26,9 +26,6 @@ pub fn package() -> Package {
 pub struct AsCertificate;
 
 impl Function for AsCertificate {
-    fn order(&self) -> u8 {
-        128
-    }
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,

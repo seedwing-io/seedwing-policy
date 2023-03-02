@@ -13,9 +13,6 @@ const DOCUMENTATION: &str = include_str!("iri.adoc");
 pub struct Iri;
 
 impl Function for Iri {
-    fn order(&self) -> u8 {
-        128
-    }
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }
