@@ -47,19 +47,19 @@ You can also try a hosted version at [https://playground.seedwing.io](https://pl
 To evaluate policies:
 
 ```ignore
-swio -p <policy dir> eval -n mypolicy::pattern -i input.json
+swio eval -p <policy dir> -n mypolicy::pattern -i input.json
 ```
 
 To run the HTTP server (point your browser to the http://localhost:8080 to view the console):
 
 ```ignore
-swio -p <policy dir> serve
+swio serve -p <policy dir>
 ```
 
 To benchmark policies:
 
 ```ignore
-swio -p <policy dir> bench -n mypolicy::pattern -i input.json -c 1000
+swio bench -p <policy dir> -n mypolicy::pattern -i input.json -c 1000
 ```
 
 ## Minimum supported Rust version (MSRV)
