@@ -6,11 +6,10 @@
 
 A functional type system for implementing policy inspection, audit and enforcement.
 
-Seedwing Policy consists of several components that may be combined or used standalone as part of a secure software supply chain:
+Seedwing Policy consists of components that may be combined or used standalone as part of a secure software supply chain:
 
 * *Dogma* - a policy description language.
 * *Engine* - a policy evaluation engine.
-* *Server* - an HTTP server and API for evaluating policies.
 
 With Seedwing Policy, you can:
 
@@ -19,22 +18,36 @@ With Seedwing Policy, you can:
 * Check for trusted signatures against [Sigstore](https://sigstore.dev).
 * Check SBOM dependencies for vulnerabilities against [OSV](https://osv.dev).
 
+Additionally, Seedwing provides detailed explanations of the decision process.
+
+The Seedwing engine includes _core patterns_ to assist in policy authoring.
+
+Some examples include:
+
+* Sigstore
+* x509
+* CycloneDX
+* OpenVEX
+* SPDX
+* Maven
+* Base64
+
 All the policies can be centrally managed in a server, or built in as part of a custom application.
-
-See the [documentation](https://docs.seedwing.io/docs/index.html) for more information.
-
-### Other use cases
 
 Seedwing Policy is primarily concerned with software supply chain, but may be used in other contexts as well such as authorization policies for Apache Kafka.
 
+See the [documentation](https://docs.seedwing.io/docs/index.html) for more information.
+
 ## Usage
 
-To use the policy engine, download the latest released `swio` binary for your platform. 
+To use the policy engine, download the latest released `swio` binary for your platform, or use one of container images.
+
+You can also try a hosted version at [https://playground.seedwing.io](https://playground.seedwing.io).
 
 To evaluate policies:
 
 ```ignore
-swio -p <policy dir> eval --name mypolicy::pattern --input input.json
+swio -p <policy dir> eval -n mypolicy::pattern -i input.json
 ```
 
 To run the HTTP server (point your browser to the http://localhost:8080 to view the console):
@@ -46,7 +59,7 @@ swio -p <policy dir> serve
 To benchmark policies:
 
 ```ignore
-swio -p <policy dir> bench --name mypolicy::pattern --input input.json --count 1000
+swio -p <policy dir> bench -n mypolicy::pattern -i input.json -c 1000
 ```
 
 ## Minimum supported Rust version (MSRV)
