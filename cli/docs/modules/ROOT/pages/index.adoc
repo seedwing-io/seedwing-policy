@@ -1,4 +1,4 @@
-== Seedwing Policy CLI
+== Seedwing Policy Engine
 
 The Seedwing Policy CLI provides access to the functionality of the Seedwing Policy Engine without requiring access to a running Policy Server.
 
