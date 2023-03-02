@@ -18,6 +18,12 @@ pub struct Response {
     rationale: Vec<Response>,
 }
 
+impl From<EvaluationResult> for Response {
+    fn from(result: EvaluationResult) -> Self {
+        Self::new(&result)
+    }
+}
+
 impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
         Self {

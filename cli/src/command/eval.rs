@@ -1,10 +1,9 @@
 use crate::cli::InputType;
 use crate::command::verify::Verify;
 use crate::util;
-use crate::util::explain::explain;
 use crate::util::load_value;
 use crate::Cli;
-use seedwing_policy_engine::runtime::RuntimeError;
+use seedwing_policy_engine::runtime::{Response, RuntimeError};
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -20,6 +19,8 @@ pub struct Eval {
     input: Option<PathBuf>,
     #[arg(short = 'n', long = "name")]
     name: String,
+    #[arg(short = 'v', long = "verbose", default_value_t = false)]
+    verbose: bool,
 }
 
 impl Eval {
@@ -36,12 +37,14 @@ impl Eval {
 
         match eval.run().await {
             Ok(result) => {
-                explain(&result).unwrap();
-                println!();
-                if result.satisfied() {
-                    println!("ok!");
+                let response = if self.verbose {
+                    Response::new(&result)
                 } else {
-                    println!("pattern match failed");
+                    Response::new(&result).collapse()
+                };
+
+                println!("{}", serde_json::to_string_pretty(&response).unwrap());
+                if !result.satisfied() {
                     exit(-1);
                 }
             }
