@@ -191,10 +191,10 @@ jobs:
           cargo cyclonedx --all --format json
           cp swio/bom.json staging/swio.project.sbom.json
 
-      - name: Create SBOM of the web/yarn project
+      - name: Create SBOM of the frontend 
         # gather (embedded) dependencies from the yarn build
         run: |
-          syft seedwing-policy-server/web/yarn.lock --output cyclonedx-json > staging/web.project.sbom.json
+          syft frontend/package-lock.json --output cyclonedx-json > staging/frontend.project.sbom.json
 
       - name: Merge project SBOM
         # merge both SBOMs
@@ -202,16 +202,16 @@ jobs:
           cyclonedx merge \
             --input-files \
             staging/swio.project.sbom.json \
-            staging/web.project.sbom.json \
+            staging/frontend.project.sbom.json \
             --output-file staging/project.sbom.json
 
       - name: Create SBOMs for binaries
         # this step will create SBOMs for binaries, based on the information embedded by `cargo auditable build`
-        # and amend the information with the web project SBOM
+        # and amend the information with the frontend project SBOM
         run: |
           for i in $(ls staging/swio*); do
             syft ${i} --output cyclonedx-json > ${i}.sbom.cargo-auditable.json
-            cyclonedx merge --input-files ${i}.sbom.cargo-auditable.json staging/web.project.sbom.json --output-file ${i}.sbom.json
+            cyclonedx merge --input-files ${i}.sbom.cargo-auditable.json staging/frontend.project.sbom.json --output-file ${i}.sbom.json
           done
 
       - name: Cosign blobs
@@ -225,7 +225,7 @@ jobs:
       - name: Generate container SBOM
         run: |
           syft ~/download/container/image.tar --output cyclonedx-json --catalogers rpm,cargo-auditable > staging/container.sbom.json
-          cyclonedx merge --input-files staging/container.sbom.json staging/web.project.sbom.json --output-file staging/container.sbom.json
+          cyclonedx merge --input-files staging/container.sbom.json staging/frontend.project.sbom.json --output-file staging/container.sbom.json
 
       - name: Load container
         run: |

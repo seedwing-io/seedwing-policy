@@ -37,7 +37,7 @@ RUN mkdir /usr/src/project
 COPY . /usr/src/project
 WORKDIR /usr/src/project
 
-RUN cd seedwing-policy-frontend && yarn install
+RUN cd frontend && yarn install
 RUN cargo auditable build --release --features frontend
 
 RUN mkdir /result && cp -pv target/release/swio /result/
