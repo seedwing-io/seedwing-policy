@@ -32,7 +32,7 @@ pub struct Cli {
     #[arg(short, long = "policy", value_name = "DIR", global = true)]
     pub(crate) policy_directories: Vec<PathBuf>,
 
-    #[arg(short, long = "data", value_name = "DIR", global = true )]
+    #[arg(short, long = "data", value_name = "DIR", global = true)]
     pub(crate) data_directories: Vec<PathBuf>,
 
     #[command(subcommand)]
