@@ -59,11 +59,11 @@ jobs:
         include:
           - os: ubuntu-22.04
             suffix: "linux-amd64"
-          - os: macos-12
-            suffix: "macos-amd64"
-          - os: windows-2022
-            suffix: "windows-amd64"
-            exe: ".exe"
+          #- os: macos-12
+          #  suffix: "macos-amd64"
+          #- os: windows-2022
+          #  suffix: "windows-amd64"
+          #  exe: ".exe"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -85,10 +85,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install trunk
-        run: |
-          curl -sL https://github.com/thedodd/trunk/releases/download/v0.16.0/trunk-x86_64-unknown-linux-gnu.tar.gz -o trunk-x86_64-unknown-linux-gnu.tar.gz
-          tar xzf trunk-x86_64-unknown-linux-gnu.tar.gz
-          sudo install trunk /usr/bin/trunk
+        run: cargo install trunk
 
       - name: Install wasm32 target
         run: |
