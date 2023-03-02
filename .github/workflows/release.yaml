@@ -99,9 +99,10 @@ jobs:
       - name: Install trunk
         run: cargo install trunk
 
-      - name: Install wasm32 target
+      - name: Install additional targets target
         run: |
           rustup target add wasm32-unknown-unknown
+          rustup target add aarch64-apple-darwin
 
       - name: Install cargo-auditable
         run: cargo install cargo-auditable
