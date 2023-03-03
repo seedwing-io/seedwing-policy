@@ -6,6 +6,7 @@ use crate::lang::hir;
 use crate::lang::parser::SourceLocation;
 use crate::runtime;
 use crate::runtime::cache::SourceCache;
+use crate::runtime::config::ConfigValue;
 use crate::runtime::BuildError;
 
 /// Builder representing the entire world of policies.
@@ -53,6 +54,10 @@ impl Builder {
     /// Add a data source to the builder.
     pub fn data<D: DataSource + 'static>(&mut self, src: D) {
         self.hir.data(src)
+    }
+
+    pub fn config<S: Into<String>, V: Into<ConfigValue>>(&mut self, key: S, val: V) {
+        self.hir.config(key.into(), val.into())
     }
 }
 

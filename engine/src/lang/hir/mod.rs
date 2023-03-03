@@ -6,6 +6,7 @@ use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, PackagePath, PatternName};
 
+use crate::runtime::config::{ConfigValue, EvalConfig};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -305,6 +306,7 @@ pub struct World {
     packages: Vec<Package>,
     source_cache: SourceCache,
     data_sources: Vec<Arc<dyn DataSource>>,
+    config: EvalConfig,
 }
 
 impl Default for World {
@@ -318,6 +320,7 @@ impl Clone for World {
         let mut h = World::new();
         h.packages = self.packages.clone();
         h.data_sources = self.data_sources.clone();
+        h.config = self.config.clone();
         h
     }
 }
@@ -329,6 +332,7 @@ impl World {
             packages: Default::default(),
             source_cache: Default::default(),
             data_sources: Vec::default(),
+            config: EvalConfig::default(),
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::config::package());
@@ -400,6 +404,10 @@ impl World {
         self.data_sources.push(Arc::new(src))
     }
 
+    pub fn config(&mut self, key: String, val: ConfigValue) {
+        self.config.insert(key, val);
+    }
+
     fn add_compilation_unit(&mut self, unit: CompilationUnit) {
         self.units.push(unit)
     }
@@ -441,23 +449,32 @@ impl World {
             return Err(errors);
         }
 
-        Lowerer::new(&mut self.units, &mut self.packages).lower()
+        Lowerer::new(&mut self.units, &mut self.packages, self.config.clone()).lower()
     }
 }
 
 struct Lowerer<'b> {
     units: &'b mut Vec<CompilationUnit>,
     packages: &'b mut Vec<Package>,
+    config: EvalConfig,
 }
 
 impl<'b> Lowerer<'b> {
-    pub fn new(units: &'b mut Vec<CompilationUnit>, packages: &'b mut Vec<Package>) -> Self {
-        Self { units, packages }
+    pub fn new(
+        units: &'b mut Vec<CompilationUnit>,
+        packages: &'b mut Vec<Package>,
+        config: EvalConfig,
+    ) -> Self {
+        Self {
+            units,
+            packages,
+            config,
+        }
     }
 
     pub fn lower(self) -> Result<mir::World, Vec<BuildError>> {
         // First, perform internal per-unit linkage and type qualification
-        let mut world = mir::World::new();
+        let mut world = mir::World::new(self.config);
         let mut errors = Vec::new();
 
         for unit in self.units.iter_mut() {
@@ -488,7 +505,6 @@ impl<'b> Lowerer<'b> {
 
                 for ty in &referenced_types {
                     if !ty.is_qualified() && !visible_types.contains_key(ty.name()) {
-                        println!("PNF A");
                         errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             ty.location().span(),
@@ -506,10 +522,6 @@ impl<'b> Lowerer<'b> {
         // next, perform inter-unit linking.
 
         let mut known_world = world.known_world();
-
-        //world.push(PatternName::new(None, "int".into()));
-
-        //world.push("int".into());
 
         for package in self.packages.iter() {
             let package_path = package.path();

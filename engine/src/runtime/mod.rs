@@ -381,19 +381,15 @@ mod test {
 
 #[derive(Clone, Debug)]
 pub struct World {
+    config: EvalConfig,
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
 }
 
-impl Default for World {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl World {
-    pub fn new() -> Self {
+    pub fn new(config: EvalConfig) -> Self {
         Self {
+            config,
             types: Default::default(),
             type_slots: Default::default(),
         }
@@ -420,8 +416,9 @@ impl World {
         &self,
         path: P,
         value: V,
-        ctx: EvalContext,
+        mut ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
+        ctx.merge_config(&self.config);
         let value = Arc::new(value.into());
         let path = PatternName::from(path.into());
         let slot = self.types.get(&path);
@@ -766,6 +763,10 @@ impl EvalContext {
 
     pub fn config(&self) -> &EvalConfig {
         &self.config
+    }
+
+    pub fn merge_config(&mut self, defaults: &EvalConfig) {
+        self.config.merge_defaults(defaults);
     }
 
     pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {

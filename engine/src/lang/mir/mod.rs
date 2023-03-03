@@ -13,6 +13,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 
+use crate::runtime::config::EvalConfig;
 use std::sync::Arc;
 
 #[derive(Default, Debug)]
@@ -156,20 +157,15 @@ impl ObjectPattern {
 
 #[derive(Debug)]
 pub struct World {
+    config: EvalConfig,
     type_slots: Vec<Arc<PatternHandle>>,
     types: HashMap<PatternName, usize>,
 }
 
 impl World {
-    pub(crate) fn new() -> Self {
-        //let mut initial_types = HashMap::new();
-
-        //primordial_type!(initial_types, "integer", PrimordialPattern::Integer);
-        //primordial_type!(initial_types, "string", PrimordialPattern::String);
-        //primordial_type!(initial_types, "boolean", PrimordialPattern::Boolean);
-        //primordial_type!(initial_types, "decimal", PrimordialPattern::Decimal);
-
+    pub(crate) fn new(config: EvalConfig) -> Self {
         let mut this = Self {
+            config,
             type_slots: vec![],
             types: Default::default(),
         };
@@ -426,7 +422,7 @@ impl World {
     }
 
     pub fn lower(self) -> Result<runtime::World, Vec<BuildError>> {
-        let mut world = runtime::World::new();
+        let mut world = runtime::World::new(self.config.clone());
 
         log::info!("Compiling {} patterns", self.types.len());
 

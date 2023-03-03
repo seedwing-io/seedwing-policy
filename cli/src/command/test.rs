@@ -1,6 +1,5 @@
 use crate::command::verify::Verify;
 use crate::Cli;
-use clap::builder::TypedValueParser;
 use seedwing_policy_engine::lang::builder::Builder;
 use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::sources::Ephemeral;
@@ -15,7 +14,6 @@ use std::process::exit;
 use std::str::from_utf8;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use toml::Table;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(clap::Args, Debug)]

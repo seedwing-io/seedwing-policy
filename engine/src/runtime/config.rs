@@ -1,12 +1,24 @@
 use crate::value::RuntimeValue;
 use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EvalConfig(HashMap<String, ConfigValue>);
 
 impl EvalConfig {
     pub fn get(&self, key: &String) -> Option<&ConfigValue> {
         self.0.get(key)
+    }
+
+    pub fn insert(&mut self, key: String, val: ConfigValue) {
+        self.0.insert(key, val);
+    }
+
+    pub(crate) fn merge_defaults(&mut self, defaults: &EvalConfig) {
+        for (k, v) in defaults.0.iter() {
+            if !self.0.contains_key(k) {
+                self.0.insert(k.clone(), v.clone());
+            }
+        }
     }
 }
 
