@@ -1,5 +1,5 @@
 use crate::pages::AppRoute;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use yew::prelude::*;
 use yew_nested_router::prelude::use_router;
 

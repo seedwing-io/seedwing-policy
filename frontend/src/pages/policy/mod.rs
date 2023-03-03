@@ -8,7 +8,7 @@ use crate::{
 use asciidoctor_web::yew::Asciidoc;
 use gloo_net::http::Request;
 use inner::Inner;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use seedwing_policy_engine::{
     info::{ComponentInformation, PatternInformation},
     runtime::ModuleHandle,

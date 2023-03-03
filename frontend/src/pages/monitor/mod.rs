@@ -2,7 +2,7 @@ use crate::pages::{AppRoute, BreadcrumbsProps};
 use crate::utils::format_duration;
 use anyhow::Error;
 use chrono::DateTime;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use seedwing_policy_engine::runtime::monitor::{
     SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput,
 };

@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Error;
 use gloo_net::http::Request;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use seedwing_policy_engine::runtime::statistics::Snapshot;
 use yew::prelude::*;
 use yew::{html, use_effect_with_deps, use_memo, AttrValue, Html};

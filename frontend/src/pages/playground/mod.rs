@@ -10,7 +10,7 @@ use monaco::{
     yew::CodeEditorLink,
 };
 use monaco_editor_textmate_web::prelude::*;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
 use serde_json::Value;
 use wasm_bindgen::JsCast;

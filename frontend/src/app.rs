@@ -1,5 +1,5 @@
 use crate::console::Console;
-use patternfly_yew::*;
+use patternfly_yew::prelude::*;
 use yew::prelude::*;
 
 #[function_component(Application)]
