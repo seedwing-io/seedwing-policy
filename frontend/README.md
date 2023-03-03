@@ -27,10 +27,10 @@ Depending on the component you want to work on, the workflow may be different.
 
 In order to work on the frontend you need to:
 
-* Start the policy server
+* Start the policy server (from the repository root):
 
   ```shell
-  cargo run --package seedwing-policy-server
+  cargo run -p seedwing-policy-cli serve
   ```
 
 * Materialize the NodeJS dependencies (at least once)
