@@ -106,12 +106,10 @@ impl Cli {
             } else {
                 Err(ConfigError::NotReadable)
             }
+        } else if explicit {
+            Err(ConfigError::FileNotFound)
         } else {
-            if explicit {
-                Err(ConfigError::FileNotFound)
-            } else {
-                Ok(EvalConfig::default())
-            }
+            Ok(EvalConfig::default())
         }
     }
 }
