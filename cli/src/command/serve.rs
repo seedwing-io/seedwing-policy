@@ -11,7 +11,7 @@ pub struct Serve {
     #[arg(short, long, default_value = "0.0.0.0")]
     pub(crate) bind: String,
 
-    #[arg(short, long, default_value_t = 8080)]
+    #[arg(short = 'P', long = "port", default_value_t = 8080)]
     pub(crate) port: u16,
 }
 

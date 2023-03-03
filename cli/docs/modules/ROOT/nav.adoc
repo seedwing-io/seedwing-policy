@@ -4,3 +4,4 @@
 * xref:test.adoc[`test`]
 * xref:serve.adoc[`serve`]
 * xref:bench.adoc[`bench`]
+* xref:examples.adoc[Examples]
