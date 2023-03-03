@@ -40,7 +40,7 @@ See the [documentation](https://docs.seedwing.io/docs/index.html) for more infor
 
 ## Usage
 
-To use the policy engine, download the latest released `swio` binary for your platform, or use one of container images.
+To use the policy engine, download the [latest released](https://github.com/seedwing-io/seedwing-policy/releases/latest) `swio` binary for your platform, or use one of container images.
 
 You can also try a hosted version at [https://playground.seedwing.io](https://playground.seedwing.io).
 
