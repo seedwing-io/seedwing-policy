@@ -49,7 +49,12 @@ impl Verify {
     pub async fn builder(&self, args: &Cli) -> Result<Builder, ()> {
         let mut errors = Vec::new();
 
-        let mut builder = Builder::new();
+        let mut builder = if let Some(config) = args.eval_config.as_ref() {
+            Builder::new_with_config(config.clone())
+        } else {
+            Builder::new()
+        };
+
         let mut sources = Vec::new();
         for dir in &args.policy_directories {
             let dir = PathBuf::from(dir);

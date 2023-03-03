@@ -327,12 +327,16 @@ impl Clone for World {
 
 impl World {
     pub fn new() -> Self {
+        Self::new_with_config(EvalConfig::default())
+    }
+
+    pub fn new_with_config(config: EvalConfig) -> Self {
         let mut world = Self {
             units: Default::default(),
             packages: Default::default(),
             source_cache: Default::default(),
             data_sources: Vec::default(),
-            config: EvalConfig::default(),
+            config,
         };
         world.add_package(crate::core::lang::package());
         world.add_package(crate::core::config::package());

@@ -1,0 +1,1 @@
+pattern test = config::of<"name">

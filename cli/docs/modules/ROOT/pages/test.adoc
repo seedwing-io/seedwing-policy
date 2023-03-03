@@ -49,9 +49,11 @@ A test harness is generally useful for testing _parameterized patterns_ which ar
 
 This argument may be specified repeatedly to accumulate multiple test directories.
 
-==== Configuration: `config.json`
+==== Configuration: `config.json` or `config.toml`
 
-**Experimental**: Configuration values available through `config::of<KEY>` are settable per-test, through the precense of a `config.json` file.
+Configuration values available through `config::of<KEY>` are settable per-test, through the precense of a `config.json` file.
+
+These values take precedent over any `[config]` section values from a xref::seedwing_toml.adoc[`Seedwing.toml`] that is in effect.
 
 === Pattern matching: `-m <MATCH>`
 

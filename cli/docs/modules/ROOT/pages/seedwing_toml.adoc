@@ -1,0 +1,42 @@
+= Seedwing.toml
+
+A global configuration named `Seedwing.toml` may be used to configure various aspects of the `swio` command-line utility.
+
+== `[policy]` section
+```toml
+[policy]
+dirs = [
+  "path/to/policies/",
+  "another/path/to/policies/",
+]
+```
+
+=== Policy directories: `dirs = [ ... ]`
+
+The `dirs` key may specify an array of directories to be loaded as pattern definitions.
+Any path specified will be resolved relative to the configuration file itself.
+
+== `[data]` section
+
+```toml
+dirs = [
+  "path/to/data/",
+  "another/path/to/data/",
+]
+```
+
+=== Data directories: `dirs = [ ... ]`
+
+The `dirs` key may specify an array of directories to be loaded as data sources.
+Any path specified will be resolved relative to the configuration file itself.
+
+== `[config]` section
+
+Within the `[config]` section, arbitrary key/value pairs are allowed.
+These values are made available during evaluation of patterns using `config::of<KEY>`.
+
+```toml
+[config]
+foo = "bar"
+favorite.cheese.ever = "brie"
+```

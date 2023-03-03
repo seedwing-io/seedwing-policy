@@ -8,6 +8,12 @@ The primary command is `swio`, derived from the domain of `seedwing.io`.
 
 Have a look at the xref:examples.adoc[examples] for how to use it.
 
+==== Configuration: `-f <FILE_OR_DIR>`
+
+A single optional configuration may be specified by providing either a full path to a file or a path to a directory containing a `Seedwing.toml`.
+
+The contents of the file should match the xref::seedwing_toml.adoc['Seedwing.toml'] format.
+
 ==== Policy Directories: `-p <DIR>`
 
 Zero or more policy directories may be specified using the `-p <DIR>` argument.
