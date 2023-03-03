@@ -1,5 +1,6 @@
 use crate::command::verify::Verify;
 use crate::Cli;
+use clap::builder::TypedValueParser;
 use seedwing_policy_engine::lang::builder::Builder;
 use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::sources::Ephemeral;
@@ -11,8 +12,10 @@ use serde_json::Value;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::process::exit;
+use std::str::from_utf8;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+use toml::Table;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(clap::Args, Debug)]
@@ -126,6 +129,8 @@ impl TestPlan {
                                         {
                                             let config = if parent.join("config.json").exists() {
                                                 Some(parent.join("config.json"))
+                                            } else if parent.join("config.toml").exists() {
+                                                Some(parent.join("config.toml"))
                                             } else {
                                                 None
                                             };
@@ -264,25 +269,34 @@ impl TestPattern {
 }
 
 impl TestCase {
-    pub async fn run(&mut self, builder: &Builder, world: &World) {
-        if let Expected::Pending = &self.expected {
-            self.result.replace(TestResult::Pending);
-            return;
-        }
-
-        if let Expected::Ignored = &self.expected {
-            self.result.replace(TestResult::Ignored);
-            return;
-        }
-
-        let config = if let Some(config) = &self.config {
-            if let Ok(mut config_file) = File::open(&config).await {
+    async fn load_config(&self) -> EvalConfig {
+        let config = if let Some(config_path) = &self.config {
+            if let Ok(mut config_file) = File::open(&config_path).await {
                 let mut config = Vec::new();
                 let read_result = config_file.read_to_end(&mut config).await;
                 if read_result.is_ok() {
-                    let config: Result<Value, _> = serde_json::from_slice(&config);
-                    if let Ok(config) = config {
-                        Some(config.into())
+                    if let Some(name) = config_path.file_name() {
+                        if name.to_string_lossy().ends_with(".json") {
+                            let config: Result<Value, _> = serde_json::from_slice(&config);
+                            if let Ok(config) = config {
+                                Some(config.into())
+                            } else {
+                                None
+                            }
+                        } else if name.to_string_lossy().ends_with(".toml") {
+                            if let Ok(config) = from_utf8(&config) {
+                                let config: Result<toml::Value, _> = config.parse();
+                                if let Ok(config) = config {
+                                    Some(config.into())
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
@@ -296,6 +310,22 @@ impl TestCase {
             None
         }
         .unwrap_or(EvalConfig::default());
+
+        config
+    }
+
+    pub async fn run(&mut self, builder: &Builder, world: &World) {
+        if let Expected::Pending = &self.expected {
+            self.result.replace(TestResult::Pending);
+            return;
+        }
+
+        if let Expected::Ignored = &self.expected {
+            self.result.replace(TestResult::Ignored);
+            return;
+        }
+
+        let config = self.load_config().await;
 
         if let Ok(mut input_file) = File::open(&self.input).await {
             let mut input = Vec::new();

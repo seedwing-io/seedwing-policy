@@ -1,5 +1,4 @@
 use crate::value::RuntimeValue;
-use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -15,7 +14,7 @@ impl EvalConfig {
     fn parse_json_object(
         prefix: String,
         config: &mut HashMap<String, ConfigValue>,
-        obj: &Map<String, Value>,
+        obj: &serde_json::Map<String, serde_json::Value>,
     ) {
         for (k, v) in obj.iter() {
             let mut prefix = prefix.clone();
@@ -24,7 +23,7 @@ impl EvalConfig {
             }
             prefix.push_str(k.as_str());
             match v {
-                Value::Object(obj) => {
+                serde_json::Value::Object(obj) => {
                     Self::parse_json_object(prefix, config, obj);
                 }
                 _ => Self::parse_json_other(prefix, config, v),
@@ -32,19 +31,23 @@ impl EvalConfig {
         }
     }
 
-    fn parse_json_other(prefix: String, config: &mut HashMap<String, ConfigValue>, val: &Value) {
+    fn parse_json_other(
+        prefix: String,
+        config: &mut HashMap<String, ConfigValue>,
+        val: &serde_json::Value,
+    ) {
         match val {
-            Value::Bool(val) => {
+            serde_json::Value::Bool(val) => {
                 config.insert(prefix, (*val).into());
             }
-            Value::Number(val) => {
+            serde_json::Value::Number(val) => {
                 if let Some(val) = val.as_i64() {
                     config.insert(prefix, val.into());
                 } else if let Some(val) = val.as_f64() {
                     config.insert(prefix, val.into());
                 }
             }
-            Value::String(val) => {
+            serde_json::Value::String(val) => {
                 config.insert(prefix, val.clone().into());
             }
             _ => {
@@ -52,14 +55,69 @@ impl EvalConfig {
             }
         }
     }
+
+    fn parse_toml_table(
+        prefix: String,
+        config: &mut HashMap<String, ConfigValue>,
+        table: &toml::Table,
+    ) {
+        for (k, v) in table.iter() {
+            let mut prefix = prefix.clone();
+            if !prefix.is_empty() {
+                prefix.push('.');
+            }
+            prefix.push_str(k.as_str());
+            match v {
+                toml::Value::Table(table) => {
+                    Self::parse_toml_table(prefix, config, table);
+                }
+                _ => Self::parse_toml_other(prefix, config, v),
+            }
+        }
+    }
+
+    fn parse_toml_other(
+        prefix: String,
+        config: &mut HashMap<String, ConfigValue>,
+        val: &toml::Value,
+    ) {
+        match val {
+            toml::Value::String(val) => {
+                config.insert(prefix, val.clone().into());
+            }
+            toml::Value::Integer(val) => {
+                config.insert(prefix, (*val).into());
+            }
+            toml::Value::Float(val) => {
+                config.insert(prefix, (*val).into());
+            }
+            toml::Value::Boolean(val) => {
+                config.insert(prefix, (*val).into());
+            }
+            _ => {
+                // nothing
+            }
+        }
+    }
 }
 
-impl From<Value> for EvalConfig {
-    fn from(json: Value) -> Self {
+impl From<serde_json::Value> for EvalConfig {
+    fn from(json: serde_json::Value) -> Self {
         let prefix: String = "".into();
         let mut config = HashMap::new();
-        if let Value::Object(obj) = &json {
+        if let serde_json::Value::Object(obj) = &json {
             EvalConfig::parse_json_object(prefix, &mut config, obj)
+        }
+        Self(config)
+    }
+}
+
+impl From<toml::Value> for EvalConfig {
+    fn from(toml: toml::Value) -> Self {
+        let prefix: String = "".into();
+        let mut config = HashMap::new();
+        if let toml::Value::Table(table) = &toml {
+            EvalConfig::parse_toml_table(prefix, &mut config, table)
         }
         Self(config)
     }

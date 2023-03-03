@@ -1,1 +1,0 @@
-pattern test = config::of<"non-existant">
