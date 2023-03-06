@@ -72,7 +72,7 @@ npm install -g sass@1.58.3 && sass --version
 The easiest way to run the server is to execute
 
 ```shell
-cargo run -p seedwing-policy-cli serve
+cargo run -p swio serve
 ```
 
 For more information on how to run frontend manually, take a look at [frontend](frontend/README.md) documentation.
