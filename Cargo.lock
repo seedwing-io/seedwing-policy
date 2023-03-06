@@ -2972,28 +2972,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "seedwing-policy-cli"
-version = "0.1.0-alpha.9"
-dependencies = [
- "actix-rt",
- "clap 4.1.6",
- "env_logger",
- "futures-util",
- "hdrhistogram",
- "is-terminal",
- "log",
- "seedwing-policy-engine",
- "seedwing-policy-server",
- "serde",
- "serde_json",
- "serde_yaml",
- "termcolor",
- "tokio",
- "toml",
- "walkdir",
-]
-
-[[package]]
 name = "seedwing-policy-engine"
 version = "0.1.0-alpha.9"
 dependencies = [
@@ -3416,6 +3394,28 @@ name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
+
+[[package]]
+name = "swio"
+version = "0.1.0-alpha.9"
+dependencies = [
+ "actix-rt",
+ "clap 4.1.6",
+ "env_logger",
+ "futures-util",
+ "hdrhistogram",
+ "is-terminal",
+ "log",
+ "seedwing-policy-engine",
+ "seedwing-policy-server",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "termcolor",
+ "tokio",
+ "toml",
+ "walkdir",
+]
 
 [[package]]
 name = "syn"

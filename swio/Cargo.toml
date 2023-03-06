@@ -1,5 +1,5 @@
 [package]
-name = "seedwing-policy-cli"
+name = "swio"
 version = "0.1.0-alpha.9"
 edition = "2021"
 license = "Apache-2.0"
@@ -34,7 +34,3 @@ debug = [
     "seedwing-policy-server/debug",
 ]
 frontend = ["seedwing-policy-server/frontend"]
-
-[[bin]]
-name = "swio"
-path = "src/main.rs"

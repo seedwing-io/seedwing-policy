@@ -2,7 +2,7 @@
 members = [
     "engine",
     "server",
-    "cli",
+    "swio",
 ]
 exclude = [
   # We need to exclude the frontend, as it uses different cargo build settings
