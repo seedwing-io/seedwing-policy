@@ -14,3 +14,16 @@ It is open-source and contributions are always welcomed.
 == What is the license?
 
 All components of Seedwing are licensed under the Apache License version 2.
+
+== Does Seedwing support plugins?
+
+Generally-speaking, no.
+
+More broadly speaking, also no.
+
+Policies can be written using `external::eval<...>`, but that can introduce brittleness into patterns, given a reliance on an external service.
+
+The lack of plugins is two-fold:
+
+1. Seedwing is implemented in Rust, which is statically-linked, making plugins (and usage of `dlopen(3)`) a challenge.
+2. For policy portability, to ensure that any policy can execute within any instance of `swio`, a decision has been taken to include as much as possible into the core.
