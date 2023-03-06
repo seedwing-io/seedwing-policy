@@ -1,22 +1,22 @@
-== Basic Syntax
+= Basic Syntax
 
-=== `.dog` Files
+== `.dog` Files
 
 In general, patterns are authored in plaintext UTF-8 files with the suffix of `.dog`.
 
-=== Delimiters & Whitespace
+== Delimiters & Whitespace
 
 First, Dogma does not require a semicolon (`;`) or any other statement-ending marker.
 Line delimeters are non-notable.
 Trailing commas are allowed in any comma-delimited sequence.
 Generally, whitespace is also non-notable and does not affect the definition of a pattern.
 
-=== Comments
+== Comments
 
 Single-line comments are supported using `//` and elide everything until the end of the line.
 Documentation comments may be applied to patterns using `///` and should be marked up using https://asciidoc.org/[AsciiDoc] format.
 
-=== File Structure
+== File Structure
 
 There are two primary top-level "statements" in the Dogma language:
 
@@ -34,7 +34,7 @@ pattern ...
 pattern ...
 ```
 
-=== Directory Structure
+== Directory Structure
 
 When a directory is provided as a policy library, the directory will be traversed and all files with the extension of `.dog` will be parsed, compiled, and made available as evaluatable policies.
 
@@ -53,7 +53,7 @@ policies/
 
 The `productization/build.dog` file will contain policies that end up in the `productization::build::` package, while the `sre/deploy.dog` will result in policies existing in the package of `sre::deploy::`.
 
-=== `use` statements
+== `use` statements
 
 The `use` statement brings other packages into visible scope.
 The usage of `use` statements is not required, as all patterns are always addressable using their fully-qualified package-prefixed names.
@@ -61,7 +61,7 @@ The `use` statement allows importing as a simple name (assuming no conflicts), o
 
 NOTE: Currently only full patterns can be imported using `use` statements, not packages.
 
-==== Simple `use`
+=== Simple `use`
 
 The simplest `use` statement brings a pattern into visible scope for use by its simple name.
 
@@ -72,7 +72,7 @@ use sre::deploy::allowed
 
 Within a pattern defined in the same file, referencing these two imports is possible using purely their tail-end simple name of `all` and `allowed`.
 
-==== The `use ... as ...` variant
+=== The `use ... as ...` variant
 
 In the event a policy author wants to `use` two different patterns that share a simple name, an `as ...` suffix is allowed to rename the pattern _in this file only_.
 
@@ -83,7 +83,7 @@ use productization::promote::allowed as promote-allowed
 
 These two patterns can now be used unambiguous as `build-allowed` and `promote-allowed`.
 
-=== Patterns
+== Patterns
 
 Patterns define named patterns that ultimately end up being policies.
 
@@ -99,7 +99,7 @@ Functions, by convention, start with a capital letter, while pattern identifiers
 Every pattern is built up from other patterns.
 It's turtles all the way down, until you reach the _primordial_ patterns.
 
-==== Simple Primordial Patterns
+=== Simple Primordial Patterns
 
 The simplest pattern is a link:./primordial[primordial] _pattern_.
 
@@ -112,7 +112,7 @@ pattern true-or-false = boolean
 
 In all four cases, these simple patterns really only define an *alias* to the right-hand-side of the pattern definition.
 
-==== Simple Primordial value-based Patterns
+=== Simple Primordial value-based Patterns
 
 One step beyond specifying that a pattern matches _all_ integers, string or booleans is restricting which set of integers, strings and booleans it may match.
 
@@ -123,7 +123,7 @@ pattern bob-and-only-bob = "bob"
 pattern the-number-forty-two = 42
 ```
 
-==== Object-shaped Patterns
+=== Object-shaped Patterns
 
 Patterns that match object-shaped input values (useful for applying policy to a JSON object) are defined using `{` and `}` with field patterns within.
 
@@ -207,7 +207,7 @@ but it would not match
 }
 ```
 
-==== List-based Patterns
+=== List-based Patterns
 
 List-based patterns are dependent on the content and the _sequence_ of items contained within the input value.
 
@@ -244,7 +244,7 @@ Lists as primary patterns may not represent a large amount of functionality, but
 
 There are link:/policy/list/[core language functions] available to work with lists in a more comprehensive way.
 
-==== Logical Expressions
+=== Logical Expressions
 
 Given that a pattern only worries about the bits of an input that it can decide upon, it's useful to combine multiple patterns to each separately evaluate their subset of the input.
 
@@ -287,7 +287,7 @@ pattern versioned = {
 Short-circuiting applies to `||`, as a success is a success.
 Short-circuiting does not apply to `&&`, so that all viable failures can be detected early, instead of piece-meal.
 
-==== Expression Types
+=== Expression Types
 
 Some patterns need to match _uncountable sets_.
 This includes things such as "all numbers greater than 42".
@@ -299,7 +299,7 @@ NOTE: The expression langauge may grow or shrink; we are still iterating.
 
 Expression patterns are denoted by the `$(` prefix and the `)` suffix.
 
-===== The `self` keyword
+==== The `self` keyword
 
 Within an expression pattern, the `self` keyword refers to the input value.
 
@@ -319,11 +319,10 @@ pattern patched-software = {
 }
 ```
 
-==== Traversals
+=== Traversals
 
 A traversal looks not unlike dot-notation in object-oriented languages to navigate within an object.
 When combining patterns, traversals provide a terser way of specifying details for small portions of a larger pattern.
-
 
 For instance, if we have a `versioned` pattern as before:
 
@@ -343,14 +342,14 @@ We can use traversals to apply additional patterns when mixed with `&&` to match
 pattern patched = versioned && self.version.patch
 ```
 
-===== The `self` keyword
+==== The `self` keyword
 
 Within a traversal, the `self` keyword once again refers to the input value.
 Navigation to deeper levels uses the dot (`.`) and nested field names.
 If traversing does not succeed, it is considered to fail matching.
 Traversals (and all patterns) are combinable with _refinements_ described below.
 
-==== Refinements
+=== Refinements
 
 While the above simply tested for the existance of a given field, sometimes we want to *refine* the acceptability of a field.
 
@@ -369,7 +368,7 @@ This also demonstrates that the `self.version.major` is not only testing for exi
 
 Refinements are also useful when working with _functions_, described below.
 
-==== Functions
+=== Functions
 
 _Functions_ are another construct that effectively work as patterns.
 Unlike simpler patterns, the output of the function can be not only the identity (or failure), but can be a different transformed value.
@@ -402,7 +401,7 @@ pattern base64-seedwing = Base64("Seedwing is awesome!")
 
 This pattern will only accept the input of `U2VlZHdpbmcgaXMgYXdlc29tZSE=` and all other base64-encoded strings will fail.
 
-=== Parameterized Patterns
+== Parameterized Patterns
 
 So far all patterns have been standalone and independent, other than the components that comprise them.
 
@@ -434,7 +433,7 @@ pattern unsugared = lang::or<[ something-borrowed, something-blue ]>
 
 Here we finally discover where *lists* (described above) become useful.
 
-=== Dereferencing (a.k.a. _Eager Evaluation_)
+== Dereferencing (a.k.a. _Eager Evaluation_)
 
 Given that patterns are first-class constructs, passing them as parameters can sometimes be problematic.
 

@@ -1,4 +1,4 @@
-== `verify`
+= `verify`
 
 The `verify` command may be used to completely parse and compile a set of policies to ensure syntactical correctness and valid inter-pattern relationships.
 

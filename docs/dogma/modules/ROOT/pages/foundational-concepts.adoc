@@ -1,12 +1,12 @@
-== Foundational Concepts
+= Foundational Concepts
 
-=== Pattern Matching
+== Pattern Matching
 
 In general, Seedwing treats a policy as a pattern-matching exercise.
 The requester presents structured data representing what they know to the policy engine for a decision.
 The engine attempts to match the provided data with a pattern that describes what shape, format or other qualities that the data should exhibit in order to be considered "in compliance".
 
-=== Policies, Patterns, Functions and Expressions
+== Policies, Patterns, Functions and Expressions
 
 The core constructs of policies authored in *Dogma* are:
 
@@ -14,7 +14,7 @@ The core constructs of policies authored in *Dogma* are:
 * Functions
 * Expressions
 
-==== Policies
+=== Policies
 
 A "policy" is simply an _application_ of a pattern towards a decision that results in a relatively boolean outcome.
 Within Dogma, there is no actual concrete "policy" construct.
@@ -23,7 +23,7 @@ Policies are used in a variety of ways.
 Simple schema-validation is a policy that defines what a compliant well-formed document should look like.
 Gate-checks in the course of a software pipeline represent another policy that defines what is acceptable to progress beyond a particular point of the pipeline.
 
-=== Patterns
+== Patterns
 
 The base construct within Dogma is the _pattern_.
 
@@ -47,18 +47,18 @@ Additionally, a policy author can define new structured patterns that are object
 
 When an input value is presented to a pattern, the pattern acts not unlike a function, accepting the value, and either passing it back as the output upon match, or passing along nothing if it fails to match.
 
-=== Functions
+== Functions
 
 A _function_ can also be considered a kind of pattern if you squint hard enough from far enough away, since they are also presented with an input value and pass along an output value if successful.
 The primary difference is that functions are written in Rust, not Dogma, and they may pass along completely different values as output.
 
 For instance, a function link:/policy/base64/base64[base64] accepts a string input, and if that input can be successfully decoded as a base64 input, the output value is _the decoded value_.
 
-=== Expressions
+== Expressions
 
 _Expression_ constructs in Dogma may actually appear in two different contexts.
 
-==== Pattern Expressions
+=== Pattern Expressions
 
 _Pattern expressions_ are when two or more patterns are combined using algebraic *_and_* or *_or_* operators (`&&` and `||`).
 In the case of `&&`, the entire expression is only satisfied if _all_ component terms are satisfied.
@@ -67,7 +67,7 @@ For `||`, the entire expression is satisified if _any_ component term is satisfi
 Short-circuiting applies to `||`, as a success is a success.
 Short-circuiting does not apply to `&&`, so that all viable failures can be detected early, instead of piece-meal.
 
-==== Expression Patterns
+=== Expression Patterns
 
 Confusingly, the other context of expression is _expression patterns_.
 Expression patterns define a satisfiable pattern purely as an expression against the input value.

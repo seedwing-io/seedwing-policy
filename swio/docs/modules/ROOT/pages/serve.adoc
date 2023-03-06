@@ -1,15 +1,15 @@
-== `serve`
+= `serve`
 
 The `serve` launches a self-contained API and user-interface server for inspecting and evaluating policies.
 
-=== Usage
+== Usage
 
-==== Bind address: `-b <BIND>`
+=== Bind address: `-b <BIND>`
 
 The `-b <BIND>` argument specifies the hostname or IP address to bind to.
 Defaults to `0.0.0.0`.
 
-==== Listen port: `-p <PORT>`
+=== Listen port: `-p <PORT>`
 
 Specifies the network port the server will listen on.
 Defaults to `8080`
