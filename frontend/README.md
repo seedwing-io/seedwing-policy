@@ -30,7 +30,7 @@ In order to work on the frontend you need to:
 * Start the policy server (from the repository root):
 
   ```shell
-  cargo run -p seedwing-policy-cli serve
+  cargo run -p swio serve
   ```
 
 * Materialize the NodeJS dependencies (at least once)

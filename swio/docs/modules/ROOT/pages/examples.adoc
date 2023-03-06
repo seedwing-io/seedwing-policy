@@ -14,7 +14,7 @@ And we also need have an input file:
 $ echo 18 > input.txt
 ```
 ```console
-$ cargo r -q --bin swio -- \
+$ cargo r -q -- \
      eval \
      --policy nr-rule.dog \
      --input input.txt \
@@ -48,7 +48,7 @@ $ echo "{
 ```
 And we can run the `eval` command:
 ```console
-$ cargo r -q --bin swio -- \
+$ cargo r -q -- \
      eval \
      --policy json-rule.dog \
      --input input.json \
@@ -72,7 +72,7 @@ $ echo "---
 And then we specify the `-t` option to the `eval` command and specify the format
 as `yaml`:
 ```console
-$ cargo r -q --bin swio -- \
+$ cargo r -q -- \
      eval -t yaml \
      --policy yaml-rule.dog \
      --input input.yaml \
@@ -99,7 +99,7 @@ ok!
 The `swio` command can also be used to run the policy server:
 
 ```console
-$ cargo r -q --bin swio -- \
+$ cargo r -q -- \
      serve \
      --policy json-rule.dog
 ```
