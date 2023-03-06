@@ -23,22 +23,6 @@ definitely try to help you.
 
 ## Developing
 
-The easiest option to get an environment up and going is to use our [development container image](https://github.com/orgs/seedwing-io/packages/container/package/seedwing-policy-devcontainer).
-You can easily set this up using the excellent [toolbox](https://containertoolbx.org/) or the also excellent [devcontainer VSCode plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
-A great benefit is that every dependency you need is shipped within the container, so no more packages to install and wondering where they're from when the next 
-distribution upgrade fails.
-Make sure to clone the git repo, still!
-
-### Toolbox
-```shell
-toolbox create seedwing --image ghcr.io/seedwing/seedwing-policy-devcontainer
-toolbox enter seedwing
-```
-
-### VSCode Devcontainer
-If you simply have the extension installed in VSCode it shoul pick up the `.devcontainer.json` file we provide in the repo. 
-Let us know if you encounter any problems.
-
 If you prefer to manually set up your host OS, you will need the following tools and components:
 
 * **Rust**: For the overall project
@@ -76,6 +60,24 @@ them to the `$PATH` of your system and ensure there is no overlap wither other c
 ```shell
 npm install -g sass@1.58.3 && sass --version
 ```
+
+## Toolbox
+
+An alternative to install the dependencies manually is to use our [development container image](https://github.com/orgs/seedwing-io/packages/container/package/seedwing-policy-devcontainer).
+You can set this up using the [toolbox](https://containertoolbx.org/) or the [devcontainer VSCode plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+A benefit is that every dependency you need is shipped within the container, so no more packages to install and wondering where they're from when the next 
+distribution upgrade fails.
+
+Make sure to clone the git repo, still!
+
+```shell
+toolbox create seedwing --image ghcr.io/seedwing/seedwing-policy-devcontainer
+toolbox enter seedwing
+```
+
+### VSCode Devcontainer
+If you simply have the extension installed in VSCode it shoul pick up the `.devcontainer.json` file we provide in the repo. 
+Let us know if you encounter any problems.
 
 ## Contributing your work
 
