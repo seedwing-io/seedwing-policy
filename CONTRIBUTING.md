@@ -32,7 +32,13 @@ If you prefer to manually set up your host OS, you will need the following tools
 
 Building seedwing-policy requires `nodejs` and `npm`. You can follow installation instructions [here](https://developer.fedoraproject.org/tech/languages/nodejs/nodejs.html) or run the commands appropriate for your development environment.
 
-`trunk` can be installed by executing `cargo install trunk`. It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
+Trunk can be installed by executing
+
+```shell
+cargo install trunk
+```
+
+It additionally requires `wasm-bindgen` and `dart-sass`, but will automatically install those tools if they are missing. Also see: https://trunkrs.dev/#install
 
 **NOTE:** Trunk will re-use existing tooling when found on the local system. However, that tooling must be compatible
 with the trunk toolchain. If it is not, it may lead to a failed build. See [trunk tooling](#trunk-tooling) for
@@ -60,6 +66,17 @@ them to the `$PATH` of your system and ensure there is no overlap wither other c
 ```shell
 npm install -g sass@1.58.3 && sass --version
 ```
+
+### Running the server
+
+The easiest way to run the server is to execute
+
+```shell
+cargo run -p seedwing-policy-cli serve
+```
+
+For more information on how to run frontend manually, take a look at [frontend](frontend/README.md) documentation.
+
 
 ## Toolbox
 
