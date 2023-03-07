@@ -59,7 +59,7 @@ pub fn repository(props: &Props) -> Html {
     let parent = use_memo(
         |path| {
             let path = path.trim_start_matches(":");
-            path.split("::").map(|s| s.to_string()).collect::<Vec<_>>()
+            vec![path.to_string()]
         },
         props.path.clone(),
     );
@@ -278,28 +278,32 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
 
     html!(
         <>
-        <PageSection variant={PageSectionVariant::Light}>
-            <Content>
-                <Title size={Size::XXLarge}>{"Modules"}</Title>
-                <ul>
-                    { for module.modules.iter().map(|module| {
-                        let path = format!("{path}{module}::");
-                        html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
-                    })}
-                </ul>
-            </Content>
-        </PageSection>
-        <PageSection variant={PageSectionVariant::Light}>
-            <Content>
-                <Title size={Size::XXLarge}>{"Patterns"}</Title>
-                <ul>
-                    { for module.types.iter().map(|r#type| {
-                        let path = format!("{path}{type}");
-                        html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
-                    })}
-                </ul>
-            </Content>
-        </PageSection>
+        if !module.modules.is_empty() {
+            <PageSection variant={PageSectionVariant::Light}>
+                <Content>
+                    <Title size={Size::XXLarge}>{"Modules"}</Title>
+                    <ul>
+                        { for module.modules.iter().map(|module| {
+                            let path = format!("{path}{module}::");
+                            html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
+                        })}
+                    </ul>
+                </Content>
+            </PageSection>
+        }
+        if !module.types.is_empty() {
+            <PageSection variant={PageSectionVariant::Light}>
+                    <Content>
+                        <Title size={Size::XXLarge}>{"Patterns"}</Title>
+                        <ul>
+                            { for module.types.iter().map(|r#type| {
+                                let path = format!("{path}{type}");
+                                html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
+                            })}
+                        </ul>
+                    </Content>
+            </PageSection>
+        }
         </>
     )
 }
