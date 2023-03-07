@@ -11,6 +11,8 @@ Seedwing Policy consists of components that may be combined or used standalone a
 * *Dogma* - a policy description language.
 * *Engine* - a policy evaluation engine.
 
+![Seedwing Overview](docs/images/seedwing_overview.drawio.png)
+
 With Seedwing Policy, you can:
 
 * Validate, destructure and inspect payload according to standards like CycloneDX, SPDX, OpenVEX, PEM and more.
