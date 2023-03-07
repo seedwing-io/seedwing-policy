@@ -1531,7 +1531,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-engine"
-version = "0.1.0-alpha.9"
+version = "0.1.0-alpha.23"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -1564,7 +1564,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-frontend"
-version = "0.1.0-alpha.9"
+version = "0.1.0-alpha.23"
 dependencies = [
  "anyhow",
  "asciidoctor-web",

@@ -65,6 +65,28 @@ mod test {
     }
 
     #[actix_rt::test]
+    async fn call_alias() {
+        let src = Ephemeral::new(
+            "test",
+            r#"
+            pattern ten = string::count( $(self == 10) )
+        "#,
+        );
+
+        let mut builder = Builder::new();
+
+        let _result = builder.build(src.iter());
+
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime
+            .evaluate("test::ten", json!("abcdefghij"), EvalContext::default())
+            .await;
+
+        assert!(result.unwrap().satisfied())
+    }
+
+    #[actix_rt::test]
     async fn call_non_matching_length() {
         let src = Ephemeral::new(
             "test",

@@ -1,0 +1,13 @@
+Function that concatenates a parameter with an input strings, if they are strings.
+
+Example input:
+```
+"bob"
+```
+
+Example patterns:
+
+```
+pattern a = string::append<".json">
+pattern b = string::prepend<"my:">
+`
