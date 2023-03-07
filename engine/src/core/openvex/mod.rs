@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use openvex::*;
 mod csaf;
+mod guac;
 mod merge;
 mod osv;
 
@@ -13,6 +14,7 @@ pub fn package() -> Package {
     pkg.register_source("".into(), include_str!("openvex.dog"));
     pkg.register_function("from-osv".into(), osv::FromOsv);
     pkg.register_function("from-csaf".into(), csaf::FromCsaf);
+    pkg.register_function("from-guac".into(), guac::FromGuac);
     pkg.register_function("merge".into(), merge::Merge);
     pkg
 }
