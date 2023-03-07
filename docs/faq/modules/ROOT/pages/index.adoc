@@ -15,6 +15,21 @@ It is open-source and contributions are always welcomed.
 
 All components of Seedwing are licensed under the Apache License version 2.
 
+== Why is the language called *Dogma*?
+
+Policy, in general, tends to be dogmatic.
+What one person likes may not match what another person likes.
+Plus, it gave us the opportunity to use the `.dog` filename extension, and we love dogs.
+
+[NOTE]
+====
+If you love dogs, it's suggested you check out https://www.potcakeplace.com/[Potcake Place] as a lovely place to acquire a dog in need or simply donate to their mission.
+
+Here's one potcake member of the team:
+
+image::https://media.hachyderm.io/media_attachments/files/109/968/258/258/618/887/original/d4fe04f513f83d3a.jpeg[A potcake named Alpheus]
+====
+
 == Does Seedwing support plugins?
 
 Generally-speaking, no.
