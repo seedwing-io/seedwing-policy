@@ -1,6 +1,6 @@
 [package]
 name = "seedwing-policy-frontend"
-version = "0.1.0-alpha.9"
+version = "0.1.0-alpha.23"
 authors = ["Jens Reimann <jreimann@redhat.com>"]
 edition = "2021"
 description = "Seedwing Policy Frontend"
