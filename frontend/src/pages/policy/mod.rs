@@ -278,18 +278,28 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
 
     html!(
         <>
-        <ul>
-            { for module.modules.iter().map(|module| {
-                let path = format!("{path}{module}::");
-                html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
-            })}
-        </ul>
-        <ul>
-            { for module.types.iter().map(|r#type| {
-                let path = format!("{path}{type}");
-                html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
-            })}
-        </ul>
+        <PageSection variant={PageSectionVariant::Light}>
+            <Content>
+                <Title size={Size::XXLarge}>{"Modules"}</Title>
+                <ul>
+                    { for module.modules.iter().map(|module| {
+                        let path = format!("{path}{module}::");
+                        html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
+                    })}
+                </ul>
+            </Content>
+        </PageSection>
+        <PageSection variant={PageSectionVariant::Light}>
+            <Content>
+                <Title size={Size::XXLarge}>{"Patterns"}</Title>
+                <ul>
+                    { for module.types.iter().map(|r#type| {
+                        let path = format!("{path}{type}");
+                        html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
+                    })}
+                </ul>
+            </Content>
+        </PageSection>
         </>
     )
 }
