@@ -4,6 +4,8 @@
 ** xref:verify.adoc[`verify`]
 ** xref:eval.adoc[`eval`]
 ** xref:test.adoc[`test`]
+*** xref::test_structure.adoc[Test-suite Structure]
+*** xref::test_case.adoc[Test Cases]
 ** xref:serve.adoc[`serve`]
 ** xref:bench.adoc[`bench`]
 * xref:examples.adoc[Examples]

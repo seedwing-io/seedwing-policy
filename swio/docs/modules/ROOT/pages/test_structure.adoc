@@ -1,0 +1,42 @@
+= Test Structure
+
+A single root directory can contain an entire suite of tests, arranged in a hierarchy mirroring the hierarchy of policies.
+
+== Directory per pattern
+
+For a given pattern-under-test, a directory tree should exist under the root matching it's path.
+
+For instance, if a pattern of `mycorp::licenses::allowed` is being tested, the following structure is expect:
+
+```
+tests/
+  mycorp/
+    licenses/
+      allowed/ # pattern being tested
+        ..
+```
+
+Within that leaf directory, an additional directory should be created for each test-case.
+
+Generally speaking, the test-case directory should be named in a descriptive manner.
+Additionally, it is useful to not only test positive cases, but also testing *known violations* of the policy.
+
+For instance, to test both allowed and disallowed licenses, one may create a pair of directories:
+
+```
+tests/
+  mycorp/
+    licenses/
+      allowed/           # pattern being tested
+        al2-allowed/     # policy should allow Apache License 2
+          ..
+        gpl3-disallowed/ # policy should not allow GPL3
+          ..
+```
+
+Within each test-case directory, the contents follow the xref:test_case.adoc[test-case definition].
+
+
+
+
+

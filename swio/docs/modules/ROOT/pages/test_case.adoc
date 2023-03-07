@@ -1,0 +1,60 @@
+= Individual Test Case
+
+Each leaf test-case directory within a test suite should contain, at a minimum, an _input value_ file.
+
+== Input Values: `input.json`
+
+Within the test-case directory, a file named `input.json` must exist, containing at least an input to present to the pattern under test.
+
+This file will be presented verbatim as the input value for evaluating the policy.
+
+== Outputs
+
+Evaluating a policy against an input can produce a variety of outputs representing both positive and negative signals.
+
+=== No output specified
+
+If no output is specified (only an `input.json` exists), the test will be considered _pending_ and neither pass nor fail.
+
+=== Anything: empty `output.any`
+
+If while writing the test you do not desire to specify concretely what the output should be, but rather that *any* output is considered a passing result, an empty `output.any` file will indicate this.
+
+[CAUTION]
+====
+Not specifying concrete output may be useful in the short-term, but may eventually end up hiding bugs or edge-cases, and ultimately represents a weak test-case.
+====
+
+=== Nothing: empty `output.none`
+
+When attempting to perform _negative_ tests, to prove that a given input will _fail_ a policy evaluation, an empty `output.none` can be used.
+
+The existence of this file signals to the test engine that the test will be considered _passing_ if the evaluation of the input value results in _no output_.
+
+=== Simple identity: empty `output.identity`
+
+For gate-like policies which do not transform an input, but rather determine if it does or does not pass policy, an empty `output.identity` file signals to the engine that the output _must_ be exactly the same as the input.
+
+=== Transformation: `output.json`
+
+If the policy is expected to produce output different from the input, the expected output can be represented in an `output.json` file.
+
+== Test Harness: `test.dog`
+
+By default, the input value is presented to the pattern indicated by the parent directory structure.
+
+Parameterized types cannot be directly invoked due to needing to provide bindings for the parameters.
+To enable testing parameterized types, a `test.dog` may exist.
+
+The `test.dog` file must include _at least_ a pattern named `test`.
+There is no restriction on other patterns within the file, if more are needed to effectively express the test-case.
+
+When the test-case is executed, instead of presenting the input value to the pattern described by the directory structure, it will be provided to the `test` pattern defined within the test harness.
+
+All other input and output rules described above still apply.
+
+== Configuration: `config.toml`
+
+As with xref::seedwing_toml.adoc[`Seedwing.toml`], configuration values can be provided for access through the `config::of<...>` core pattern using an optional `config.toml` file.
+
+Any configuration within the test-case-local `config.toml` will override any sourced from any applicable `Seedwing.toml` file.

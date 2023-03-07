@@ -6,54 +6,7 @@ The `test` command runs a set of inputs against policies to test that their outp
 
 === Input test directory: `-t <DIR>`
 
-The `-t <DIR>` argument specifies the a directory containing input and expected output documents.
-
-The directory structure should contain a subdirectory matching the path to the pattern under consideration.
-Within the pattern directory, each directory specifies a named test.
-Within each named test directory, at least `input.json` is required, specifying the input to consider.
-
-Specifying the output is done using an `output` file with an appropriate extension and optional content:
-
-* `output.identity`: The input value is expected to be unchanged as a satisfying output value.
-* `output.json`: A specific transformed output value is expected and contained within this file.
-* `output.any`: Any output is considered passing.
-* `output.none`: The input is expected to *not* satisfy the pattern.
-* If no output file is present, the test is considered *pending* and will neither pass nor fail.
-
-Additionally, an `ignored` file may exist, in which case all other files are ignored and the test is skipped, neither passing nor failing, as with the pending case above.
-
-For instance:
-
-```
-  policy-tests/
-    base64/
-      base64/              # tests base64::base64
-        valid-document/    # named test of "valid-document"
-          input.json       # the input value
-          output.json      # the expected output value
-        validish-document/ # named test of "valid-document"
-          input.json       # the input value
-          output.any       # an output value is expected, but no assertions about its content.
-        invalid-document/  # named test of "invalid-document"
-          input.json       # the input value
-          output.none      # no output, expects the input to not satisfy the pattern
-```
-
-==== Test harness: `test.dog`
-
-Any given named test directory may include an option `test.dog` file, which must include at least a single pattern named `test`, which will actually be used to perform the test, instead of the primary pattern designated through the directory structure.
-
-It is assumed (but not required) that the two are somehow related.
-
-A test harness is generally useful for testing _parameterized patterns_ which are otherwise not usually directly invokable.
-
-This argument may be specified repeatedly to accumulate multiple test directories.
-
-==== Configuration: `config.json` or `config.toml`
-
-Configuration values available through `config::of<KEY>` are settable per-test, through the precense of a `config.json` file.
-
-These values take precedent over any `[config]` section values from a xref::seedwing_toml.adoc[`Seedwing.toml`] that is in effect.
+The `-t <DIR>` argument specifies the a directory containing the root of a tree matching the xref:test_structure.adoc[test structure] and containing a suite of xref::test_case.adoc[test cases].
 
 === Pattern matching: `-m <MATCH>`
 
