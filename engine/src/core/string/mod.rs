@@ -2,11 +2,13 @@ mod concat;
 mod contains;
 mod length;
 mod regexp;
+mod split;
 
 use crate::core::string::concat::Concat;
 use crate::core::string::contains::Contains;
 use crate::core::string::length::Length;
 use crate::core::string::regexp::Regexp;
+use crate::core::string::split::Split;
 
 use crate::package::Package;
 use crate::runtime::PackagePath;
@@ -19,5 +21,6 @@ pub fn package() -> Package {
     pkg.register_function("prepend".into(), Concat::Prepend);
     pkg.register_function("append".into(), Concat::Append);
     pkg.register_function("contains".into(), Contains);
+    pkg.register_function("split".into(), Split);
     pkg
 }
