@@ -1,0 +1,1 @@
+Convert a Common Security Advisory Framework (CSAF) version 2.0 document into an OpenVEX document.
