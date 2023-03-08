@@ -1,0 +1,11 @@
+Function that produces a slice of a list given the start and end indices.
+
+Example pattern:
+```
+pattern slice = list::slice<2, 4>
+```
+
+Example input:
+```
+[1, 2, 3, 4, 5]
+```

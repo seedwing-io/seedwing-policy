@@ -12,6 +12,7 @@ pub mod all;
 pub mod any;
 pub mod head;
 pub mod none;
+pub mod slice;
 pub mod some;
 pub mod tail;
 
@@ -26,6 +27,7 @@ pub fn package() -> Package {
     pkg.register_function("some".into(), some::Some);
     pkg.register_function("head".into(), head::Head);
     pkg.register_function("tail".into(), tail::Tail);
+    pkg.register_function("slice".into(), slice::Slice);
     pkg
 }
 
