@@ -39,6 +39,7 @@ pub struct PolicyQuery {
     opa: Option<bool>,
     collapse: Option<bool>,
     format: Option<Format>,
+    minimal: Option<bool>,
 }
 
 #[derive(Copy, Clone)]
@@ -63,7 +64,12 @@ impl OutputEncoding {
         }
 
         let mime = accept.preference();
-        let format = query.format.unwrap_or(mime.to_string().into());
+        let mut format = query.format.unwrap_or(mime.to_string().into());
+        if let Format::Json = format {
+            if query.minimal.unwrap_or(false) {
+                format = Format::JsonMinimal
+            }
+        }
 
         Self::Seedwing {
             format,

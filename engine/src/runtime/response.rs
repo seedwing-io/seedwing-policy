@@ -1,8 +1,8 @@
 //! Response handling a policy decision.
 
+use crate::runtime::Output;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::runtime::Output;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
@@ -10,15 +10,15 @@ use super::{rationale::Rationale, EvaluationResult, PatternName};
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<PatternName>,
-    input: Value,
+    pub name: Option<PatternName>,
+    pub input: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
-    output: Option<Value>,
-    satisfied: bool,
+    pub output: Option<Value>,
+    pub satisfied: bool,
     #[serde(skip_serializing_if = "String::is_empty")]
-    reason: String,
+    pub reason: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    rationale: Vec<Response>,
+    pub rationale: Vec<Response>,
 }
 
 impl From<EvaluationResult> for Response {
@@ -50,7 +50,7 @@ impl Response {
             deeply_unsatisfied(self.rationale)
         };
         self.input = serde_json::json!("<collapsed>");
-        self.output = self.output.map(|_|serde_json::json!("<collapsed>"));
+        self.output = self.output.map(|_| serde_json::json!("<collapsed>"));
         self
     }
     fn has_input(&self) -> bool {
