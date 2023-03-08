@@ -1,0 +1,1 @@
+Find the RHSA advisory identifiers associated with a given CVE.

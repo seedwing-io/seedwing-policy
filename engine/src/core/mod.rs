@@ -28,6 +28,7 @@ pub mod net;
 pub mod openvex;
 pub mod osv;
 pub mod pem;
+pub mod rhsa;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
 pub mod spdx;
