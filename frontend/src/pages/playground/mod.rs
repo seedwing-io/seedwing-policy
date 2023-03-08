@@ -193,6 +193,15 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
         )
     };
 
+    let help = html_nested!(
+        <PopoverBody header={html!("Policy Name")}>
+            <Content>
+                <p>{"Enter the name of a policy to evaluate."}</p>
+                <p>{"Most likely, you want to enter the name of a pattern from the left-hand side box here."}</p>
+            </Content>
+        </PopoverBody>
+    );
+
     html!(
         <>
         <Title>
@@ -200,7 +209,17 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
         </Title>
         <Toolbar>
             <ToolbarItem>
-                <TextInput {onchange} value="dog" required=true placeholder="Name of the pattern to evaluate" />
+                <Form horizontal={[FormHorizontal.all()]}>
+                    <FormGroup label="Policy" required=true
+                        label_icon={LabelIcon::Help(help)}
+                    >
+                        <TextInput {onchange}
+                            value="dog"
+                            required=true
+                            placeholder="Name of the pattern to evaluate"
+                        />
+                    </FormGroup>
+                </Form>
             </ToolbarItem>
             <ToolbarItem>
                 <Button label="Evaluate" disabled={eval.loading} variant={ButtonVariant::Primary} {onclick}/>
