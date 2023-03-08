@@ -1,0 +1,11 @@
+Function that produces a list of strings split by the specified pattern.
+
+Example pattern:
+```
+pattern sp = string::split<",">
+```
+
+Example input:
+```
+"1, 2, 3, 4"
+```
