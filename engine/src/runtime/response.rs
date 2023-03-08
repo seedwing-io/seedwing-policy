@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use crate::runtime::Output;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
@@ -11,6 +12,8 @@ pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<PatternName>,
     input: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output: Option<Value>,
     satisfied: bool,
     #[serde(skip_serializing_if = "String::is_empty")]
     reason: String,
@@ -26,9 +29,15 @@ impl From<EvaluationResult> for Response {
 
 impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
+        let output = match &result.output {
+            Output::Identity if result.satisfied() => Some(result.input.as_json()),
+            Output::Transform(val) if result.satisfied() => Some(val.as_json()),
+            _ => None,
+        };
         Self {
             name: result.ty().name(),
             input: result.input().as_json(),
+            output,
             satisfied: result.satisfied(),
             reason: reason(result.rationale()),
             rationale: support(result),
@@ -41,6 +50,7 @@ impl Response {
             deeply_unsatisfied(self.rationale)
         };
         self.input = serde_json::json!("<collapsed>");
+        self.output = self.output.map(|_|serde_json::json!("<collapsed>"));
         self
     }
     fn has_input(&self) -> bool {
@@ -161,11 +171,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":"list::any","input":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":"list::any","input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":"<collapsed>","satisfied":true}"#,
+            r#"{"name":"list::any","input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
