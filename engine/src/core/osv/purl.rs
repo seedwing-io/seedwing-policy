@@ -13,9 +13,9 @@ use std::sync::Arc;
 use super::client::*;
 
 #[derive(Debug)]
-pub struct FromPurl;
+pub struct ScanPurl;
 
-const DOCUMENTATION: &str = include_str!("from-purl.adoc");
+const DOCUMENTATION: &str = include_str!("scan-purl.adoc");
 
 fn json_to_query(input: serde_json::Value) -> Option<OsvQuery> {
     use serde_json::Value as JsonValue;
@@ -48,7 +48,7 @@ fn json_to_query(input: serde_json::Value) -> Option<OsvQuery> {
     }
 }
 
-impl FromPurl {
+impl ScanPurl {
     async fn from_purls(
         input: serde_json::Value,
     ) -> Result<Option<serde_json::Value>, RuntimeError> {
@@ -103,7 +103,7 @@ impl FromPurl {
     }
 }
 
-impl Function for FromPurl {
+impl Function for ScanPurl {
     fn order(&self) -> u8 {
         // Reaching out to the network
         200
@@ -120,7 +120,7 @@ impl Function for FromPurl {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            match FromPurl::from_purls(input.as_json()).await {
+            match ScanPurl::from_purls(input.as_json()).await {
                 Ok(Some(json)) => Ok(Output::Transform(Arc::new(json.into())).into()),
                 _ => Ok(Output::None.into()),
             }
