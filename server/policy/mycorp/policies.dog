@@ -1,4 +1,8 @@
 
+pattern walkme = maven::GAV(
+  data::lookup<"trusted.json", [*self.groupId, *self.artifactId, *self.version]> 
+)
+
 pattern people-near-me = lang::or<*data::from<"people.json">>
 
 pattern furry = {

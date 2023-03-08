@@ -1,0 +1,1 @@
+Ignores the input value and returns data loaded from the specified relative path and traversed according to the steps binding.

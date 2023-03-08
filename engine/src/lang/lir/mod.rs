@@ -217,88 +217,6 @@ impl Pattern {
                 ))
             })),
             InnerPattern::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
-                #[allow(clippy::ptr_arg)]
-                fn build_bindings<'b>(
-                    value: Arc<RuntimeValue>,
-                    mut bindings: Bindings,
-                    ctx: &'b EvalContext,
-                    parameters: Vec<String>,
-                    arguments: &'b Vec<Arc<Pattern>>,
-                    world: &'b World,
-                ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
-                {
-                    Box::pin(async move {
-                        for (param, arg) in parameters.iter().zip(arguments.iter()) {
-                            if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner
-                            {
-                                if let Some(resolved_type) = world.get_by_slot(*slot) {
-                                    if resolved_type.parameters().is_empty() {
-                                        bindings.bind(param.clone(), resolved_type.clone())
-                                    } else {
-                                        let resolved_bindings = build_bindings(
-                                            value.clone(),
-                                            bindings.clone(),
-                                            ctx,
-                                            resolved_type.parameters(),
-                                            unresolved_bindings,
-                                            world,
-                                        )
-                                        .await?;
-                                        bindings.bind(
-                                            param.clone(),
-                                            Arc::new(Pattern::new(
-                                                resolved_type.name(),
-                                                resolved_type.documentation(),
-                                                resolved_type.parameters(),
-                                                InnerPattern::Bound(
-                                                    resolved_type,
-                                                    resolved_bindings,
-                                                ),
-                                            )),
-                                        )
-                                    }
-                                }
-                            } else if let InnerPattern::Argument(name) = &arg.inner {
-                                bindings.bind(param.clone(), bindings.get(name).unwrap());
-                            } else if let InnerPattern::Deref(_inner) = &arg.inner {
-                                let result = arg
-                                    .evaluate(value.clone(), ctx, &Bindings::default(), world)
-                                    .await?;
-
-                                if result.satisfied() {
-                                    if let Some(output) = result.output() {
-                                        bindings.bind(param.clone(), Arc::new(output.into()))
-                                    } else {
-                                        bindings.bind(
-                                            param.clone(),
-                                            Arc::new(Pattern::new(
-                                                None,
-                                                None,
-                                                Vec::default(),
-                                                InnerPattern::Nothing,
-                                            )),
-                                        )
-                                    }
-                                } else {
-                                    bindings.bind(
-                                        param.clone(),
-                                        Arc::new(Pattern::new(
-                                            None,
-                                            None,
-                                            Vec::default(),
-                                            InnerPattern::Nothing,
-                                        )),
-                                    )
-                                }
-                            } else {
-                                bindings.bind(param.clone(), arg.clone())
-                            }
-                        }
-
-                        Ok(bindings)
-                    })
-                }
-
                 if let Some(ty) = world.get_by_slot(*slot) {
                     let bindings = build_bindings(
                         value.clone(),
@@ -746,7 +664,7 @@ impl From<Arc<RuntimeValue>> for Pattern {
                 RuntimeValue::Decimal(inner) => InnerPattern::Const(ValuePattern::Decimal(*inner)),
                 RuntimeValue::Boolean(inner) => InnerPattern::Const(ValuePattern::Boolean(*inner)),
                 RuntimeValue::Object(_) => {
-                    todo!()
+                    todo!("objects into patterns not yet implemented")
                 }
                 RuntimeValue::List(inner) => InnerPattern::List(
                     inner
@@ -892,4 +810,104 @@ pub(crate) fn convert(
             lir::InnerPattern::Nothing,
         )),
     }
+}
+
+fn build_bindings<'b>(
+    value: Arc<RuntimeValue>,
+    mut bindings: Bindings,
+    ctx: &'b EvalContext,
+    parameters: Vec<String>,
+    arguments: &'b Vec<Arc<Pattern>>,
+    world: &'b World,
+) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>> {
+    Box::pin(async move {
+        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+            if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
+                if let Some(resolved_type) = world.get_by_slot(*slot) {
+                    if resolved_type.parameters().is_empty() {
+                        bindings.bind(param.clone(), resolved_type.clone())
+                    } else {
+                        let resolved_bindings = build_bindings(
+                            value.clone(),
+                            bindings.clone(),
+                            ctx,
+                            resolved_type.parameters(),
+                            unresolved_bindings,
+                            world,
+                        )
+                        .await?;
+                        bindings.bind(
+                            param.clone(),
+                            Arc::new(Pattern::new(
+                                resolved_type.name(),
+                                resolved_type.documentation(),
+                                resolved_type.parameters(),
+                                InnerPattern::Bound(resolved_type, resolved_bindings),
+                            )),
+                        )
+                    }
+                }
+            } else if let InnerPattern::Argument(name) = &arg.inner {
+                bindings.bind(param.clone(), bindings.get(name).unwrap());
+            } else if let InnerPattern::Deref(_) | InnerPattern::List(_) = &arg.inner {
+                bindings.bind(
+                    param.clone(),
+                    possibly_deref(value.clone(), arg.clone(), ctx, world).await?,
+                );
+            } else {
+                bindings.bind(param.clone(), arg.clone())
+            }
+        }
+
+        Ok(bindings)
+    })
+}
+
+fn possibly_deref<'b>(
+    value: Arc<RuntimeValue>,
+    arg: Arc<Pattern>,
+    ctx: &'b EvalContext,
+    world: &'b World,
+) -> Pin<Box<dyn Future<Output = Result<Arc<Pattern>, RuntimeError>> + 'b>> {
+    Box::pin(async move {
+        if let InnerPattern::Deref(_inner) = &arg.inner {
+            let result = arg
+                .evaluate(value.clone(), ctx, &Bindings::default(), world)
+                .await?;
+
+            if result.satisfied() {
+                if let Some(output) = result.output() {
+                    Ok(Arc::new(output.into()))
+                } else {
+                    Ok(Arc::new(Pattern::new(
+                        None,
+                        None,
+                        Vec::default(),
+                        InnerPattern::Nothing,
+                    )))
+                }
+            } else {
+                Ok(Arc::new(Pattern::new(
+                    None,
+                    None,
+                    Vec::default(),
+                    InnerPattern::Nothing,
+                )))
+            }
+        } else if let InnerPattern::List(terms) = &arg.inner {
+            let mut replacement = Vec::new();
+            for term in terms {
+                replacement.push(possibly_deref(value.clone(), term.clone(), ctx, world).await?);
+            }
+
+            Ok(Arc::new(Pattern::new(
+                None,
+                None,
+                Vec::default(),
+                InnerPattern::List(replacement),
+            )))
+        } else {
+            Ok(arg)
+        }
+    })
 }
