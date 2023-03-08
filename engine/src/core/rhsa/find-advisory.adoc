@@ -1,0 +1,1 @@
+Lookup a Red Hat Security Advisory (RHSA) information based on a RHSA identification number, and return the VEX (CSAF 2.0) document.
