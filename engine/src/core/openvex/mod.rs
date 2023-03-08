@@ -4,12 +4,14 @@ use chrono::Utc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use openvex::*;
+mod csaf;
 mod osv;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["openvex"]));
     pkg.register_source("".into(), include_str!("openvex.dog"));
     pkg.register_function("from-osv".into(), osv::FromOsv);
+    pkg.register_function("from-csaf".into(), csaf::FromCsaf);
     pkg
 }
 
