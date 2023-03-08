@@ -102,13 +102,14 @@ pub async fn run(
                     )));
 
                 let app = app
+                    .service(api::swagger)
                     .service(
                         web::scope("/api")
                             .wrap(NormalizePath::new(TrailingSlash::Always))
                             .service(api::get_policy)
                             .service(api::post_policy)
                             .service(api::evaluate)
-                            .service(api::statistics),
+                            .service(api::statistics)
                     )
                     .service(
                         web::scope("/stream")
@@ -118,7 +119,7 @@ pub async fn run(
                     .service(metrics::prometheus);
 
                 #[cfg(feature = "frontend")]
-                let app = {
+                    let app = {
                     use actix_web_static_files::ResourceFiles;
 
                     let app = app
@@ -132,7 +133,7 @@ pub async fn run(
                     app.default_service(spa)
                 };
                 #[cfg(not(feature = "frontend"))]
-                let app = {
+                    let app = {
                     use crate::ui::index;
                     app.service(index)
                 };

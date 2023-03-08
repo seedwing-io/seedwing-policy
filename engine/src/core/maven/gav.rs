@@ -1,6 +1,6 @@
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{Function, FunctionEvaluationResult, FunctionInput};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, Output, Pattern, RuntimeError, World};
 use crate::value::Object;
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -14,6 +14,10 @@ pub struct GAV;
 const DOCUMENTATION: &str = include_str!("GAV.adoc");
 
 impl Function for GAV {
+    fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+        FunctionInput::String
+    }
+
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
     }

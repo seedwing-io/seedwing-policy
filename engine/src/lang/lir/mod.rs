@@ -1,3 +1,5 @@
+pub mod json_schema;
+
 use crate::lang::parser::Located;
 use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
 use crate::runtime::rationale::Rationale;

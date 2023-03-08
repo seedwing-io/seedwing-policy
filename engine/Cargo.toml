@@ -23,6 +23,7 @@ futures-util = "0.3.25"
 thiserror = "1"
 url = "2"
 indexmap = { version = "1.9.2", features = ["serde"] }
+schemars = "0.8.12"
 anyhow = "1"
 tokio = "*"
 rand = "0.8.5"

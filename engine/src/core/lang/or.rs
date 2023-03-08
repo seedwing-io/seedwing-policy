@@ -1,11 +1,12 @@
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{Function, FunctionEvaluationResult, FunctionInput, FunctionInputPattern};
 use crate::lang::lir::{Bindings, InnerPattern};
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, Output, Pattern, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
 use std::sync::Arc;
+use crate::lang::PrimordialPattern;
 
 const DOCUMENTATION: &str = include_str!("or.adoc");
 
@@ -15,6 +16,38 @@ const TERMS: &str = "terms";
 pub struct Or;
 
 impl Function for Or {
+    fn input(&self, bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+        FunctionInput::Pattern(
+            FunctionInputPattern::Or(
+                bindings.iter().flat_map(|e| {
+                    match e.inner() {
+                        InnerPattern::Primordial(inner) => {
+                            match inner {
+                                PrimordialPattern::Integer => {
+                                    Some(FunctionInput::Integer)
+                                }
+                                PrimordialPattern::Decimal => {
+                                    Some(FunctionInput::Decimal)
+                                }
+                                PrimordialPattern::Boolean => {
+                                    Some(FunctionInput::Boolean)
+                                }
+                                PrimordialPattern::String => {
+                                    Some(FunctionInput::String)
+                                }
+                                PrimordialPattern::Function(_, _, func) => {
+                                    Some(func.input(bindings))
+                                }
+                            }
+                        }
+                        _ => None,
+                    }
+                }).collect()
+
+            )
+        )
+    }
+
     fn parameters(&self) -> Vec<String> {
         vec![TERMS.into()]
     }

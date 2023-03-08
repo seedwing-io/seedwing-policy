@@ -11,7 +11,8 @@ use std::time::Instant;
 use std::io;
 
 use crate::lang::lir;
-use crate::lang::lir::{Bindings, Pattern};
+use crate::lang::lir::Bindings;
+pub use crate::lang::lir::Pattern;
 use crate::lang::mir::PatternHandle;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
 
@@ -100,22 +101,22 @@ impl<'c> ErrorPrinter<'c> {
                 source_id.clone(),
                 span.start,
             )
-            .with_label(Label::new(full_span).with_message(match error {
-                BuildError::ArgumentMismatch(_, _) => "argument mismatch".to_string(),
-                BuildError::PatternNotFound(_, _, name) => {
-                    format!("pattern not found: {name}")
-                }
-                BuildError::Parser(_, inner) => match inner.reason() {
-                    SimpleReason::Unexpected => {
-                        format!("unexpected character found {}", inner.found().unwrap())
+                .with_label(Label::new(full_span).with_message(match error {
+                    BuildError::ArgumentMismatch(_, _) => "argument mismatch".to_string(),
+                    BuildError::PatternNotFound(_, _, name) => {
+                        format!("pattern not found: {name}")
                     }
-                    SimpleReason::Unclosed { span: _, delimiter } => {
-                        format!("unclosed delimiter {delimiter}")
-                    }
-                    SimpleReason::Custom(inner) => inner.clone(),
-                },
-            }))
-            .finish();
+                    BuildError::Parser(_, inner) => match inner.reason() {
+                        SimpleReason::Unexpected => {
+                            format!("unexpected character found {}", inner.found().unwrap())
+                        }
+                        SimpleReason::Unclosed { span: _, delimiter } => {
+                            format!("unclosed delimiter {delimiter}")
+                        }
+                        SimpleReason::Custom(inner) => inner.clone(),
+                    },
+                }))
+                .finish();
 
             let _ = report.write(self.cache, &mut w);
         }
@@ -228,8 +229,8 @@ pub mod testutil {
     use crate::value::RuntimeValue;
 
     pub(crate) async fn test_pattern<V>(pattern: &str, value: V) -> EvaluationResult
-    where
-        V: Into<RuntimeValue>,
+        where
+            V: Into<RuntimeValue>,
     {
         let src = format!("pattern test-pattern = {pattern}");
         let src = Ephemeral::new("test", src);
@@ -308,7 +309,7 @@ mod test {
                 "digest": "5dd1e2b50b89874fd086da4b61176167ae9e4b434945325326690c8f604d0408"
             }),
         )
-        .await;
+            .await;
         assert!(result.satisfied())
     }
 
@@ -393,6 +394,16 @@ impl World {
             types: Default::default(),
             type_slots: Default::default(),
         }
+    }
+
+    pub fn all(&self) -> Vec<(PatternName, Arc<Pattern>)> {
+        let mut all = Vec::new();
+        for (k, slot) in &self.types {
+            all.push(
+                (k.clone(), self.type_slots[*slot].clone())
+            )
+        }
+        all
     }
 
     pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>> {
@@ -496,8 +507,8 @@ pub struct PatternName {
 
 impl Serialize for PatternName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
         self.as_type_str().serialize(serializer)
     }
@@ -505,8 +516,8 @@ impl Serialize for PatternName {
 
 impl<'de> Deserialize<'de> for PatternName {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
         Ok(s.into())
@@ -874,10 +885,10 @@ impl From<EvaluationResult> for (Rationale, Output) {
 impl<'ctx> TraceHandle<'ctx> {
     pub(crate) fn run<'v>(
         self,
-        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
-    where
-        'ctx: 'v,
+        block: Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>>,
+    ) -> Pin<Box<dyn Future<Output=Result<EvaluationResult, RuntimeError>> + 'v>>
+        where
+            'ctx: 'v,
     {
         if self.start.is_some() {
             Box::pin(async move {
