@@ -94,7 +94,7 @@ pub fn result_tree(props: &ResultViewProps) -> Html {
     let header = html_nested! {
         <TreeTableHeader>
             <TableColumn label="Name" width={ColumnWidth::FitContent} />
-            <TableColumn label="Result" width={ColumnWidth::FitContent} />
+            <TableColumn label="Result" width={ColumnWidth::Percent(20)} />
             <TableColumn label="Input"/>
         </TreeTableHeader>
     };
