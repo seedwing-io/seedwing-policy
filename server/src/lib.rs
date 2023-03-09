@@ -102,7 +102,7 @@ pub async fn run(
                     )));
 
                 let app = app
-                    .service(api::swagger)
+                    .service(api::openapi)
                     .service(
                         web::scope("/api")
                             .wrap(NormalizePath::new(TrailingSlash::Always))
@@ -122,11 +122,11 @@ pub async fn run(
                 let app = {
                     use actix_web_static_files::ResourceFiles;
 
-                    let app = app
-                        .service(Redirect::new("/swaggerui", "/swaggerui/"))
-                        .service(web::scope("/swaggerui").service(
-                            seedwing_policy_server_embedded_swaggerui::service("/swagger.json"),
-                        ));
+                    let app = app.service(Redirect::new("/openapi", "/openapi/")).service(
+                        web::scope("/openapi").service(
+                            seedwing_policy_server_embedded_swaggerui::service("/openapi.json"),
+                        ),
+                    );
 
                     let spa = seedwing_policy_server_embedded_frontend::console_assets();
                     let spa = ResourceFiles::new("/", spa).resolve_not_found_to_root();

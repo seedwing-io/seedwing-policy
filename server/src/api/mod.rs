@@ -203,8 +203,8 @@ pub async fn statistics(stats: web::Data<Mutex<Statistics>>) -> HttpResponse {
     HttpResponse::Ok().json(snapshot)
 }
 
-#[get("/swagger.json")]
-pub async fn swagger(world: web::Data<World>) -> HttpResponse {
+#[get("/openapi.json")]
+pub async fn openapi(world: web::Data<World>) -> HttpResponse {
     let mut api = OpenApi::default();
 
     api.openapi = "3.0.0".into();

@@ -1,5 +1,5 @@
-= OpenAPI (Swagger)
+= OpenAPI
 
-Each server includes an OpenAPI specification for the hosted policies, under the `/swagger.json` path.
+Each server includes an OpenAPI specification for the hosted policies, under the `/openapi.json` path.
 
-Additionally, a UI for exploring the OpenAPI exists at `/swaggerui`.
+Additionally, a UI for exploring the OpenAPI exists at `/openapi`.
