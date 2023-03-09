@@ -27,8 +27,6 @@ pub struct Props {
 }
 
 pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentInformation>, String> {
-    log::info!("fetching: {path:?}");
-
     let path = path.join("/");
 
     let response = Request::get(&format!("/api/policy/v1alpha1/{}", path))
@@ -196,7 +194,10 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     let mut path = String::new();
 
     let root = vec![String::new()];
-    let bpath = root.iter().chain(props.parent.iter());
+    let s = String::new();
+    let bpath = root.iter().cloned().chain(props.parent.iter().flat_map( |seg|
+        seg.split("::").map(|e|e.clone().to_string())
+    ) );
 
     html!(
         <Breadcrumb>
