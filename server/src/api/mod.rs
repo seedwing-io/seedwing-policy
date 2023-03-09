@@ -106,7 +106,11 @@ pub async fn evaluate(
     state: web::Data<PlaygroundState>,
     monitor: web::Data<Mutex<Monitor>>,
     body: web::Json<EvaluateRequest>,
+    accept: web::Header<header::Accept>,
+    query: web::Query<PolicyQuery>,
 ) -> HttpResponse {
+    let encoding = OutputEncoding::from_request(accept.into_inner(), query.into_inner());
+
     match state.build(body.policy.as_bytes()) {
         Ok(mut builder) => match builder.finish().await {
             Ok(world) => {
@@ -120,7 +124,7 @@ pub async fn evaluate(
                     &world,
                     format!("playground::{}", name),
                     value,
-                    Default::default(),
+                    encoding,
                 )
                 .await
             }
