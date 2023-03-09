@@ -8,7 +8,7 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use okapi::openapi3::{
-    Components, MediaType, OpenApi, Operation, PathItem, Ref, RefOr, RequestBody, SchemaObject,
+    Components, MediaType, OpenApi, Operation, PathItem, RefOr, RequestBody, SchemaObject,
 };
 use okapi::schemars::schema::{Metadata, Schema};
 use seedwing_policy_engine::info::ToInformation;
@@ -229,7 +229,7 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
 
         post.description = pattern.documentation();
         let mut content = okapi::Map::new();
-        let mut json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
+        let json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
 
         if let Schema::Object(mut json_schema) = json_schema {
             json_schema.metadata = Some(Box::new(Metadata {

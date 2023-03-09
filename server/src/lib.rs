@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 mod api;
 mod cli;
 mod metrics;
