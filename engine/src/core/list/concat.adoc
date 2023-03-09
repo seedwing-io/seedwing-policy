@@ -1,0 +1,11 @@
+Function that produces concatenates a list to an input list.
+
+Example pattern:
+```
+pattern new_list = list::concat<[4, 5, 6]>
+```
+
+Example input:
+```
+[1, 2, 3]
+```

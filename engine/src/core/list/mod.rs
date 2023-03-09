@@ -10,6 +10,7 @@ use crate::runtime::EvalContext;
 
 pub mod all;
 pub mod any;
+pub mod concat;
 pub mod head;
 pub mod none;
 pub mod slice;
@@ -28,6 +29,8 @@ pub fn package() -> Package {
     pkg.register_function("head".into(), head::Head);
     pkg.register_function("tail".into(), tail::Tail);
     pkg.register_function("slice".into(), slice::Slice);
+    pkg.register_function("concat".into(), concat::Concat);
+    pkg.register_function("append".into(), concat::Concat);
     pkg
 }
 
