@@ -195,9 +195,12 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
 
     let root = vec![String::new()];
     let s = String::new();
-    let bpath = root.iter().cloned().chain(props.parent.iter().flat_map( |seg|
-        seg.split("::").map(|e|e.clone().to_string())
-    ) );
+    let bpath = root.iter().cloned().chain(
+        props
+            .parent
+            .iter()
+            .flat_map(|seg| seg.split("::").map(|e| e.clone().to_string())),
+    );
 
     html!(
         <Breadcrumb>
