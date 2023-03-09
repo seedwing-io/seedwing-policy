@@ -3170,6 +3170,7 @@ dependencies = [
  "prometheus",
  "seedwing-policy-engine",
  "seedwing-policy-server-embedded-frontend",
+ "seedwing-policy-server-embedded-swaggerui",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3182,6 +3183,16 @@ dependencies = [
 name = "seedwing-policy-server-embedded-frontend"
 version = "0.1.0-alpha.9"
 dependencies = [
+ "static-files",
+]
+
+[[package]]
+name = "seedwing-policy-server-embedded-swaggerui"
+version = "0.1.0-alpha.9"
+dependencies = [
+ "actix-web",
+ "actix-web-static-files",
+ "log",
  "static-files",
 ]
 

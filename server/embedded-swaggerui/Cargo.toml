@@ -1,0 +1,19 @@
+[package]
+name = "seedwing-policy-server-embedded-swaggerui"
+version = "0.1.0-alpha.9"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/seedwing-io/seedwing-policy"
+
+description = "An embedded version of the SwaggerUI"
+categories = ["development-tools", "parser-implementations"]
+keywords = ["policy"]
+
+[dependencies]
+actix-web = "4"
+actix-web-static-files = "4.0"
+static-files = "0.2.1"
+log = "0.4"
+
+[build-dependencies]
+static-files = "0.2.1"
