@@ -369,10 +369,10 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
                             html!(format!("Failed: {err}"))
                         }
                         UseAsyncState {
-                            data: Some(rationale),
+                            data: Some(result),
                             ..
                         } => {
-                            html!(<ResultView rationale={rationale.clone()}/>)
+                            html!(<ResultView result={result.clone()}/>)
                         }
                         _ => html!(),
                     }

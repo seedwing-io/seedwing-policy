@@ -8,6 +8,7 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
+base64 = "0.21.0"
 chrono = "0.4.23"
 gloo-console = "0.2.3"
 gloo-net = { version = "0.2.6", features = ["json"] }
@@ -16,7 +17,7 @@ itertools = "0.10"
 js-sys = "0.3.61"
 log = "0.4"
 monaco = { version = "0.3", features = ["yew-components"] }
-patternfly-yew = { version = "0.4.0-alpha.3", features = ["icons-fab"] }
+patternfly-yew = { version = "0.4.0-alpha.3", features = ["icons-fab", "tree"] }
 ropey = "1"
 wasm-bindgen = "0.2.84"
 wasm-logger = "0.2"
@@ -41,7 +42,7 @@ opt-level = 's'
 lto = true
 
 [patch.crates-io]
-#patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "56299f5da42551677415a34a2bb2f49ef142b444" }
+patternfly-yew = { git = "https://github.com/ctron/patternfly-yew", rev = "dbe0cab145ca681fc23c6c8466eb975cbccc2e4d" }
 monaco = { git = "https://github.com/siku2/rust-monaco", rev = "794a4cc7819f9ed7eb06559e24f75a41e23cf22a" }
 #patternfly-yew = { path = "../../patternfly-yew" }
 #yew-nested-router = { path = "../../yew-nested-router" }
