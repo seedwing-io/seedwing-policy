@@ -50,7 +50,7 @@ impl Function for Lookup {
         _ctx: &'v EvalContext,
         bindings: &'v Bindings,
         _world: &'v World,
-    ) -> Pin<Box<dyn Future<Output=Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(val) = bindings.get(PATH) {
                 if let Some(ValuePattern::String(path)) = val.try_get_resolved_value() {
@@ -60,7 +60,9 @@ impl Function for Lookup {
                                 if let InnerPattern::List(steps) = steps.inner() {
                                     let mut current = Arc::new(value);
                                     for step in steps {
-                                        if let Some(ValuePattern::String(step)) = step.try_get_resolved_value() {
+                                        if let Some(ValuePattern::String(step)) =
+                                            step.try_get_resolved_value()
+                                        {
                                             if let Some(obj) = current.try_get_object() {
                                                 if let Some(next) = obj.get(step) {
                                                     current = next;

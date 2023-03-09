@@ -1,6 +1,8 @@
 use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, EvaluationResult, Output, Pattern, PatternName, RuntimeError, World};
+use crate::runtime::{
+    EvalContext, EvaluationResult, Output, Pattern, PatternName, RuntimeError, World,
+};
 use crate::value::RuntimeValue;
 
 use std::fmt::Debug;
@@ -106,7 +108,6 @@ pub enum FunctionInputPattern {
 }
 
 pub trait Function: Sync + Send + Debug {
-
     fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
         FunctionInput::Anything
     }

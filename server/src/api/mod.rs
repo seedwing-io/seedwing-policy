@@ -1,11 +1,16 @@
 use crate::api::format::Format;
 use crate::playground::PlaygroundState;
 use actix_web::http::header;
+use actix_web::http::header::CONTENT_TYPE;
 use actix_web::{
     get, post,
     web::{self},
     HttpResponse, Responder,
 };
+use okapi::openapi3::{
+    Components, MediaType, OpenApi, Operation, PathItem, Ref, RefOr, RequestBody, SchemaObject,
+};
+use okapi::schemars::schema::{Metadata, Schema};
 use seedwing_policy_engine::info::ToInformation;
 use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
@@ -15,9 +20,6 @@ use seedwing_policy_engine::runtime::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
-use actix_web::http::header::CONTENT_TYPE;
-use okapi::openapi3::{Components, MediaType, OpenApi, Operation, PathItem, Ref, RefOr, RequestBody, SchemaObject};
-use okapi::schemars::schema::{Metadata, Schema};
 use tokio::sync::Mutex;
 
 mod format;
@@ -129,7 +131,7 @@ pub async fn evaluate(
                     value,
                     encoding,
                 )
-                    .await
+                .await
             }
             Err(e) => {
                 log::error!("err {:?}", e);
@@ -212,11 +214,9 @@ pub async fn swagger(world: web::Data<World>) -> HttpResponse {
     let mut schemas = okapi::Map::default();
 
     for (name, pattern) in world.all() {
-        if ! pattern.parameters().is_empty() {
-            continue
+        if !pattern.parameters().is_empty() {
+            continue;
         }
-
-
 
         let path = format!("/api/policy/v1alpha1/{}", name.as_type_str());
         let mut path_item = PathItem::default();
@@ -232,22 +232,18 @@ pub async fn swagger(world: web::Data<World>) -> HttpResponse {
         let mut json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
 
         if let Schema::Object(mut json_schema) = json_schema {
-            json_schema.metadata = Some(
-                Box::new(
-                    Metadata {
-                        id: None,
-                        title: Some(name.as_type_str().into()),
-                        description: None,
-                        default: None,
-                        deprecated: false,
-                        read_only: false,
-                        write_only: false,
-                        examples: vec![]
-                    }
-                )
-            );
+            json_schema.metadata = Some(Box::new(Metadata {
+                id: None,
+                title: Some(name.as_type_str().into()),
+                description: None,
+                default: None,
+                deprecated: false,
+                read_only: false,
+                write_only: false,
+                examples: vec![],
+            }));
 
-            schemas.insert( name.as_type_str(), json_schema);
+            schemas.insert(name.as_type_str(), json_schema);
 
             let mut json_schema = SchemaObject::default();
             json_schema.reference = Some(format!("#/components/schemas/{}", name.as_type_str()));
@@ -257,7 +253,7 @@ pub async fn swagger(world: web::Data<World>) -> HttpResponse {
                 example: None,
                 examples: None,
                 encoding: Default::default(),
-                extensions: Default::default()
+                extensions: Default::default(),
             };
 
             content.insert("application/json".into(), json_media_type);
@@ -266,7 +262,7 @@ pub async fn swagger(world: web::Data<World>) -> HttpResponse {
                 description: Some("The input value to evaluate against.".into()),
                 content: content,
                 required: true,
-                extensions: Default::default()
+                extensions: Default::default(),
             });
             post.request_body = Some(request_body);
 
