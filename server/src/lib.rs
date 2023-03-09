@@ -6,6 +6,7 @@ mod stream;
 mod ui;
 
 use actix_web::middleware::{NormalizePath, TrailingSlash};
+use actix_web::web::Redirect;
 use actix_web::{web, App, HttpServer};
 use playground::PlaygroundState;
 use seedwing_policy_engine::data::DirectoryDataSource;
@@ -119,6 +120,13 @@ pub async fn run(
                 #[cfg(feature = "frontend")]
                 let app = {
                     use actix_web_static_files::ResourceFiles;
+
+                    let app = app
+                        .service(Redirect::new("/swaggerui", "/swaggerui/"))
+                        .service(web::scope("/swaggerui").service(
+                            seedwing_policy_server_embedded_swaggerui::service("/swagger.json"),
+                        ));
+
                     let spa = seedwing_policy_server_embedded_frontend::console_assets();
                     let spa = ResourceFiles::new("/", spa).resolve_not_found_to_root();
                     app.default_service(spa)
