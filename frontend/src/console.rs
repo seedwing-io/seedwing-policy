@@ -19,6 +19,7 @@ pub fn console() -> Html {
                     <NavExpandable title="Home">
                         <NavRouterItem<AppRoute> to={AppRoute::Index}>{ "Overview" }</NavRouterItem<AppRoute>>
                         <NavRouterItem<AppRoute> to={AppRoute::Playground}>{ "Playground" }</NavRouterItem<AppRoute>>
+                        <NavRouterItem<AppRoute> to={AppRoute::Inspector}>{ "Inspector" }</NavRouterItem<AppRoute>>
                         <NavItem to="https://docs.seedwing.io/" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
                         <NavItem to="https://docs.seedwing.io/examples/dev/index.html" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
                     </NavExpandable>
@@ -71,6 +72,7 @@ fn render(route: AppRoute) -> Html {
         AppRoute::Index => html!(<pages::Index/>),
         AppRoute::Policy { path } => html!(<pages::Repository {path}/>),
         AppRoute::Playground => html!(<pages::Playground />),
+        AppRoute::Inspector => html!(<pages::Inspector />),
         AppRoute::Statistics { path } => html!(<pages::Statistics {path}/>),
         AppRoute::Monitor { path } => html!(<pages::Monitor {path}/>),
     }

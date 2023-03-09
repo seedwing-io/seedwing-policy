@@ -21,9 +21,21 @@ $fa-font-path: "webfonts";
 
 .playground div.monaco-wrapper {
   padding-top: 2em;
+}
+
+div.monaco-wrapper {
   height: 23em;
 }
 
-.experiment div.monaco-wrapper {
-  height: 23em;
+#inspector .monaco-wrapper {
+  height: 100%;
+}
+
+.sw-help-icon {
+  color: var(--pf-global--icon--Color--light);
+  cursor: pointer;
+}
+
+.sw-help-icon:hover {
+  color: var(--pf-global--icon--Color--dark);
 }

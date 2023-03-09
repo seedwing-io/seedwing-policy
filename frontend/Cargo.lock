@@ -1303,8 +1303,7 @@ checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 [[package]]
 name = "patternfly-yew"
 version = "0.4.0-alpha.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c6b65cf91cc5f278dfd7ee05078fdcb503786f8f56ef7b6573ddd26c0e171c9"
+source = "git+https://github.com/ctron/patternfly-yew?rev=dbe0cab145ca681fc23c6c8466eb975cbccc2e4d#dbe0cab145ca681fc23c6c8466eb975cbccc2e4d"
 dependencies = [
  "chrono",
  "gloo-events",
@@ -1689,6 +1688,7 @@ version = "0.1.0-alpha.23"
 dependencies = [
  "anyhow",
  "asciidoctor-web",
+ "base64 0.21.0",
  "chrono",
  "gloo-console",
  "gloo-net",

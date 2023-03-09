@@ -20,6 +20,8 @@ pub struct EditorProps {
     pub markers: Vec<MarkerData>,
     #[prop_or_default]
     pub on_editor_created: Callback<CodeEditorLink>,
+    #[prop_or(true)]
+    pub auto_layout: bool,
 }
 
 pub struct Editor {
@@ -65,7 +67,7 @@ impl Component for Editor {
             .with_scroll_beyond_last_line(false)
             .with_language(ctx.props().language.clone())
             .with_builtin_theme(BuiltinTheme::Vs)
-            .with_automatic_layout(true)
+            .with_automatic_layout(ctx.props().auto_layout)
             .to_sys_options();
 
         Self {

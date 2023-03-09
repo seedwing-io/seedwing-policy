@@ -1,12 +1,14 @@
 use yew_nested_router::Target;
 
 mod index;
+mod inspector;
 mod monitor;
 mod playground;
 mod policy;
 mod statistics;
 
 pub use index::*;
+pub use inspector::*;
 pub use monitor::*;
 pub use playground::*;
 pub use policy::*;
@@ -27,4 +29,5 @@ pub enum AppRoute {
         path: String,
     },
     Playground,
+    Inspector,
 }

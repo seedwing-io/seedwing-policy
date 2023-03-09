@@ -236,11 +236,11 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
                     html!(format!("Failed: {err}"))
                 }
                 UseAsyncState {
-                    data: Some(rationale),
+                    data: Some(result),
                     ..
                 } => {
                     html!(
-                        <ResultView rationale={rationale.clone()}/>
+                        <ResultView result={result.clone()}/>
                     )
                 }
                 _ => html!(""),
