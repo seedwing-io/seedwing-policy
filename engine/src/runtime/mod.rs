@@ -490,8 +490,8 @@ impl ModuleHandle {
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct PatternName {
-    package: Option<PackagePath>,
-    name: String,
+    pub package: Option<PackagePath>,
+    pub name: String,
 }
 
 impl Serialize for PatternName {
