@@ -20,6 +20,7 @@ pub fn console() -> Html {
                         <NavRouterItem<AppRoute> to={AppRoute::Index}>{ "Overview" }</NavRouterItem<AppRoute>>
                         <NavRouterItem<AppRoute> to={AppRoute::Playground}>{ "Playground" }</NavRouterItem<AppRoute>>
                         <NavRouterItem<AppRoute> to={AppRoute::Inspector}>{ "Inspector" }</NavRouterItem<AppRoute>>
+                        <NavItem to="/swaggerui" target="_blank">{ "OpenAPI UI" } <ExtLinkIcon/> </NavItem>
                         <NavItem to="https://docs.seedwing.io/" target="_blank">{ "Documentation" } <ExtLinkIcon/> </NavItem>
                         <NavItem to="https://docs.seedwing.io/examples/dev/index.html" target="_blank">{ "Examples" } <ExtLinkIcon/> </NavItem>
                     </NavExpandable>
