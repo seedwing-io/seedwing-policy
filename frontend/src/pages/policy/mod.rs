@@ -194,12 +194,11 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     let mut path = String::new();
 
     let root = vec![String::new()];
-    let s = String::new();
     let bpath = root.iter().cloned().chain(
         props
             .parent
             .iter()
-            .flat_map(|seg| seg.split("::").map(|e| e.clone().to_string())),
+            .flat_map(|seg| seg.split("::").map(|e| e.to_string())),
     );
 
     html!(
