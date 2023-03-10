@@ -844,7 +844,7 @@ fn build_bindings<'b>(
     mut bindings: Bindings,
     ctx: &'b EvalContext,
     parameters: Vec<String>,
-    arguments: &'b Vec<Arc<Pattern>>,
+    arguments: &'b [Arc<Pattern>],
     world: &'b World,
 ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>> {
     Box::pin(async move {

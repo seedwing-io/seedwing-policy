@@ -14,7 +14,7 @@ pub struct GAV;
 const DOCUMENTATION: &str = include_str!("GAV.adoc");
 
 impl Function for GAV {
-    fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+    fn input(&self, _bindings: &[Arc<Pattern>]) -> FunctionInput {
         FunctionInput::String
     }
 

@@ -63,7 +63,7 @@ fn get_parameter(param: &str, bindings: &Bindings) -> Result<usize, String> {
         Some(pattern) => match pattern.inner() {
             InnerPattern::Const(ValuePattern::String(value)) => value
                 .parse::<usize>()
-                .map_err(|_| format!("invalid {} index specified", param).to_string()),
+                .map_err(|_| format!("invalid {} index specified", param)),
             InnerPattern::Const(ValuePattern::Integer(value)) => Ok(*value as usize),
             _ => Err(format!("invalid {} index specified", param)),
         },

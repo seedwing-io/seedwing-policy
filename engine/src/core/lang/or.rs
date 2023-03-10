@@ -16,7 +16,7 @@ const TERMS: &str = "terms";
 pub struct Or;
 
 impl Function for Or {
-    fn input(&self, bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+    fn input(&self, bindings: &[Arc<Pattern>]) -> FunctionInput {
         FunctionInput::Pattern(FunctionInputPattern::Or(
             bindings
                 .iter()

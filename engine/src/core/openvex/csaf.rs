@@ -92,7 +92,7 @@ fn csaf2vex(csaf: Csaf) -> OpenVex {
                     let statement = Statement {
                         vulnerability: vulnerability.clone(),
                         vuln_description: vuln_description.clone(),
-                        timestamp: timestamp.clone(),
+                        timestamp,
                         products,
                         subcomponents: vec![],
                         status: Status::Fixed,
@@ -116,13 +116,13 @@ fn csaf2vex(csaf: Csaf) -> OpenVex {
                     if let Some(remediations) = &vuln.remediations {
                         for remediation in remediations.iter() {
                             action_statement.replace(remediation.details.clone());
-                            action_statement_timestamp = remediation.date.clone();
+                            action_statement_timestamp = remediation.date;
                         }
                     }
                     let statement = Statement {
                         vulnerability: vulnerability.clone(),
                         vuln_description: vuln_description.clone(),
-                        timestamp: timestamp.clone(),
+                        timestamp,
                         products,
                         subcomponents: vec![],
                         status: Status::Affected,
@@ -151,7 +151,7 @@ fn csaf2vex(csaf: Csaf) -> OpenVex {
                     let statement = Statement {
                         vulnerability: vulnerability.clone(),
                         vuln_description: vuln_description.clone(),
-                        timestamp: timestamp.clone(),
+                        timestamp,
                         products,
                         subcomponents: vec![],
                         status: Status::NotAffected,
@@ -172,7 +172,7 @@ fn csaf2vex(csaf: Csaf) -> OpenVex {
                     let statement = Statement {
                         vulnerability: vulnerability.clone(),
                         vuln_description: vuln_description.clone(),
-                        timestamp: timestamp.clone(),
+                        timestamp,
                         products,
                         subcomponents: vec![],
                         status: Status::UnderInvestigation,

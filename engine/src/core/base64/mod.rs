@@ -55,7 +55,7 @@ impl Base64 {
 }
 
 impl Function for Base64 {
-    fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+    fn input(&self, _bindings: &[Arc<Pattern>]) -> FunctionInput {
         FunctionInput::String
     }
 

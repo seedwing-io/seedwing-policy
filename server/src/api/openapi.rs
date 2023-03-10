@@ -5,8 +5,8 @@ use actix_web::{
     HttpResponse,
 };
 use okapi::openapi3::{
-    Components, ExampleValue, MediaType, OpenApi, Operation, PathItem, Ref, RefOr, RequestBody,
-    Response, Responses, SchemaObject,
+    Components, ExampleValue, Info, MediaType, OpenApi, Operation, PathItem, Ref, RefOr,
+    RequestBody, Response, Responses, SchemaObject,
 };
 use okapi::schemars::schema::{Metadata, Schema};
 use seedwing_policy_engine::runtime::{Example, World};
@@ -18,11 +18,15 @@ const RESPONSE_FAILURE: &str = "validation_failure";
 
 #[get("/openapi.json")]
 pub async fn openapi(world: web::Data<World>) -> HttpResponse {
-    let mut api = OpenApi::default();
-
-    api.openapi = "3.0.0".into();
-    api.info.title = "Seedwing Policy Server".into();
-    api.info.version = "0.1".into();
+    let mut api = OpenApi {
+        openapi: "3.0.0".into(),
+        info: Info {
+            title: "Seedwing Policy Server".into(),
+            version: "0.1".into(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
     let mut schemas = okapi::Map::default();
 
@@ -36,20 +40,22 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         let path = format!("/api/policy/v1alpha1/{}", name.as_type_str());
         let mut path_item = PathItem::default();
 
-        let mut get = Operation::default();
+        let get = Operation {
+            description: Some("Retrieve the pattern definition".into()),
+            ..Default::default()
+        };
+        let mut post = Operation {
+            description: pattern.documentation(),
+            ..Default::default()
+        };
 
-        get.description = Some("Retrieve the pattern definition".into());
-
-        let mut post = Operation::default();
-
-        post.description = pattern.documentation();
         let mut content = okapi::Map::new();
         let json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
 
         if let Schema::Object(mut json_schema) = json_schema {
             json_schema.metadata = Some(Box::new(Metadata {
                 id: None,
-                title: Some(name.as_type_str().into()),
+                title: Some(name.as_type_str()),
                 description: None,
                 default: None,
                 deprecated: false,
@@ -60,7 +66,10 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
 
             schemas.insert(name.as_type_str(), json_schema);
 
-            let mut json_schema = SchemaObject::default();
+            let mut json_schema = SchemaObject {
+                reference: Some(format!("#/components/schemas/{}", name.as_type_str())),
+                ..Default::default()
+            };
             json_schema.reference = Some(format!("#/components/schemas/{}", name.as_type_str()));
 
             let json_media_type = MediaType {
@@ -75,7 +84,7 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
 
             let request_body = RefOr::Object(RequestBody {
                 description: Some("The input value to evaluate against.".into()),
-                content: content,
+                content,
                 required: true,
                 extensions: Default::default(),
             });
@@ -88,8 +97,10 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         }
     }
 
-    let mut components = Components::default();
-    components.schemas = schemas;
+    let mut components = Components {
+        schemas,
+        ..Default::default()
+    };
     insert_default_responses(&mut components.responses);
     api.components = Some(components);
 

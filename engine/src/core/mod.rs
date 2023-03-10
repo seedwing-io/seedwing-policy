@@ -120,7 +120,7 @@ pub struct Example {
 }
 
 pub trait Function: Sync + Send + Debug {
-    fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+    fn input(&self, _bindings: &[Arc<Pattern>]) -> FunctionInput {
         FunctionInput::Anything
     }
 

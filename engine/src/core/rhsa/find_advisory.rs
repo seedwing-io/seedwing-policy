@@ -5,7 +5,7 @@ use crate::runtime::World;
 use crate::runtime::{EvalContext, Output, RuntimeError};
 use crate::value::RuntimeValue;
 
-use super::rhsa::AdvisoryId;
+use super::AdvisoryId;
 use csaf::Csaf;
 use std::future::Future;
 use std::pin::Pin;
@@ -78,7 +78,7 @@ impl RhsaClient {
         if response.status().is_success() {
             Ok(response.json().await?)
         } else {
-            return Ok(None);
+            Ok(None)
         }
     }
 }

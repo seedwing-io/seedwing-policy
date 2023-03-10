@@ -34,7 +34,7 @@ impl Function for FromCve {
             let client = CvrfClient::new();
             match input.as_ref() {
                 RuntimeValue::String(cve) => {
-                    if let Ok(mut output) = client.find(&cve).await {
+                    if let Ok(mut output) = client.find(cve).await {
                         let output: Vec<Arc<RuntimeValue>> = output
                             .drain(..)
                             .map(|v| Arc::new(RuntimeValue::String(v)))
