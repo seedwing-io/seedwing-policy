@@ -175,6 +175,10 @@ pub trait BlockingFunction: Sync + Send + Debug {
         None
     }
 
+    fn examples(&self) -> Vec<Example> {
+        vec![]
+    }
+
     fn parameters(&self) -> Vec<String> {
         Default::default()
     }
@@ -198,6 +202,10 @@ where
 
     fn documentation(&self) -> Option<String> {
         BlockingFunction::documentation(self)
+    }
+
+    fn examples(&self) -> Vec<Example> {
+        BlockingFunction::examples(self)
     }
 
     fn parameters(&self) -> Vec<String> {
