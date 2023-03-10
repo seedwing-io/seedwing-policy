@@ -106,7 +106,7 @@ pub struct EvaluateRequest {
     value: Value,
 }
 
-#[post("/playground/v1alpha1/evaluate/")]
+#[post("/playground/v1alpha1/evaluate")]
 pub async fn evaluate(
     state: web::Data<PlaygroundState>,
     monitor: web::Data<Mutex<Monitor>>,
