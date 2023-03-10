@@ -77,7 +77,11 @@ impl Component for Editor {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        if ctx.props().initial_content != old_props.initial_content {
+            self.model.set_value(&ctx.props().initial_content);
+        }
+
         monaco::sys::editor::set_model_markers(
             self.model.as_ref().as_ref(),
             "dogma",

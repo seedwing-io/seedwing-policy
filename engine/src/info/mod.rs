@@ -1,4 +1,5 @@
 //! Types used to provide information about policies and patterns in the policy engine.
+use crate::runtime::Example;
 use crate::{
     lang::{
         self,
@@ -50,6 +51,8 @@ pub struct PatternInformation {
     pub name: Option<String>,
     /// Pattern documentation.
     pub documentation: Option<String>,
+    /// Pattern examples.
+    pub examples: Vec<Example>,
     /// Pattern parameters.
     pub parameters: Vec<String>,
     /// Inner pattern information.
@@ -60,6 +63,7 @@ impl ToInformation<PatternInformation> for Pattern {
     fn to_info(&self, world: &World) -> Result<PatternInformation, Error> {
         Ok(PatternInformation {
             documentation: self.documentation(),
+            examples: self.examples(),
             parameters: self.parameters(),
             name: self.name().map(|name| name.as_type_str()),
             inner: self.inner().to_info(world)?,

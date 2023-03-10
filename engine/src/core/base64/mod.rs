@@ -67,12 +67,24 @@ impl Function for Base64 {
     }
 
     fn examples(&self) -> Vec<Example> {
-        vec![Example {
-            name: "default".to_string(),
-            summary: Some("Simple base64 encoded value".to_string()),
-            description: None,
-            value: json!("SGVsbG8gUm9kbmV5IQ=="),
-        }]
+        vec![
+            Example {
+                name: "default".to_string(),
+                summary: Some("Simple base64 encoded value".to_string()),
+                description: Some(
+                    "Validates the base64 string and transforms it into the BLOB.".to_string(),
+                ),
+                value: json!("SGVsbG8gUm9kbmV5IQ=="),
+            },
+            Example {
+                name: "failure".to_string(),
+                summary: Some("Non-base64 encoded value".to_string()),
+                description: Some(
+                    "Fails to validate, as it is not a base64 encoded value".to_string(),
+                ),
+                value: json!("foo bar"),
+            },
+        ]
     }
 
     fn call<'v>(

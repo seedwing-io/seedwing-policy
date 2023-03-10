@@ -11,9 +11,10 @@ use inner::Inner;
 use patternfly_yew::prelude::*;
 use seedwing_policy_engine::{
     info::{ComponentInformation, PatternInformation},
-    runtime::ModuleHandle,
+    runtime::{Example, ModuleHandle},
 };
 use serde_json::Value;
+use std::fmt::Formatter;
 use std::rc::Rc;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
@@ -241,6 +242,7 @@ fn render_full_type(r#type: &PatternInformation) -> Html {
 
 fn render_type(r#type: Rc<PatternInformation>) -> Html {
     let path = r#type.name.as_deref().unwrap_or_default().to_string();
+    let examples = r#type.examples.clone();
 
     html!(
         <>
@@ -267,7 +269,7 @@ fn render_type(r#type: Rc<PatternInformation>) -> Html {
                 </FlexItem>
 
                 <FlexItem modifiers={[FlexModifier::Flex1]}>
-                    <Experiment {path} />
+                    <Experiment {path} {examples}/>
                 </FlexItem>
 
             </Flex>
@@ -311,13 +313,31 @@ fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
     )
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExampleEntry(pub Example);
+
+impl std::fmt::Display for ExampleEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0.summary.as_deref().unwrap_or(self.0.name.as_str()))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]
 pub struct ExperimentProperties {
+    pub examples: Vec<Example>,
     pub path: String,
 }
 
 #[function_component(Experiment)]
 pub fn experiment(props: &ExperimentProperties) -> Html {
+    let first = props
+        .examples
+        .first()
+        .cloned()
+        .map(ExampleEntry)
+        .into_iter()
+        .collect::<Vec<_>>();
+
     let value = use_state_eq(|| Value::Null);
     let on_change = use_callback(
         |text: String, value| {
@@ -326,9 +346,19 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
         value.clone(),
     );
 
+    // editor
+
+    let initial_content = use_state_eq(|| {
+        first
+            .first()
+            .as_ref()
+            .and_then(|ex| serde_json::to_string_pretty(&ex.0.value).ok())
+            .unwrap_or_default()
+    });
+
     let editor = use_memo(
-        |()| html!(<Editor initial_content="" {on_change} language="yaml"/>),
-        (),
+        |initial_content| html!(<Editor initial_content={initial_content.clone()} {on_change} language="yaml"/>),
+        (*initial_content).clone(),
     );
 
     let eval = {
@@ -344,16 +374,47 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
         })
     };
 
+    // toolbar
+
+    let mut toolbar = vec![];
+    toolbar.push(html_nested!(
+        <ToolbarItem>
+            <Title level={Level::H2}> { "Experiment" } </Title>
+        </ToolbarItem>));
+    if !props.examples.is_empty() {
+        let initial_content = initial_content.clone();
+        let onselect = Callback::from(move |example: ExampleEntry| {
+            // set editor
+            if let Ok(value) = serde_json::to_string_pretty(&example.0.value) {
+                initial_content.set(value);
+            }
+        });
+        toolbar.push(html_nested!(<ToolbarItem>
+            <Select<ExampleEntry>
+                initial_selection={first}
+                variant={SelectVariant::Single(onselect)}
+            >
+            { for props.examples.iter().map(|example|{
+                html_nested!(<SelectOption<ExampleEntry>
+                    value={ExampleEntry(example.clone())}
+                    id={example.name.clone()}
+                    description={example.description.clone()}
+                />)
+            })}
+            </Select<ExampleEntry>>
+        </ToolbarItem>));
+    }
+    toolbar.push(html_nested!(
+        <ToolbarItem modifiers={[ToolbarElementModifier::Right]}>
+            <Button label="POST" variant={ButtonVariant::Secondary} {onclick} disabled={eval.loading} />
+        </ToolbarItem>
+    ));
+
+    // main
+
     html!(
         <>
-            <Toolbar>
-                <ToolbarItem>
-                    <Title level={Level::H2}> { "Experiment" } </Title>
-                </ToolbarItem>
-                <ToolbarItem modifiers={[ToolbarElementModifier::Right]}>
-                    <Button label="POST" variant={ButtonVariant::Secondary} {onclick} disabled={eval.loading} />
-                </ToolbarItem>
-            </Toolbar>
+            <Toolbar>{ for toolbar.into_iter() }</Toolbar>
             <Panel>
                 <PanelMain>
                     <div class="experiment">
