@@ -156,7 +156,7 @@ pub async fn validate(path: &str, value: Value) -> Result<Response, String> {
         .map_err(|err| format!("Failed to send request: {err}"))?;
 
     match (response.ok(), response.status()) {
-        (true, _) | (false, 406) => response
+        (true, _) | (false, 406 | 422) => response
             .json::<Response>()
             .await
             .map_err(|err| format!("Failed to read response: {err}")),
