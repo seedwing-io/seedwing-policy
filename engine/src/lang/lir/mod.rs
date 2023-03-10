@@ -17,6 +17,7 @@ use std::future::Future;
 
 use std::pin::Pin;
 
+use crate::core::Example;
 use std::sync::Arc;
 
 /// Represents an expression of patterns.
@@ -147,6 +148,7 @@ impl Expr {
 pub struct Pattern {
     name: Option<PatternName>,
     documentation: Option<String>,
+    examples: Vec<Example>,
     parameters: Vec<String>,
     inner: InnerPattern,
 }
@@ -155,12 +157,14 @@ impl Pattern {
     pub(crate) fn new(
         name: Option<PatternName>,
         documentation: Option<String>,
+        examples: Vec<Example>,
         parameters: Vec<String>,
         inner: InnerPattern,
     ) -> Self {
         Self {
             name,
             documentation,
+            examples,
             parameters,
             inner,
         }
@@ -179,6 +183,11 @@ impl Pattern {
     /// Documentation for the pattern.
     pub fn documentation(&self) -> Option<String> {
         self.documentation.clone()
+    }
+
+    /// Examples for the pattern.
+    pub fn examples(&self) -> Vec<Example> {
+        self.examples.clone()
     }
 
     /// The inner pattern type.
@@ -657,6 +666,7 @@ impl From<Arc<RuntimeValue>> for Pattern {
             None,
             None,
             Vec::default(),
+            Vec::default(),
             match &*val {
                 RuntimeValue::Null => InnerPattern::Const(ValuePattern::Null),
                 RuntimeValue::String(inner) => {
@@ -700,6 +710,7 @@ impl ObjectPattern {
 pub(crate) fn convert(
     name: Option<PatternName>,
     documentation: Option<String>,
+    examples: Vec<Example>,
     parameters: Vec<String>,
     ty: &Arc<Located<mir::Pattern>>,
 ) -> Arc<Pattern> {
@@ -707,12 +718,14 @@ pub(crate) fn convert(
         mir::Pattern::Anything => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Anything,
         )),
         mir::Pattern::Primordial(primordial) => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Primordial(primordial.clone()),
         )),
@@ -722,6 +735,7 @@ pub(crate) fn convert(
                 lir_bindings.push(convert(
                     e.name(),
                     e.documentation(),
+                    e.examples(),
                     e.parameters().iter().map(|e| e.inner()).collect(),
                     &e.ty(),
                 ));
@@ -730,6 +744,7 @@ pub(crate) fn convert(
             Arc::new(lir::Pattern::new(
                 name,
                 documentation,
+                examples,
                 parameters,
                 lir::InnerPattern::Ref(sugar.clone(), *slot, lir_bindings),
             ))
@@ -737,10 +752,12 @@ pub(crate) fn convert(
         mir::Pattern::Deref(inner) => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Deref(convert(
                 inner.name(),
                 inner.documentation(),
+                inner.examples(),
                 inner.parameters().iter().map(|e| e.inner()).collect(),
                 &inner.ty(),
             )),
@@ -748,12 +765,14 @@ pub(crate) fn convert(
         mir::Pattern::Argument(arg_name) => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Argument(arg_name.clone()),
         )),
         mir::Pattern::Const(value) => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Const(value.clone()),
         )),
@@ -766,6 +785,7 @@ pub(crate) fn convert(
                     convert(
                         ty.name(),
                         ty.documentation(),
+                        ty.examples(),
                         ty.parameters().iter().map(|e| e.inner()).collect(),
                         &ty.ty(),
                     ),
@@ -777,6 +797,7 @@ pub(crate) fn convert(
             Arc::new(lir::Pattern::new(
                 name,
                 documentation,
+                examples,
                 parameters,
                 lir::InnerPattern::Object(object),
             ))
@@ -784,6 +805,7 @@ pub(crate) fn convert(
         mir::Pattern::Expr(expr) => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             parameters,
             lir::InnerPattern::Expr(Arc::new(expr.lower())),
         )),
@@ -793,6 +815,7 @@ pub(crate) fn convert(
                 inner.push(convert(
                     e.name(),
                     e.documentation(),
+                    e.examples(),
                     e.parameters().iter().map(|e| e.inner()).collect(),
                     &e.ty(),
                 ))
@@ -801,6 +824,7 @@ pub(crate) fn convert(
             Arc::new(lir::Pattern::new(
                 name,
                 documentation,
+                examples,
                 parameters,
                 lir::InnerPattern::List(inner),
             ))
@@ -808,6 +832,7 @@ pub(crate) fn convert(
         mir::Pattern::Nothing => Arc::new(lir::Pattern::new(
             name,
             documentation,
+            examples,
             Vec::default(),
             lir::InnerPattern::Nothing,
         )),
@@ -843,6 +868,7 @@ fn build_bindings<'b>(
                             Arc::new(Pattern::new(
                                 resolved_type.name(),
                                 resolved_type.documentation(),
+                                resolved_type.examples(),
                                 resolved_type.parameters(),
                                 InnerPattern::Bound(resolved_type, resolved_bindings),
                             )),
@@ -885,6 +911,7 @@ fn possibly_deref<'b>(
                         None,
                         None,
                         Vec::default(),
+                        Vec::default(),
                         InnerPattern::Nothing,
                     )))
                 }
@@ -892,6 +919,7 @@ fn possibly_deref<'b>(
                 Ok(Arc::new(Pattern::new(
                     None,
                     None,
+                    Vec::default(),
                     Vec::default(),
                     InnerPattern::Nothing,
                 )))
@@ -905,6 +933,7 @@ fn possibly_deref<'b>(
             Ok(Arc::new(Pattern::new(
                 None,
                 None,
+                Vec::default(),
                 Vec::default(),
                 InnerPattern::List(replacement),
             )))

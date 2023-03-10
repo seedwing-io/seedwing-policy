@@ -107,6 +107,18 @@ pub enum FunctionInputPattern {
     Or(Vec<FunctionInput>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Example {
+    /// A distinct identifier
+    pub name: String,
+    /// An optional summary override, should override the use of the name when presenting the user.
+    pub summary: Option<String>,
+    /// An optional detailed description
+    pub description: Option<String>,
+    /// The value of the example
+    pub value: serde_json::Value,
+}
+
 pub trait Function: Sync + Send + Debug {
     fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
         FunctionInput::Anything
@@ -126,6 +138,10 @@ pub trait Function: Sync + Send + Debug {
 
     fn documentation(&self) -> Option<String> {
         None
+    }
+
+    fn examples(&self) -> Vec<Example> {
+        vec![]
     }
 
     fn parameters(&self) -> Vec<String> {
