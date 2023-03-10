@@ -10,15 +10,15 @@ use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::prelude::*;
 use seedwing_policy_engine::runtime::metadata::{
-    ComponentMetadata, PackageMetadata, PatternMetadata,
+    ComponentMetadata, PackageMetadata, PatternMetadata, SubpackageMetadata,
 };
+use seedwing_policy_engine::runtime::Example;
 use serde_json::Value;
 use std::fmt::Formatter;
 use std::rc::Rc;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
 use yew_nested_router::components::Link;
-use seedwing_policy_engine::runtime::Example;
 
 mod inner;
 
@@ -209,7 +209,9 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                     .map(|(_, segment)|{
 
                 path.push_str(&segment);
-                path.push_str("::");
+                if ! segment.is_empty() {
+                    path.push_str("::");
+                }
 
                 let target = AppRoute::Policy { path: path.clone() };
 
@@ -259,9 +261,9 @@ fn render_type(pattern: Rc<PatternMetadata>) -> Html {
 
                 <FlexItem modifiers={[FlexModifier::Flex1]}>
                     <Title level={Level::H2}> { "Documentation" } </Title>
-                    <ExpandableSection initial_state=true>
+                    <PageSection>
                         <Asciidoc content={pattern.documentation.as_deref().unwrap_or_default().to_string()}/>
-                    </ExpandableSection>
+                    </PageSection>
                     <Title level={Level::H2}> { "Definition" } </Title>
                     <ExpandableSection>
                         <Inner {pattern}/>
@@ -281,24 +283,61 @@ fn render_type(pattern: Rc<PatternMetadata>) -> Html {
 fn render_module(base: Rc<Vec<String>>, module: &PackageMetadata) -> Html {
     let path = base.join("::");
 
+    let packages_header = html_nested! {
+        <TableHeader>
+          <TableColumn label="Package"/>
+          <TableColumn label="Summary"/>
+        </TableHeader>
+    };
+
+    let package_entries = SharedTableModel::new(
+        module
+            .packages
+            .iter()
+            .map(|e| PackageRow(path.clone(), e.clone()))
+            .collect(),
+    );
+
+    let patterns_header = html_nested! {
+        <TableHeader>
+          <TableColumn label="Pattern"/>
+          <TableColumn label="Summary"/>
+        </TableHeader>
+    };
+
+    let pattern_entries = SharedTableModel::new(
+        module
+            .patterns
+            .iter()
+            .map(|e| PatternRow(path.clone(), e.clone()))
+            .collect(),
+    );
+
     html!(
         <>
-        if !module.packages.is_empty() {
+        if !package_entries.is_empty() {
             <PageSection variant={PageSectionVariant::Light}>
                 <Content>
+                    <Table<SharedTableModel<PackageRow>> header={packages_header} entries={package_entries} mode={TableMode::Compact}/>
+            /*
                     <Title size={Size::XXLarge}>{"Modules"}</Title>
+
                     <ul>
                         { for module.packages.iter().map(|package| {
                             let path = format!("{path}{name}::", name=package.name);
                             html!(<li key={package.name.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&package.name}</Link<AppRoute>></li>)
                         })}
                     </ul>
+
+             */
                 </Content>
             </PageSection>
         }
-        if !module.patterns.is_empty() {
+        if !pattern_entries.is_empty() {
             <PageSection variant={PageSectionVariant::Light}>
                     <Content>
+                        <Table<SharedTableModel<PatternRow>> header={patterns_header} entries={pattern_entries} mode={TableMode::Compact}/>
+            /*
                         <Title size={Size::XXLarge}>{"Patterns"}</Title>
                         <ul>
                             { for module.patterns.iter().filter(|e|e.name.is_some()).map(|pattern| {
@@ -306,11 +345,50 @@ fn render_module(base: Rc<Vec<String>>, module: &PackageMetadata) -> Html {
                                 html!(<li key={pattern.name.as_ref().unwrap().clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&pattern.name.as_ref().unwrap()}</Link<AppRoute>></li>)
                             })}
                         </ul>
+
+             */
                     </Content>
             </PageSection>
         }
         </>
     )
+}
+
+#[derive(PartialEq)]
+pub struct PackageRow(pub String, pub SubpackageMetadata);
+
+impl TableEntryRenderer for PackageRow {
+    fn render_cell(&self, context: &CellContext) -> Cell {
+        match context.column {
+            0 => {
+                let path = format!("{}{name}::", self.0, name = self.1.name);
+                html!(
+                    <Link<AppRoute> target={AppRoute::Policy {path}}>{&self.1.name}</Link<AppRoute>>
+                )
+            }
+            1 => html!(),
+            _ => html!(),
+        }
+        .into()
+    }
+}
+
+#[derive(PartialEq)]
+pub struct PatternRow(pub String, pub PatternMetadata);
+
+impl TableEntryRenderer for PatternRow {
+    fn render_cell(&self, context: &CellContext) -> Cell {
+        match context.column {
+            0 => {
+                let path = format!("{}{name}", self.0, name=self.1.name.as_deref().unwrap_or(""));
+                html!(
+                    <Link<AppRoute> target={AppRoute::Policy {path}}>{&self.1.name.as_deref().unwrap_or("")}</Link<AppRoute>>
+                )
+            },
+            1 => html!(),
+            _ => html!(),
+        }.into()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
