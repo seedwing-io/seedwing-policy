@@ -25,7 +25,7 @@ impl BlockingFunction for Purl {
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         match input.as_ref() {
-            RuntimeValue::String(url) => match super::url::Url::parse_url(url) {
+            RuntimeValue::String(url) => match Url::parse_url(url) {
                 Ok(url) => self.validate(&url),
                 Err(result) => Ok(result),
             },
@@ -38,10 +38,10 @@ impl BlockingFunction for Purl {
 
 impl Purl {
     fn validate(&self, url: &Object) -> Result<FunctionEvaluationResult, RuntimeError> {
-        if url.has_str("host", "pkg") {
+        if !url.has_str("scheme", "pkg") {
             return Self::invalid_arg(format!(
-                "Purl invalid host value, must be 'pkg', has: {:?}",
-                url.get("pkg")
+                "Purl invalid scheme value, must be 'pkg', has: {:?}",
+                url.get("scheme")
             ));
         }
 
@@ -196,6 +196,43 @@ mod test {
                     "name": "purl-spec",
                     "version": "244fd47e07d1004",
                     "subpath": "everybody/loves/dogs",
+                })
+                .into()
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_purl_5() {
+        let result = test_pattern(
+            r#"uri::purl"#,
+            json!({
+              "scheme": "pkg",
+              "path": "rpm/fedora/curl@7.50.3-1.fc25",
+              "query": {
+                "arch": "i386",
+                "distro": "fedora-25"
+              }
+            }),
+        )
+        .await;
+
+        eprintln!("Rationale: {:#?}", result.rationale());
+
+        assert!(result.satisfied());
+
+        assert_eq!(
+            result.output(),
+            Some(Arc::new(
+                json!({
+                    "type": "rpm",
+                    "namespace": "fedora",
+                    "name": "curl",
+                    "version": "7.50.3-1.fc25",
+                    "qualifiers": {
+                        "arch": "i386",
+                        "distro": "fedora-25",
+                    },
                 })
                 .into()
             ))
