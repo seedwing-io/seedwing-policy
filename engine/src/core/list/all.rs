@@ -177,8 +177,6 @@ mod test {
 
         let value = json!([]);
 
-        let _ty = runtime.get("test::test-all");
-
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
             .await;

@@ -1,17 +1,17 @@
 use crate::pages::AppRoute;
 use itertools::intersperse;
-use seedwing_policy_engine::info::{
-    Field, InnerPatternInformation, ObjectPattern, PatternInformation, PatternOrReference,
-    PatternRef, PrimordialPattern,
-};
 use seedwing_policy_engine::lang::{Expr, SyntacticSugar, ValuePattern};
+use seedwing_policy_engine::runtime::metadata::{
+    Field, InnerPatternMetadata, ObjectPattern, PatternMetadata, PatternOrReference, PatternRef,
+    PrimordialPattern,
+};
 use std::rc::Rc;
 use yew::prelude::*;
 use yew_nested_router::components::Link;
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
-    pub r#type: Rc<PatternInformation>,
+    pub pattern: Rc<PatternMetadata>,
 }
 
 #[function_component(Inner)]
@@ -19,29 +19,29 @@ pub fn inner(props: &Props) -> Html {
     html!(
         <>
             <div class="sw-in-inner">
-                { render_inner(&props.r#type.inner) }
+                { render_inner(&props.pattern.inner) }
             </div>
         </>
     )
 }
 
-fn render_inner(info: &InnerPatternInformation) -> Html {
+fn render_inner(info: &InnerPatternMetadata) -> Html {
     match info {
-        InnerPatternInformation::Anything => "anything".into(),
-        InnerPatternInformation::Primordial(primordial) => render_primordial(primordial),
-        InnerPatternInformation::Argument(arg) => html!(<>{arg}</>),
-        InnerPatternInformation::Deref(inner) => html!(<span>{"*"} {render_type(inner)}</span>),
-        InnerPatternInformation::Const(val) => render_val(val),
-        InnerPatternInformation::Bound(primary, bindings) => {
+        InnerPatternMetadata::Anything => "anything".into(),
+        InnerPatternMetadata::Primordial(primordial) => render_primordial(primordial),
+        InnerPatternMetadata::Argument(arg) => html!(<>{arg}</>),
+        InnerPatternMetadata::Deref(inner) => html!(<span>{"*"} {render_type(inner)}</span>),
+        InnerPatternMetadata::Const(val) => render_val(val),
+        InnerPatternMetadata::Bound(primary, bindings) => {
             render_ty_and_bindings(primary, bindings.bindings.values())
         }
-        InnerPatternInformation::Ref(sugar, ty, bindings) => render_ref(sugar, ty, bindings),
-        InnerPatternInformation::Object(object) => render_object(object),
-        InnerPatternInformation::List(terms) => render_list(terms),
-        InnerPatternInformation::Expr(expr) => {
+        InnerPatternMetadata::Ref(sugar, ty, bindings) => render_ref(sugar, ty, bindings),
+        InnerPatternMetadata::Object(object) => render_object(object),
+        InnerPatternMetadata::List(terms) => render_list(terms),
+        InnerPatternMetadata::Expr(expr) => {
             html!( <> { "$(" } { render_expr(expr) } { ")" } </> )
         }
-        InnerPatternInformation::Nothing => "nothing".into(),
+        InnerPatternMetadata::Nothing => "nothing".into(),
     }
 }
 
@@ -145,24 +145,24 @@ fn render_ref(
         }
         #[rustfmt::skip]
         SyntacticSugar::Traverse => {
-            html!(if let Some(InnerPatternInformation::Const(ValuePattern::String(step))) = inner(bindings) {
+            html!(if let Some(InnerPatternMetadata::Const(ValuePattern::String(step))) = inner(bindings) {
                 {"."} { step }
             })
         }
         SyntacticSugar::Chain => {
-            html!(if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
+            html!(if let Some(InnerPatternMetadata::List(terms)) = inner(bindings) {
                 { for terms.iter().map(render_type) }
             })
         }
         SyntacticSugar::Not => {
-            html!(if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
+            html!(if let Some(InnerPatternMetadata::List(terms)) = inner(bindings) {
                 { "!" }{ for terms.iter().map(render_type) }
             })
         }
     }
 }
 
-fn inner(bindings: &Vec<PatternOrReference>) -> Option<&InnerPatternInformation> {
+fn inner(bindings: &Vec<PatternOrReference>) -> Option<&InnerPatternMetadata> {
     if let Some(PatternOrReference::Pattern(rc)) = bindings.first() {
         Some(&rc)
     } else {
@@ -171,7 +171,7 @@ fn inner(bindings: &Vec<PatternOrReference>) -> Option<&InnerPatternInformation>
 }
 
 fn terms(bindings: &Vec<PatternOrReference>) -> Option<&Vec<PatternOrReference>> {
-    if let Some(InnerPatternInformation::List(terms)) = inner(bindings) {
+    if let Some(InnerPatternMetadata::List(terms)) = inner(bindings) {
         Some(terms)
     } else {
         None

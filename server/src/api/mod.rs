@@ -7,7 +7,6 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
-use seedwing_policy_engine::info::ToInformation;
 use seedwing_policy_engine::runtime::config::EvalConfig;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::runtime::{
@@ -22,13 +21,29 @@ mod format;
 mod openapi;
 
 pub use openapi::*;
+use seedwing_policy_engine::runtime::metadata::ComponentMetadata;
 
 #[get("/policy/v1alpha1/{path:.*}")]
 pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> impl Responder {
     let path = path.into_inner().trim_matches('/').replace('/', "::");
 
-    match world.get(path) {
-        Some(component) => match component.to_info(&world) {
+    if path.ends_with("::") || path.is_empty() {
+        if let Some(meta) = world.get_package_meta(path) {
+            HttpResponse::Ok().json(ComponentMetadata::Package(meta))
+        } else {
+            HttpResponse::NotFound().finish()
+        }
+    } else {
+        if let Some(meta) = world.get_pattern_meta(path) {
+            HttpResponse::Ok().json(ComponentMetadata::Pattern(meta))
+        } else {
+            HttpResponse::NotFound().finish()
+        }
+    }
+
+    /*
+    match world.get_pattern_meta(path) {
+        Some(component) => match component.to_meta(&world) {
             Ok(info) => HttpResponse::Ok().json(info),
             Err(err) => HttpResponse::InternalServerError().json(json!({
                 "message": err.to_string(),
@@ -36,6 +51,7 @@ pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> imp
         },
         None => HttpResponse::NotFound().finish(),
     }
+     */
 }
 
 #[derive(serde::Deserialize)]

@@ -37,6 +37,7 @@ use {monitor::dispatcher::Monitor, tokio::sync::Mutex};
 
 pub mod cache;
 pub mod config;
+pub mod metadata;
 pub mod monitor;
 pub mod rationale;
 pub mod response;
@@ -44,6 +45,7 @@ pub mod sources;
 pub mod statistics;
 
 pub use crate::core::Example;
+use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata};
 pub use response::Response;
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -447,60 +449,42 @@ impl World {
         }
     }
 
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Component> {
+    pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {
         let name = name.into();
-        let path = PatternName::from(name);
+        let mut meta = PackageMetadata::new(name.clone());
+        let path = name.as_package_str();
 
-        if let Some(slot) = self.types.get(&path) {
-            let ty = self.type_slots[*slot].clone();
-            return Some(Component::Pattern(ty));
-        }
-
-        let mut module_handle = ModuleHandle::new();
-        let path = path.as_type_str();
-        for (name, _ty) in self.types.iter() {
+        for (name, slot) in self.types.iter() {
             let name = name.as_type_str();
             if let Some(relative_name) = name.strip_prefix(&path) {
                 let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
                 let parts: Vec<&str> = relative_name.split("::").collect();
                 if parts.len() == 1 {
-                    module_handle.types.push(parts[0].into());
-                } else if !module_handle.modules.contains(&parts[0].into()) {
-                    module_handle.modules.push(parts[0].into())
+                    let pattern = self.type_slots[*slot].clone();
+                    if let Ok(pattern) = pattern.to_meta(self) {
+                        meta.add_pattern(pattern);
+                    }
+                } else {
+                    meta.add_subpackage(PackageName::new(parts[0].into()));
                 }
             }
         }
 
-        if module_handle.is_empty() {
+        if meta.packages.is_empty() && meta.patterns.is_empty() {
             None
         } else {
-            Some(Component::Module(module_handle.sort()))
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct ModuleHandle {
-    pub modules: Vec<String>,
-    pub types: Vec<String>,
-}
-
-impl ModuleHandle {
-    fn new() -> Self {
-        Self {
-            modules: vec![],
-            types: vec![],
+            Some(meta.sort())
         }
     }
 
-    fn sort(mut self) -> Self {
-        self.modules.sort();
-        self.types.sort();
-        self
-    }
-
-    fn is_empty(&self) -> bool {
-        self.modules.is_empty() && self.types.is_empty()
+    pub fn get_pattern_meta<S: Into<PatternName>>(&self, name: S) -> Option<PatternMetadata> {
+        let name = name.into();
+        if let Some(slot) = self.types.get(&name) {
+            let pattern = self.type_slots[*slot].clone();
+            pattern.to_meta(self).ok()
+        } else {
+            None
+        }
     }
 }
 
@@ -730,12 +714,6 @@ impl From<SourceLocation> for PackagePath {
             path: segments,
         }
     }
-}
-
-#[derive(Debug)]
-pub enum Component {
-    Module(ModuleHandle),
-    Pattern(Arc<Pattern>),
 }
 
 /// Tracing information such as evaluation time.

@@ -9,9 +9,8 @@ use asciidoctor_web::yew::Asciidoc;
 use gloo_net::http::Request;
 use inner::Inner;
 use patternfly_yew::prelude::*;
-use seedwing_policy_engine::{
-    info::{ComponentInformation, PatternInformation},
-    runtime::{Example, ModuleHandle},
+use seedwing_policy_engine::runtime::metadata::{
+    ComponentMetadata, PackageMetadata, PatternMetadata,
 };
 use serde_json::Value;
 use std::fmt::Formatter;
@@ -19,6 +18,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
 use yew_nested_router::components::Link;
+use seedwing_policy_engine::runtime::Example;
 
 mod inner;
 
@@ -27,7 +27,7 @@ pub struct Props {
     pub path: AttrValue,
 }
 
-pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentInformation>, String> {
+pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentMetadata>, String> {
     let path = path.join("/");
 
     let response = Request::get(&format!("/api/policy/v1alpha1/{}", path))
@@ -130,19 +130,19 @@ pub fn repository(props: &Props) -> Html {
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ComponentProps {
     pub base_path: Rc<Vec<String>>,
-    pub component: ComponentInformation,
+    pub component: ComponentMetadata,
 }
 
 #[function_component(ComponentTitle)]
 pub fn component_title(props: &ComponentProps) -> Html {
     match &props.component {
-        ComponentInformation::Pattern(r#type) => html!(
+        ComponentMetadata::Pattern(pattern) => html!(
             <>
                 <Label color={Color::Blue} label={"T"} /> { " " }
-                { render_full_type(r#type) }
+                { render_full_type(pattern) }
             </>
         ),
-        ComponentInformation::Module(_module) => {
+        ComponentMetadata::Package(_module) => {
             html!(
                 <>
                     <Label color={Color::Blue} label={"M"} /> { " " }
@@ -178,8 +178,8 @@ pub fn component(props: &ComponentProps) -> Html {
               </ToolbarItem>
           </Toolbar>
           {match &props.component {
-              ComponentInformation::Pattern(r#type) => render_type(Rc::new(r#type.clone())),
-              ComponentInformation::Module(module) => render_module(props.base_path.clone(), module),
+              ComponentMetadata::Pattern(pattern) => render_type(Rc::new(pattern.clone())),
+              ComponentMetadata::Package(module) => render_module(props.base_path.clone(), module),
           }}
         </>
     )
@@ -229,20 +229,20 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
     )
 }
 
-fn render_full_type(r#type: &PatternInformation) -> Html {
+fn render_full_type(pattern: &PatternMetadata) -> Html {
     html!(<>
-        {r#type.name.as_deref().unwrap_or_default()}
-        if !r#type.parameters.is_empty() {
+        {pattern.name.as_deref().unwrap_or_default()}
+        if !pattern.parameters.is_empty() {
             {"<"}
-            { for r#type.parameters.iter().map(|s|Html::from(s)) }
+            { for pattern.parameters.iter().map(|s|Html::from(s)) }
             {">"}
         }
     </>)
 }
 
-fn render_type(r#type: Rc<PatternInformation>) -> Html {
-    let path = r#type.name.as_deref().unwrap_or_default().to_string();
-    let examples = r#type.examples.clone();
+fn render_type(pattern: Rc<PatternMetadata>) -> Html {
+    let path = pattern.path.as_deref().unwrap_or_default().to_string();
+    let examples = pattern.examples.clone();
 
     html!(
         <>
@@ -250,7 +250,7 @@ fn render_type(r#type: Rc<PatternInformation>) -> Html {
                 <dl>
                     <dt>{"Name"}</dt>
                     <dd>
-                        { render_full_type(&r#type) }
+                        { render_full_type(&pattern) }
                     </dd>
                 </dl>
             </Content>
@@ -260,11 +260,11 @@ fn render_type(r#type: Rc<PatternInformation>) -> Html {
                 <FlexItem modifiers={[FlexModifier::Flex1]}>
                     <Title level={Level::H2}> { "Documentation" } </Title>
                     <ExpandableSection initial_state=true>
-                        <Asciidoc content={r#type.documentation.as_deref().unwrap_or_default().to_string()}/>
+                        <Asciidoc content={pattern.documentation.as_deref().unwrap_or_default().to_string()}/>
                     </ExpandableSection>
                     <Title level={Level::H2}> { "Definition" } </Title>
                     <ExpandableSection>
-                        <Inner {r#type}/>
+                        <Inner {pattern}/>
                     </ExpandableSection>
                 </FlexItem>
 
@@ -278,32 +278,32 @@ fn render_type(r#type: Rc<PatternInformation>) -> Html {
     )
 }
 
-fn render_module(base: Rc<Vec<String>>, module: &ModuleHandle) -> Html {
+fn render_module(base: Rc<Vec<String>>, module: &PackageMetadata) -> Html {
     let path = base.join("::");
 
     html!(
         <>
-        if !module.modules.is_empty() {
+        if !module.packages.is_empty() {
             <PageSection variant={PageSectionVariant::Light}>
                 <Content>
                     <Title size={Size::XXLarge}>{"Modules"}</Title>
                     <ul>
-                        { for module.modules.iter().map(|module| {
-                            let path = format!("{path}{module}::");
-                            html!(<li key={module.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&module}</Link<AppRoute>></li>)
+                        { for module.packages.iter().map(|package| {
+                            let path = format!("{path}{name}::", name=package.name);
+                            html!(<li key={package.name.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&package.name}</Link<AppRoute>></li>)
                         })}
                     </ul>
                 </Content>
             </PageSection>
         }
-        if !module.types.is_empty() {
+        if !module.patterns.is_empty() {
             <PageSection variant={PageSectionVariant::Light}>
                     <Content>
                         <Title size={Size::XXLarge}>{"Patterns"}</Title>
                         <ul>
-                            { for module.types.iter().map(|r#type| {
-                                let path = format!("{path}{type}");
-                                html!(<li key={r#type.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&r#type}</Link<AppRoute>></li>)
+                            { for module.patterns.iter().filter(|e|e.name.is_some()).map(|pattern| {
+                                let path = format!("{path}{name}", name=pattern.name.as_ref().unwrap());
+                                html!(<li key={pattern.name.as_ref().unwrap().clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&pattern.name.as_ref().unwrap()}</Link<AppRoute>></li>)
                             })}
                         </ul>
                     </Content>
