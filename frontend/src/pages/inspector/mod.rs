@@ -4,7 +4,12 @@ use patternfly_yew::prelude::*;
 use seedwing_policy_engine::runtime::Response;
 use yew::prelude::*;
 
-const INITIAL_VALUE: &str = "{}";
+const INITIAL_VALUE: &str = r#"{
+    "name": "inspector",
+    "input": "If you paste the JSON output of an evaluation into the editor, you can in drill into details on the 'Inspect' tab.",
+    "satisfied": true,
+    "reason": "This is just an example"
+}"#;
 
 #[function_component(Inspector)]
 pub fn inspector() -> Html {
