@@ -120,7 +120,14 @@ fn reason(rationale: &Rationale) -> String {
             tmp = format!("invalid argument: {name}");
             &tmp
         }
-        Rationale::Function(_, _, _) | Rationale::Refinement(_, _) => "",
+        Rationale::Function(_, r, _) => match r {
+            Some(x) => {
+                tmp = reason(x);
+                &tmp
+            }
+            None => "",
+        },
+        Rationale::Refinement(_, _) => "",
     }
     .into()
 }
@@ -191,6 +198,16 @@ mod test {
         assert_eq!(
             r#"{"name":"list::any","input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_bad_purl() {
+        let result = test_pattern("uri::purl", "https:://google.com").await;
+
+        assert_eq!(
+            r#"{"name":"uri::purl","input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
+            serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
 }
