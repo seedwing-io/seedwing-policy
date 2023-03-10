@@ -1,10 +1,10 @@
 use crate::core::uri::url::Url;
-use crate::core::{BlockingFunction, FunctionEvaluationResult};
+use crate::core::{BlockingFunction, Example, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
-
+use serde_json::json;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -15,6 +15,27 @@ const DOCUMENTATION: &str = include_str!("purl.adoc");
 impl BlockingFunction for Purl {
     fn documentation(&self) -> Option<String> {
         Some(DOCUMENTATION.into())
+    }
+
+    fn examples(&self) -> Vec<Example> {
+        vec![Example {
+            name: "from-string".to_string(),
+            summary: Some("Match a string".to_string()),
+            description: Some("Ensures that a string is a URL, and that the URL parts match a Package URL, translating into the PURL components".to_string()),
+            value: json!("pkg:rpm/fedora/curl@7.50.3-1.fc25?arch=i386&distro=fedora-25"),
+        }, Example {
+            name: "from-url".to_string(),
+            summary: Some("Match a URL".to_string()),
+            description: Some("Same as before, but using a URL already processed by `url`".to_string()),
+            value: json!({
+                "scheme": "pkg",
+                "path": "rpm/fedora/curl@7.50.3-1.fc25",
+                "query": {
+                    "arch": "i386",
+                    "distro": "fedora-25",
+                }
+            }),
+        }]
     }
 
     fn call(
