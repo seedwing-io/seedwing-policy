@@ -1,7 +1,7 @@
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{Example, Function, FunctionEvaluationResult, FunctionInput};
 use crate::lang::lir::Bindings;
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{EvalContext, Output, Pattern, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -13,6 +13,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 
+use serde_json::json;
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -54,11 +55,24 @@ impl Base64 {
 }
 
 impl Function for Base64 {
+    fn input(&self, _bindings: &Vec<Arc<Pattern>>) -> FunctionInput {
+        FunctionInput::String
+    }
+
     fn documentation(&self) -> Option<String> {
         match self.alphabet {
             Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
             Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
         }
+    }
+
+    fn examples(&self) -> Vec<Example> {
+        vec![Example {
+            name: "default".to_string(),
+            summary: Some("Simple base64 encoded value".to_string()),
+            description: None,
+            value: json!("SGVsbG8gUm9kbmV5IQ=="),
+        }]
     }
 
     fn call<'v>(

@@ -6,6 +6,7 @@ use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::{BuildError, PackagePath, PatternName};
 
+use crate::core::Example;
 use crate::runtime::config::{ConfigValue, EvalConfig};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -79,6 +80,7 @@ pub struct PatternDefn {
     ty: Located<Pattern>,
     parameters: Vec<Located<String>>,
     documentation: Option<String>,
+    examples: Vec<Example>,
 }
 
 impl PatternDefn {
@@ -92,11 +94,18 @@ impl PatternDefn {
             ty,
             parameters,
             documentation: None,
+            examples: vec![],
         }
     }
 
     pub fn set_documentation(&mut self, doc: Option<String>) {
         self.documentation = doc
+    }
+
+    // currently this is unsed, but we should find a way to provide examples
+    #[allow(unused)]
+    pub fn set_examples(&mut self, examples: Vec<Example>) {
+        self.examples = examples;
     }
 
     pub fn name(&self) -> Located<String> {
@@ -579,7 +588,12 @@ impl<'b> Lowerer<'b> {
 
             for ty in unit.types() {
                 let name = unit_path.type_name(ty.name().inner());
-                world.declare(name, ty.documentation.clone(), ty.parameters());
+                world.declare(
+                    name,
+                    ty.documentation.clone(),
+                    ty.examples.clone(),
+                    ty.parameters(),
+                );
             }
         }
 
@@ -590,6 +604,7 @@ impl<'b> Lowerer<'b> {
                 world.declare(
                     path,
                     func.documentation(),
+                    func.examples(),
                     func.parameters()
                         .iter()
                         .cloned()

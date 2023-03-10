@@ -43,6 +43,7 @@ pub mod response;
 pub mod sources;
 pub mod statistics;
 
+pub use crate::core::Example;
 pub use response::Response;
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -416,7 +417,13 @@ impl World {
         let ty = handle.ty();
         let name = handle.name();
         let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
-        let converted = lir::convert(name, handle.documentation(), parameters, &ty);
+        let converted = lir::convert(
+            name,
+            handle.documentation(),
+            handle.examples(),
+            parameters,
+            &ty,
+        );
         self.type_slots.push(converted);
         self.types.insert(path, self.type_slots.len() - 1);
     }

@@ -1,4 +1,4 @@
-use crate::core::Function;
+use crate::core::{Example, Function};
 use crate::lang::hir::Expr;
 use crate::lang::lir::ValuePattern;
 use crate::lang::parser::Located;
@@ -20,6 +20,7 @@ use std::sync::Arc;
 pub struct PatternHandle {
     name: Option<PatternName>,
     documentation: Option<String>,
+    examples: Vec<Example>,
     ty: RefCell<Option<Arc<Located<Pattern>>>>,
     parameters: Vec<Located<String>>,
 }
@@ -29,6 +30,7 @@ impl PatternHandle {
         Self {
             name,
             documentation: None,
+            examples: vec![],
             ty: RefCell::new(None),
             parameters: vec![],
         }
@@ -42,6 +44,7 @@ impl PatternHandle {
         Self {
             name,
             documentation: None,
+            examples: vec![],
             ty: RefCell::new(Some(Arc::new(ty))),
             parameters: vec![],
         }
@@ -50,6 +53,15 @@ impl PatternHandle {
     pub fn with_documentation(mut self, documentation: Option<String>) -> Self {
         self.documentation = documentation;
         self
+    }
+
+    pub fn with_examples(mut self, examples: Vec<Example>) -> Self {
+        self.examples = examples;
+        self
+    }
+
+    pub fn examples(&self) -> Vec<Example> {
+        self.examples.clone()
     }
 
     pub fn with(self, ty: Located<mir::Pattern>) -> Self {
@@ -198,6 +210,7 @@ impl World {
         &mut self,
         path: PatternName,
         documentation: Option<String>,
+        examples: Vec<Example>,
         parameters: Vec<Located<String>>,
     ) {
         log::info!("declare {}", path);
@@ -208,7 +221,8 @@ impl World {
         let runtime_type = Arc::new(
             PatternHandle::new(Some(path.clone()))
                 .with_parameters(parameters)
-                .with_documentation(documentation),
+                .with_documentation(documentation)
+                .with_examples(examples),
         );
 
         if let Some(handle) = self.types.get_mut(&path) {
