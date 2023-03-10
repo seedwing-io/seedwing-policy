@@ -46,9 +46,22 @@ impl TreeNode for ResponseModel {
                 )
             }
             1 => {
-                let value = serde_json::to_string_pretty(&self.0.input).unwrap_or_default();
+                let input = serde_json::to_string_pretty(&self.0.input).unwrap_or_default();
+                let (output, show) = self.0.output.as_ref().and_then(|output|serde_json::to_string_pretty(output).ok()).map(|output|{
+                    let show = output != input;
+                    (output, show)
+                }).unzip();
+
+                let show = show.unwrap_or_default();
                 html!(
-                    <Clipboard code=true readonly=true variant={ClipboardVariant::Expandable} {value}/>
+                    <>
+                        <Clipboard code=true readonly=true variant={ClipboardVariant::Expandable} value={input}/>
+                        if show {
+                            if let Some(output) = output {
+                                <Clipboard code=true readonly=true variant={ClipboardVariant::Expandable} value={output}/>
+                            }
+                        }
+                    </>
                 )
             }
             _ => Html::default(),
@@ -95,7 +108,7 @@ pub fn result_tree(props: &ResultViewProps) -> Html {
         <TreeTableHeader>
             <TableColumn label="Name" width={ColumnWidth::FitContent} />
             <TableColumn label="Result" width={ColumnWidth::Percent(20)} />
-            <TableColumn label="Input"/>
+            <TableColumn label="Input / Output"/>
         </TreeTableHeader>
     };
 
