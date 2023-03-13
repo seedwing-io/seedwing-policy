@@ -759,6 +759,18 @@ pub mod testutil {
 
         result.unwrap()
     }
+
+    #[macro_export]
+    macro_rules! assert_satisfied {
+        ( $result:expr ) => {
+            assert!(
+                $result.satisfied(),
+                "{}",
+                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&$result))
+                    .unwrap()
+            );
+        };
+    }
 }
 
 #[cfg(test)]
