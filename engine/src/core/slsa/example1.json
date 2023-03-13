@@ -1,0 +1,25 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "subject": [{"name": "a", "digest": {"sha256": "5678..."}}],
+  "predicateType": "https://slsa.dev/provenance/v1-rc1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://example.com/Makefile",
+      "externalParameters": {
+        "uri": "https://example.com/example-1.2.3.tar.gz",
+        "digest": {"sha256": "1234..."},
+        "entryPoint": "src:foo"
+      },
+      "systemParameters": {"CFLAGS": "-O3"}
+    },
+    "runDetails": {
+      "builder":  {
+        "id": "mailto:person@example.com"
+      }
+    },
+    "resolvedDependencies": [{
+      "uri": "https://example.com/example-1.2.3.tar.gz",
+      "digest": {"sha256": "1234..."}
+    }]
+  }
+}
