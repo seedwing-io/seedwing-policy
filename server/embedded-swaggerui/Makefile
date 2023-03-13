@@ -1,14 +1,14 @@
 .PHONY: all
-all: clean download
+all: update
 
 .PHONY: clean
 clean:
-	rm -Rf dist
 	rm -Rf download
 	rm -Rf unpack
 
-.PHONY: download
-download:
+.PHONY: update
+update: clean
+	rm -Rf dist
 	mkdir -p download
 	curl -sSL https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.18.0.tar.gz -o download/swaggerui.tar.gz
 	mkdir -p unpack
