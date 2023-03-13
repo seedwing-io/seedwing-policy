@@ -1,0 +1,320 @@
+This function Verifies the specified in-toto [envelope].
+
+Example pattern:
+```
+            pattern blob = *data::from<"binary-linux-amd64">
+
+            pattern attesters = [
+              {name: "dan", public_key: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR3RENDQTBhZ0F3SUJBZ0lVTEpaajZlQVp0c1dkSUhGcktnK00rTFZkTkEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd016RTBNVEF5TlRBMVdoY05Nak13TXpFME1UQXpOVEExV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVtSUF2WFZMVGg2NkUzV2RXUkZac1ZTSE9VQ2swbUwrazRLSXYKYU4zOWhHekhncHozalp2Ylp3NnhTaHJidVZYVW4wMUFQck0vUWh0YVZhMWJtZUJLV0tPQ0FtVXdnZ0poTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVkbkhyCjlKdFFlQlFHVnhtU0JkWHFBMnhDVXlVd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d2ZRWURWUjBSQVFIL0JITXdjWVp2YUhSMGNITTZMeTluYVhSb2RXSXVZMjl0TDNOc2MyRXRabkpoYldWMwpiM0pyTDNOc2MyRXRaMmwwYUhWaUxXZGxibVZ5WVhSdmNpOHVaMmwwYUhWaUwzZHZjbXRtYkc5M2N5OWlkV2xzClpHVnlYMmR2WDNOc2MyRXpMbmx0YkVCeVpXWnpMM1JoWjNNdmRqRXVOUzR3TURrR0Npc0dBUVFCZzc4d0FRRUUKSzJoMGRIQnpPaTh2ZEc5clpXNHVZV04wYVc5dWN5NW5hWFJvZFdKMWMyVnlZMjl1ZEdWdWRDNWpiMjB3RWdZSwpLd1lCQkFHRHZ6QUJBZ1FFY0hWemFEQTJCZ29yQmdFRUFZTy9NQUVEQkNoaU5qQXhZek13WWpNeFl6UmxPRE14CllqRmhPRFF4T0daa01Ua3paakEwWXpJM05XUXlNVEJqTUJNR0Npc0dBUVFCZzc4d0FRUUVCVWR2SUVOSk1ERUcKQ2lzR0FRUUJnNzh3QVFVRUkzTmxaV1IzYVc1bkxXbHZMM05sWldSM2FXNW5MV2R2YkdGdVp5MWxlR0Z0Y0d4bApNQjhHQ2lzR0FRUUJnNzh3QVFZRUVYSmxabk12ZEdGbmN5OTJNQzR4TGpFMU1JR0tCZ29yQmdFRUFkWjVBZ1FDCkJId0VlZ0I0QUhZQTNUMHdhc2JIRVRKakdSNGNtV2MzQXFKS1hyamVQSzMvaDRweWdDOHA3bzRBQUFHRzM2YnkKSmdBQUJBTUFSekJGQWlFQTlyYnVNRDNoeHFkbTRCU1kxNmNncGlFMCtabWZITk9FbjhrblJqenB3WkVDSURnaAo2a1g0d005ZDVJUGlsdkZ6bjJ4KytJU0tYaU9LdmZyS24xa0tUaFR3TUFvR0NDcUdTTTQ5QkFNREEyZ0FNR1VDCk1FTy9qeG11aVBpUGRmVkREY1hBRVowSFRSVXA5V3Bjc2Y4dlhkdTFqODRVd291ZzUzaXZsdW1Yb0ZxN2hlSzEKdGdJeEFQQ29sOTk3QTgrTnFLVWllcmw5RGFFd2hBcG5HWlVTNXJ2MS9TcWpwbEpJSGhFTHFUMzZoNjR5dzl1QwprUDhlRGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="}
+            ]
+
+            pattern envelope = intoto::verify-envelope<attesters, blob>
+```
+The `blob` (binary large object) is the artifact for the `digest` in the
+the `subject` object of the payload, and this is used to verify the digest.
+
+
+Example input:
+```
+{
+  "payloadType": "application/vnd.in-toto+json",
+  "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjAuMSIsInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3Byb3ZlbmFuY2UvdjAuMiIsInN1YmplY3QiOlt7Im5hbWUiOiJiaW5hcnktbGludXgtYW1kNjQiLCJkaWdlc3QiOnsic2hhMjU2IjoiMTcyYWFlYmFiZmU3ZGMzMGExNDZjN2I4NGU2NjI3YTZjMTA3ZGVkNTEzNzAwNzQ4ZGM0ODliZGJmNzJjNmVjYiJ9fV0sInByZWRpY2F0ZSI6eyJidWlsZGVyIjp7ImlkIjoiaHR0cHM6Ly9naXRodWIuY29tL3Nsc2EtZnJhbWV3b3JrL3Nsc2EtZ2l0aHViLWdlbmVyYXRvci8uZ2l0aHViL3dvcmtmbG93cy9idWlsZGVyX2dvX3Nsc2EzLnltbEByZWZzL3RhZ3MvdjEuNS4wIn0sImJ1aWxkVHlwZSI6Imh0dHBzOi8vZ2l0aHViLmNvbS9zbHNhLWZyYW1ld29yay9zbHNhLWdpdGh1Yi1nZW5lcmF0b3IvZ29AdjEiLCJpbnZvY2F0aW9uIjp7ImNvbmZpZ1NvdXJjZSI6eyJ1cmkiOiJnaXQraHR0cHM6Ly9naXRodWIuY29tL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlQHJlZnMvdGFncy92MC4xLjE1IiwiZGlnZXN0Ijp7InNoYTEiOiJiNjAxYzMwYjMxYzRlODMxYjFhODQxOGZkMTkzZjA0YzI3NWQyMTBjIn0sImVudHJ5UG9pbnQiOiIuZ2l0aHViL3dvcmtmbG93cy9jaS55YW1sIn0sInBhcmFtZXRlcnMiOnt9LCJlbnZpcm9ubWVudCI6eyJhcmNoIjoiWDY0IiwiZ2l0aHViX2FjdG9yIjoibHVsZiIsImdpdGh1Yl9hY3Rvcl9pZCI6IjE5NjcwIiwiZ2l0aHViX2Jhc2VfcmVmIjoiIiwiZ2l0aHViX2V2ZW50X25hbWUiOiJwdXNoIiwiZ2l0aHViX2V2ZW50X3BheWxvYWQiOnsiYWZ0ZXIiOiJhNmFkMTY1OTY0NDI4YjAyNDg2OGYwYmJlZDk3Y2NhNDZkMDU0ODc4IiwiYmFzZV9yZWYiOm51bGwsImJlZm9yZSI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJjb21taXRzIjpbXSwiY29tcGFyZSI6Imh0dHBzOi8vZ2l0aHViLmNvbS9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9jb21wYXJlL3YwLjEuMTUiLCJjcmVhdGVkIjp0cnVlLCJkZWxldGVkIjpmYWxzZSwiZm9yY2VkIjpmYWxzZSwiaGVhZF9jb21taXQiOnsiYXV0aG9yIjp7ImVtYWlsIjoibHVsZkByZWRoYXQuY29tIiwibmFtZSI6IlVsZiBMaWxsZWVuZ2VuIiwidXNlcm5hbWUiOiJsdWxmIn0sImNvbW1pdHRlciI6eyJlbWFpbCI6Imx1bGZAcmVkaGF0LmNvbSIsIm5hbWUiOiJVbGYgTGlsbGVlbmdlbiIsInVzZXJuYW1lIjoibHVsZiJ9LCJkaXN0aW5jdCI6dHJ1ZSwiaWQiOiJiNjAxYzMwYjMxYzRlODMxYjFhODQxOGZkMTkzZjA0YzI3NWQyMTBjIiwibWVzc2FnZSI6ImFkZCBtaXNzaW5nIGNoZWNrb3V0IHN0ZXAiLCJ0aW1lc3RhbXAiOiIyMDIzLTAzLTE0VDExOjIxOjU0KzAxOjAwIiwidHJlZV9pZCI6IjI2MDg0ZDU3NjgxYzk3YjE5Y2E3OWYxZmZiM2Q3Yjk0MDAwYzc5NmUiLCJ1cmwiOiJodHRwczovL2dpdGh1Yi5jb20vc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvY29tbWl0L2I2MDFjMzBiMzFjNGU4MzFiMWE4NDE4ZmQxOTNmMDRjMjc1ZDIxMGMifSwib3JnYW5pemF0aW9uIjp7ImF2YXRhcl91cmwiOiJodHRwczovL2F2YXRhcnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3UvMTE0MTE0MzI5P3Y9NCIsImRlc2NyaXB0aW9uIjoiIiwiZXZlbnRzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vb3Jncy9zZWVkd2luZy1pby9ldmVudHMiLCJob29rc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL29yZ3Mvc2VlZHdpbmctaW8vaG9va3MiLCJpZCI6MTE0MTE0MzI5LCJpc3N1ZXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9vcmdzL3NlZWR3aW5nLWlvL2lzc3VlcyIsImxvZ2luIjoic2VlZHdpbmctaW8iLCJtZW1iZXJzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vb3Jncy9zZWVkd2luZy1pby9tZW1iZXJzey9tZW1iZXJ9Iiwibm9kZV9pZCI6Ik9fa2dET0JzMF9HUSIsInB1YmxpY19tZW1iZXJzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vb3Jncy9zZWVkd2luZy1pby9wdWJsaWNfbWVtYmVyc3svbWVtYmVyfSIsInJlcG9zX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vb3Jncy9zZWVkd2luZy1pby9yZXBvcyIsInVybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vb3Jncy9zZWVkd2luZy1pbyJ9LCJwdXNoZXIiOnsiZW1haWwiOiJ1bGYubGlsbGVlbmdlbkBnbWFpbC5jb20iLCJuYW1lIjoibHVsZiJ9LCJyZWYiOiJyZWZzL3RhZ3MvdjAuMS4xNSIsInJlcG9zaXRvcnkiOnsiYWxsb3dfZm9ya2luZyI6dHJ1ZSwiYXJjaGl2ZV91cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3thcmNoaXZlX2Zvcm1hdH17L3JlZn0iLCJhcmNoaXZlZCI6ZmFsc2UsImFzc2lnbmVlc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2Fzc2lnbmVlc3svdXNlcn0iLCJibG9ic191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2dpdC9ibG9ic3svc2hhfSIsImJyYW5jaGVzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvYnJhbmNoZXN7L2JyYW5jaH0iLCJjbG9uZV91cmwiOiJodHRwczovL2dpdGh1Yi5jb20vc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUuZ2l0IiwiY29sbGFib3JhdG9yc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2NvbGxhYm9yYXRvcnN7L2NvbGxhYm9yYXRvcn0iLCJjb21tZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2NvbW1lbnRzey9udW1iZXJ9IiwiY29tbWl0c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2NvbW1pdHN7L3NoYX0iLCJjb21wYXJlX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvY29tcGFyZS97YmFzZX0uLi57aGVhZH0iLCJjb250ZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2NvbnRlbnRzL3srcGF0aH0iLCJjb250cmlidXRvcnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9jb250cmlidXRvcnMiLCJjcmVhdGVkX2F0IjoxNjc4NzEwNzAzLCJkZWZhdWx0X2JyYW5jaCI6Im1haW4iLCJkZXBsb3ltZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2RlcGxveW1lbnRzIiwiZGVzY3JpcHRpb24iOiJFeGFtcGxlIHVzaW5nIFNlZWR3aW5nIHdpdGggR29sYW5nIiwiZGlzYWJsZWQiOmZhbHNlLCJkb3dubG9hZHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9kb3dubG9hZHMiLCJldmVudHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9ldmVudHMiLCJmb3JrIjpmYWxzZSwiZm9ya3MiOjAsImZvcmtzX2NvdW50IjowLCJmb3Jrc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2ZvcmtzIiwiZnVsbF9uYW1lIjoic2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUiLCJnaXRfY29tbWl0c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2dpdC9jb21taXRzey9zaGF9IiwiZ2l0X3JlZnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9naXQvcmVmc3svc2hhfSIsImdpdF90YWdzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvZ2l0L3RhZ3N7L3NoYX0iLCJnaXRfdXJsIjoiZ2l0Oi8vZ2l0aHViLmNvbS9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS5naXQiLCJoYXNfZGlzY3Vzc2lvbnMiOmZhbHNlLCJoYXNfZG93bmxvYWRzIjp0cnVlLCJoYXNfaXNzdWVzIjp0cnVlLCJoYXNfcGFnZXMiOmZhbHNlLCJoYXNfcHJvamVjdHMiOnRydWUsImhhc193aWtpIjp0cnVlLCJob21lcGFnZSI6bnVsbCwiaG9va3NfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9ob29rcyIsImh0bWxfdXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlIiwiaWQiOjYxMzM2MjU5NiwiaXNfdGVtcGxhdGUiOmZhbHNlLCJpc3N1ZV9jb21tZW50X3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvaXNzdWVzL2NvbW1lbnRzey9udW1iZXJ9IiwiaXNzdWVfZXZlbnRzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvaXNzdWVzL2V2ZW50c3svbnVtYmVyfSIsImlzc3Vlc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL2lzc3Vlc3svbnVtYmVyfSIsImtleXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9rZXlzey9rZXlfaWR9IiwibGFiZWxzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvbGFiZWxzey9uYW1lfSIsImxhbmd1YWdlIjoiR28iLCJsYW5ndWFnZXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9sYW5ndWFnZXMiLCJsaWNlbnNlIjp7ImtleSI6ImFwYWNoZS0yLjAiLCJuYW1lIjoiQXBhY2hlIExpY2Vuc2UgMi4wIiwibm9kZV9pZCI6Ik1EYzZUR2xqWlc1elpUST0iLCJzcGR4X2lkIjoiQXBhY2hlLTIuMCIsInVybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vbGljZW5zZXMvYXBhY2hlLTIuMCJ9LCJtYXN0ZXJfYnJhbmNoIjoibWFpbiIsIm1lcmdlc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL21lcmdlcyIsIm1pbGVzdG9uZXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9taWxlc3RvbmVzey9udW1iZXJ9IiwibWlycm9yX3VybCI6bnVsbCwibmFtZSI6InNlZWR3aW5nLWdvbGFuZy1leGFtcGxlIiwibm9kZV9pZCI6IlJfa2dET0pJOHJwQSIsIm5vdGlmaWNhdGlvbnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9ub3RpZmljYXRpb25zez9zaW5jZSxhbGwscGFydGljaXBhdGluZ30iLCJvcGVuX2lzc3VlcyI6MCwib3Blbl9pc3N1ZXNfY291bnQiOjAsIm9yZ2FuaXphdGlvbiI6InNlZWR3aW5nLWlvIiwib3duZXIiOnsiYXZhdGFyX3VybCI6Imh0dHBzOi8vYXZhdGFycy5naXRodWJ1c2VyY29udGVudC5jb20vdS8xMTQxMTQzMjk/dj00IiwiZW1haWwiOm51bGwsImV2ZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3NlZWR3aW5nLWlvL2V2ZW50c3svcHJpdmFjeX0iLCJmb2xsb3dlcnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9zZWVkd2luZy1pby9mb2xsb3dlcnMiLCJmb2xsb3dpbmdfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9zZWVkd2luZy1pby9mb2xsb3dpbmd7L290aGVyX3VzZXJ9IiwiZ2lzdHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9zZWVkd2luZy1pby9naXN0c3svZ2lzdF9pZH0iLCJncmF2YXRhcl9pZCI6IiIsImh0bWxfdXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL3NlZWR3aW5nLWlvIiwiaWQiOjExNDExNDMyOSwibG9naW4iOiJzZWVkd2luZy1pbyIsIm5hbWUiOiJzZWVkd2luZy1pbyIsIm5vZGVfaWQiOiJPX2tnRE9CczBfR1EiLCJvcmdhbml6YXRpb25zX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc2VlZHdpbmctaW8vb3JncyIsInJlY2VpdmVkX2V2ZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3NlZWR3aW5nLWlvL3JlY2VpdmVkX2V2ZW50cyIsInJlcG9zX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc2VlZHdpbmctaW8vcmVwb3MiLCJzaXRlX2FkbWluIjpmYWxzZSwic3RhcnJlZF91cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3NlZWR3aW5nLWlvL3N0YXJyZWR7L293bmVyfXsvcmVwb30iLCJzdWJzY3JpcHRpb25zX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc2VlZHdpbmctaW8vc3Vic2NyaXB0aW9ucyIsInR5cGUiOiJPcmdhbml6YXRpb24iLCJ1cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3NlZWR3aW5nLWlvIn0sInByaXZhdGUiOmZhbHNlLCJwdWxsc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3B1bGxzey9udW1iZXJ9IiwicHVzaGVkX2F0IjoxNjc4Nzg5MzIxLCJyZWxlYXNlc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3JlbGVhc2Vzey9pZH0iLCJzaXplIjozNSwic3NoX3VybCI6ImdpdEBnaXRodWIuY29tOnNlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlLmdpdCIsInN0YXJnYXplcnMiOjAsInN0YXJnYXplcnNfY291bnQiOjAsInN0YXJnYXplcnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9zdGFyZ2F6ZXJzIiwic3RhdHVzZXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9zdGF0dXNlcy97c2hhfSIsInN1YnNjcmliZXJzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3Mvc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvc3Vic2NyaWJlcnMiLCJzdWJzY3JpcHRpb25fdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9zdWJzY3JpcHRpb24iLCJzdm5fdXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlIiwidGFnc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3RhZ3MiLCJ0ZWFtc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3RlYW1zIiwidG9waWNzIjpbXSwidHJlZXNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9zZWVkd2luZy1pby9zZWVkd2luZy1nb2xhbmctZXhhbXBsZS9naXQvdHJlZXN7L3NoYX0iLCJ1cGRhdGVkX2F0IjoiMjAyMy0wMy0xM1QxMjozNzo1N1oiLCJ1cmwiOiJodHRwczovL2dpdGh1Yi5jb20vc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUiLCJ2aXNpYmlsaXR5IjoicHVibGljIiwid2F0Y2hlcnMiOjAsIndhdGNoZXJzX2NvdW50IjowLCJ3ZWJfY29tbWl0X3NpZ25vZmZfcmVxdWlyZWQiOmZhbHNlfSwic2VuZGVyIjp7ImF2YXRhcl91cmwiOiJodHRwczovL2F2YXRhcnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3UvMTk2NzA/dj00IiwiZXZlbnRzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvbHVsZi9ldmVudHN7L3ByaXZhY3l9IiwiZm9sbG93ZXJzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvbHVsZi9mb2xsb3dlcnMiLCJmb2xsb3dpbmdfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9sdWxmL2ZvbGxvd2luZ3svb3RoZXJfdXNlcn0iLCJnaXN0c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL2x1bGYvZ2lzdHN7L2dpc3RfaWR9IiwiZ3JhdmF0YXJfaWQiOiIiLCJodG1sX3VybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9sdWxmIiwiaWQiOjE5NjcwLCJsb2dpbiI6Imx1bGYiLCJub2RlX2lkIjoiTURRNlZYTmxjakU1TmpjdyIsIm9yZ2FuaXphdGlvbnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9sdWxmL29yZ3MiLCJyZWNlaXZlZF9ldmVudHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9sdWxmL3JlY2VpdmVkX2V2ZW50cyIsInJlcG9zX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvbHVsZi9yZXBvcyIsInNpdGVfYWRtaW4iOmZhbHNlLCJzdGFycmVkX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvbHVsZi9zdGFycmVkey9vd25lcn17L3JlcG99Iiwic3Vic2NyaXB0aW9uc191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL2x1bGYvc3Vic2NyaXB0aW9ucyIsInR5cGUiOiJVc2VyIiwidXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9sdWxmIn19LCJnaXRodWJfaGVhZF9yZWYiOiIiLCJnaXRodWJfcmVmIjoicmVmcy90YWdzL3YwLjEuMTUiLCJnaXRodWJfcmVmX3R5cGUiOiJ0YWciLCJnaXRodWJfcmVwb3NpdG9yeV9pZCI6IjYxMzM2MjU5NiIsImdpdGh1Yl9yZXBvc2l0b3J5X293bmVyIjoic2VlZHdpbmctaW8iLCJnaXRodWJfcmVwb3NpdG9yeV9vd25lcl9pZCI6IjExNDExNDMyOSIsImdpdGh1Yl9ydW5fYXR0ZW1wdCI6IjEiLCJnaXRodWJfcnVuX2lkIjoiNDQxNDY0MDY1OCIsImdpdGh1Yl9ydW5fbnVtYmVyIjoiMTgiLCJnaXRodWJfc2hhMSI6ImI2MDFjMzBiMzFjNGU4MzFiMWE4NDE4ZmQxOTNmMDRjMjc1ZDIxMGMiLCJvcyI6InVidW50dTIyIn19LCJidWlsZENvbmZpZyI6eyJzdGVwcyI6W3sid29ya2luZ0RpciI6Ii9ob21lL3J1bm5lci93b3JrL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxlL19fUFJPSkVDVF9DSEVDS09VVF9ESVJfXyIsImNvbW1hbmQiOlsiL29wdC9ob3N0ZWR0b29sY2FjaGUvZ28vMS4xNy4xMy94NjQvYmluL2dvIiwibW9kIiwidmVuZG9yIl0sImVudiI6bnVsbH0seyJ3b3JraW5nRGlyIjoiL2hvbWUvcnVubmVyL3dvcmsvc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvc2VlZHdpbmctZ29sYW5nLWV4YW1wbGUvX19QUk9KRUNUX0NIRUNLT1VUX0RJUl9fIiwiY29tbWFuZCI6WyIvb3B0L2hvc3RlZHRvb2xjYWNoZS9nby8xLjE3LjEzL3g2NC9iaW4vZ28iLCJidWlsZCIsIi1tb2Q9dmVuZG9yIiwiLXRyaW1wYXRoIiwiLXRhZ3M9bmV0Z28iLCItbGRmbGFncz0tWCBtYWluLlZlcnNpb249MC4xLjE1IC1YIG1haW4uQ29tbWl0PWI2MDFjMzBiMzFjNGU4MzFiMWE4NDE4ZmQxOTNmMDRjMjc1ZDIxMGMgLVggbWFpbi5Db21taXREYXRlPTE2Nzg3ODkzMTQgLVggbWFpbi5UcmVlU3RhdGU9Y2xlYW4iLCItbyIsImJpbmFyeS1saW51eC1hbWQ2NCIsIi4vY21kL3NlcnZlci9tYWluLmdvIl0sImVudiI6WyJHT09TPWxpbnV4IiwiR09BUkNIPWFtZDY0IiwiQ0dPX0VOQUJMRUQ9MCIsIkdPMTExTU9EVUxFPW9uIl19XSwidmVyc2lvbiI6MX0sIm1ldGFkYXRhIjp7ImJ1aWxkSW52b2NhdGlvbklEIjoiNDQxNDY0MDY1OC0xIiwiY29tcGxldGVuZXNzIjp7InBhcmFtZXRlcnMiOnRydWUsImVudmlyb25tZW50IjpmYWxzZSwibWF0ZXJpYWxzIjpmYWxzZX0sInJlcHJvZHVjaWJsZSI6ZmFsc2V9LCJtYXRlcmlhbHMiOlt7InVyaSI6ImdpdCtodHRwczovL2dpdGh1Yi5jb20vc2VlZHdpbmctaW8vc2VlZHdpbmctZ29sYW5nLWV4YW1wbGVAcmVmcy90YWdzL3YwLjEuMTUiLCJkaWdlc3QiOnsic2hhMSI6ImI2MDFjMzBiMzFjNGU4MzFiMWE4NDE4ZmQxOTNmMDRjMjc1ZDIxMGMifX0seyJ1cmkiOiJodHRwczovL2dpdGh1Yi5jb20vYWN0aW9ucy92aXJ0dWFsLWVudmlyb25tZW50cy9yZWxlYXNlcy90YWcvdWJ1bnR1MjIvMjAyMzAzMDUuMSJ9XX19",
+  "signatures": [
+    {
+      "keyid": "",
+      "sig": "MEUCIQCqzZFn+1aoTTKyoBUavC/GL9gE6OlyXE82ESBVplp9lAIgBMZn8wFaVIkh90nIyKjqYWnOijvZhIuVOk28M2Qgn0U=",
+      "cert": "-----BEGIN CERTIFICATE-----\nMIIDwDCCA0agAwIBAgIULJZj6eAZtsWdIHFrKg+M+LVdNA0wCgYIKoZIzj0EAwMw\nNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl\ncm1lZGlhdGUwHhcNMjMwMzE0MTAyNTA1WhcNMjMwMzE0MTAzNTA1WjAAMFkwEwYH\nKoZIzj0CAQYIKoZIzj0DAQcDQgAEmIAvXVLTh66E3WdWRFZsVSHOUCk0mL+k4KIv\naN39hGzHgpz3jZvbZw6xShrbuVXUn01APrM/QhtaVa1bmeBKWKOCAmUwggJhMA4G\nA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUdnHr\n9JtQeBQGVxmSBdXqA2xCUyUwHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y\nZD8wfQYDVR0RAQH/BHMwcYZvaHR0cHM6Ly9naXRodWIuY29tL3Nsc2EtZnJhbWV3\nb3JrL3Nsc2EtZ2l0aHViLWdlbmVyYXRvci8uZ2l0aHViL3dvcmtmbG93cy9idWls\nZGVyX2dvX3Nsc2EzLnltbEByZWZzL3RhZ3MvdjEuNS4wMDkGCisGAQQBg78wAQEE\nK2h0dHBzOi8vdG9rZW4uYWN0aW9ucy5naXRodWJ1c2VyY29udGVudC5jb20wEgYK\nKwYBBAGDvzABAgQEcHVzaDA2BgorBgEEAYO/MAEDBChiNjAxYzMwYjMxYzRlODMx\nYjFhODQxOGZkMTkzZjA0YzI3NWQyMTBjMBMGCisGAQQBg78wAQQEBUdvIENJMDEG\nCisGAQQBg78wAQUEI3NlZWR3aW5nLWlvL3NlZWR3aW5nLWdvbGFuZy1leGFtcGxl\nMB8GCisGAQQBg78wAQYEEXJlZnMvdGFncy92MC4xLjE1MIGKBgorBgEEAdZ5AgQC\nBHwEegB4AHYA3T0wasbHETJjGR4cmWc3AqJKXrjePK3/h4pygC8p7o4AAAGG36by\nJgAABAMARzBFAiEA9rbuMD3hxqdm4BSY16cgpiE0+ZmfHNOEn8knRjzpwZECIDgh\n6kX4wM9d5IPilvFzn2x++ISKXiOKvfrKn1kKThTwMAoGCCqGSM49BAMDA2gAMGUC\nMEO/jxmuiPiPdfVDDcXAEZ0HTRUp9Wpcsf8vXdu1j84Uwoug53ivlumXoFq7heK1\ntgIxAPCol997A8+NqKUierl9DaEwhApnGZUS5rv1/SqjplJIHhELqT36h64yw9uC\nkP8eDg==\n-----END CERTIFICATE-----\n"
+    }
+  ]
+}
+```
+After this function has executed sucessfully the signature of the envelope will
+have been verified using the `attesters` specified, and the subject in the
+payload will also have been verified. 
+
+The ouptut of this function contains the following fields;
+* predicate_type     The type of the predicate.
+* predicate          The predicate itself.
+* attesters_names    The attesters names that verified the signature.
+* artifact_names     The artifact names that were verified.
+
+This data can then be passed onto other pattenrs for further evaluating rules
+for different predicate types.
+
+Example output:
+```
+{
+  "attesters_names": [
+    "dan"
+  ],
+  "predicate": {
+    "buildConfig": {
+      "steps": [
+        {
+          "command": [
+            "/opt/hostedtoolcache/go/1.17.13/x64/bin/go",
+            "mod",
+            "vendor"
+          ],
+          "env": null,
+          "workingDir": "/home/runner/work/seedwing-golang-example/seedwing-golang-example/__PROJECT_CHECKOUT_DIR__"
+        },
+        {
+          "command": [
+            "/opt/hostedtoolcache/go/1.17.13/x64/bin/go",
+            "build",
+            "-mod=vendor",
+            "-trimpath",
+            "-tags=netgo",
+            "-ldflags=-X main.Version=0.1.15 -X main.Commit=b601c30b31c4e831b1a8418fd193f04c275d210c -X main.CommitDate=1678789314 -X main.TreeState=clean",
+            "-o",
+            "binary-linux-amd64",
+            "./cmd/server/main.go"
+          ],
+          "env": [
+            "GOOS=linux",
+            "GOARCH=amd64",
+            "CGO_ENABLED=0",
+            "GO111MODULE=on"
+          ],
+          "workingDir": "/home/runner/work/seedwing-golang-example/seedwing-golang-example/__PROJECT_CHECKOUT_DIR__"
+        }
+      ],
+      "version": 1
+    },
+    "buildType": "https://github.com/slsa-framework/slsa-github-generator/go@v1",
+    "builder": {
+      "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@refs/tags/v1.5.0"
+    },
+    "invocation": {
+      "configSource": {
+        "digest": {
+          "sha1": "b601c30b31c4e831b1a8418fd193f04c275d210c"
+        },
+        "entryPoint": ".github/workflows/ci.yaml",
+        "uri": "git+https://github.com/seedwing-io/seedwing-golang-example@refs/tags/v0.1.15"
+      },
+      "environment": {
+        "arch": "X64",
+        "github_actor": "lulf",
+        "github_actor_id": "19670",
+        "github_base_ref": "",
+        "github_event_name": "push",
+        "github_event_payload": {
+          "after": "a6ad165964428b024868f0bbed97cca46d054878",
+          "base_ref": null,
+          "before": "0000000000000000000000000000000000000000",
+          "commits": [],
+          "compare": "https://github.com/seedwing-io/seedwing-golang-example/compare/v0.1.15",
+          "created": true,
+          "deleted": false,
+          "forced": false,
+          "head_commit": {
+            "author": {
+              "email": "lulf@redhat.com",
+              "name": "Ulf Lilleengen",
+              "username": "lulf"
+            },
+            "committer": {
+              "email": "lulf@redhat.com",
+              "name": "Ulf Lilleengen",
+              "username": "lulf"
+            },
+            "distinct": true,
+            "id": "b601c30b31c4e831b1a8418fd193f04c275d210c",
+            "message": "add missing checkout step",
+            "timestamp": "2023-03-14T11:21:54+01:00",
+            "tree_id": "26084d57681c97b19ca79f1ffb3d7b94000c796e",
+            "url": "https://github.com/seedwing-io/seedwing-golang-example/commit/b601c30b31c4e831b1a8418fd193f04c275d210c"
+          },
+          "organization": {
+            "avatar_url": "https://avatars.githubusercontent.com/u/114114329?v=4",
+            "description": "",
+            "events_url": "https://api.github.com/orgs/seedwing-io/events",
+            "hooks_url": "https://api.github.com/orgs/seedwing-io/hooks",
+            "id": 114114329,
+            "issues_url": "https://api.github.com/orgs/seedwing-io/issues",
+            "login": "seedwing-io",
+            "members_url": "https://api.github.com/orgs/seedwing-io/members{/member}",
+            "node_id": "O_kgDOBs0_GQ",
+            "public_members_url": "https://api.github.com/orgs/seedwing-io/public_members{/member}",
+            "repos_url": "https://api.github.com/orgs/seedwing-io/repos",
+            "url": "https://api.github.com/orgs/seedwing-io"
+          },
+          "pusher": {
+            "email": "ulf.lilleengen@gmail.com",
+            "name": "lulf"
+          },
+          "ref": "refs/tags/v0.1.15",
+          "repository": {
+            "allow_forking": true,
+            "archive_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/{archive_format}{/ref}",
+            "archived": false,
+            "assignees_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/assignees{/user}",
+            "blobs_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/blobs{/sha}",
+            "branches_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/branches{/branch}",
+            "clone_url": "https://github.com/seedwing-io/seedwing-golang-example.git",
+            "collaborators_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/collaborators{/collaborator}",
+            "comments_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/comments{/number}",
+            "commits_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/commits{/sha}",
+            "compare_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/compare/{base}...{head}",
+            "contents_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/contents/{+path}",
+            "contributors_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/contributors",
+            "created_at": 1678710703,
+            "default_branch": "main",
+            "deployments_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/deployments",
+            "description": "Example using Seedwing with Golang",
+            "disabled": false,
+            "downloads_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/downloads",
+            "events_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/events",
+            "fork": false,
+            "forks": 0,
+            "forks_count": 0,
+            "forks_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/forks",
+            "full_name": "seedwing-io/seedwing-golang-example",
+            "git_commits_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/commits{/sha}",
+            "git_refs_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/refs{/sha}",
+            "git_tags_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/tags{/sha}",
+            "git_url": "git://github.com/seedwing-io/seedwing-golang-example.git",
+            "has_discussions": false,
+            "has_downloads": true,
+            "has_issues": true,
+            "has_pages": false,
+            "has_projects": true,
+            "has_wiki": true,
+            "homepage": null,
+            "hooks_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/hooks",
+            "html_url": "https://github.com/seedwing-io/seedwing-golang-example",
+            "id": 613362596,
+            "is_template": false,
+            "issue_comment_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues/comments{/number}",
+            "issue_events_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues/events{/number}",
+            "issues_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues{/number}",
+            "keys_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/keys{/key_id}",
+            "labels_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/labels{/name}",
+            "language": "Go",
+            "languages_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/languages",
+            "license": {
+              "key": "apache-2.0",
+              "name": "Apache License 2.0",
+              "node_id": "MDc6TGljZW5zZTI=",
+              "spdx_id": "Apache-2.0",
+              "url": "https://api.github.com/licenses/apache-2.0"
+            },
+            "master_branch": "main",
+            "merges_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/merges",
+            "milestones_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/milestones{/number}",
+            "mirror_url": null,
+            "name": "seedwing-golang-example",
+            "node_id": "R_kgDOJI8rpA",
+            "notifications_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/notifications{?since,all,participating}",
+            "open_issues": 0,
+            "open_issues_count": 0,
+            "organization": "seedwing-io",
+            "owner": {
+              "avatar_url": "https://avatars.githubusercontent.com/u/114114329?v=4",
+              "email": null,
+              "events_url": "https://api.github.com/users/seedwing-io/events{/privacy}",
+              "followers_url": "https://api.github.com/users/seedwing-io/followers",
+              "following_url": "https://api.github.com/users/seedwing-io/following{/other_user}",
+              "gists_url": "https://api.github.com/users/seedwing-io/gists{/gist_id}",
+              "gravatar_id": "",
+              "html_url": "https://github.com/seedwing-io",
+              "id": 114114329,
+              "login": "seedwing-io",
+              "name": "seedwing-io",
+              "node_id": "O_kgDOBs0_GQ",
+              "organizations_url": "https://api.github.com/users/seedwing-io/orgs",
+              "received_events_url": "https://api.github.com/users/seedwing-io/received_events",
+              "repos_url": "https://api.github.com/users/seedwing-io/repos",
+              "site_admin": false,
+              "starred_url": "https://api.github.com/users/seedwing-io/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/seedwing-io/subscriptions",
+              "type": "Organization",
+              "url": "https://api.github.com/users/seedwing-io"
+            },
+            "private": false,
+            "pulls_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/pulls{/number}",
+            "pushed_at": 1678789321,
+            "releases_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/releases{/id}",
+            "size": 35,
+            "ssh_url": "git@github.com:seedwing-io/seedwing-golang-example.git",
+            "stargazers": 0,
+            "stargazers_count": 0,
+            "stargazers_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/stargazers",
+            "statuses_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/statuses/{sha}",
+            "subscribers_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/subscribers",
+            "subscription_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/subscription",
+            "svn_url": "https://github.com/seedwing-io/seedwing-golang-example",
+            "tags_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/tags",
+            "teams_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/teams",
+            "topics": [],
+            "trees_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/trees{/sha}",
+            "updated_at": "2023-03-13T12:37:57Z",
+            "url": "https://github.com/seedwing-io/seedwing-golang-example",
+            "visibility": "public",
+            "watchers": 0,
+            "watchers_count": 0,
+            "web_commit_signoff_required": false
+          },
+          "sender": {
+            "avatar_url": "https://avatars.githubusercontent.com/u/19670?v=4",
+            "events_url": "https://api.github.com/users/lulf/events{/privacy}",
+            "followers_url": "https://api.github.com/users/lulf/followers",
+            "following_url": "https://api.github.com/users/lulf/following{/other_user}",
+            "gists_url": "https://api.github.com/users/lulf/gists{/gist_id}",
+            "gravatar_id": "",
+            "html_url": "https://github.com/lulf",
+            "id": 19670,
+            "login": "lulf",
+            "node_id": "MDQ6VXNlcjE5Njcw",
+            "organizations_url": "https://api.github.com/users/lulf/orgs",
+            "received_events_url": "https://api.github.com/users/lulf/received_events",
+            "repos_url": "https://api.github.com/users/lulf/repos",
+            "site_admin": false,
+            "starred_url": "https://api.github.com/users/lulf/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/lulf/subscriptions",
+            "type": "User",
+            "url": "https://api.github.com/users/lulf"
+          }
+        },
+        "github_head_ref": "",
+        "github_ref": "refs/tags/v0.1.15",
+        "github_ref_type": "tag",
+        "github_repository_id": "613362596",
+        "github_repository_owner": "seedwing-io",
+        "github_repository_owner_id": "114114329",
+        "github_run_attempt": "1",
+        "github_run_id": "4414640658",
+        "github_run_number": "18",
+        "github_sha1": "b601c30b31c4e831b1a8418fd193f04c275d210c",
+        "os": "ubuntu22"
+      },
+      "parameters": {}
+    },
+    "materials": [
+      {
+        "digest": {
+          "sha1": "b601c30b31c4e831b1a8418fd193f04c275d210c"
+        },
+        "uri": "git+https://github.com/seedwing-io/seedwing-golang-example@refs/tags/v0.1.15"
+      },
+      {
+        "uri": "https://github.com/actions/virtual-environments/releases/tag/ubuntu22/20230305.1"
+      }
+    ],
+    "metadata": {
+      "buildInvocationID": "4414640658-1",
+      "completeness": {
+        "environment": false,
+        "materials": false,
+        "parameters": true
+      },
+      "reproducible": false
+    }
+  },
+  "predicate_type": "https://slsa.dev/provenance/v0.2"
+}
+```
+
+[envelope]: https://github.com/in-toto/attestation/blob/main/spec/v1.0-draft/envelope.md
