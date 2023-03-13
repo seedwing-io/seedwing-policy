@@ -1,4 +1,5 @@
 
+/// SLSA 1.0 build provenance statement.
 pattern provenance = {
   _type: "https://in-toto.io/Statement/v0.1",
   subject: anything,
@@ -6,87 +7,90 @@ pattern provenance = {
   predicate: predicate,
 }
 
-
+/// SLSA 1.0 predicate.
 pattern predicate = {
-  /// The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
+  // The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
   buildDefinition: build-definition,
-  /// Details specific to this particular execution of the build.
+  // Details specific to this particular execution of the build.
   runDetails: run-details,
 }
 
+/// The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
 pattern build-definition = {
-  /// Identifies the template for how to perform the build and interpret the parameters and dependencies.
-  ///
-  /// The URI SHOULD resolve to a human-readable specification that includes: overall description of the build type; schema for externalParameters and
-  /// systemParameters; unambiguous instructions for how to initiate the build given this BuildDefinition, and a complete example.
-  /// Example: https://slsa.dev/github-actions-workflow/v1
-  buildType: string,
+  // Identifies the template for how to perform the build and interpret the parameters and dependencies.
+  buildType: build-type,
 
-  /// The parameters that are under external control, such as those set by a user or tenant of the build system. They MUST be complete at SLSA Build L3,
-  /// meaning that that there is no additional mechanism for an external party to influence the build. (At lower SLSA Build levels, the completeness MAY
-  /// be best effort.)
-  ///
-  /// The build system SHOULD be designed to minimize the size and complexity of externalParameters, in order to reduce fragility and ease verification.
-  /// Consumers SHOULD have an expectation of what “good” looks like; the more information that they need to check, the harder that task becomes.
+  // The parameters that are under external control, such as those set by a user or tenant of the build system. They MUST be complete at SLSA Build L3,
+  // meaning that that there is no additional mechanism for an external party to influence the build. (At lower SLSA Build levels, the completeness MAY
+  // be best effort.)
   externalParameters: json::json,
 
-  /// The parameters that are under the control of the entity represented by builder.id. The primary intention of this field is for debugging, incident
-  /// response, and vulnerability management. The values here MAY be necessary for reproducing the build. There is no need to verify these parameters
-  /// because the build system is already trusted, and in many cases it is not practical to do so.
+  // The parameters that are under the control of the entity represented by builder.id. The primary intention of this field is for debugging, incident
+  // response, and vulnerability management. The values here MAY be necessary for reproducing the build. There is no need to verify these parameters
+  // because the build system is already trusted, and in many cases it is not practical to do so.
   systemParameters?: json::json,
 
-  /// Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
-  /// script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
-  /// listed here.
+  // Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
+  // script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
+  // listed here.
   resolvedDependencies?: list::all<artifact-reference>,
 }
 
-/// Reference to an artifact used in the
-pattern artifact-reference = {
-  // TODO: At least uri _or_ digest
-  /// URI describing where this artifact came from. When possible, this SHOULD be a universal and stable identifier, such as a source location or Package URL.
-  uri: uri::uri,
-  /// One or more cryptographic digests of the contents of this artifact.
-  digest?: json::json,
-  /// The name for this artifact local to the build.
-  localName?: string,
-  /// URI identifying the location that this artifact was downloaded from, if different and not derivable from uri.
-  downloadLocation?: string,
-  /// Media type (aka MIME type) of this artifact was interpreted.
-  mediaType?: string
-}
+/// Identifies the template for how to perform the build and interpret the parameters and dependencies.
+pattern build-type = string
 
+/// Details specific to this particular execution of the build.
 pattern run-details = {
-  /// Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
+  // Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
   builder: builder,
-  /// Metadata about this particular execution of the build.
+  // Metadata about this particular execution of the build.
   metadata: build-metadata,
-  /// Additional artifacts generated during the build that are not considered the “output” of the build but that might be needed during debugging or incident response.
-  /// For example, this might reference logs generated during the build and/or a digest of the fully evaluated build configuration. In most cases, this SHOULD NOT
-  /// contain all intermediate files generated during the build. Instead, this SHOULD only contain files that are likely to be useful later and that cannot be easily reproduced.
+  // Additional artifacts generated during the build that are not considered the “output” of the build but that might be needed during debugging or incident response.
+  // For example, this might reference logs generated during the build and/or a digest of the fully evaluated build configuration. In most cases, this SHOULD NOT
+  // contain all intermediate files generated during the build. Instead, this SHOULD only contain files that are likely to be useful later and that cannot be easily reproduced.
   byproducts?: list::all<artifact-reference>,
 }
 
+/// Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
 pattern builder = {
-  /// URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
-  ///
-  /// If a build platform has multiple modes of operations that have differing security attributes or SLSA Build levels, each mode MUST
-  /// have a different builder.id and SHOULD have a different signer identity. This is to minimize the risk that a less secure mode
-  /// compromises a more secure one.
-  id: string,
-  /// Version numbers of components of the builder.
+  // URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
+  id: builder-id,
+  // Version numbers of components of the builder.
   version?: string,
-  /// Dependencies used by the orchestrator that are not run within the workload and that do not affect the build, but might affect the
-  /// provenance generation or security guarantees.
+  // Dependencies used by the orchestrator that are not run within the workload and that do not affect the build, but might affect the
+  // provenance generation or security guarantees.
   builderDependencies?: list::all<artifact-reference>,
 }
 
+/// URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
+///
+/// If a build platform has multiple modes of operations that have differing security attributes or SLSA Build levels, each mode MUST
+/// have a different builder.id and SHOULD have a different signer identity. This is to minimize the risk that a less secure mode
+/// compromises a more secure one.
+pattern builder-id = string
+
+/// Metadata about this particular execution of the build.
 pattern build-metadata = {
-  /// Identifies this particular build invocation, which can be useful for finding associated logs or other ad-hoc analysis. The exact meaning and format is defined by builder.id;
-  /// by default it is treated as opaque and case-sensitive. The value SHOULD be globally unique.
+  // Identifies this particular build invocation, which can be useful for finding associated logs or other ad-hoc analysis. The exact meaning and format is defined by builder.id;
+  // by default it is treated as opaque and case-sensitive. The value SHOULD be globally unique.
   invocationId?: string,
-  /// The timestamp of when the build started.
+  // The timestamp of when the build started.
   startedOn?: timestamp::iso8601,
-  /// The timestamp of when the build completed.
+  // The timestamp of when the build completed.
   finishedOn?: timestamp::iso8601,
+}
+
+/// Reference to an artifact used in the build or by the builder.
+pattern artifact-reference = {
+  // TODO: At least uri _or_ digest
+  // URI describing where this artifact came from. When possible, this SHOULD be a universal and stable identifier, such as a source location or Package URL.
+  uri: uri::url,
+  // One or more cryptographic digests of the contents of this artifact.
+  digest?: json::json,
+  // The name for this artifact local to the build.
+  localName?: string,
+  // URI identifying the location that this artifact was downloaded from, if different and not derivable from uri.
+  downloadLocation?: string,
+  // Media type (aka MIME type) of this artifact was interpreted.
+  mediaType?: string
 }
