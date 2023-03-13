@@ -23,12 +23,12 @@ pattern build-definition = {
   // The parameters that are under external control, such as those set by a user or tenant of the build system. They MUST be complete at SLSA Build L3,
   // meaning that that there is no additional mechanism for an external party to influence the build. (At lower SLSA Build levels, the completeness MAY
   // be best effort.)
-  externalParameters: json::json,
+  externalParameters: anything,
 
   // The parameters that are under the control of the entity represented by builder.id. The primary intention of this field is for debugging, incident
   // response, and vulnerability management. The values here MAY be necessary for reproducing the build. There is no need to verify these parameters
   // because the build system is already trusted, and in many cases it is not practical to do so.
-  systemParameters?: json::json,
+  systemParameters?: anything,
 
   // Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
   // script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
@@ -44,7 +44,7 @@ pattern run-details = {
   // Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
   builder: builder,
   // Metadata about this particular execution of the build.
-  metadata: build-metadata,
+  metadata?: build-metadata,
   // Additional artifacts generated during the build that are not considered the “output” of the build but that might be needed during debugging or incident response.
   // For example, this might reference logs generated during the build and/or a digest of the fully evaluated build configuration. In most cases, this SHOULD NOT
   // contain all intermediate files generated during the build. Instead, this SHOULD only contain files that are likely to be useful later and that cannot be easily reproduced.
@@ -86,7 +86,7 @@ pattern artifact-reference = {
   // URI describing where this artifact came from. When possible, this SHOULD be a universal and stable identifier, such as a source location or Package URL.
   uri: uri::url,
   // One or more cryptographic digests of the contents of this artifact.
-  digest?: json::json,
+  digest?: anything,
   // The name for this artifact local to the build.
   localName?: string,
   // URI identifying the location that this artifact was downloaded from, if different and not derivable from uri.
