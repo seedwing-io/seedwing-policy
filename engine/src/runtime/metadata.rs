@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
-use std::sync::Arc;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ComponentMetadata {
