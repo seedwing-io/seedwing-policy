@@ -1,0 +1,78 @@
+/// SLSA 1.0 build provenance statement.
+pattern provenance = {
+  _type: "https://in-toto.io/Statement/v0.1",
+  subject: anything,
+  predicateType: "https://slsa.dev/provenance/v1-rc1",
+  predicate: predicate,
+}
+
+/// SLSA 1.0 predicate.
+pattern predicate = {
+  // The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
+  buildDefinition: build-definition,
+  // Details specific to this particular execution of the build.
+  runDetails: slsa::provenance::run-details,
+}
+
+/// A SLSA Provenance buildType that describes the execution of a GitHub Actions workflow.
+pattern build-definition = {
+  // Identifies the template for how to perform the build and interpret the parameters and dependencies.
+  buildType: "https://slsa.dev/github-actions-workflow/v1-rc1",
+
+  // The parameters that are under external control, such as those set by a user or tenant of the build system. They MUST be complete at SLSA Build L3,
+  // meaning that that there is no additional mechanism for an external party to influence the build. (At lower SLSA Build levels, the completeness MAY
+  // be best effort.)
+  externalParameters: external-parameters,
+
+  // The parameters that are under the control of the entity represented by builder.id. The primary intention of this field is for debugging, incident
+  // response, and vulnerability management. The values here MAY be necessary for reproducing the build. There is no need to verify these parameters
+  // because the build system is already trusted, and in many cases it is not practical to do so.
+  systemParameters: system-parameters,
+
+  // Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
+  // script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
+  // listed here.
+  resolvedDependencies?: list::all<slsa::provenance::artifact-reference>,
+}
+
+pattern external-parameters = {
+  deployment?: deployment,
+  inputs?: inputs,
+  release?: release,
+  vars?: anything,
+  workflow: workflow,
+}
+
+pattern deployment = {
+  description: string,
+  environment: string,
+  payload: string,
+  production_environment: string,
+  transient_environment: string,
+}
+
+pattern inputs = anything
+
+pattern release = {
+  body: string,
+  draft: string,
+  name: string,
+  prerelease: string,
+  target_commitish: string,
+}
+
+pattern workflow = {
+  ref: string,
+  repository: string,
+  path: string,
+}
+
+pattern system-parameters = {
+  github: {
+    actor_id: string,
+    event_name: string,
+    repository_id?: string,
+    repository_owner_id?: string,
+    triggering_actor_id?: string,
+  }
+}
