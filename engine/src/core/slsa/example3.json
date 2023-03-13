@@ -1,0 +1,278 @@
+{
+    "_type": "https://in-toto.io/Statement/v0.1",
+    "predicateType": "https://slsa.dev/provenance/v0.2",
+    "subject": [
+        {
+            "name": "binary-linux-amd64",
+            "digest": {
+                "sha256": "6c24ed3a0f41f404908ce5ce1b582d7182ab4d2dd3339418455e572a92035104"
+            }
+        }
+    ],
+    "predicate": {
+        "builder": {
+            "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@refs/tags/v1.5.0"
+        },
+        "buildType": "https://github.com/slsa-framework/slsa-github-generator/go@v1",
+        "invocation": {
+            "configSource": {
+                "uri": "git+https://github.com/seedwing-io/seedwing-golang-example@refs/tags/v0.1.1",
+                "digest": {
+                    "sha1": "7da0cb759beff0496f9cc5081b15a7576e82cad6"
+                },
+                "entryPoint": ".github/workflows/ci.yaml"
+            },
+            "parameters": {},
+            "environment": {
+                "arch": "X64",
+                "github_actor": "lulf",
+                "github_actor_id": "19670",
+                "github_base_ref": "",
+                "github_event_name": "push",
+                "github_event_payload": {
+                    "after": "d0d0af4294aea3692b16a35a4432c42124085ec2",
+                    "base_ref": null,
+                    "before": "0000000000000000000000000000000000000000",
+                    "commits": [],
+                    "compare": "https://github.com/seedwing-io/seedwing-golang-example/compare/v0.1.1",
+                    "created": true,
+                    "deleted": false,
+                    "forced": false,
+                    "head_commit": {
+                        "author": {
+                            "email": "lulf@redhat.com",
+                            "name": "Ulf Lilleengen",
+                            "username": "lulf"
+                        },
+                        "committer": {
+                            "email": "lulf@redhat.com",
+                            "name": "Ulf Lilleengen",
+                            "username": "lulf"
+                        },
+                        "distinct": true,
+                        "id": "7da0cb759beff0496f9cc5081b15a7576e82cad6",
+                        "message": "add entrypoint",
+                        "timestamp": "2023-03-13T13:47:08+01:00",
+                        "tree_id": "1e6386c25d13f61a5ade285e647acfcc534f2337",
+                        "url": "https://github.com/seedwing-io/seedwing-golang-example/commit/7da0cb759beff0496f9cc5081b15a7576e82cad6"
+                    },
+                    "organization": {
+                        "avatar_url": "https://avatars.githubusercontent.com/u/114114329?v=4",
+                        "description": "",
+                        "events_url": "https://api.github.com/orgs/seedwing-io/events",
+                        "hooks_url": "https://api.github.com/orgs/seedwing-io/hooks",
+                        "id": 114114329,
+                        "issues_url": "https://api.github.com/orgs/seedwing-io/issues",
+                        "login": "seedwing-io",
+                        "members_url": "https://api.github.com/orgs/seedwing-io/members{/member}",
+                        "node_id": "O_kgDOBs0_GQ",
+                        "public_members_url": "https://api.github.com/orgs/seedwing-io/public_members{/member}",
+                        "repos_url": "https://api.github.com/orgs/seedwing-io/repos",
+                        "url": "https://api.github.com/orgs/seedwing-io"
+                    },
+                    "pusher": {
+                        "email": "ulf.lilleengen@gmail.com",
+                        "name": "lulf"
+                    },
+                    "ref": "refs/tags/v0.1.1",
+                    "repository": {
+                        "allow_forking": true,
+                        "archive_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/{archive_format}{/ref}",
+                        "archived": false,
+                        "assignees_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/assignees{/user}",
+                        "blobs_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/blobs{/sha}",
+                        "branches_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/branches{/branch}",
+                        "clone_url": "https://github.com/seedwing-io/seedwing-golang-example.git",
+                        "collaborators_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/collaborators{/collaborator}",
+                        "comments_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/comments{/number}",
+                        "commits_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/commits{/sha}",
+                        "compare_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/compare/{base}...{head}",
+                        "contents_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/contents/{+path}",
+                        "contributors_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/contributors",
+                        "created_at": 1678710703,
+                        "default_branch": "main",
+                        "deployments_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/deployments",
+                        "description": "Example using Seedwing with Golang",
+                        "disabled": false,
+                        "downloads_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/downloads",
+                        "events_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/events",
+                        "fork": false,
+                        "forks": 0,
+                        "forks_count": 0,
+                        "forks_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/forks",
+                        "full_name": "seedwing-io/seedwing-golang-example",
+                        "git_commits_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/commits{/sha}",
+                        "git_refs_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/refs{/sha}",
+                        "git_tags_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/tags{/sha}",
+                        "git_url": "git://github.com/seedwing-io/seedwing-golang-example.git",
+                        "has_discussions": false,
+                        "has_downloads": true,
+                        "has_issues": true,
+                        "has_pages": false,
+                        "has_projects": true,
+                        "has_wiki": true,
+                        "homepage": null,
+                        "hooks_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/hooks",
+                        "html_url": "https://github.com/seedwing-io/seedwing-golang-example",
+                        "id": 613362596,
+                        "is_template": false,
+                        "issue_comment_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues/comments{/number}",
+                        "issue_events_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues/events{/number}",
+                        "issues_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/issues{/number}",
+                        "keys_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/keys{/key_id}",
+                        "labels_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/labels{/name}",
+                        "language": "Go",
+                        "languages_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/languages",
+                        "license": {
+                            "key": "apache-2.0",
+                            "name": "Apache License 2.0",
+                            "node_id": "MDc6TGljZW5zZTI=",
+                            "spdx_id": "Apache-2.0",
+                            "url": "https://api.github.com/licenses/apache-2.0"
+                        },
+                        "master_branch": "main",
+                        "merges_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/merges",
+                        "milestones_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/milestones{/number}",
+                        "mirror_url": null,
+                        "name": "seedwing-golang-example",
+                        "node_id": "R_kgDOJI8rpA",
+                        "notifications_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/notifications{?since,all,participating}",
+                        "open_issues": 0,
+                        "open_issues_count": 0,
+                        "organization": "seedwing-io",
+                        "owner": {
+                            "avatar_url": "https://avatars.githubusercontent.com/u/114114329?v=4",
+                            "email": null,
+                            "events_url": "https://api.github.com/users/seedwing-io/events{/privacy}",
+                            "followers_url": "https://api.github.com/users/seedwing-io/followers",
+                            "following_url": "https://api.github.com/users/seedwing-io/following{/other_user}",
+                            "gists_url": "https://api.github.com/users/seedwing-io/gists{/gist_id}",
+                            "gravatar_id": "",
+                            "html_url": "https://github.com/seedwing-io",
+                            "id": 114114329,
+                            "login": "seedwing-io",
+                            "name": "seedwing-io",
+                            "node_id": "O_kgDOBs0_GQ",
+                            "organizations_url": "https://api.github.com/users/seedwing-io/orgs",
+                            "received_events_url": "https://api.github.com/users/seedwing-io/received_events",
+                            "repos_url": "https://api.github.com/users/seedwing-io/repos",
+                            "site_admin": false,
+                            "starred_url": "https://api.github.com/users/seedwing-io/starred{/owner}{/repo}",
+                            "subscriptions_url": "https://api.github.com/users/seedwing-io/subscriptions",
+                            "type": "Organization",
+                            "url": "https://api.github.com/users/seedwing-io"
+                        },
+                        "private": false,
+                        "pulls_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/pulls{/number}",
+                        "pushed_at": 1678711655,
+                        "releases_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/releases{/id}",
+                        "size": 0,
+                        "ssh_url": "git@github.com:seedwing-io/seedwing-golang-example.git",
+                        "stargazers": 0,
+                        "stargazers_count": 0,
+                        "stargazers_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/stargazers",
+                        "statuses_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/statuses/{sha}",
+                        "subscribers_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/subscribers",
+                        "subscription_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/subscription",
+                        "svn_url": "https://github.com/seedwing-io/seedwing-golang-example",
+                        "tags_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/tags",
+                        "teams_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/teams",
+                        "topics": [],
+                        "trees_url": "https://api.github.com/repos/seedwing-io/seedwing-golang-example/git/trees{/sha}",
+                        "updated_at": "2023-03-13T12:37:57Z",
+                        "url": "https://github.com/seedwing-io/seedwing-golang-example",
+                        "visibility": "public",
+                        "watchers": 0,
+                        "watchers_count": 0,
+                        "web_commit_signoff_required": false
+                    },
+                    "sender": {
+                        "avatar_url": "https://avatars.githubusercontent.com/u/19670?v=4",
+                        "events_url": "https://api.github.com/users/lulf/events{/privacy}",
+                        "followers_url": "https://api.github.com/users/lulf/followers",
+                        "following_url": "https://api.github.com/users/lulf/following{/other_user}",
+                        "gists_url": "https://api.github.com/users/lulf/gists{/gist_id}",
+                        "gravatar_id": "",
+                        "html_url": "https://github.com/lulf",
+                        "id": 19670,
+                        "login": "lulf",
+                        "node_id": "MDQ6VXNlcjE5Njcw",
+                        "organizations_url": "https://api.github.com/users/lulf/orgs",
+                        "received_events_url": "https://api.github.com/users/lulf/received_events",
+                        "repos_url": "https://api.github.com/users/lulf/repos",
+                        "site_admin": false,
+                        "starred_url": "https://api.github.com/users/lulf/starred{/owner}{/repo}",
+                        "subscriptions_url": "https://api.github.com/users/lulf/subscriptions",
+                        "type": "User",
+                        "url": "https://api.github.com/users/lulf"
+                    }
+                },
+                "github_head_ref": "",
+                "github_ref": "refs/tags/v0.1.1",
+                "github_ref_type": "tag",
+                "github_repository_id": "613362596",
+                "github_repository_owner": "seedwing-io",
+                "github_repository_owner_id": "114114329",
+                "github_run_attempt": "1",
+                "github_run_id": "4405053340",
+                "github_run_number": "2",
+                "github_sha1": "7da0cb759beff0496f9cc5081b15a7576e82cad6",
+                "os": "ubuntu22"
+            }
+        },
+        "buildConfig": {
+            "steps": [
+                {
+                    "workingDir": "/home/runner/work/seedwing-golang-example/seedwing-golang-example/__PROJECT_CHECKOUT_DIR__",
+                    "command": [
+                        "/opt/hostedtoolcache/go/1.17.13/x64/bin/go",
+                        "mod",
+                        "vendor"
+                    ],
+                    "env": null
+                },
+                {
+                    "workingDir": "/home/runner/work/seedwing-golang-example/seedwing-golang-example/__PROJECT_CHECKOUT_DIR__",
+                    "command": [
+                        "/opt/hostedtoolcache/go/1.17.13/x64/bin/go",
+                        "build",
+                        "-mod=vendor",
+                        "-trimpath",
+                        "-tags=netgo",
+                        "-ldflags=-X main.Version=0.1.1 -X main.Commit=7da0cb759beff0496f9cc5081b15a7576e82cad6 -X main.CommitDate=1678711628 -X main.TreeState=clean",
+                        "-o",
+                        "binary-linux-amd64",
+                        "./cmd/server/main.go"
+                    ],
+                    "env": [
+                        "GOOS=linux",
+                        "GOARCH=amd64",
+                        "GO111MODULE=on",
+                        "CGO_ENABLED=0"
+                    ]
+                }
+            ],
+            "version": 1
+        },
+        "metadata": {
+            "buildInvocationID": "4405053340-1",
+            "completeness": {
+                "parameters": true,
+                "environment": false,
+                "materials": false
+            },
+            "reproducible": false
+        },
+        "materials": [
+            {
+                "uri": "git+https://github.com/seedwing-io/seedwing-golang-example@refs/tags/v0.1.1",
+                "digest": {
+                    "sha1": "7da0cb759beff0496f9cc5081b15a7576e82cad6"
+                }
+            },
+            {
+                "uri": "https://github.com/actions/virtual-environments/releases/tag/ubuntu22/20230305.1"
+            }
+        ]
+    }
+}

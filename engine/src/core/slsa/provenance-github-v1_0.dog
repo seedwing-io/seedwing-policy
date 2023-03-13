@@ -11,7 +11,7 @@ pattern predicate = {
   // The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
   buildDefinition: build-definition,
   // Details specific to this particular execution of the build.
-  runDetails: slsa::provenance::run-details,
+  runDetails: slsa::v1_0::run-details,
 }
 
 /// A SLSA Provenance buildType that describes the execution of a GitHub Actions workflow.
@@ -32,7 +32,7 @@ pattern build-definition = {
   // Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
   // script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
   // listed here.
-  resolvedDependencies?: list::all<slsa::provenance::artifact-reference>,
+  resolvedDependencies?: list::all<slsa::v1_0::artifact-reference>,
 }
 
 pattern external-parameters = {

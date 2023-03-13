@@ -1,0 +1,101 @@
+
+/// SLSA 0.2 build provenance statement.
+pattern provenance = {
+  _type: "https://in-toto.io/Statement/v0.1",
+  subject: anything,
+  predicateType: "https://slsa.dev/provenance/v0.2",
+  predicate: predicate,
+}
+
+/// SLSA 0.2 predicate.
+pattern predicate = {
+  // Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
+  builder: builder,
+  // Identifies the template for how to perform the build and interpret the parameters and dependencies.
+  buildType: build-type,
+  // Build invocation settings.
+  invocation: invocation,
+  // Build configuration
+  buildConfig: build-config,
+  // Build metadata
+  metadata: build-metadata,
+  // Bill of materials
+  materials?: list::all<artifact-reference>,
+}
+
+pattern invocation = {
+  configSource: config-source,
+  parameters: anything,
+  environment: anything,
+}
+
+pattern config-source = {
+  uri: uri::url,
+  digest: anything,
+  entryPoint: string,
+}
+
+/// Identifies the template for how to perform the build and interpret the parameters and dependencies.
+pattern build-type = string
+
+/// Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
+pattern builder = {
+  // URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
+  id: builder-id,
+  // Version numbers of components of the builder.
+  version?: string,
+  // Dependencies used by the orchestrator that are not run within the workload and that do not affect the build, but might affect the
+  // provenance generation or security guarantees.
+  builderDependencies?: list::all<artifact-reference>,
+}
+
+/// URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
+///
+/// If a build platform has multiple modes of operations that have differing security attributes or SLSA Build levels, each mode MUST
+/// have a different builder.id and SHOULD have a different signer identity. This is to minimize the risk that a less secure mode
+/// compromises a more secure one.
+pattern builder-id = string
+
+pattern build-config = {
+  steps?: list::all<build-step>,
+  version: anything,
+}
+
+pattern build-step = {
+  workingDir?: string,
+  command?: list::all<string>,
+  env?: anything,
+}
+
+/// Metadata about this particular execution of the build.
+pattern build-metadata = {
+  // Identifies this particular build invocation, which can be useful for finding associated logs or other ad-hoc analysis. The exact meaning and format is defined by builder.id;
+  // by default it is treated as opaque and case-sensitive. The value SHOULD be globally unique.
+  buildInvocationId?: string,
+  // The timestamp of when the build started.
+  buildStartedOn?: timestamp::iso8601,
+  // The timestamp of when the build completed.
+  buildFinishedOn?: timestamp::iso8601,
+  // Completeness
+  completeness?: {
+    parameters?: boolean,
+    environment?: boolean,
+    materials?: boolean,
+  },
+  reproducible?: boolean,
+}
+
+/// Reference to an artifact used in the build or by the builder.
+pattern artifact-reference = {
+  // TODO: At least uri _or_ digest
+  // URI describing where this artifact came from. When possible, this SHOULD be a universal and stable identifier, such as a source location or Package URL.
+  uri: uri::url,
+  // One or more cryptographic digests of the contents of this artifact.
+  digest?: anything,
+  // The name for this artifact local to the build.
+  localName?: string,
+  // URI identifying the location that this artifact was downloaded from, if different and not derivable from uri.
+  downloadLocation?: string,
+  // Media type (aka MIME type) of this artifact was interpreted.
+  mediaType?: string
+}

@@ -285,7 +285,8 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 [[package]]
 name = "csaf"
 version = "0.4.0"
-source = "git+https://github.com/lulf/csaf-rs.git?rev=10be54eca5fde155c639938fb3d7b54ed8854820#10be54eca5fde155c639938fb3d7b54ed8854820"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72e1cffa4399d3aa89ac92a3b4b05a6c07cd6f24245f618260051a9cdb62a8f6"
 dependencies = [
  "chrono",
  "cpe",
@@ -298,9 +299,9 @@ dependencies = [
 
 [[package]]
 name = "cvss"
-version = "1.0.2"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "829862dabeab142ae0efd558d42d8fd874659268ccd810809ac6f1ee6bfcbd3f"
+checksum = "7ec6a2f799b0e3103192800872de17ee1d39fe0c598628277b9b012f09b4010f"
 dependencies = [
  "serde",
 ]
@@ -1296,7 +1297,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c53362339d1c48910f1b0c35e2ae96e2d32e442c7dc3ac5f622908ec87221f08"
 dependencies = [
  "percent-encoding",
- "serde",
  "thiserror",
 ]
 
