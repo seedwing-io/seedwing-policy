@@ -93,7 +93,6 @@ impl Purl {
         match name.splitn(2, '@').collect::<Vec<_>>().as_slice() {
             [name] => {
                 result.set("name", *name);
-                result.set("version", *name);
             }
             [name, version] => {
                 result.set("name", *name);
@@ -254,6 +253,22 @@ mod test {
                         "arch": "i386",
                         "distro": "fedora-25",
                     },
+                })
+                .into()
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_purl_6() {
+        let result = test_pattern(r#"uri::purl"#, "pkg:pypi/django").await;
+
+        assert_eq!(
+            result.output(),
+            Some(Arc::new(
+                json!({
+                    "type": "pypi",
+                    "name": "django",
                 })
                 .into()
             ))
