@@ -33,6 +33,7 @@ pub mod pem;
 pub mod rhsa;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
+pub mod slsa;
 pub mod spdx;
 pub mod string;
 pub mod timestamp;
