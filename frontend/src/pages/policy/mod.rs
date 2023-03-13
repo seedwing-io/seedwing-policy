@@ -385,7 +385,9 @@ impl TableEntryRenderer for PatternRow {
                     <Link<AppRoute> target={AppRoute::Policy {path}}>{&self.1.name.as_deref().unwrap_or("")}</Link<AppRoute>>
                 )
             },
-            1 => html!(),
+            1 => html!(
+                <p>{&self.1.documentation.as_deref().unwrap_or("")}</p>
+            ),
             _ => html!(),
         }.into()
     }
