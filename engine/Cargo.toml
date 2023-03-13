@@ -28,6 +28,7 @@ anyhow = "1"
 tokio = "*"
 rand = "0.8.5"
 num-integer = "0.1.45"
+sha2 = "0.10.6"
 
 # functions
 sigstore = { version = "0.6.0", optional = true }

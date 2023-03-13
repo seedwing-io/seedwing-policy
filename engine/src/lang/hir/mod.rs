@@ -390,6 +390,7 @@ impl World {
         world.add_package(crate::core::csaf::package());
         world.add_package(crate::core::rhsa::package());
         world.add_package(crate::core::slsa::package());
+        world.add_package(crate::core::intoto::package());
 
         #[cfg(feature = "debug")]
         world.add_package(crate::core::debug::package());

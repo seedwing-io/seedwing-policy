@@ -21,6 +21,7 @@ pub mod data;
 pub mod debug;
 pub mod external;
 pub mod guac;
+pub mod intoto;
 pub mod iso;
 pub mod jsf;
 pub mod json;
