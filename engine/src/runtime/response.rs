@@ -62,6 +62,10 @@ impl Response {
             _ => true,
         }
     }
+    fn rename(mut self, s: &String) -> Self {
+        self.name = Some(PatternName::new(None, s.clone()));
+        self
+    }
 }
 
 fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
@@ -136,18 +140,7 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
     match result.rationale() {
         Rationale::Object(fields) => fields
             .iter()
-            .filter_map(|(n, r)| {
-                r.as_ref().map(|er| {
-                    let mut v = Response::new(er);
-                    match v.name {
-                        Some(_) => v,
-                        None => {
-                            v.name = Some(PatternName::new(None, n.clone()));
-                            v
-                        }
-                    }
-                })
-            })
+            .filter_map(|(n, r)| r.as_ref().map(|er| Response::new(er).rename(n)))
             .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
@@ -224,14 +217,10 @@ mod test {
 
     #[tokio::test]
     async fn object_field_names() {
-        let result = test_pattern(
-            r#"{ name: string, trained: boolean }"#,
-            json!({"name": "goodboy", "trained": "true"}),
-        )
-        .await;
+        let result = test_pattern(r#"{ trained: boolean }"#, json!({"trained": "true"})).await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"name":"goodboy","trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"string","input":"goodboy","output":"goodboy","satisfied":true},{"name":"boolean","input":"true","satisfied":false}]}"#,
+            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
