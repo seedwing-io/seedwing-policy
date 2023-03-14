@@ -72,6 +72,10 @@ Seedwing Policy is guaranteed to compile on the latest stable Rust version at th
 
 See [CONTRIBUTING.md](CONTRIBUTING.md#setup)
 
+## Releasing
+
+The release process is documented in [RELEASE.md](RELEASE).
+
 ## License
 
 Apache License, Version 2.0 ([LICENSE](LICENSE))
