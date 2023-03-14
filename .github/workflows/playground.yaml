@@ -1,0 +1,30 @@
+name: playground
+
+on:
+  workflow_call:
+    inputs:
+      imageTag:
+        description: The image tag
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: The image tag
+        required: true
+        type: string
+        default: latest
+
+env:
+  IMAGE_TAG: ${{ inputs.imageTag }}
+
+jobs:
+  tag:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Tag it
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow -R https://github.com/seedwing-io/playground.seedwing.io run deploy -F tag="${{ env.IMAGE_TAG }}"
