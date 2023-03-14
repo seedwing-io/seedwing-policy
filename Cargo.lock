@@ -3274,7 +3274,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-engine"
-version = "0.1.0-alpha.23"
+version = "0.1.0"
 dependencies = [
  "actix-rt",
  "anyhow",
@@ -3314,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "seedwing-policy-server"
-version = "0.1.0-alpha.23"
+version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
@@ -3758,7 +3758,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "swio"
-version = "0.1.0-alpha.23"
+version = "0.1.0"
 dependencies = [
  "actix-rt",
  "clap 4.1.6",
