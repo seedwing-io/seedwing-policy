@@ -628,7 +628,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23170228b96236b5a7299057ac284a321457700bc8c41a4476052f0f4ba5349d"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.12.3",
  "stacker",
 ]
 
@@ -742,6 +742,19 @@ checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
  "unicode-width",
+]
+
+[[package]]
+name = "combine"
+version = "3.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da3da6baa321ec19e1cc41d31bf599f00c783d0517095cdaf0332e3fe8d20680"
+dependencies = [
+ "ascii",
+ "byteorder",
+ "either",
+ "memchr",
+ "unreachable",
 ]
 
 [[package]]
@@ -1617,7 +1630,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2ebc8013b4426d5b81a4364c419a95ed0b404af2b82e2457de52d9348f0e474"
 dependencies = [
- "combine",
+ "combine 3.8.1",
  "thiserror",
 ]
 
@@ -2021,7 +2034,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "039022cdf4d7b1cf548d31f60ae783138e5fd42013f6271049d7df7afadef96c"
 dependencies = [
  "cesu8",
- "combine",
+ "combine 4.6.6",
  "jni-sys",
  "log",
  "thiserror",
@@ -3373,6 +3386,7 @@ dependencies = [
  "cidr",
  "criterion",
  "csaf",
+ "env_logger 0.10.0",
  "futures-util",
  "guac-rs",
  "http",
@@ -3389,7 +3403,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.10.6",
+ "sha2",
  "sigstore",
  "spdx",
  "thiserror",

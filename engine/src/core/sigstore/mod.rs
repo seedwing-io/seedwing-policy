@@ -17,9 +17,12 @@ use std::pin::Pin;
 use crate::lang::PatternMeta;
 use std::sync::Arc;
 
+mod verify;
+
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["sigstore"]));
     pkg.register_function("sha256".into(), SHA256);
+    pkg.register_function("verify-blob".into(), verify::VerifyBlob);
     pkg
 }
 
