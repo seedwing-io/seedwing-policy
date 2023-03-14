@@ -1,5 +1,5 @@
 use patternfly_yew::prelude::*;
-use seedwing_policy_engine::runtime::{PatternName, Response};
+use seedwing_policy_engine::runtime::{Response};
 use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;
@@ -117,14 +117,14 @@ pub fn result_tree(props: &ResultViewProps) -> Html {
 
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]
 struct PatternNameProps {
-    pub name: PatternName,
+    pub name: String,
 }
 
 #[function_component(PatternNameView)]
 fn pattern_name(props: &PatternNameProps) -> Html {
     html!(
         <span>
-            { props.name.as_type_str() }
+            { props.name.to_string() }
         </span>
     )
 }
