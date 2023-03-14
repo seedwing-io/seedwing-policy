@@ -31,6 +31,7 @@ jobs:
       - uses: rickstaa/action-create-tag@v1
         id: "tag_create"
         with:
+          github_token: "${{ secrets.NIGHTLY_TOKEN }}"
           tag: "v${{ needs.args.outputs.version }}-nightly.${{ needs.args.outputs.commit }}"
           tag_exists_error: false
           message: "Latest nightly release"
