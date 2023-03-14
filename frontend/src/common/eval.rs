@@ -1,5 +1,5 @@
 use patternfly_yew::prelude::*;
-use seedwing_policy_engine::runtime::{Response};
+use seedwing_policy_engine::runtime::Response;
 use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;
