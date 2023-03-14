@@ -136,7 +136,18 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
     match result.rationale() {
         Rationale::Object(fields) => fields
             .iter()
-            .filter_map(|(_, r)| r.as_ref().map(Response::new))
+            .filter_map(|(n, r)| {
+                r.as_ref().map(|er| {
+                    let mut v = Response::new(er);
+                    match v.name {
+                        Some(_) => v,
+                        None => {
+                            v.name = Some(PatternName::new(None, n.clone()));
+                            v
+                        }
+                    }
+                })
+            })
             .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
@@ -202,11 +213,25 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_bad_purl() {
+    async fn invalid_argument() {
         let result = test_pattern("uri::purl", "https:://google.com").await;
 
         assert_eq!(
             r#"{"name":"uri::purl","input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
+            serde_json::to_string(&Response::new(&result)).unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn object_field_names() {
+        let result = test_pattern(
+            r#"{ name: string, trained: boolean }"#,
+            json!({"name": "goodboy", "trained": "true"}),
+        )
+        .await;
+
+        assert_eq!(
+            r#"{"name":"test::test-pattern","input":{"name":"goodboy","trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"string","input":"goodboy","output":"goodboy","satisfied":true},{"name":"boolean","input":"true","satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
