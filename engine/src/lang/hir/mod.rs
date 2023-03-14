@@ -574,7 +574,6 @@ impl<'b> Lowerer<'b> {
 
                 for each in referenced {
                     if !known_world.contains(&each.clone().inner()) {
-                        println!("PNF B");
                         errors.push(BuildError::PatternNotFound(
                             unit.source().clone(),
                             each.location().span(),
