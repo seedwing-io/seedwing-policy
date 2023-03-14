@@ -10,7 +10,7 @@ use super::{rationale::Rationale, EvaluationResult, PatternName};
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Response {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<PatternName>,
+    pub name: Option<String>,
     pub input: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<Value>,
@@ -35,7 +35,7 @@ impl Response {
             _ => None,
         };
         Self {
-            name: result.ty().name(),
+            name: result.ty().name().as_ref().map(PatternName::as_type_str),
             input: result.input().as_json(),
             output,
             satisfied: result.satisfied(),
@@ -61,10 +61,6 @@ impl Response {
             Value::Object(m) => !m.is_empty(),
             _ => true,
         }
-    }
-    fn rename(mut self, s: &String) -> Self {
-        self.name = Some(PatternName::new(None, s.clone()));
-        self
     }
 }
 
@@ -140,7 +136,19 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
     match result.rationale() {
         Rationale::Object(fields) => fields
             .iter()
-            .filter_map(|(n, r)| r.as_ref().map(|er| Response::new(er).rename(n)))
+            .filter_map(|(n, r)| {
+                r.as_ref().map(|er| {
+                    let v = Response::new(er);
+                    if v.rationale.is_empty() {
+                        let mut x = v.clone();
+                        x.name = Some(n.to_string());
+                        x.rationale = vec![v];
+                        x
+                    } else {
+                        v
+                    }
+                })
+            })
             .collect(),
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
@@ -220,7 +228,23 @@ mod test {
         let result = test_pattern(r#"{ trained: boolean }"#, json!({"trained": "true"})).await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false}]}"#,
+            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"boolean","input":"true","satisfied":false}]}]}"#,
+            serde_json::to_string(&Response::new(&result)).unwrap()
+        );
+
+        let result = test_pattern(
+            r#"
+            {
+              trained: is_trained
+            }
+            pattern is_trained = true
+            "#,
+            json!({"trained": "true"}),
+        )
+        .await;
+
+        assert_eq!(
+            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"test::is_trained","input":"true","satisfied":false}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
