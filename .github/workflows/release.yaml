@@ -319,3 +319,12 @@ jobs:
           fi
           gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} \
             $(find staging -type f)
+
+  playground:
+    needs: [ init, publish ]
+
+    uses: ./.github/workflows/playground.yaml
+    secrets: inherit
+
+    with:
+      imageTag: ${{ needs.init.outputs.version }}
