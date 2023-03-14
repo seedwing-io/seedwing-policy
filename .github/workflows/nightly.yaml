@@ -1,0 +1,37 @@
+name: nightly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # every night
+
+permissions:
+  contents: write # for creating a release
+
+jobs:
+  args:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.ldflags.outputs.commit }}
+      version: ${{ steps.ldflags.outputs.version }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: getflags
+        run: |
+          echo "version=$(awk -F ' = ' '$1 ~ /version/ { gsub(/[\"]/, "", $2); printf("%s",$2) }' swio/Cargo.toml)" >> "$GITHUB_OUTPUT"
+          echo "commit=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+  tag:
+    runs-on: ubuntu-22.04
+    needs: args
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: rickstaa/action-create-tag@v1
+        id: "tag_create"
+        with:
+          tag: ${{ needs.args.outputs.version }}-nightly.${{ needs.args.outputs.commit }}
+          tag_exists_error: false
+          message: "Latest nightly release"
