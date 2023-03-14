@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.NIGHTLY_TOKEN }}
-      - id: "create tag"
+      - name: Tag it
         run: |
           git tag v${{ needs.args.outputs.version }}-nightly.${{ needs.args.outputs.commit }} -m 'Nightly release'
           git push --follow-tags
