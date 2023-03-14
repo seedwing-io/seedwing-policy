@@ -31,7 +31,8 @@ num-integer = "0.1.45"
 sha2 = "0.10.6"
 
 # functions
-sigstore = { version = "0.6.0", optional = true }
+#sigstore = { version = "0.6.0", optional = true }
+sigstore = { optional = true, git = "https://github.com/danbev/sigstore-rs.git", branch = "verify-blob"  }
 x509-parser = "0.14.0"
 base64 = "0.21.0"
 regex = "1.7.1"
