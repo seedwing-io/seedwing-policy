@@ -74,7 +74,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#setup)
 
 ## Releasing
 
-The release process is documented in [RELEASE.md](RELEASE).
+The release process is documented in [RELEASE.md](RELEASE.md).
 
 ## License
 
