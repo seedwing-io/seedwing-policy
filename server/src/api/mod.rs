@@ -217,3 +217,13 @@ pub async fn statistics(stats: web::Data<Mutex<Statistics>>) -> HttpResponse {
     let snapshot = stats.lock().await.snapshot();
     HttpResponse::Ok().json(snapshot)
 }
+
+#[get("/version")]
+pub async fn version() -> impl Responder {
+    let version = json!(
+        {
+            "version": seedwing_policy_engine::version(),
+        }
+    );
+    HttpResponse::Ok().json(version)
+}

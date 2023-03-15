@@ -1,4 +1,5 @@
 use crate::{
+    about,
     pages::{self, AppRoute},
     utils::{use_open, ExtLinkIcon},
 };
@@ -40,16 +41,30 @@ pub fn console() -> Html {
         </PageSidebar>
     );
 
-    let callback_help = use_open("https://docs.seedwing.io/", "_blank");
+    let callback_docs = use_open("https://docs.seedwing.io/", "_blank");
     let callback_github = use_open("https://github.com/seedwing-io/seedwing-policy", "_blank");
+
+    let backdropper = use_backdrop();
+
+    let callback_about = Callback::from(move |_| {
+        if let Some(backdropper) = &backdropper {
+            backdropper.open(html!(<about::About/>));
+        }
+    });
 
     let tools = html!(
         <Toolbar>
             <ToolbarItem>
-                <Button icon={Icon::QuestionCircle} onclick={callback_help}/>
+                <Button icon={Icon::Github} onclick={callback_github}/>
             </ToolbarItem>
             <ToolbarItem>
-                <Button icon={Icon::Github} onclick={callback_github}/>
+                <AppLauncher
+                    position={Position::Right}
+                    toggle={Icon::QuestionCircle}
+                >
+                    <AppLauncherItem onclick={callback_docs}>{ "Documentation" }</AppLauncherItem>
+                    <AppLauncherItem onclick={callback_about}>{ "About" }</AppLauncherItem>
+                </AppLauncher>
             </ToolbarItem>
         </Toolbar>
     );

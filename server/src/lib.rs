@@ -108,7 +108,8 @@ pub async fn run(
                             .service(api::get_policy)
                             .service(api::post_policy)
                             .service(api::evaluate)
-                            .service(api::statistics),
+                            .service(api::statistics)
+                            .service(api::version),
                     )
                     .service(
                         web::scope("/stream")

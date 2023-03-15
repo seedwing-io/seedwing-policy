@@ -22,7 +22,7 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         openapi: "3.0.0".into(),
         info: Info {
             title: "Seedwing Policy Server".into(),
-            version: "0.1".into(),
+            version: seedwing_policy_engine::version().to_string(),
             ..Default::default()
         },
         ..Default::default()
