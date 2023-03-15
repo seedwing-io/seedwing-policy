@@ -39,12 +39,17 @@ pub fn boolean_literal(
 
 pub fn string_literal(
 ) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
+    raw_string_literal().map(|s| s.map(ValuePattern::String))
+}
+
+pub fn raw_string_literal() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone
+{
     just('"')
         .ignored()
         .then(filter(|c: &char| *c != '"').repeated().collect::<String>())
         .then(just('"').ignored())
         .padded()
-        .map_with_span(|((_, x), _), span: SourceSpan| Located::new(ValuePattern::String(x), span))
+        .map_with_span(|((_, x), _), span: SourceSpan| Located::new(x, span))
 }
 
 /*

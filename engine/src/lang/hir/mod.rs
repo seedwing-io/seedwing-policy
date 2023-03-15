@@ -1,20 +1,20 @@
+use crate::core::Example;
 use crate::data::DataSource;
 use crate::lang::lir::ValuePattern;
 use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, SourceLocation};
 use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::{BuildError, PackagePath, PatternName};
-
-use crate::core::Example;
 use crate::runtime::config::{ConfigValue, EvalConfig};
+use crate::runtime::{BuildError, PackagePath, PatternName};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub enum Expr {
     SelfLiteral(#[serde(skip)] Location),
     /* self */
@@ -74,12 +74,12 @@ impl Expr {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PatternDefn {
     name: Located<String>,
     ty: Located<Pattern>,
     parameters: Vec<Located<String>>,
-    documentation: Option<String>,
+    metadata: Metadata,
     examples: Vec<Example>,
 }
 
@@ -93,16 +93,23 @@ impl PatternDefn {
             name,
             ty,
             parameters,
-            documentation: None,
+            metadata: Default::default(),
             examples: vec![],
         }
     }
 
-    pub fn set_documentation(&mut self, doc: Option<String>) {
-        self.documentation = doc
+    pub fn set_metadata(&mut self, metadata: Metadata) {
+        self.metadata = metadata;
     }
 
-    // currently this is unsed, but we should find a way to provide examples
+    // triggers "unused" when running `cargo check` for the frontend
+    #[allow(unused)]
+    pub fn with_metadata(mut self, metadata: Metadata) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
+    // currently this is unused, but we should find a way to provide examples
     #[allow(unused)]
     pub fn set_examples(&mut self, examples: Vec<Example>) {
         self.examples = examples;
@@ -129,7 +136,7 @@ impl PatternDefn {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Pattern {
     Anything,
     Ref(SyntacticSugar, Located<PatternName>, Vec<Located<Pattern>>),
@@ -238,7 +245,7 @@ impl Debug for Pattern {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ObjectPattern {
     fields: Vec<Located<Field>>,
 }
@@ -277,16 +284,22 @@ impl ObjectPattern {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Field {
     name: Located<String>,
     ty: Located<Pattern>,
     optional: bool,
+    metadata: Metadata,
 }
 
 impl Field {
     pub fn new(name: Located<String>, ty: Located<Pattern>, optional: bool) -> Self {
-        Self { name, ty, optional }
+        Self {
+            name,
+            ty,
+            optional,
+            metadata: Default::default(),
+        }
     }
 
     pub fn name(&self) -> &Located<String> {
@@ -307,6 +320,10 @@ impl Field {
 
     pub(crate) fn qualify_types(&mut self, types: &HashMap<String, Option<Located<PatternName>>>) {
         self.ty.qualify_types(types)
+    }
+
+    pub fn set_metadata(&mut self, metadata: Metadata) {
+        self.metadata = metadata;
     }
 }
 
@@ -591,7 +608,7 @@ impl<'b> Lowerer<'b> {
                 let name = unit_path.type_name(ty.name().inner());
                 world.declare(
                     name,
-                    ty.documentation.clone(),
+                    ty.metadata.documentation(),
                     ty.examples.clone(),
                     ty.parameters(),
                 );
@@ -645,5 +662,78 @@ impl<'b> Lowerer<'b> {
         } else {
             Err(errors)
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AttributeValue {
+    /// A flag type value
+    ///
+    /// `#[example(flag)]` or `#[example(foo, "bar baz")]`
+    Flag(Located<String>),
+    /// A named value
+    ///
+    /// `#[example(bar=true)]` or `#[example(bar=true)]`
+    Named {
+        name: Located<String>,
+        value: Located<String>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AttributeDefn {
+    name: Located<String>,
+    values: BTreeMap<String, Option<Located<String>>>,
+}
+
+impl AttributeDefn {
+    pub fn new(name: Located<String>, values: Vec<AttributeValue>) -> Self {
+        Self {
+            name,
+            values: values
+                .into_iter()
+                .map(|v| match v {
+                    AttributeValue::Flag(flag) => (flag.into_inner(), None),
+                    AttributeValue::Named { name, value } => (name.into_inner(), Some(value)),
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Metadata {
+    pub attributes: Vec<Located<AttributeDefn>>,
+    pub documentation: String,
+}
+
+impl Metadata {
+    pub fn documentation(&self) -> Option<String> {
+        match self.documentation.is_empty() {
+            true => None,
+            false => Some(self.documentation.clone()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct WithMeta<T> {
+    pub meta: Located<Metadata>,
+    pub inner: T,
+}
+
+impl<T: Eq> Eq for WithMeta<T> {}
+
+impl<T> Deref for WithMeta<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for WithMeta<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }

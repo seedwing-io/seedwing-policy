@@ -1,7 +1,6 @@
 //use crate::lang::expr::expr;
 use crate::lang::hir::PatternDefn;
 use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
-
 use crate::runtime::PackagePath;
 use crate::runtime::PatternName;
 use chumsky::prelude::*;
@@ -166,14 +165,19 @@ impl<T> Located<T> {
         self.location.span.clone()
     }
 
-    /*
     pub fn into_inner(self) -> T {
         self.inner
     }
-     */
 
     pub fn split(self) -> (T, Location) {
         (self.inner, self.location)
+    }
+
+    pub fn map<F, U>(self, f: F) -> Located<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        Located::new(f(self.inner), self.location)
     }
 }
 

@@ -18,6 +18,9 @@
           "include": "#comments"
         },
         {
+          "include": "#attributes"
+        },
+        {
           "name": "meta.pattern",
           "match": "(?x)\n  (pattern)\n  \\s+\n  ([a-zA-Z@\\-_]+)\n  \\s*\n  (\\<[a-zA-Z@\\-_]+\\>)?\n  \\s*\n  (=)\n  \\s*",
           "captures": {
@@ -106,6 +109,42 @@
     "line-comment": {
       "name": "comment.line.double-slash",
       "match": "//.*$"
+    },
+
+    "attributes": {
+      "begin": "#(\\[)([a-zA-Z]+[a-zA-Z_-]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.arguments.begin"
+        },
+        "2": {
+          "name": "keyword.other.attribute-name.dogma"
+        }
+      },
+      "end": "(\\])",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.arguments.end"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#attributes-content"
+        }
+      ]
+    },
+    "attributes-content": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "#attributes-item"
+        }
+      ]
+    },
+    "attributes-item": {
+      "match": "[a-aA-Z]+(=[a-aA-Z]+)?,?",
+      "name": "constant.other"
     }
   }
 }
