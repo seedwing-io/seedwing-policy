@@ -20,3 +20,4 @@ macro_rules! test {
 test!(and);
 test!(empty);
 test!(contains_self);
+test!(attributes1);

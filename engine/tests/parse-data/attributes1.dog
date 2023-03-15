@@ -1,0 +1,37 @@
+// annotation on the pattern
+
+#[attr(foo)]
+#[advice("People using 'bar' also used 'foo'")]
+pattern bar = {}
+
+// annotation on a field
+
+#[attr(foo, skip=true)]
+pattern bar = {
+    #[attr(foo)]
+    #[explain("Something is wrong")]
+    field: string
+}
+
+#[attr(foo, skip=true)]
+/// some doc comments
+pattern bar = {
+    #[attr(foo)]
+    #[explain("Something is wrong")]
+    field: string
+}
+
+/// some doc comments (before)
+#[attr(foo, skip=true)]
+/// some doc comments (inbetween)
+#[attr(foo, skip=true)]
+/// some doc comments (after)
+pattern bar = {
+    /// some doc comments (before)
+    #[attr(foo)]
+    /// some doc comments (inbetween)
+    #[explain("Something is wrong")]
+    /// some doc comments (after)
+    field: string
+}
+
