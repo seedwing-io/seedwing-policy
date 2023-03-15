@@ -51,7 +51,7 @@ jobs:
 
   # now do the actual (release) builds
   build:
-    needs: [ ci ]
+    needs: [ init, ci ]
 
     strategy:
       matrix:
@@ -108,6 +108,8 @@ jobs:
         run: cargo install cargo-auditable
 
       - name: Build
+        env:
+          TAG: ${{ needs.init.outputs.version }}
         shell: bash
         run: |
           if [[ "${{ matrix.xcode }}" == "true" ]]; then

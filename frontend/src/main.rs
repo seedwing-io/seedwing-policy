@@ -1,6 +1,7 @@
 #![recursion_limit = "1024"]
 #![allow(clippy::needless_return)]
 
+mod about;
 mod app;
 mod common;
 mod console;
