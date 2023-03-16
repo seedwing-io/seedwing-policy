@@ -108,14 +108,12 @@ jobs:
         run: cargo install cargo-auditable
 
       - name: Build
-        env:
-          TAG: ${{ needs.init.outputs.version }}
         shell: bash
         run: |
           if [[ "${{ matrix.xcode }}" == "true" ]]; then
-            SDKROOT=$(xcrun -sdk macosx --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version) cargo auditable build --target=${{ matrix.rustTarget }} -p swio --no-default-features --release
+            TAG=${{ needs.init.outputs.version }} SDKROOT=$(xcrun -sdk macosx --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version) cargo auditable build --target=${{ matrix.rustTarget }} -p swio --no-default-features --release
           else
-            cargo auditable build --release -p swio --no-default-features
+            TAG=${{ needs.init.outputs.version }} cargo auditable build --release -p swio --no-default-features
           fi
 
       - name: List output
