@@ -36,9 +36,10 @@ RUN cargo install cargo-auditable
 RUN mkdir /usr/src/project
 COPY . /usr/src/project
 WORKDIR /usr/src/project
+ARG tag
 
 RUN cd frontend && yarn install
-RUN cargo auditable build --release --features frontend
+RUN TAG=$tag cargo auditable build --release --features frontend
 
 RUN mkdir /result && cp -pv target/release/swio /result/
 

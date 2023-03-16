@@ -56,7 +56,10 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ env.IMAGE_TAG }}
-          envs: TAG=${{ env.IMAGE_TAG }}
+          envs: |
+            TAG=${{ env.IMAGE_TAG }}
+          build-args: |
+            TAG=${{ env.IMAGE_TAG }}
           platforms: ${{ inputs.platforms }}
           containerfiles: |
             ./Containerfile
