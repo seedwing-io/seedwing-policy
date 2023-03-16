@@ -3,12 +3,12 @@
 use std::fmt::{Display, Formatter};
 
 use crate::runtime::Output;
-use serde::{Deserialize, Serialize};
+use serde::{de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Name {
     Pattern(Option<PatternName>),
     Field(String),
@@ -17,6 +17,12 @@ pub enum Name {
 impl Default for Name {
     fn default() -> Self {
         Self::Pattern(None)
+    }
+}
+
+impl Name {
+    pub fn is_empty(&self) -> bool {
+        self.to_string().is_empty()
     }
 }
 
@@ -30,10 +36,46 @@ impl Display for Name {
     }
 }
 
+impl Serialize for Name {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            Self::Pattern(Some(p)) => format!("pat>{}", p.as_type_str()),
+            Self::Pattern(None) => String::new(),
+            Self::Field(s) => format!("fld>{s}"),
+        };
+        s.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Name {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        //
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        if s.is_empty() {
+            Ok(Self::Pattern(None))
+        } else {
+            match s.split_once('>') {
+                Some(("pat", name)) => Ok(Self::Pattern(Some(name.to_string().into()))),
+                Some(("fld", name)) => Ok(Self::Field(name.to_string())),
+                None | Some(_) => Err(serde::de::Error::invalid_value(
+                    Unexpected::Str(s),
+                    &"'pat' or 'fld' prefixed name",
+                )),
+            }
+        }
+    }
+}
+
 /// A response is used to transform a policy result into different formats.
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Response {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Name::is_empty")]
     pub name: Name,
     pub input: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -204,7 +246,7 @@ mod test {
         let result = test_pattern(r#"lang::or<["x", "y"]>"#, "foo").await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":"lang::or","input":"foo","satisfied":false,"rationale":[{"input":"foo","satisfied":false},{"input":"foo","satisfied":false}]}"#,
+            r#"{"name":"pat>lang::or","input":"foo","satisfied":false,"rationale":[{"input":"foo","satisfied":false},{"input":"foo","satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
@@ -214,11 +256,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":"list::any","input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":"pat>list::any","input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
+            r#"{"name":"pat>list::any","input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -228,11 +270,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 99])).await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":"list::any","input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":"pat>list::any","input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":"pat>list::any","input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -242,7 +284,7 @@ mod test {
         let result = test_pattern("uri::purl", "https:://google.com").await;
 
         assert_eq!(
-            r#"{"name":"uri::purl","input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
+            r#"{"name":"pat>uri::purl","input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
@@ -252,7 +294,7 @@ mod test {
         let result = test_pattern(r#"{ trained: boolean }"#, json!({"trained": "true"})).await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"boolean","input":"true","satisfied":false}]}]}"#,
+            r#"{"name":"pat>test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"fld>trained","input":"true","satisfied":false,"rationale":[{"name":"pat>boolean","input":"true","satisfied":false}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
 
@@ -268,7 +310,7 @@ mod test {
         .await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"test::is_trained","input":"true","satisfied":false}]}]}"#,
+            r#"{"name":"pat>test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"fld>trained","input":"true","satisfied":false,"rationale":[{"name":"pat>test::is_trained","input":"true","satisfied":false}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
