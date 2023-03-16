@@ -25,13 +25,12 @@ pub enum Command {
     Bench(Bench),
     Serve(Serve),
     Test(Test),
-    Version,
 }
 
 #[derive(clap::Parser, Debug)]
 #[command(
 author,
-version,
+version = seedwing_policy_engine::version(),
 about = "Seedwing Policy Tool",
 long_about = None
 )]
@@ -66,9 +65,6 @@ impl Cli {
             Command::Bench(bench) => bench.run(self).await?,
             Command::Serve(serve) => serve.run(self).await?,
             Command::Test(test) => test.run(self).await?,
-            Command::Version => {
-                println!("Version: {}", seedwing_policy_engine::version());
-            }
         }
 
         Ok(())

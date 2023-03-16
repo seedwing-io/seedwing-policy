@@ -13,6 +13,10 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const TAG: Option<&str> = option_env!("TAG");
 
 /// Current version of Seedwing
-pub fn version() -> &'static str {
-    TAG.unwrap_or(VERSION)
+pub const fn version() -> &'static str {
+    if let Some(tag) = TAG {
+        tag
+    } else {
+        VERSION
+    }
 }
