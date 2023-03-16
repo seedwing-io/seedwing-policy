@@ -1,16 +1,40 @@
 //! Response handling a policy decision.
 
+use std::fmt::{Display, Formatter};
+
 use crate::runtime::Output;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum Name {
+    Pattern(Option<PatternName>),
+    Field(String),
+}
+
+impl Default for Name {
+    fn default() -> Self {
+        Self::Pattern(None)
+    }
+}
+
+impl Display for Name {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Pattern(Some(p)) => p.fmt(f),
+            Self::Pattern(None) => write!(f, ""),
+            Self::Field(s) => s.fmt(f),
+        }
+    }
+}
+
 /// A response is used to transform a policy result into different formats.
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Response {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    #[serde(default)]
+    pub name: Name,
     pub input: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<Value>,
@@ -35,7 +59,7 @@ impl Response {
             _ => None,
         };
         Self {
-            name: result.ty().name().as_ref().map(PatternName::as_type_str),
+            name: Name::Pattern(result.ty().name()),
             input: result.input().as_json(),
             output,
             satisfied: result.satisfied(),
@@ -141,7 +165,7 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
                     let v = Response::new(er);
                     if v.rationale.is_empty() {
                         let mut x = v.clone();
-                        x.name = Some(n.to_string());
+                        x.name = Name::Field(n.to_string());
                         x.rationale = vec![v];
                         x
                     } else {
