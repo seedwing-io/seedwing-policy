@@ -9,9 +9,10 @@ use serde_json::Value;
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(untagged)]
 pub enum Name {
+    #[serde(rename = "pattern")]
     Pattern(Option<PatternName>),
+    #[serde(rename = "field")]
     Field(String),
 }
 
@@ -203,7 +204,7 @@ fn support(result: &EvaluationResult) -> Vec<Response> {
 #[cfg(test)]
 mod test {
     use super::Response;
-    use crate::runtime::testutil::test_pattern;
+    use crate::runtime::{testutil::test_pattern, PatternName};
     use serde_json::json;
 
     #[tokio::test]
@@ -211,7 +212,7 @@ mod test {
         let result = test_pattern(r#"lang::or<["x", "y"]>"#, "foo").await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":"lang::or","input":"foo","satisfied":false,"rationale":[{"input":"foo","satisfied":false},{"input":"foo","satisfied":false}]}"#,
+            r#"{"name":{"pattern":"lang::or"},"input":"foo","satisfied":false,"rationale":[{"input":"foo","satisfied":false},{"input":"foo","satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
@@ -221,11 +222,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":"list::any","input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
+            r#"{"name":{"pattern":"list::any"},"input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -235,11 +236,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 99])).await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":"list::any","input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":"list::any","input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -249,7 +250,7 @@ mod test {
         let result = test_pattern("uri::purl", "https:://google.com").await;
 
         assert_eq!(
-            r#"{"name":"uri::purl","input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
+            r#"{"name":{"pattern":"uri::purl"},"input":"https:://google.com","satisfied":false,"reason":"invalid argument: input is not a URL: empty host"}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
@@ -259,7 +260,7 @@ mod test {
         let result = test_pattern(r#"{ trained: boolean }"#, json!({"trained": "true"})).await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"boolean","input":"true","satisfied":false}]}]}"#,
+            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"rationale":[{"name":{"pattern":"boolean"},"input":"true","satisfied":false}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
 
@@ -275,8 +276,27 @@ mod test {
         .await;
 
         assert_eq!(
-            r#"{"name":"test::test-pattern","input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":"trained","input":"true","satisfied":false,"rationale":[{"name":"test::is_trained","input":"true","satisfied":false}]}]}"#,
+            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"rationale":[{"name":{"pattern":"test::is_trained"},"input":"true","satisfied":false}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn name_serialization() {
+        let none = super::Name::Pattern(None);
+        assert_eq!(
+            none,
+            serde_json::from_str(&serde_json::to_string(&none).unwrap()).unwrap()
+        );
+        let none = super::Name::Pattern(Some(PatternName::new(None, String::new())));
+        assert_eq!(
+            none,
+            serde_json::from_str(&serde_json::to_string(&none).unwrap()).unwrap()
+        );
+        let none = super::Name::Field(String::new());
+        assert_eq!(
+            none,
+            serde_json::from_str(&serde_json::to_string(&none).unwrap()).unwrap()
         );
     }
 }
