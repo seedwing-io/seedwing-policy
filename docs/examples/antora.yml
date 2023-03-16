@@ -4,3 +4,4 @@ version: dev
 nav:
   - modules/ROOT/nav.adoc
   - modules/cyclonedx/nav.adoc
+  - modules/hacbs/nav.adoc

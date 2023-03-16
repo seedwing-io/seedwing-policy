@@ -11,6 +11,7 @@ use crate::runtime::EvalContext;
 pub mod all;
 pub mod any;
 pub mod concat;
+pub mod contains;
 pub mod count;
 pub mod head;
 pub mod none;
@@ -34,6 +35,7 @@ pub fn package() -> Package {
     pkg.register_function("append".into(), concat::Concat);
     pkg.register_function("count".into(), count::Count);
     pkg.register_function("length".into(), count::Count);
+    pkg.register_function("contains-all".into(), contains::ContainsAll);
     pkg
 }
 

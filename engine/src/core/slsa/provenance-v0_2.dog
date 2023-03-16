@@ -24,15 +24,15 @@ pattern predicate = {
 }
 
 pattern invocation = {
-  configSource: config-source,
-  parameters: anything,
-  environment: anything,
+  configSource?: config-source,
+  parameters?: anything,
+  environment?: anything,
 }
 
 pattern config-source = {
-  uri: uri::url,
-  digest: anything,
-  entryPoint: string,
+  uri?: uri::url,
+  digest?: anything,
+  entryPoint?: string,
 }
 
 /// Identifies the template for how to perform the build and interpret the parameters and dependencies.
@@ -56,16 +56,7 @@ pattern builder = {
 /// compromises a more secure one.
 pattern builder-id = string
 
-pattern build-config = {
-  steps?: list::all<build-step>,
-  version: anything,
-}
-
-pattern build-step = {
-  workingDir?: string,
-  command?: list::all<string>,
-  env?: anything,
-}
+pattern build-config = anything
 
 /// Metadata about this particular execution of the build.
 pattern build-metadata = {
