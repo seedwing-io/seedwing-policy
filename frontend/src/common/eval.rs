@@ -1,5 +1,5 @@
 use patternfly_yew::prelude::*;
-use seedwing_policy_engine::runtime::Response;
+use seedwing_policy_engine::runtime::response::{Name, Response};
 use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;
@@ -21,7 +21,7 @@ impl TreeTableModel for ResponseModel {
 impl TreeNode for ResponseModel {
     fn render_main(&self) -> Cell {
         html!(
-            if let Some(name) = self.0.name.clone() {
+            if let name @ Name::Pattern(Some(_)) = self.0.name.clone() {
                 <PatternNameView {name} />
             } else {
                 <em>{"Unnamed"}</em>
@@ -117,7 +117,7 @@ pub fn result_tree(props: &ResultViewProps) -> Html {
 
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]
 struct PatternNameProps {
-    pub name: String,
+    pub name: Name,
 }
 
 #[function_component(PatternNameView)]
