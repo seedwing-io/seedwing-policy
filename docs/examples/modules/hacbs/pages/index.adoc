@@ -1,0 +1,28 @@
+= HACBS
+
+Policies that apply the HACBS Enterprise Contract.
+
+The HACBS attestations are built by tekton pipelines, and this example provides a few patterns to check build attestations using Dogma.
+
+For instance, to ensure that a set of pipeline steps have been performed, the build info is put into an attestation, and the Seedwing policies can verify the envelope as well as the provenance information.
+
+With the following policies:
+
+[source,json]
+----
+include::example$hacbs.dog[]
+----
+
+and this attestation:
+
+[source,json]
+----
+include::example$attestation.json[]
+----
+
+You can apply this policy using `swio`:
+
+[source,bash]
+----
+swio eval -p examples -n hacbs::valid-attestation -i examples/attestation.json
+----

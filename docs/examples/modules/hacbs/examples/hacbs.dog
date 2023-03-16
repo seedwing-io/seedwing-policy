@@ -1,0 +1,11 @@
+pattern required-tasks = {
+  predicate: {
+    buildConfig: {
+      tasks: lang::map<self.ref.name> | list::contains-all<required-taskrefs>
+    }
+  }
+}
+
+pattern required-taskrefs = ["sast-go", "sast-java-sec-check", "clamav-scan", "conftest-clair", "get-clair-scan", "sanity-inspect-image", "sanity-label-check"]
+
+pattern valid-attestation = slsa::v0_2::provenance && required-tasks
