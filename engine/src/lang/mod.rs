@@ -18,6 +18,9 @@ pub(crate) mod parser;
 
 pub use lir::{Expr, ValuePattern};
 
+mod meta;
+pub use meta::*;
+
 /// Native functions that have syntactic sugar.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SyntacticSugar {

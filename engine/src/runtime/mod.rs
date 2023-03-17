@@ -261,7 +261,7 @@ impl World {
         let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
         let converted = lir::convert(
             name,
-            handle.documentation(),
+            handle.metadata().clone(),
             handle.examples(),
             parameters,
             &ty,

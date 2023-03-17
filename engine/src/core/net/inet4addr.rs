@@ -1,3 +1,4 @@
+use crate::lang::PatternMeta;
 use crate::runtime::EvalContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
@@ -16,8 +17,11 @@ const ADDRESS: &str = "address";
 pub struct Inet4Addr;
 
 impl Function for Inet4Addr {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn parameters(&self) -> Vec<String> {

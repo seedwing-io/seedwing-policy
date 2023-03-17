@@ -49,10 +49,12 @@ guac-rs = { git = "https://github.com/dejanb/guac-rs.git" }
 prometheus = { version = "0.13.3", optional = true }
 
 [features]
-default = ["sigstore", "monitor"]
+default = ["sigstore", "monitor", "showcase"]
 sigstore = ["dep:sigstore"]
 monitor = ["prometheus"]
 debug = []
+# add some features to show features of seedwing
+showcase = []
 
 [dev-dependencies]
 criterion = "0.4"

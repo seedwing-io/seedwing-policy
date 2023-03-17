@@ -89,9 +89,7 @@ pub fn repository(props: &Props) -> Html {
             ..
         } => (
             Some(html!(
-                <Title>
-                    <ComponentTitle base_path={parent.clone()} component={component.clone()}/>
-                </Title>
+                <ComponentTitle base_path={parent.clone()} component={component.clone()}/>
             )),
             html!(<Component base_path={parent.clone()} component={component.clone()}/>),
         ),
@@ -103,7 +101,7 @@ pub fn repository(props: &Props) -> Html {
 
     let title = match title {
         Some(title) => title,
-        None => last(&parent).into(),
+        None => html!(<Title><Content>{ last(&parent) }</Content></Title>),
     };
 
     html!(
@@ -115,9 +113,7 @@ pub fn repository(props: &Props) -> Html {
                 <Breadcrumbs {parent} />
             </PageSection>
             <PageSection variant={PageSectionVariant::Light}>
-                <Title>
-                    <Content> { title } </Content>
-                </Title>
+                { title }
             </PageSection>
         </PageSectionGroup>
         <PageSection variant={PageSectionVariant::Light} fill=true>
@@ -135,26 +131,6 @@ pub struct ComponentProps {
 
 #[function_component(ComponentTitle)]
 pub fn component_title(props: &ComponentProps) -> Html {
-    match &props.component {
-        ComponentMetadata::Pattern(pattern) => html!(
-            <>
-                <Label color={Color::Blue} label={"T"} /> { " " }
-                { render_full_type(pattern) }
-            </>
-        ),
-        ComponentMetadata::Package(_module) => {
-            html!(
-                <>
-                    <Label color={Color::Blue} label={"M"} /> { " " }
-                    { last(&props.base_path) }
-                </>
-            )
-        }
-    }
-}
-
-#[function_component(Component)]
-pub fn component(props: &ComponentProps) -> Html {
     let nav_path = props.base_path.join("::");
     let monitor = AppRoute::Monitor {
         path: nav_path.clone(),
@@ -165,22 +141,52 @@ pub fn component(props: &ComponentProps) -> Html {
 
     html!(
         <>
-          <Toolbar>
-              <ToolbarItem>
+        <Flex>
+            <FlexItem>
+                <Title>
+                {
+                    match &props.component {
+                        ComponentMetadata::Pattern(pattern) => html!(
+                            <>
+                                <Label color={Color::Blue} label={"T"} /> { " " }
+                                { render_full_type(pattern) }
+                                if pattern.metadata.unstable {
+                                    {" "}<Label color={Color::Orange} compact=true label="unstable" />
+                                }
+                            </>
+                        ),
+                        ComponentMetadata::Package(_module) => {
+                            html!(
+                                <>
+                                    <Label color={Color::Blue} label={"M"} /> { " " }
+                                    { last(&props.base_path) }
+                                </>
+                            )
+                        }
+                    }
+                }
+                </Title>
+            </FlexItem>
+            <FlexItem modifiers={[FlexModifier::Align(Alignment::Right)]}>
                 <Link<AppRoute> target={monitor}>
-                  <Button label="Monitor" variant={ButtonVariant::Secondary}/>
+                    <Button label="Monitor" variant={ButtonVariant::Secondary}/>
                 </Link<AppRoute>>
-              </ToolbarItem>
-              <ToolbarItem>
                 <Link<AppRoute> target={statistics}>
-                  <Button label="Statistics" variant={ButtonVariant::Secondary}/>
+                    <Button label="Statistics" variant={ButtonVariant::Secondary}/>
                 </Link<AppRoute>>
-              </ToolbarItem>
-          </Toolbar>
-          {match &props.component {
+            </FlexItem>
+        </Flex>
+        </>)
+}
+
+#[function_component(Component)]
+pub fn component(props: &ComponentProps) -> Html {
+    html!(
+        <>
+            {match &props.component {
               ComponentMetadata::Pattern(pattern) => render_type(Rc::new(pattern.clone())),
-              ComponentMetadata::Package(module) => render_module(props.base_path.clone(), module),
-          }}
+              ComponentMetadata::Package(module) => render_module(props.base_path.clone(), module)
+            }}
         </>
     )
 }
@@ -257,18 +263,35 @@ fn render_type(pattern: Rc<PatternMetadata>) -> Html {
                 </dl>
             </Content>
 
-            <Flex>
+            <Flex modifiers={[FlexModifier::Column.all(), FlexModifier::Row.md()]}>
 
-                <FlexItem modifiers={[FlexModifier::Flex1]}>
-                    <Title level={Level::H2}> { "Documentation" } </Title>
-                    <PageSection>
-                        <Asciidoc content={pattern.documentation.as_deref().unwrap_or_default().to_string()}/>
-                    </PageSection>
-                    <Title level={Level::H2}> { "Definition" } </Title>
-                    <ExpandableSection>
-                        <Inner {pattern}/>
-                    </ExpandableSection>
-                </FlexItem>
+                <Flex modifiers={[FlexModifier::Column, FlexModifier::Flex1]}>
+
+                    <FlexItem>
+                        if let Some(deprecation) = &pattern.metadata.deprecation {
+
+                            <Alert
+                                inline=true
+                                r#type={AlertType::Warning}
+                                title={format!("Deprecated{}", deprecation.since.as_deref().map(|s|format!(" since {}", s)).unwrap_or_default())}
+                            >
+                                if let Some(reason) = &deprecation.reason { {reason} }
+                            </Alert>
+
+                        }
+                    </FlexItem>
+
+                    <FlexItem>
+                        <Title level={Level::H2}> { "Documentation" } </Title>
+                        <Asciidoc content={pattern.metadata.documentation.as_deref().unwrap_or_default().to_string()}/>
+                    </FlexItem>
+                    <FlexItem>
+                        <Title level={Level::H2}> { "Definition" } </Title>
+                        <ExpandableSection initially_open=true>
+                            <Inner {pattern}/>
+                        </ExpandableSection>
+                    </FlexItem>
+                </Flex>
 
                 <FlexItem modifiers={[FlexModifier::Flex1]}>
                     <Experiment {path} {examples}/>
@@ -386,7 +409,7 @@ impl TableEntryRenderer for PatternRow {
                 )
             },
             1 => html!(
-                <p>{&self.1.documentation.as_deref().unwrap_or("")}</p>
+                <p>{&self.1.metadata.documentation.as_deref().unwrap_or("")}</p>
             ),
             _ => html!(),
         }.into()

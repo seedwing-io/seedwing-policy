@@ -1,5 +1,5 @@
 use crate::core::{Example, Function, FunctionEvaluationResult, FunctionInput};
-use crate::lang::lir::Bindings;
+use crate::lang::{lir::Bindings, PatternMeta};
 use crate::package::Package;
 use crate::runtime::{EvalContext, Output, Pattern, RuntimeError};
 use crate::runtime::{PackagePath, World};
@@ -59,10 +59,13 @@ impl Function for Base64 {
         FunctionInput::String
     }
 
-    fn documentation(&self) -> Option<String> {
-        match self.alphabet {
-            Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
-            Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: match self.alphabet {
+                Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
+                Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
+            },
+            ..Default::default()
         }
     }
 
@@ -116,8 +119,11 @@ impl Function for Base64 {
 pub struct Base64Encode;
 
 impl Function for Base64Encode {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION_BASE64_ENCODE.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION_BASE64_ENCODE.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(

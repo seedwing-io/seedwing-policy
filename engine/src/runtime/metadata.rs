@@ -1,6 +1,5 @@
 use crate::lang;
-use crate::lang::lir::InnerPattern;
-use crate::lang::{lir, Expr, SyntacticSugar, ValuePattern};
+use crate::lang::{lir, Expr, PatternMeta, SyntacticSugar, ValuePattern};
 use crate::runtime::{Example, PackageName, PackagePath, Pattern, PatternName, World};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -64,7 +63,7 @@ pub struct SubpackageMetadata {
 pub struct PatternMetadata {
     pub name: Option<String>,
     pub path: Option<String>,
-    pub documentation: Option<String>,
+    pub metadata: PatternMeta,
     pub parameters: Vec<String>,
     pub inner: InnerPatternMetadata,
     pub examples: Vec<Example>,
@@ -170,7 +169,7 @@ pub trait ToMetadata<T> {
 impl ToMetadata<PatternMetadata> for Pattern {
     fn to_meta(&self, world: &World) -> Result<PatternMetadata, Error> {
         Ok(PatternMetadata {
-            documentation: self.documentation(),
+            metadata: self.metadata().clone(),
             parameters: self.parameters(),
             name: self.name().map(|name| name.name().into()),
             path: self.name().map(|name| name.as_type_str()),
@@ -180,7 +179,7 @@ impl ToMetadata<PatternMetadata> for Pattern {
     }
 }
 
-impl ToMetadata<InnerPatternMetadata> for InnerPattern {
+impl ToMetadata<InnerPatternMetadata> for lir::InnerPattern {
     fn to_meta(&self, world: &World) -> Result<InnerPatternMetadata, Error> {
         Ok(match self {
             Self::Anything => InnerPatternMetadata::Anything,

@@ -1,0 +1,11 @@
+/// This pattern is considered unstable/experimental.
+#[unstable]
+pattern unstable = {}
+
+/// This pattern is marked deprecated, without further information.
+#[deprecated]
+pattern deprecated_simple = {}
+
+/// This pattern is marked deprecated, with additional details.
+#[deprecated("This is so 2022!", since="2023")]
+pattern deprecated_details = {}

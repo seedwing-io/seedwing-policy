@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 pub mod base64;
@@ -32,6 +33,8 @@ pub mod openvex;
 pub mod osv;
 pub mod pem;
 pub mod rhsa;
+#[cfg(feature = "showcase")]
+pub mod showcase;
 #[cfg(feature = "sigstore")]
 pub mod sigstore;
 pub mod slsa;
@@ -138,8 +141,8 @@ pub trait Function: Sync + Send + Debug {
         7
     }
 
-    fn documentation(&self) -> Option<String> {
-        None
+    fn metadata(&self) -> PatternMeta {
+        Default::default()
     }
 
     fn examples(&self) -> Vec<Example> {
@@ -173,8 +176,8 @@ pub trait BlockingFunction: Sync + Send + Debug {
         7
     }
 
-    fn documentation(&self) -> Option<String> {
-        None
+    fn metadata(&self) -> PatternMeta {
+        Default::default()
     }
 
     fn examples(&self) -> Vec<Example> {
@@ -202,8 +205,8 @@ where
         BlockingFunction::order(self)
     }
 
-    fn documentation(&self) -> Option<String> {
-        BlockingFunction::documentation(self)
+    fn metadata(&self) -> PatternMeta {
+        BlockingFunction::metadata(self)
     }
 
     fn examples(&self) -> Vec<Example> {

@@ -49,8 +49,8 @@ impl ToInformation<ComponentInformation> for Component {
 pub struct PatternInformation {
     /// Pattern name.
     pub name: Option<String>,
-    /// Pattern documentation.
-    pub documentation: Option<String>,
+    /// Pattern metadata.
+    pub meta: hir::Metadata,
     /// Pattern examples.
     pub examples: Vec<Example>,
     /// Pattern parameters.

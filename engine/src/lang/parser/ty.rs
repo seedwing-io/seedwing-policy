@@ -1,19 +1,16 @@
 //use crate::lang::expr::{expr, Expr, field_expr, Value};
-use crate::lang::hir::{
-    AttributeDefn, AttributeValue, Field, Metadata, ObjectPattern, Pattern, PatternDefn,
-};
+use crate::lang::hir::{Field, ObjectPattern, Pattern, PatternDefn};
 use crate::lang::parser::expr::expr;
 use crate::lang::parser::literal::{
-    boolean_literal, decimal_literal, integer_literal, raw_string_literal, string_literal,
+    boolean_literal, decimal_literal, integer_literal, string_literal,
 };
+use crate::lang::parser::meta::metadata;
 use crate::lang::parser::{op, Located, ParserError, ParserInput};
 use crate::lang::SyntacticSugar;
 use crate::runtime::{PackageName, PackagePath, PatternName};
-
 use chumsky::prelude::*;
 use chumsky::text::Character;
 use chumsky::Parser;
-
 use std::iter::once;
 
 pub fn path_segment() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone {
@@ -125,85 +122,6 @@ pub fn doc_comment(min: usize) -> impl Parser<ParserInput, String, Error = Parse
     })
 }
 
-pub fn attribute_value(
-) -> impl Parser<ParserInput, Located<AttributeValue>, Error = ParserError> + Clone {
-    simple_type_name()
-        .or(raw_string_literal())
-        .padded()
-        .then(
-            just("=")
-                .padded()
-                .ignored()
-                .then(simple_type_name().or(raw_string_literal()))
-                .or_not(),
-        )
-        .map(|(name, value)| match value {
-            Some(((), value)) => AttributeValue::Named { name, value },
-            None => AttributeValue::Flag(name),
-        })
-        .map_with_span(Located::new)
-}
-
-pub fn attribute_definition(
-) -> impl Parser<ParserInput, Located<AttributeDefn>, Error = ParserError> + Clone {
-    simple_type_name()
-        .padded()
-        .then(
-            attribute_value()
-                .padded()
-                .separated_by(just(",").padded())
-                .allow_trailing()
-                .delimited_by(just("("), just(")"))
-                .padded()
-                .map(|v| v.into_iter().map(|v| v.inner).collect::<Vec<_>>())
-                .or_not(),
-        )
-        .delimited_by(just("#["), just("]"))
-        .padded()
-        .map(|(name, values)| AttributeDefn::new(name, values.unwrap_or_default()))
-        .map_with_span(Located::new)
-}
-
-/// parse metadata, prepended to some element
-pub fn metadata() -> impl Parser<ParserInput, Located<Metadata>, Error = ParserError> + Clone {
-    #[derive(Clone, Debug)]
-    enum Meta {
-        Doc(String),
-        Attributes(Located<AttributeDefn>),
-    }
-
-    impl FromIterator<Meta> for Metadata {
-        fn from_iter<T: IntoIterator<Item = Meta>>(iter: T) -> Self {
-            let mut attributes = Vec::new();
-            let mut documentation = String::new();
-            for i in iter {
-                match i {
-                    Meta::Attributes(attribute) => {
-                        attributes.push(attribute);
-                    }
-                    Meta::Doc(partial_doc) => {
-                        documentation.push_str(&partial_doc);
-                    }
-                }
-            }
-            Self {
-                attributes,
-                documentation,
-            }
-        }
-    }
-
-    choice::<_, ParserError>((
-        attribute_definition().map(Meta::Attributes),
-        // we require at least one, as otherwise we would forever try to read nothing
-        doc_comment(1).map(Meta::Doc),
-    ))
-    .padded()
-    .repeated()
-    .collect::<Metadata>()
-    .map_with_span(Located::new)
-}
-
 pub fn type_definition(
 ) -> impl Parser<ParserInput, Located<PatternDefn>, Error = ParserError> + Clone {
     metadata()
@@ -231,7 +149,7 @@ pub fn type_definition(
                 }),
         )
         .map(|(metadata, mut defn)| {
-            defn.set_metadata(metadata.into_inner());
+            defn.set_metadata(metadata.into_inner().into());
             defn
         })
 }
@@ -540,7 +458,7 @@ pub fn field_definition(
                 }),
         )
         .map(|(meta, mut field)| {
-            field.set_metadata(meta.into_inner());
+            field.set_metadata(meta.into_inner().into());
             field
         })
 }
@@ -548,9 +466,14 @@ pub fn field_definition(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lang::builder::Builder;
-    use crate::lang::parser::compilation_unit;
+    use crate::lang::hir::AttributeValues;
+    use crate::lang::{
+        builder::Builder,
+        hir,
+        parser::{compilation_unit, test::located},
+    };
     use crate::runtime::sources::Ephemeral;
+    use std::collections::HashMap;
 
     #[test]
     fn parse_ty_name() {
@@ -787,7 +710,9 @@ mod test {
             .parse(
                 r#"
 /// Foo bar
-#[attr(foo=bar)]
+#[attr1]
+#[attr2(foo,bar=baz)]
+#[attr3(foo,bar="baz")]
 pattern bob = {}
 "#,
             )
@@ -801,190 +726,34 @@ pattern bob = {}
                 located(Pattern::Object(ObjectPattern::new())),
                 vec![]
             )
-            .with_metadata(Metadata {
-                attributes: vec![located(AttributeDefn::new(
-                    located("attr"),
-                    vec![AttributeValue::Named {
-                        name: located("foo"),
-                        value: located("bar")
-                    }]
-                ))],
-                documentation: r#"Foo bar"#.to_string(),
+            .with_metadata(hir::Metadata {
+                documentation: Some(r#"Foo bar"#.to_string()),
+                attributes: {
+                    let mut a = HashMap::new();
+                    a.insert("attr1".to_string(), AttributeValues::default());
+                    a.insert(
+                        "attr2".to_string(),
+                        AttributeValues {
+                            values: [
+                                ("foo".to_string(), None),
+                                ("bar".to_string(), Some("baz".to_string())),
+                            ]
+                            .into(),
+                        },
+                    );
+                    a.insert(
+                        "attr3".to_string(),
+                        AttributeValues {
+                            values: [
+                                ("foo".to_string(), None),
+                                ("bar".to_string(), Some("baz".to_string())),
+                            ]
+                            .into(),
+                        },
+                    );
+                    a
+                }
             })
         );
-    }
-
-    #[cfg(test)]
-    mod attributes {
-
-        use super::*;
-
-        #[test]
-        fn parse_attribute_plain() {
-            let attr = attribute_definition().parse(r#"#[attr]"#).unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(Located::new("attr".to_string(), 0..0usize.into()), vec![]),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_empty() {
-            let attr = attribute_definition().parse(r#"#[attr()]"#).unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(located("attr"), vec![]),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_flag() {
-            let attr = attribute_definition().parse(r#"#[attr(foo)]"#).unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(located("attr"), vec![AttributeValue::Flag(located("foo"))]),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_flags() {
-            let attr = attribute_definition()
-                .parse(r#"#[attr(foo, bar)]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![
-                            AttributeValue::Flag(located("foo")),
-                            AttributeValue::Flag(located("bar"))
-                        ]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_flags_trailing() {
-            let attr = attribute_definition()
-                .parse(r#"#[attr(foo, bar, )]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![
-                            AttributeValue::Flag(located("foo")),
-                            AttributeValue::Flag(located("bar"))
-                        ]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_field() {
-            let attr = attribute_definition()
-                .parse(r#"#[attr(foo = true)]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![AttributeValue::Named {
-                            name: located("foo"),
-                            value: located("true")
-                        },]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_mixed() {
-            let attr = attribute_definition()
-                .parse(r#"#[ attr ( foo = true, flag ) ]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![
-                            AttributeValue::Named {
-                                name: located("foo"),
-                                value: located("true")
-                            },
-                            AttributeValue::Flag(located("flag"))
-                        ]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_string() {
-            let attr = attribute_definition()
-                .parse(r#"#[ attr ( "foo bar") ]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![AttributeValue::Flag(located("foo bar")),]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-
-        #[test]
-        fn parse_attribute_mixed_strings() {
-            let attr = attribute_definition()
-                .parse(r#"#[ attr ( foo = true, "flag", bar   = "baz" ) ]"#)
-                .unwrap();
-            assert_eq!(
-                attr,
-                Located::new(
-                    AttributeDefn::new(
-                        located("attr"),
-                        vec![
-                            AttributeValue::Named {
-                                name: located("foo"),
-                                value: located("true")
-                            },
-                            AttributeValue::Flag(located("flag")),
-                            AttributeValue::Named {
-                                name: located("bar"),
-                                value: located("baz")
-                            },
-                        ]
-                    ),
-                    0..0usize.into()
-                )
-            );
-        }
-    }
-
-    /// created a located instance suitable for testing only (as it has a range of 0..0)
-    fn located<T>(inner: impl Into<T>) -> Located<T> {
-        Located::new(inner.into(), 0..0usize)
     }
 }
