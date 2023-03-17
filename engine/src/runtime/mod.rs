@@ -518,18 +518,11 @@ impl PackagePath {
     }
 
     pub fn as_package_str(&self) -> String {
-        let mut fq = String::new();
-
-        fq.push_str(
-            &self
-                .path
-                .iter()
-                .map(|e| e.inner().0)
-                .collect::<Vec<String>>()
-                .join("::"),
-        );
-
-        fq
+        self.path
+            .iter()
+            .map(|e| e.0.as_str())
+            .collect::<Vec<&str>>()
+            .join("::")
     }
 
     pub fn path(&self) -> &Vec<Located<PackageName>> {
