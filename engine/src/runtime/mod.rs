@@ -10,12 +10,11 @@ use std::time::Instant;
 
 use std::io;
 
-use crate::lang::lir;
 use crate::lang::lir::Bindings;
 pub use crate::lang::lir::Pattern;
 use crate::lang::mir::PatternHandle;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
-
+use crate::lang::{lir, PackageMeta};
 use crate::runtime::rationale::Rationale;
 use crate::value::RuntimeValue;
 
@@ -26,6 +25,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use std::sync::Arc;
 
@@ -228,6 +228,7 @@ pub struct World {
     config: EvalConfig,
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
+    packages: HashMap<AbsolutePackagePath, PackageMeta>,
 }
 
 impl World {
@@ -236,6 +237,7 @@ impl World {
             config,
             types: Default::default(),
             type_slots: Default::default(),
+            packages: Default::default(),
         }
     }
 
@@ -270,6 +272,10 @@ impl World {
         self.types.insert(path, self.type_slots.len() - 1);
     }
 
+    pub(crate) fn add_packages(&mut self, packages: HashMap<AbsolutePackagePath, PackageMeta>) {
+        self.packages.extend(packages);
+    }
+
     pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
         &self,
         path: P,
@@ -289,12 +295,24 @@ impl World {
         }
     }
 
-    pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {
+    pub fn get_package_meta<S: Into<AbsolutePackagePath>>(
+        &self,
+        name: S,
+    ) -> Option<PackageMetadata> {
         let name = name.into();
-        let mut meta = PackageMetadata::new(name.clone());
-        let path = name.as_package_str();
 
-        for (name, slot) in self.types.iter() {
+        let pkg_meta = self.packages.get(&name).cloned().unwrap_or_default();
+
+        let path = name.to_string();
+        let mut meta = PackageMetadata::new(PackagePath::from(name.0));
+        meta.documentation = pkg_meta.documentation;
+
+        for (name, slot) in &self.types {
+            let pkg = name
+                .package
+                .clone()
+                .filter(|p| p.is_absolute)
+                .map(|p| AbsolutePackagePath(p.segments()));
             let name = name.as_type_str();
             if let Some(relative_name) = name.strip_prefix(&path) {
                 let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
@@ -305,7 +323,12 @@ impl World {
                         meta.add_pattern(pattern);
                     }
                 } else {
-                    meta.add_subpackage(PackageName::new(parts[0].into()));
+                    let pkg_meta = pkg
+                        .as_ref()
+                        .and_then(|pkg| self.packages.get(pkg).cloned())
+                        .unwrap_or_default();
+
+                    meta.add_subpackage(PackageName::new(parts[0].into()), pkg_meta);
                 }
             }
         }
@@ -490,6 +513,18 @@ impl From<Vec<Located<PackageName>>> for PackagePath {
     }
 }
 
+impl Display for PackagePath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for (i, name) in self.path.iter().enumerate() {
+            if i > 0 {
+                f.write_str("::")?;
+            }
+            f.write_str(&name.0)?;
+        }
+        Ok(())
+    }
+}
+
 impl PackagePath {
     pub fn from_parts(segments: Vec<&str>) -> Self {
         Self {
@@ -546,6 +581,48 @@ impl From<SourceLocation> for PackagePath {
             is_absolute: true,
             path: segments,
         }
+    }
+}
+
+/// An absolute package path
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct AbsolutePackagePath(pub Vec<String>);
+
+impl From<String> for AbsolutePackagePath {
+    fn from(value: String) -> Self {
+        value.as_str().into()
+    }
+}
+
+impl From<&str> for AbsolutePackagePath {
+    fn from(value: &str) -> Self {
+        value.split("::").collect::<Vec<_>>().into()
+    }
+}
+
+impl From<Vec<&str>> for AbsolutePackagePath {
+    fn from(value: Vec<&str>) -> Self {
+        Self(value.into_iter().map(ToString::to_string).collect())
+    }
+}
+
+impl FromStr for AbsolutePackagePath {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
+}
+
+impl Display for AbsolutePackagePath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for (i, n) in self.0.iter().enumerate() {
+            if i > 0 {
+                f.write_str("::")?;
+            }
+            f.write_str(&n)?;
+        }
+        Ok(())
     }
 }
 

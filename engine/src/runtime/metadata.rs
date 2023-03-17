@@ -1,5 +1,5 @@
 use crate::lang;
-use crate::lang::{lir, Expr, PatternMeta, SyntacticSugar, ValuePattern};
+use crate::lang::{lir, Expr, PackageMeta, PatternMeta, SyntacticSugar, ValuePattern};
 use crate::runtime::{Example, PackageName, PackagePath, Pattern, PatternName, World};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,8 +15,11 @@ pub enum ComponentMetadata {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct PackageMetadata {
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<SubpackageMetadata>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub patterns: Vec<PatternMetadata>,
 }
 
@@ -36,11 +39,11 @@ impl PackageMetadata {
         }
     }
 
-    pub fn add_subpackage(&mut self, name: PackageName) {
+    pub fn add_subpackage(&mut self, name: PackageName, meta: PackageMeta) {
         if !self.packages.iter().any(|e| e.name == name.0) {
             self.packages.push(SubpackageMetadata {
                 name: name.0,
-                documentation: None,
+                documentation: meta.documentation,
             })
         }
     }

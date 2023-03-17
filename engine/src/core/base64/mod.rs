@@ -17,7 +17,8 @@ use serde_json::json;
 use std::sync::Arc;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]));
+    let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]))
+        .with_documentation("Provides functions for processing base64 encoded data".to_string());
     pkg.register_function("base64".into(), Base64::new(Alphabet::Standard));
     pkg.register_function("base64-url".into(), Base64::new(Alphabet::UrlNoPad));
     pkg.register_function("base64-encode".into(), Base64Encode);

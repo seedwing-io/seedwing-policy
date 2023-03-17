@@ -1,12 +1,13 @@
 use crate::core::{Example, Function};
 use crate::lang::hir::Expr;
 use crate::lang::parser::Located;
-use crate::lang::PrimordialPattern;
 use crate::lang::SyntacticSugar;
 use crate::lang::{hir, mir};
+use crate::lang::{PackageMeta, PrimordialPattern};
 use crate::lang::{PatternMeta, ValuePattern};
 use crate::runtime;
 use crate::runtime::config::EvalConfig;
+use crate::runtime::AbsolutePackagePath;
 use crate::runtime::BuildError;
 use crate::runtime::PatternName;
 use std::cell::RefCell;
@@ -170,6 +171,7 @@ pub struct World {
     config: EvalConfig,
     type_slots: Vec<Arc<PatternHandle>>,
     types: HashMap<PatternName, usize>,
+    packages: HashMap<AbsolutePackagePath, PackageMeta>,
 }
 
 impl World {
@@ -178,6 +180,7 @@ impl World {
             config,
             type_slots: vec![],
             types: Default::default(),
+            packages: Default::default(),
         };
 
         this.define_primordial("integer", PrimordialPattern::Integer);
@@ -238,7 +241,7 @@ impl World {
         path: PatternName,
         ty: &Located<hir::Pattern>,
     ) -> Result<(), BuildError> {
-        log::info!("define type {}", path);
+        log::debug!("define type {}", path);
         let converted = self.convert(ty)?;
         if let Some(handle) = self.types.get_mut(&path) {
             self.type_slots[*handle].define_from(converted);
@@ -249,7 +252,7 @@ impl World {
     }
 
     pub(crate) fn define_function(&mut self, path: PatternName, func: Arc<dyn Function>) {
-        log::info!("define function {}", path);
+        log::debug!("define function {}", path);
         let runtime_type = Located::new(
             mir::Pattern::Primordial(PrimordialPattern::Function(
                 SyntacticSugar::from(path.clone()),
@@ -262,6 +265,11 @@ impl World {
         if let Some(handle) = self.types.get_mut(&path) {
             self.type_slots[*handle].define(Arc::new(runtime_type));
         }
+    }
+
+    pub(crate) fn define_package(&mut self, path: AbsolutePackagePath, meta: PackageMeta) {
+        log::debug!("define package: {}", path);
+        self.packages.insert(path, meta);
     }
 
     #[allow(clippy::result_large_err)]
@@ -441,6 +449,8 @@ impl World {
         for (_slot, ty) in self.type_slots.iter().enumerate() {
             world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
         }
+
+        world.add_packages(self.packages);
 
         Ok(world)
     }
