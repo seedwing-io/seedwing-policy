@@ -71,32 +71,26 @@ impl Function for ContainsAll {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
-    use serde_json::json;
+    use crate::{assert_not_satisfied, assert_satisfied, runtime::testutil::test_pattern};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_contains() {
-        let input = "['foo', 'bar', 'baz']";
-        let json: serde_json::Value = serde_json::from_str(input).unwrap();
-        let result = test_pattern(r#"list::contains-all<['foo', 'bar']>"#, json).await;
-        assert_satisfied(result);
+        let json = serde_json::json!(["foo", "bar", "baz"]);
+        let result = test_pattern(r#"list::contains-all<["foo", "bar"]>"#, json).await;
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_identical() {
-        let input = "['foo', 'bar', 'baz']";
-        let json: serde_json::Value = serde_json::from_str(input).unwrap();
-        let result = test_pattern(r#"list::contains-all<['foo', 'bar', 'baz']>"#, json).await;
-        assert_satisfied(result);
+        let json = serde_json::json!(["foo", "bar", "baz"]);
+        let result = test_pattern(r#"list::contains-all<["foo", "bar", "baz"]>"#, json).await;
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_not_contains() {
-        let input = "['foo', 'baz']";
-        let json: serde_json::Value = serde_json::from_str(input).unwrap();
-        let result = test_pattern(r#"list::contains-all<['foo', 'bar']>"#, json).await;
-        assert_not_satisfied(result);
+        let json = serde_json::json!(["foo", "baz"]);
+        let result = test_pattern(r#"list::contains-all<["foo", "bar"]>"#, json).await;
+        assert_not_satisfied!(result);
     }
 }
