@@ -7,6 +7,7 @@ use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("tail.adoc");
@@ -15,8 +16,11 @@ const DOCUMENTATION: &str = include_str!("tail.adoc");
 pub struct Tail;
 
 impl Function for Tail {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn parameters(&self) -> Vec<String> {

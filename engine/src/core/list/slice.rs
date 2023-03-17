@@ -8,6 +8,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("slice.adoc");
@@ -18,8 +19,11 @@ const END: &str = "end";
 pub struct Slice;
 
 impl Function for Slice {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn parameters(&self) -> Vec<String> {

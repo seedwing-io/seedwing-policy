@@ -13,6 +13,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use super::super::osv::client::*;
+use crate::lang::PatternMeta;
 use openvex::*;
 
 #[derive(Debug)]
@@ -24,8 +25,11 @@ impl Function for FromOsv {
     fn order(&self) -> u8 {
         132
     }
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(

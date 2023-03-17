@@ -1,25 +1,23 @@
 use crate::core::{Example, Function};
 use crate::lang::hir::Expr;
-use crate::lang::lir::ValuePattern;
 use crate::lang::parser::Located;
 use crate::lang::PrimordialPattern;
 use crate::lang::SyntacticSugar;
 use crate::lang::{hir, mir};
+use crate::lang::{PatternMeta, ValuePattern};
 use crate::runtime;
+use crate::runtime::config::EvalConfig;
 use crate::runtime::BuildError;
 use crate::runtime::PatternName;
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
-
-use crate::runtime::config::EvalConfig;
 use std::sync::Arc;
 
 #[derive(Default, Debug)]
 pub struct PatternHandle {
     name: Option<PatternName>,
-    documentation: Option<String>,
+    metadata: PatternMeta,
     examples: Vec<Example>,
     ty: RefCell<Option<Arc<Located<Pattern>>>>,
     parameters: Vec<Located<String>>,
@@ -29,29 +27,29 @@ impl PatternHandle {
     pub fn new(name: Option<PatternName>) -> Self {
         Self {
             name,
-            documentation: None,
+            metadata: Default::default(),
             examples: vec![],
             ty: RefCell::new(None),
             parameters: vec![],
         }
     }
 
-    pub fn documentation(&self) -> Option<String> {
-        self.documentation.clone()
+    pub fn metadata(&self) -> &PatternMeta {
+        &self.metadata
     }
 
     pub fn new_with(name: Option<PatternName>, ty: Located<mir::Pattern>) -> Self {
         Self {
             name,
-            documentation: None,
+            metadata: Default::default(),
             examples: vec![],
             ty: RefCell::new(Some(Arc::new(ty))),
             parameters: vec![],
         }
     }
 
-    pub fn with_documentation(mut self, documentation: Option<String>) -> Self {
-        self.documentation = documentation;
+    pub fn with_metadata(mut self, metadata: PatternMeta) -> Self {
+        self.metadata = metadata;
         self
     }
 
@@ -209,19 +207,19 @@ impl World {
     pub(crate) fn declare(
         &mut self,
         path: PatternName,
-        documentation: Option<String>,
+        metadata: PatternMeta,
         examples: Vec<Example>,
         parameters: Vec<Located<String>>,
     ) {
-        log::info!("declare {}", path);
-        if documentation.is_none() {
+        log::debug!("declare {}", path);
+        if metadata.documentation.is_none() {
             log::warn!("{} is not documented", path.as_type_str());
         }
 
         let runtime_type = Arc::new(
             PatternHandle::new(Some(path.clone()))
                 .with_parameters(parameters)
-                .with_documentation(documentation)
+                .with_metadata(metadata)
                 .with_examples(examples),
         );
 

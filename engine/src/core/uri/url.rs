@@ -5,6 +5,7 @@ use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::fmt::Debug;
 
+use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -13,8 +14,11 @@ pub struct Url;
 const DOCUMENTATION: &str = include_str!("url.adoc");
 
 impl BlockingFunction for Url {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call(

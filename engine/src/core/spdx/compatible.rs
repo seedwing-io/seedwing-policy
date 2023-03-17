@@ -4,6 +4,7 @@ use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use spdx;
 
+use crate::lang::PatternMeta;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc; // as spdx_parser;
@@ -16,8 +17,11 @@ const LICENSE_REQUIREMENT: &str = "license_id";
 pub struct Compatible;
 
 impl Function for Compatible {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn parameters(&self) -> Vec<String> {

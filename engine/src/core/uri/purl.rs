@@ -1,6 +1,7 @@
 use crate::core::uri::url::Url;
 use crate::core::{BlockingFunction, Example, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::lang::PatternMeta;
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
@@ -13,8 +14,11 @@ pub struct Purl;
 const DOCUMENTATION: &str = include_str!("purl.adoc");
 
 impl BlockingFunction for Purl {
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn examples(&self) -> Vec<Example> {

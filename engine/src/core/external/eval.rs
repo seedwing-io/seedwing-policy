@@ -1,5 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::lang::PatternMeta;
 use crate::lang::ValuePattern;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -24,8 +25,11 @@ impl Function for Eval {
         vec![URL.into()]
     }
 
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(

@@ -11,6 +11,7 @@ use guac_rs::client::vulns2vex;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -22,8 +23,11 @@ impl Function for FromGuac {
     fn order(&self) -> u8 {
         132
     }
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(

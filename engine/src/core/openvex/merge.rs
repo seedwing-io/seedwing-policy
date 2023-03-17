@@ -10,6 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use super::merge;
+use crate::lang::PatternMeta;
 use openvex::*;
 
 #[derive(Debug)]
@@ -21,8 +22,11 @@ impl Function for Merge {
     fn order(&self) -> u8 {
         9
     }
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(

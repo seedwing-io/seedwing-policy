@@ -1,5 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::lang::PatternMeta;
 use crate::lang::ValuePattern;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -19,8 +20,11 @@ impl Function for Of {
         192
     }
 
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn parameters(&self) -> Vec<String> {

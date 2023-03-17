@@ -6,10 +6,11 @@ use actix_web::{
 };
 use okapi::openapi3::{
     Components, ExampleValue, Info, MediaType, OpenApi, Operation, PathItem, Ref, RefOr,
-    RequestBody, Response, Responses, SchemaObject,
+    RequestBody, Response, Responses, SchemaObject, Tag,
 };
 use okapi::schemars::schema::{Metadata, Schema};
 use seedwing_policy_engine::runtime::{Example, World};
+use serde_json::json;
 
 const APPLICATION_JSON: &str = "application/json";
 
@@ -28,6 +29,13 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         ..Default::default()
     };
 
+    api.tags.push(Tag {
+        name: "default".to_string(),
+        ..Default::default()
+    });
+
+    let mut has_unstable = false;
+
     let mut schemas = okapi::Map::default();
 
     let default_post_responses = build_default_post_response();
@@ -40,14 +48,28 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         let path = format!("/api/policy/v1alpha1/{}", name.as_type_str());
         let mut path_item = PathItem::default();
 
-        let get = Operation {
+        let mut get = Operation {
             description: Some("Retrieve the pattern definition".into()),
             ..Default::default()
         };
         let mut post = Operation {
-            description: pattern.documentation(),
+            description: pattern.metadata().documentation.clone(),
+            deprecated: pattern.metadata().is_deprecated(),
             ..Default::default()
         };
+
+        if pattern.metadata().unstable {
+            // there is no official way to mark something experimental, so we improvise
+
+            has_unstable = true;
+
+            for op in [&mut get, &mut post] {
+                op.tags.push("unstable".to_string());
+                op.extensions.insert("x-beta".to_string(), json!(true));
+                op.extensions
+                    .insert("x-experimental".to_string(), json!(true));
+            }
+        }
 
         let mut content = okapi::Map::new();
         let json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
@@ -95,6 +117,14 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         path_item.get = Some(get);
         path_item.post = Some(post);
         api.paths.insert(path, path_item);
+    }
+
+    if has_unstable {
+        api.tags.push(Tag{
+            name: "unstable".to_string(),
+            description: Some("These APIs is considered unstable/experimental, and may be changed, replaced, or dropped in a future version without prior deprecation.".to_string()),
+            ..Default::default()
+        })
     }
 
     let mut components = Components {

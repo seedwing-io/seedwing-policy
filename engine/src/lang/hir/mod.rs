@@ -8,11 +8,14 @@ use crate::runtime::cache::SourceCache;
 use crate::runtime::config::{ConfigValue, EvalConfig};
 use crate::runtime::{BuildError, PackagePath, PatternName};
 use serde::Serialize;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::iter::once;
-use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+
+mod meta;
+
+pub use meta::*;
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -395,6 +398,9 @@ impl World {
         world.add_package(crate::core::external::package());
         world.add_package(crate::core::guac::package());
 
+        #[cfg(feature = "showcase")]
+        world.add_package(crate::core::showcase::package());
+
         world
     }
 
@@ -606,12 +612,14 @@ impl<'b> Lowerer<'b> {
 
             for ty in unit.types() {
                 let name = unit_path.type_name(ty.name().inner());
-                world.declare(
-                    name,
-                    ty.metadata.documentation(),
-                    ty.examples.clone(),
-                    ty.parameters(),
-                );
+                let metadata = match ty.metadata.clone().try_into() {
+                    Ok(metadata) => metadata,
+                    Err(err) => {
+                        errors.push(err);
+                        continue;
+                    }
+                };
+                world.declare(name, metadata, ty.examples.clone(), ty.parameters());
             }
         }
 
@@ -621,7 +629,7 @@ impl<'b> Lowerer<'b> {
                 let path = path.type_name(fn_name);
                 world.declare(
                     path,
-                    func.documentation(),
+                    func.metadata().clone(),
                     func.examples(),
                     func.parameters()
                         .iter()
@@ -662,78 +670,5 @@ impl<'b> Lowerer<'b> {
         } else {
             Err(errors)
         }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AttributeValue {
-    /// A flag type value
-    ///
-    /// `#[example(flag)]` or `#[example(foo, "bar baz")]`
-    Flag(Located<String>),
-    /// A named value
-    ///
-    /// `#[example(bar=true)]` or `#[example(bar=true)]`
-    Named {
-        name: Located<String>,
-        value: Located<String>,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AttributeDefn {
-    name: Located<String>,
-    values: BTreeMap<String, Option<Located<String>>>,
-}
-
-impl AttributeDefn {
-    pub fn new(name: Located<String>, values: Vec<AttributeValue>) -> Self {
-        Self {
-            name,
-            values: values
-                .into_iter()
-                .map(|v| match v {
-                    AttributeValue::Flag(flag) => (flag.into_inner(), None),
-                    AttributeValue::Named { name, value } => (name.into_inner(), Some(value)),
-                })
-                .collect(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Metadata {
-    pub attributes: Vec<Located<AttributeDefn>>,
-    pub documentation: String,
-}
-
-impl Metadata {
-    pub fn documentation(&self) -> Option<String> {
-        match self.documentation.is_empty() {
-            true => None,
-            false => Some(self.documentation.clone()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct WithMeta<T> {
-    pub meta: Located<Metadata>,
-    pub inner: T,
-}
-
-impl<T: Eq> Eq for WithMeta<T> {}
-
-impl<T> Deref for WithMeta<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<T> DerefMut for WithMeta<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
     }
 }

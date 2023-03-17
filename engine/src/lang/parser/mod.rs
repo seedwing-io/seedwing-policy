@@ -14,6 +14,7 @@ use std::ops::{Deref, DerefMut};
 
 pub mod expr;
 pub mod literal;
+pub mod meta;
 pub mod ty;
 
 pub type SourceSpan = std::ops::Range<usize>;
@@ -526,3 +527,13 @@ mod test {
     }
 }
  */
+
+#[cfg(test)]
+mod test {
+    use crate::lang::parser::Located;
+
+    /// created a located instance suitable for testing only (as it has a range of 0..0)
+    pub(crate) fn located<T>(inner: impl Into<T>) -> Located<T> {
+        Located::new(inner.into(), 0..0usize)
+    }
+}

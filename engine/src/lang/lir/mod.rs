@@ -1,23 +1,23 @@
 pub mod json_schema;
 
-use crate::lang::parser::Located;
-use crate::lang::{lir, mir, PrimordialPattern, SyntacticSugar};
-use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError};
-use crate::runtime::{PatternName, World};
-use crate::value::RuntimeValue;
+use crate::{
+    core::Example,
+    lang::{lir, meta::PatternMeta, mir, parser::Located, PrimordialPattern, SyntacticSugar},
+    runtime::{
+        rationale::Rationale, EvalContext, EvaluationResult, Output, PatternName, RuntimeError,
+        World,
+    },
+    value::RuntimeValue,
+};
+
 use serde::{Deserialize, Serialize};
 
 use std::borrow::Borrow;
-
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
-
 use std::pin::Pin;
-
-use crate::core::Example;
 use std::sync::Arc;
 
 /// Represents an expression of patterns.
@@ -147,7 +147,7 @@ impl Expr {
 #[derive(Debug, Serialize)]
 pub struct Pattern {
     name: Option<PatternName>,
-    documentation: Option<String>,
+    metadata: PatternMeta,
     examples: Vec<Example>,
     parameters: Vec<String>,
     inner: InnerPattern,
@@ -156,14 +156,14 @@ pub struct Pattern {
 impl Pattern {
     pub(crate) fn new(
         name: Option<PatternName>,
-        documentation: Option<String>,
+        metadata: PatternMeta,
         examples: Vec<Example>,
         parameters: Vec<String>,
         inner: InnerPattern,
     ) -> Self {
         Self {
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             inner,
@@ -181,8 +181,8 @@ impl Pattern {
     }
 
     /// Documentation for the pattern.
-    pub fn documentation(&self) -> Option<String> {
-        self.documentation.clone()
+    pub fn metadata(&self) -> &PatternMeta {
+        &self.metadata
     }
 
     /// Examples for the pattern.
@@ -664,7 +664,7 @@ impl From<Arc<RuntimeValue>> for Pattern {
     fn from(val: Arc<RuntimeValue>) -> Self {
         Pattern::new(
             None,
-            None,
+            Default::default(),
             Vec::default(),
             Vec::default(),
             match &*val {
@@ -709,7 +709,7 @@ impl ObjectPattern {
 
 pub(crate) fn convert(
     name: Option<PatternName>,
-    documentation: Option<String>,
+    metadata: PatternMeta,
     examples: Vec<Example>,
     parameters: Vec<String>,
     ty: &Arc<Located<mir::Pattern>>,
@@ -717,14 +717,14 @@ pub(crate) fn convert(
     match &***ty {
         mir::Pattern::Anything => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Anything,
         )),
         mir::Pattern::Primordial(primordial) => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Primordial(primordial.clone()),
@@ -734,7 +734,7 @@ pub(crate) fn convert(
             for e in bindings {
                 lir_bindings.push(convert(
                     e.name(),
-                    e.documentation(),
+                    e.metadata().clone(),
                     e.examples(),
                     e.parameters().iter().map(|e| e.inner()).collect(),
                     &e.ty(),
@@ -743,7 +743,7 @@ pub(crate) fn convert(
 
             Arc::new(lir::Pattern::new(
                 name,
-                documentation,
+                metadata,
                 examples,
                 parameters,
                 lir::InnerPattern::Ref(sugar.clone(), *slot, lir_bindings),
@@ -751,12 +751,12 @@ pub(crate) fn convert(
         }
         mir::Pattern::Deref(inner) => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Deref(convert(
                 inner.name(),
-                inner.documentation(),
+                inner.metadata().clone(),
                 inner.examples(),
                 inner.parameters().iter().map(|e| e.inner()).collect(),
                 &inner.ty(),
@@ -764,14 +764,14 @@ pub(crate) fn convert(
         )),
         mir::Pattern::Argument(arg_name) => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Argument(arg_name.clone()),
         )),
         mir::Pattern::Const(value) => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Const(value.clone()),
@@ -784,7 +784,7 @@ pub(crate) fn convert(
                     f.name().inner(),
                     convert(
                         ty.name(),
-                        ty.documentation(),
+                        ty.metadata().clone(),
                         ty.examples(),
                         ty.parameters().iter().map(|e| e.inner()).collect(),
                         &ty.ty(),
@@ -796,7 +796,7 @@ pub(crate) fn convert(
             let object = ObjectPattern::new(fields);
             Arc::new(lir::Pattern::new(
                 name,
-                documentation,
+                metadata,
                 examples,
                 parameters,
                 lir::InnerPattern::Object(object),
@@ -804,7 +804,7 @@ pub(crate) fn convert(
         }
         mir::Pattern::Expr(expr) => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             parameters,
             lir::InnerPattern::Expr(Arc::new(expr.lower())),
@@ -814,7 +814,7 @@ pub(crate) fn convert(
             for e in terms {
                 inner.push(convert(
                     e.name(),
-                    e.documentation(),
+                    e.metadata().clone(),
                     e.examples(),
                     e.parameters().iter().map(|e| e.inner()).collect(),
                     &e.ty(),
@@ -823,7 +823,7 @@ pub(crate) fn convert(
 
             Arc::new(lir::Pattern::new(
                 name,
-                documentation,
+                metadata,
                 examples,
                 parameters,
                 lir::InnerPattern::List(inner),
@@ -831,7 +831,7 @@ pub(crate) fn convert(
         }
         mir::Pattern::Nothing => Arc::new(lir::Pattern::new(
             name,
-            documentation,
+            metadata,
             examples,
             Vec::default(),
             lir::InnerPattern::Nothing,
@@ -867,7 +867,7 @@ fn build_bindings<'b>(
                             param.clone(),
                             Arc::new(Pattern::new(
                                 resolved_type.name(),
-                                resolved_type.documentation(),
+                                resolved_type.metadata().clone(),
                                 resolved_type.examples(),
                                 resolved_type.parameters(),
                                 InnerPattern::Bound(resolved_type, resolved_bindings),
@@ -909,7 +909,7 @@ fn possibly_deref<'b>(
                 } else {
                     Ok(Arc::new(Pattern::new(
                         None,
-                        None,
+                        Default::default(),
                         Vec::default(),
                         Vec::default(),
                         InnerPattern::Nothing,
@@ -918,7 +918,7 @@ fn possibly_deref<'b>(
             } else {
                 Ok(Arc::new(Pattern::new(
                     None,
-                    None,
+                    Default::default(),
                     Vec::default(),
                     Vec::default(),
                     InnerPattern::Nothing,
@@ -932,7 +932,7 @@ fn possibly_deref<'b>(
 
             Ok(Arc::new(Pattern::new(
                 None,
-                None,
+                Default::default(),
                 Vec::default(),
                 Vec::default(),
                 InnerPattern::List(replacement),
@@ -941,4 +941,81 @@ fn possibly_deref<'b>(
             Ok(arg)
         }
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lang::{
+        hir::{self, AttributeValues},
+        meta::Deprecation,
+    };
+    use std::collections::HashMap;
+
+    #[test]
+    fn process_unstable() {
+        let meta: PatternMeta = hir::Metadata {
+            documentation: None,
+            attributes: {
+                let mut a = HashMap::new();
+                a.insert("unstable".to_string(), AttributeValues::default());
+                a
+            },
+        }
+        .try_into()
+        .unwrap();
+
+        assert!(meta.unstable);
+        assert!(!meta.is_deprecated());
+    }
+
+    #[test]
+    fn process_deprecated() {
+        let meta: PatternMeta = hir::Metadata {
+            documentation: None,
+            attributes: {
+                let mut a = HashMap::new();
+                a.insert("deprecated".to_string(), AttributeValues::default());
+                a
+            },
+        }
+        .try_into()
+        .unwrap();
+
+        assert!(!meta.unstable);
+        assert!(meta.is_deprecated());
+    }
+
+    #[test]
+    fn process_deprecated_with_info() {
+        let meta: PatternMeta = hir::Metadata {
+            documentation: None,
+            attributes: {
+                let mut a = HashMap::new();
+                a.insert(
+                    "deprecated".to_string(),
+                    AttributeValues {
+                        values: [
+                            ("This is so 2022".to_string(), None),
+                            ("since".to_string(), Some("2023".to_string())),
+                        ]
+                        .into(),
+                    },
+                );
+                a
+            },
+        }
+        .try_into()
+        .unwrap();
+
+        assert!(!meta.unstable);
+        assert!(meta.is_deprecated());
+        assert_eq!(
+            meta.deprecation,
+            Some(Deprecation {
+                reason: Some("This is so 2022".to_string()),
+                since: Some("2023".to_string())
+            })
+        );
+    }
 }
