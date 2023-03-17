@@ -455,7 +455,7 @@ impl Deref for PackageName {
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct PackagePath {
-    path: Vec<Located<PackageName>>,
+    pub path: Vec<PackageName>,
 }
 
 impl From<&str> for PackagePath {
@@ -478,24 +478,22 @@ impl From<String> for PackagePath {
 
 impl From<Vec<String>> for PackagePath {
     fn from(mut segments: Vec<String>) -> Self {
-        let first = segments.get(0).unwrap();
-        let is_absolute = first.is_empty();
+        let is_absolute = segments.get(0).map(String::is_empty).unwrap_or_default();
         if is_absolute {
             segments = segments[1..].to_vec()
         }
 
         Self {
-            path: segments
-                .iter()
-                .map(|e| Located::new(PackageName(e.clone()), 0..0))
-                .collect(),
+            path: segments.into_iter().map(PackageName).collect(),
         }
     }
 }
 
 impl From<Vec<Located<PackageName>>> for PackagePath {
     fn from(segments: Vec<Located<PackageName>>) -> Self {
-        Self { path: segments }
+        Self {
+            path: segments.into_iter().map(Located::into_inner).collect(),
+        }
     }
 }
 
@@ -515,8 +513,8 @@ impl PackagePath {
     pub fn from_parts(segments: Vec<&str>) -> Self {
         Self {
             path: segments
-                .iter()
-                .map(|e| Located::new(PackageName(String::from(*e)), 0..0))
+                .into_iter()
+                .map(|s| PackageName(s.to_string()))
                 .collect(),
         }
     }
@@ -534,14 +532,10 @@ impl PackagePath {
     }
 
     pub fn as_package_str(&self) -> String {
-        self.path
-            .iter()
-            .map(|e| e.0.as_str())
-            .collect::<Vec<&str>>()
-            .join("::")
+        self.to_string()
     }
 
-    pub fn path(&self) -> &Vec<Located<PackageName>> {
+    pub fn path(&self) -> &Vec<PackageName> {
         &self.path
     }
 
@@ -555,7 +549,7 @@ impl From<SourceLocation> for PackagePath {
         let name = src.name().replace('/', "::");
         let segments = name
             .split("::")
-            .map(|segment| Located::new(PackageName(segment.into()), 0..0))
+            .map(|segment| PackageName(segment.into()))
             .collect();
 
         Self { path: segments }

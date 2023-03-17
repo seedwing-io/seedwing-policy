@@ -243,9 +243,9 @@ impl From<PackagePath> for SourceLocation {
     fn from(package: PackagePath) -> Self {
         SourceLocation {
             name: package
-                .path()
-                .iter()
-                .map(|e| e.inner().0)
+                .path
+                .into_iter()
+                .map(|e| e.0)
                 .collect::<Vec<String>>()
                 .join("/"),
         }
