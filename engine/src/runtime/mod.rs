@@ -343,7 +343,7 @@ impl World {
     pub fn get_pattern_meta<S: Into<PatternName>>(&self, name: S) -> Option<PatternMetadata> {
         let name = name.into();
         if let Some(slot) = self.types.get(&name) {
-            let pattern = self.type_slots[*slot].clone();
+            let pattern = &self.type_slots[*slot];
             pattern.to_meta(self).ok()
         } else {
             None
