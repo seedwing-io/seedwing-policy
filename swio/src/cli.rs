@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::str::from_utf8;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+use url::Url;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum InputType {
@@ -42,7 +43,7 @@ pub struct Cli {
     pub(crate) policy_directories: Vec<PathBuf>,
 
     #[arg(short, long = "data", value_name = "DIR", global = true)]
-    pub(crate) data_directories: Vec<PathBuf>,
+    pub(crate) data_sources: Vec<Url>,
 
     #[command(subcommand)]
     pub(crate) command: Command,

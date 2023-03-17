@@ -1,6 +1,7 @@
 use crate::Cli;
 use env_logger::Builder;
 use log::LevelFilter;
+use seedwing_policy_engine::data::{DataSource, DirectoryDataSource};
 
 #[derive(clap::Args, Debug)]
 #[command(
@@ -22,9 +23,16 @@ impl Serve {
             .filter_module("seedwing_policy_server", LevelFilter::Info)
             .filter_module("seedwing_policy_engine", LevelFilter::Info)
             .init();
+
+        let mut data_directories: Vec<Box<dyn DataSource>> = Vec::new();
+        for each in args.data_directories.iter() {
+            log::info!("loading data from {:?}", each);
+            data_directories.push(Box::new(DirectoryDataSource::new(each.into())));
+        }
+
         seedwing_policy_server::run(
             args.policy_directories.clone(),
-            args.data_directories.clone(),
+            data_directories,
             self.bind.clone(),
             self.port,
         )

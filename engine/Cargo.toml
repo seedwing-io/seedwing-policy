@@ -28,6 +28,7 @@ anyhow = "1"
 tokio = "*"
 rand = "0.8.5"
 num-integer = "0.1.45"
+async-trait = "0.1.66"
 
 # functions
 sigstore = { version = "0.6.0", optional = true }

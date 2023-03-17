@@ -55,7 +55,7 @@ impl Function for Lookup {
             if let Some(val) = bindings.get(PATH) {
                 if let Some(ValuePattern::String(path)) = val.try_get_resolved_value() {
                     for ds in &*self.data_sources {
-                        if let Ok(Some(value)) = ds.get(path.clone()) {
+                        if let Ok(Some(value)) = ds.get(path.clone()).await {
                             if let Some(steps) = bindings.get(STEPS) {
                                 if let InnerPattern::List(steps) = steps.inner() {
                                     let mut current = Arc::new(value);

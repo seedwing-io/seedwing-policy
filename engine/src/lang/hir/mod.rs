@@ -416,8 +416,8 @@ impl World {
         }
     }
 
-    pub fn data<D: DataSource + 'static>(&mut self, src: D) {
-        self.data_sources.push(Arc::new(src))
+    pub fn data(&mut self, src: Box<dyn DataSource>) {
+        self.data_sources.push(Arc::from(src))
     }
 
     pub fn config(&mut self, key: String, val: ConfigValue) {

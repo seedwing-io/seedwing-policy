@@ -221,6 +221,8 @@ pub enum RuntimeError {
     YamlError(PathBuf, serde_yaml::Error),
     #[error("error reading file: {0}")]
     FileUnreadable(PathBuf),
+    #[error("error communicating with internal service: {0}")]
+    InternalHttpError(String),
 }
 
 #[derive(Clone, Debug)]

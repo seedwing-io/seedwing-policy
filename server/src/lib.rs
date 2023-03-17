@@ -9,7 +9,7 @@ mod ui;
 
 use actix_web::{web, App, HttpServer};
 use playground::PlaygroundState;
-use seedwing_policy_engine::data::DirectoryDataSource;
+use seedwing_policy_engine::data::DataSource;
 use seedwing_policy_engine::runtime::ErrorPrinter;
 use std::path::PathBuf;
 use std::process::exit;
@@ -24,7 +24,7 @@ use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 
 pub async fn run(
     policy_directories: Vec<PathBuf>,
-    data_directories: Vec<PathBuf>,
+    data_sources: Vec<Box<dyn DataSource>>,
     bind: String,
     port: u16,
 ) -> std::io::Result<()> {
@@ -51,9 +51,8 @@ pub async fn run(
         exit(-1)
     }
 
-    for each in data_directories {
-        log::info!("loading data from {:?}", each);
-        builder.data(DirectoryDataSource::new(each));
+    for src in data_sources {
+        builder.data(src);
     }
 
     let result = builder.finish().await;

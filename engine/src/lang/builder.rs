@@ -58,7 +58,7 @@ impl Builder {
     }
 
     /// Add a data source to the builder.
-    pub fn data<D: DataSource + 'static>(&mut self, src: D) {
+    pub fn data(&mut self, src: Box<dyn DataSource>) {
         self.hir.data(src)
     }
 

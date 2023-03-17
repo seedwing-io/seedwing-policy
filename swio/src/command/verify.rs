@@ -79,7 +79,7 @@ impl Verify {
 
         for each in &args.data_directories {
             log::info!("loading data from {:?}", each);
-            builder.data(DirectoryDataSource::new(each.into()));
+            builder.data(Box::new(DirectoryDataSource::new(each.into())));
         }
 
         Ok(builder)
