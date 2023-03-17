@@ -6,7 +6,7 @@ use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
 use crate::runtime::config::{ConfigValue, EvalConfig};
-use crate::runtime::{AbsolutePackagePath, BuildError, PackagePath, PatternName};
+use crate::runtime::{BuildError, PackagePath, PatternName};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -668,10 +668,7 @@ impl<'b> Lowerer<'b> {
 
         for pkg in self.packages {
             let path = pkg.path();
-            if path.is_absolute() {
-                let path = AbsolutePackagePath(path.segments());
-                world.define_package(path, pkg.metadata().clone());
-            }
+            world.define_package(path, pkg.metadata().clone());
         }
 
         if errors.is_empty() {
