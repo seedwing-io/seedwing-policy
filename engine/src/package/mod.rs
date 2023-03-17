@@ -1,6 +1,6 @@
 use crate::core::Function;
 use crate::lang::parser::SourceLocation;
-
+use crate::lang::PackageMeta;
 use crate::runtime::PackagePath;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,6 +16,7 @@ pub struct Package {
     path: PackagePath,
     functions: HashMap<String, Arc<dyn Function>>,
     sources: Vec<PackageSource>,
+    metadata: PackageMeta,
 }
 
 impl Package {
@@ -24,6 +25,7 @@ impl Package {
             path,
             functions: Default::default(),
             sources: Default::default(),
+            metadata: Default::default(),
         }
     }
 
@@ -63,5 +65,19 @@ impl Package {
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect()
+    }
+
+    pub fn metadata(&self) -> &PackageMeta {
+        &self.metadata
+    }
+
+    pub fn with_metadata(self, metadata: PackageMeta) -> Self {
+        Self { metadata, ..self }
+    }
+
+    pub fn with_documentation(self, documentation: impl Into<Option<String>>) -> Self {
+        self.with_metadata(PackageMeta {
+            documentation: documentation.into(),
+        })
     }
 }

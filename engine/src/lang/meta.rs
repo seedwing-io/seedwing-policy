@@ -44,3 +44,9 @@ pub struct Deprecation {
     pub reason: Option<String>,
     pub since: Option<String>,
 }
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PackageMeta {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+}
