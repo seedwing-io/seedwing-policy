@@ -1,5 +1,4 @@
-//! Rationale for a policy decision.
-use crate::runtime::EvaluationResult;
+use crate::{lang::lir::Bindings, runtime::EvaluationResult};
 use std::collections::HashMap;
 
 /// Rationale for a policy decision.
@@ -19,6 +18,7 @@ pub enum Rationale {
     Expression(bool),
     Function(bool, Option<Box<Rationale>>, Vec<EvaluationResult>),
     Refinement(Box<EvaluationResult>, Option<Box<EvaluationResult>>),
+    Bound(Box<Rationale>, Bindings),
 }
 
 impl Rationale {
@@ -48,6 +48,7 @@ impl Rationale {
                     false
                 }
             }
+            Rationale::Bound(inner, _) => inner.satisfied(),
         }
     }
 }

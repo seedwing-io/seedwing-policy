@@ -240,7 +240,17 @@ impl Pattern {
                     .await;
 
                     let bindings = bindings.unwrap();
-                    let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
+                    let result = ty
+                        .evaluate(value.clone(), ctx, &bindings, world)
+                        .await
+                        .map(|x| {
+                            EvaluationResult::new(
+                                x.input(),
+                                x.ty(),
+                                Rationale::Bound(Box::new(x.rationale().clone()), bindings.clone()),
+                                x.raw_output().clone(),
+                            )
+                        })?;
                     if let SyntacticSugar::Chain = sugar {
                         Ok(EvaluationResult::new(
                             value.clone(),
@@ -478,7 +488,7 @@ impl Pattern {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub(crate) enum InnerPattern {
     Anything,
     Primordial(PrimordialPattern),

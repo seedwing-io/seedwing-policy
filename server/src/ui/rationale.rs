@@ -51,6 +51,7 @@ impl<'r> Rationalizer<'r> {
 
             match result.rationale() {
                 Rationale::Anything => {}
+                Rationale::Bound(_, _) => {}
                 Rationale::Nothing => {}
                 Rationale::Chain(_) => {}
                 Rationale::Object(_) => {}
@@ -98,6 +99,7 @@ impl<'r> Rationalizer<'r> {
             Rationale::Anything => {
                 html.push_str("<div>anything is satisfied by anything</div>");
             }
+            Rationale::Bound(_, _) => {}
             Rationale::Nothing => {}
             Rationale::Object(fields) => {
                 html.push_str("<div class='object'>");
