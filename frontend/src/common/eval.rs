@@ -20,11 +20,12 @@ impl TreeTableModel for ResponseModel {
 
 impl TreeNode for ResponseModel {
     fn render_main(&self) -> Cell {
+        let name = self.0.name.clone();
         html!(
-            if let name @ Name::Pattern(Some(_)) = self.0.name.clone() {
-                <PatternNameView {name} />
-            } else {
+            if let Name::Pattern(None) = name {
                 <em>{"Unnamed"}</em>
+            } else {
+                <PatternNameView {name} />
             }
         )
         .into()
