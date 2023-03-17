@@ -65,36 +65,36 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
             }));
 
             schemas.insert(name.as_type_str(), json_schema);
-
-            let mut json_schema = SchemaObject {
-                reference: Some(format!("#/components/schemas/{}", name.as_type_str())),
-                ..Default::default()
-            };
-            json_schema.reference = Some(format!("#/components/schemas/{}", name.as_type_str()));
-
-            let json_media_type = MediaType {
-                schema: Some(json_schema),
-                example: None,
-                examples: build_examples(pattern.examples()),
-                encoding: Default::default(),
-                extensions: Default::default(),
-            };
-
-            content.insert(APPLICATION_JSON.into(), json_media_type);
-
-            let request_body = RefOr::Object(RequestBody {
-                description: Some("The input value to evaluate against.".into()),
-                content,
-                required: true,
-                extensions: Default::default(),
-            });
-            post.request_body = Some(request_body);
-            post.responses = default_post_responses.clone();
-
-            path_item.get = Some(get);
-            path_item.post = Some(post);
-            api.paths.insert(path, path_item);
         }
+
+        let mut json_schema = SchemaObject {
+            reference: Some(format!("#/components/schemas/{}", name.as_type_str())),
+            ..Default::default()
+        };
+        json_schema.reference = Some(format!("#/components/schemas/{}", name.as_type_str()));
+
+        let json_media_type = MediaType {
+            schema: Some(json_schema),
+            example: None,
+            examples: build_examples(pattern.examples()),
+            encoding: Default::default(),
+            extensions: Default::default(),
+        };
+
+        content.insert(APPLICATION_JSON.into(), json_media_type);
+
+        let request_body = RefOr::Object(RequestBody {
+            description: Some("The input value to evaluate against.".into()),
+            content,
+            required: true,
+            extensions: Default::default(),
+        });
+        post.request_body = Some(request_body);
+        post.responses = default_post_responses.clone();
+
+        path_item.get = Some(get);
+        path_item.post = Some(post);
+        api.paths.insert(path, path_item);
     }
 
     let mut components = Components {
