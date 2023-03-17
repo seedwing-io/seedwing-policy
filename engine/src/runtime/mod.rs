@@ -22,13 +22,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::str::FromStr;
-
 use std::sync::Arc;
-
 use std::time::Duration;
 
 use config::EvalConfig;
@@ -228,7 +224,8 @@ pub struct World {
     config: EvalConfig,
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
-    packages: HashMap<AbsolutePackagePath, PackageMeta>,
+
+    packages: HashMap<PackagePath, PackageMeta>,
 }
 
 impl World {
@@ -272,7 +269,7 @@ impl World {
         self.types.insert(path, self.type_slots.len() - 1);
     }
 
-    pub(crate) fn add_packages(&mut self, packages: HashMap<AbsolutePackagePath, PackageMeta>) {
+    pub(crate) fn add_packages(&mut self, packages: HashMap<PackagePath, PackageMeta>) {
         self.packages.extend(packages);
     }
 
@@ -295,24 +292,18 @@ impl World {
         }
     }
 
-    pub fn get_package_meta<S: Into<AbsolutePackagePath>>(
-        &self,
-        name: S,
-    ) -> Option<PackageMetadata> {
+    pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {
         let name = name.into();
 
         let pkg_meta = self.packages.get(&name).cloned().unwrap_or_default();
 
         let path = name.to_string();
-        let mut meta = PackageMetadata::new(PackagePath::from(name.0));
+        let mut meta = PackageMetadata::new(name);
+
         meta.documentation = pkg_meta.documentation;
 
         for (name, slot) in &self.types {
-            let pkg = name
-                .package
-                .clone()
-                .filter(|p| p.is_absolute)
-                .map(|p| AbsolutePackagePath(p.segments()));
+            let pkg = name.package.clone();
             let name = name.as_type_str();
             if let Some(relative_name) = name.strip_prefix(&path) {
                 let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
@@ -464,7 +455,6 @@ impl Deref for PackageName {
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct PackagePath {
-    is_absolute: bool,
     path: Vec<Located<PackageName>>,
 }
 
@@ -495,7 +485,6 @@ impl From<Vec<String>> for PackagePath {
         }
 
         Self {
-            is_absolute: true,
             path: segments
                 .iter()
                 .map(|e| Located::new(PackageName(e.clone()), 0..0))
@@ -506,10 +495,7 @@ impl From<Vec<String>> for PackagePath {
 
 impl From<Vec<Located<PackageName>>> for PackagePath {
     fn from(segments: Vec<Located<PackageName>>) -> Self {
-        Self {
-            is_absolute: true,
-            path: segments,
-        }
+        Self { path: segments }
     }
 }
 
@@ -528,16 +514,11 @@ impl Display for PackagePath {
 impl PackagePath {
     pub fn from_parts(segments: Vec<&str>) -> Self {
         Self {
-            is_absolute: true,
             path: segments
                 .iter()
                 .map(|e| Located::new(PackageName(String::from(*e)), 0..0))
                 .collect(),
         }
-    }
-
-    pub fn is_absolute(&self) -> bool {
-        self.is_absolute
     }
 
     pub fn is_qualified(&self) -> bool {
@@ -577,52 +558,7 @@ impl From<SourceLocation> for PackagePath {
             .map(|segment| Located::new(PackageName(segment.into()), 0..0))
             .collect();
 
-        Self {
-            is_absolute: true,
-            path: segments,
-        }
-    }
-}
-
-/// An absolute package path
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct AbsolutePackagePath(pub Vec<String>);
-
-impl From<String> for AbsolutePackagePath {
-    fn from(value: String) -> Self {
-        value.as_str().into()
-    }
-}
-
-impl From<&str> for AbsolutePackagePath {
-    fn from(value: &str) -> Self {
-        value.split("::").collect::<Vec<_>>().into()
-    }
-}
-
-impl From<Vec<&str>> for AbsolutePackagePath {
-    fn from(value: Vec<&str>) -> Self {
-        Self(value.into_iter().map(ToString::to_string).collect())
-    }
-}
-
-impl FromStr for AbsolutePackagePath {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(s.into())
-    }
-}
-
-impl Display for AbsolutePackagePath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for (i, n) in self.0.iter().enumerate() {
-            if i > 0 {
-                f.write_str("::")?;
-            }
-            f.write_str(&n)?;
-        }
-        Ok(())
+        Self { path: segments }
     }
 }
 

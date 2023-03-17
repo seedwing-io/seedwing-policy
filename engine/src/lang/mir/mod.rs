@@ -7,9 +7,8 @@ use crate::lang::{PackageMeta, PrimordialPattern};
 use crate::lang::{PatternMeta, ValuePattern};
 use crate::runtime;
 use crate::runtime::config::EvalConfig;
-use crate::runtime::AbsolutePackagePath;
-use crate::runtime::BuildError;
 use crate::runtime::PatternName;
+use crate::runtime::{BuildError, PackagePath};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -171,7 +170,7 @@ pub struct World {
     config: EvalConfig,
     type_slots: Vec<Arc<PatternHandle>>,
     types: HashMap<PatternName, usize>,
-    packages: HashMap<AbsolutePackagePath, PackageMeta>,
+    packages: HashMap<PackagePath, PackageMeta>,
 }
 
 impl World {
@@ -267,7 +266,7 @@ impl World {
         }
     }
 
-    pub(crate) fn define_package(&mut self, path: AbsolutePackagePath, meta: PackageMeta) {
+    pub(crate) fn define_package(&mut self, path: PackagePath, meta: PackageMeta) {
         log::debug!("define package: {}", path);
         self.packages.insert(path, meta);
     }
