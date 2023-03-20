@@ -22,7 +22,7 @@ const DOCUMENTATION: &str = include_str!("builtin.adoc");
 impl BlockingFunction for BuiltIn {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

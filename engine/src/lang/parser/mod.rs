@@ -1,6 +1,6 @@
 //use crate::lang::expr::expr;
 use crate::lang::hir::PatternDefn;
-use crate::lang::parser::ty::{simple_type_name, type_definition, type_name};
+use crate::lang::parser::ty::{pkg_doc_comment, simple_type_name, type_definition, type_name};
 use crate::runtime::PackagePath;
 use crate::runtime::PatternName;
 use chumsky::prelude::*;
@@ -24,6 +24,7 @@ pub struct CompilationUnit {
     source: SourceLocation,
     uses: Vec<Located<Use>>,
     types: Vec<Located<PatternDefn>>,
+    documentation: Option<String>,
 }
 
 impl CompilationUnit {
@@ -32,6 +33,7 @@ impl CompilationUnit {
             source,
             uses: Default::default(),
             types: Default::default(),
+            documentation: None,
         }
     }
 
@@ -57,6 +59,10 @@ impl CompilationUnit {
 
     pub(crate) fn types_mut(&mut self) -> &mut Vec<Located<PatternDefn>> {
         &mut self.types
+    }
+
+    pub(crate) fn documentation(&self) -> Option<&str> {
+        self.documentation.as_deref()
     }
 }
 
@@ -305,17 +311,20 @@ fn remove_comments(tokens: &Vec<(ParserInput, SourceSpan)>) -> Vec<(ParserInput,
             inside_string = !inside_string;
         } else if tokens[i].0 == '/' && !inside_string {
             if tokens[i + 1].0 == '/' {
-                if tokens[i + 2].0 != '/' {
-                    i += 2;
-                    // consume until newline
-                    while tokens[i].0 != '\n' {
-                        i += 1;
+                match tokens[i + 2].0 {
+                    '/' | '!' => {
+                        filtered_tokens.push(tokens[i].clone());
+                        filtered_tokens.push(tokens[i + 1].clone());
+                        filtered_tokens.push(tokens[i + 2].clone());
+                        i += 2;
                     }
-                } else {
-                    filtered_tokens.push(tokens[i].clone());
-                    filtered_tokens.push(tokens[i + 1].clone());
-                    filtered_tokens.push(tokens[i + 2].clone());
-                    i += 2;
+                    _ => {
+                        i += 2;
+                        // consume until newline
+                        while tokens[i].0 != '\n' {
+                            i += 1;
+                        }
+                    }
                 }
             } else {
                 filtered_tokens.push(tokens[i].clone())
@@ -372,13 +381,19 @@ pub fn compilation_unit<S>(
 where
     S: Into<SourceLocation> + Clone,
 {
-    use_statement()
+    pkg_doc_comment(0)
         .padded()
-        .repeated()
+        .then(use_statement().padded().repeated())
         .then(type_definition().padded().repeated())
         .then_ignore(end())
-        .map(move |(use_statements, types)| {
+        .map(move |((pkg_doc, use_statements), types)| {
             let mut unit = CompilationUnit::new(source.clone().into());
+
+            unit.documentation = if !pkg_doc.is_empty() {
+                Some(pkg_doc)
+            } else {
+                None
+            };
 
             for e in use_statements {
                 unit.add_use(e)

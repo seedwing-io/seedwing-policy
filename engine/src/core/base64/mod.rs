@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["base64"]))
-        .with_documentation("Provides functions for processing base64 encoded data".to_string());
+        .with_documentation(r#"Functionality for processing base64 encoded data"#.to_string());
     pkg.register_function("base64".into(), Base64::new(Alphabet::Standard));
     pkg.register_function("base64-url".into(), Base64::new(Alphabet::UrlNoPad));
     pkg.register_function("base64-encode".into(), Base64Encode);
@@ -63,8 +63,8 @@ impl Function for Base64 {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
             documentation: match self.alphabet {
-                Alphabet::Standard => Some(DOCUMENTATION_BASE64.into()),
-                Alphabet::UrlNoPad => Some(DOCUMENTATION_BASE64URL.into()),
+                Alphabet::Standard => DOCUMENTATION_BASE64.into(),
+                Alphabet::UrlNoPad => DOCUMENTATION_BASE64URL.into(),
             },
             ..Default::default()
         }
@@ -122,7 +122,7 @@ pub struct Base64Encode;
 impl Function for Base64Encode {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION_BASE64_ENCODE.into()),
+            documentation: DOCUMENTATION_BASE64_ENCODE.into(),
             ..Default::default()
         }
     }

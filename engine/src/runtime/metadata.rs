@@ -3,7 +3,7 @@ use crate::lang::{lir, Expr, PackageMeta, PatternMeta, SyntacticSugar, ValuePatt
 use crate::runtime::{Example, PackagePath, Pattern, PatternName};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -12,11 +12,63 @@ pub enum ComponentMetadata {
     Pattern(PatternMetadata),
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Documentation(pub Option<String>);
+
+impl From<String> for Documentation {
+    fn from(value: String) -> Self {
+        Self(Some(value))
+    }
+}
+
+impl From<&str> for Documentation {
+    fn from(value: &str) -> Self {
+        Self(Some(value.to_string()))
+    }
+}
+
+impl From<Option<String>> for Documentation {
+    fn from(value: Option<String>) -> Self {
+        Self(value)
+    }
+}
+
+impl Deref for Documentation {
+    type Target = Option<String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Documentation {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Documentation {
+    pub fn split(&self) -> (&str, &str) {
+        match &self.0 {
+            Some(docs) => docs.split_once("\n\n").unwrap_or((&docs, "")),
+            None => ("", ""),
+        }
+    }
+
+    pub fn summary(&self) -> &str {
+        self.split().0
+    }
+
+    pub fn details(&self) -> &str {
+        self.split().1
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct PackageMetadata {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub documentation: Documentation,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<SubpackageMetadata>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -27,14 +79,14 @@ impl PackageMetadata {
     pub fn new(name: PackagePath) -> Self {
         Self {
             name: name.as_package_str(),
-            documentation: None,
+            documentation: Default::default(),
             packages: vec![],
             patterns: vec![],
         }
     }
 
     pub(crate) fn apply_meta(&mut self, meta: &PackageMeta) {
-        self.documentation = meta.documentation.clone();
+        self.documentation = Documentation(meta.documentation.clone());
     }
 
     pub(crate) fn sort(&mut self) {
@@ -46,19 +98,21 @@ impl PackageMetadata {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct SubpackageMetadata {
     pub name: String,
-    pub documentation: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Documentation,
 }
 
 impl SubpackageMetadata {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
-            documentation: None,
+            documentation: Default::default(),
         }
     }
 
     pub(crate) fn apply_meta(&mut self, meta: &PackageMeta) {
-        self.documentation = meta.documentation.clone();
+        self.documentation = Documentation(meta.documentation.clone());
     }
 }
 

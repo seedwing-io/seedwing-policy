@@ -75,9 +75,9 @@ impl Package {
         Self { metadata, ..self }
     }
 
-    pub fn with_documentation(self, documentation: impl Into<Option<String>>) -> Self {
+    pub fn with_documentation(self, documentation: impl Into<String>) -> Self {
         self.with_metadata(PackageMeta {
-            documentation: documentation.into(),
+            documentation: Some(documentation.into()),
         })
     }
 }

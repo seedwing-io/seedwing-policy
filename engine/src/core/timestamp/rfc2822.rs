@@ -16,7 +16,7 @@ pub struct Rfc2822;
 impl Function for Rfc2822 {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

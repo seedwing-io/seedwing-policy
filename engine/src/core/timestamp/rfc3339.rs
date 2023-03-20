@@ -16,7 +16,7 @@ pub struct Rfc3339;
 impl Function for Rfc3339 {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }
