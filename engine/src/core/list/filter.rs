@@ -45,12 +45,14 @@ impl Function for Filter {
                     RuntimeValue::List(inputs) => {
                         let mut result = Vec::new();
                         for input in inputs.iter() {
-                            if let Some(value) = binding
+                            match binding
                                 .evaluate(input.clone(), ctx, bindings, world)
                                 .await?
-                                .output()
+                                .raw_output()
                             {
-                                result.push(input.clone());
+                                Output::Identity => result.push(input.clone()),
+                                Output::Transform(_) => result.push(input.clone()),
+                                Output::None => {}
                             }
                         }
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
