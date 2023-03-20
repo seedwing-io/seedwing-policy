@@ -13,6 +13,7 @@ pub mod any;
 pub mod concat;
 pub mod contains;
 pub mod count;
+pub mod filter;
 pub mod head;
 pub mod none;
 pub mod slice;
@@ -36,6 +37,7 @@ pub fn package() -> Package {
     pkg.register_function("count".into(), count::Count);
     pkg.register_function("length".into(), count::Count);
     pkg.register_function("contains-all".into(), contains::ContainsAll);
+    pkg.register_function("filter".into(), filter::Filter);
     pkg
 }
 

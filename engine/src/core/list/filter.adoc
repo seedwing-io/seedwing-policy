@@ -1,0 +1,1 @@
+Applies a filter function on each element in a list and returns the input values that matched the pattern.
