@@ -247,11 +247,7 @@ impl World {
     }
 
     pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>> {
-        if slot < self.type_slots.len() {
-            Some(self.type_slots[slot].clone())
-        } else {
-            None
-        }
+        self.type_slots.get(slot).cloned()
     }
 
     pub(crate) fn add(&mut self, path: PatternName, handle: Arc<PatternHandle>) {
