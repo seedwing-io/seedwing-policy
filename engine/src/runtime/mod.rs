@@ -737,11 +737,13 @@ impl<'ctx> TraceHandle<'ctx> {
 
 #[cfg(test)]
 pub mod testutil {
+    use crate::data::DirectoryDataSource;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvalContext;
     use crate::runtime::EvaluationResult;
     use crate::value::RuntimeValue;
+    use std::path::{Path, PathBuf};
 
     pub(crate) async fn test_pattern<V>(pattern: &str, value: V) -> EvaluationResult
     where
@@ -749,8 +751,28 @@ pub mod testutil {
     {
         let src = format!("pattern test-pattern = {pattern}");
         let src = Ephemeral::new("test", src);
+        evaluate(src, value).await
+    }
 
+    /// This function can be used when there are multiple patterns that are
+    /// being tested.
+    ///
+    /// The pattern to be evaulated must be named `test-pattern`.
+    pub(crate) async fn test_patterns<V>(patterns: &str, value: V) -> EvaluationResult
+    where
+        V: Into<RuntimeValue>,
+    {
+        let src = Ephemeral::new("test", patterns);
+        evaluate(src, value).await
+    }
+
+    async fn evaluate<V>(src: Ephemeral, value: V) -> EvaluationResult
+    where
+        V: Into<RuntimeValue>,
+    {
+        init_logger();
         let mut builder = Builder::new();
+        builder.data(DirectoryDataSource::new(test_data_dir().into()));
         builder.build(src.iter()).unwrap();
         let runtime = builder.finish().await.unwrap();
         let result = runtime
@@ -758,6 +780,15 @@ pub mod testutil {
             .await;
 
         result.unwrap()
+    }
+
+    pub(crate) fn test_data_dir() -> PathBuf {
+        let cargo_manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        cargo_manifest_dir.join("test-data")
+    }
+
+    fn init_logger() {
+        let _ = env_logger::builder().is_test(true).try_init();
     }
 
     #[macro_export]
