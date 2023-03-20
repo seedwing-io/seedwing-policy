@@ -48,10 +48,7 @@ impl Function for Map {
                             {
                                 result.push(value);
                             } else {
-                                let msg = "No output from map function";
-                                return Ok(
-                                    (Output::None, Rationale::InvalidArgument(msg.into())).into()
-                                );
+                                result.push(RuntimeValue::Null.into());
                             }
                         }
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
@@ -100,6 +97,36 @@ mod tests {
                     "version": "244fd47e07d1004",
                     "subpath": "everybody/loves/dogs",
                 }])
+                .into()
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_map_list_no_filtering() {
+        let result = test_pattern(
+            r#"lang::map<uri::purl>"#,
+            vec![
+                RuntimeValue::String(
+                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
+                        .to_string(),
+                ),
+                RuntimeValue::String("nomatch".to_string()),
+            ],
+        )
+        .await;
+
+        assert_eq!(
+            result.output(),
+            Some(Arc::new(
+                json!([{
+                    "type": "github",
+                    "namespace": "package-url",
+                    "name": "purl-spec",
+                    "version": "244fd47e07d1004",
+                    "subpath": "everybody/loves/dogs",
+                }, null,
+                ])
                 .into()
             ))
         );
