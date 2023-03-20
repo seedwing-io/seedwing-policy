@@ -87,8 +87,18 @@ pub fn inner_type_definition(
         .map(|(_, x)| x)
 }
 
+pub fn pkg_doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    common_comment_line(just("//!"))
+}
+
 pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
-    just("///").then(take_until(text::newline())).map(|v| {
+    common_comment_line(just("///"))
+}
+
+fn common_comment_line<'a>(
+    start: impl Parser<ParserInput, &'static str, Error = ParserError> + Clone,
+) -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    start.then(take_until(text::newline())).padded().map(|v| {
         let (_, (doc, _eol)) = v;
         let mut line = String::new();
         line.extend(doc);
@@ -96,8 +106,21 @@ pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserErro
     })
 }
 
+pub fn pkg_doc_comment(
+    min: usize,
+) -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    common_comment(min, pkg_doc_comment_line())
+}
+
 pub fn doc_comment(min: usize) -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
-    doc_comment_line().repeated().at_least(min).map(|v| {
+    common_comment(min, doc_comment_line())
+}
+
+pub fn common_comment(
+    min: usize,
+    parser: impl Parser<ParserInput, String, Error = ParserError> + Clone,
+) -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
+    parser.repeated().at_least(min).map(|v| {
         let mut docs = String::new();
         let mut prefix = None;
         for line in v {
@@ -490,6 +513,35 @@ mod test {
     }
 
     #[test]
+    fn parse_doc_comment() {
+        let doc = doc_comment(0).parse(r#""#).unwrap();
+        assert_eq!("", doc);
+
+        let doc = doc_comment(0)
+            .parse(
+                r#"/// foo
+"#,
+            )
+            .unwrap();
+        assert_eq!("foo", doc);
+    }
+
+    #[test]
+    fn parse_pkg_doc_comment() {
+        let doc = pkg_doc_comment(0).parse(r#""#).unwrap();
+        assert_eq!("", doc);
+
+        let doc = pkg_doc_comment(0)
+            .parse(
+                r#"//! foo
+//! bar
+"#,
+            )
+            .unwrap();
+        assert_eq!("foo\nbar", doc);
+    }
+
+    #[test]
     fn parse_ty_defn_with_traversal() {
         let _ty = type_definition()
             .parse("pattern bob = person.first_name(\"bob\").last_name")
@@ -621,6 +673,10 @@ mod test {
         let unit = compilation_unit("my_file.dog")
             .parse(
                 r#"
+            //! Package level docs.
+            //! 
+            //! More lines.
+
             use foo::bar::bar
             use x::y::z as osi-approved-license
 
@@ -643,6 +699,16 @@ mod test {
         "#,
             )
             .unwrap();
+
+        assert_eq!(
+            unit.documentation,
+            Some(
+                r#"Package level docs.
+
+More lines."#
+                    .to_string()
+            )
+        );
 
         println!("{unit:?}");
     }

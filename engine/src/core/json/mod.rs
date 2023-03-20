@@ -28,7 +28,7 @@ const DOCUMENTATION: &str = include_str!("JSON.adoc");
 impl Function for JSON {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

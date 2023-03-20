@@ -13,7 +13,11 @@ use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["cyclonedx"]));
+    let mut pkg =
+        Package::new(PackagePath::from_parts(vec!["cyclonedx"])).with_documentation(r#"Tools for working with CycloneDX
+
+OWASP CycloneDX is a full-stack Bill of Materials (BOM) standard that provides advanced supply chain capabilities for cyber risk reduction. 
+"#);
     pkg.register_source("v1_4".into(), include_str!("v1_4.dog"));
     //pkg.register_source("v1_4/structure".into(), include_str!("v1_4/v1_4.dog"));
     pkg.register_source("hash".into(), include_str!("hash.dog"));
@@ -29,7 +33,7 @@ const DOCUMENTATION: &str = include_str!("component-purls.adoc");
 impl Function for ComponentPurls {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

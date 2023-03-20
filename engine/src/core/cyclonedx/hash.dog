@@ -1,3 +1,4 @@
+//! CycloneDX hash functions
 
 pattern md5 = {
   alg: "MD5",

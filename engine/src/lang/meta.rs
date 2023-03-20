@@ -1,11 +1,13 @@
-use crate::lang::hir;
-use crate::runtime::BuildError;
+use crate::{
+    lang::hir,
+    runtime::{metadata::Documentation, BuildError},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatternMeta {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub documentation: Documentation,
     pub unstable: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deprecation: Option<Deprecation>,
@@ -23,7 +25,7 @@ impl TryFrom<hir::Metadata> for PatternMeta {
 
     fn try_from(mut value: hir::Metadata) -> Result<Self, Self::Error> {
         Ok(Self {
-            documentation: value.documentation,
+            documentation: Documentation(value.documentation),
             unstable: value.attributes.contains_key("unstable"),
             deprecation: value.attributes.remove("deprecated").map(Into::into),
         })
@@ -49,4 +51,16 @@ pub struct Deprecation {
 pub struct PackageMeta {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
+}
+
+impl PackageMeta {
+    /// add documentation, append in necessary
+    pub(crate) fn add_documentation(&mut self, docs: &str) {
+        match &mut self.documentation {
+            Some(current) => {
+                current.push_str(docs);
+            }
+            None => self.documentation = Some(docs.to_string()),
+        }
+    }
 }

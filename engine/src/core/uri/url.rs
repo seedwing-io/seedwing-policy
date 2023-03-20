@@ -16,7 +16,7 @@ const DOCUMENTATION: &str = include_str!("url.adoc");
 impl BlockingFunction for Url {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

@@ -39,7 +39,7 @@ impl Default for Lookup {
 impl Function for Lookup {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

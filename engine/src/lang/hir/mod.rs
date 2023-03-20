@@ -666,9 +666,27 @@ impl<'b> Lowerer<'b> {
             }
         }
 
-        for pkg in self.packages {
-            world.define_package(pkg.path(), pkg.metadata().clone());
+        // define packages in the mir world
+
+        let mut packages = HashMap::with_capacity(self.packages.len());
+        for pkg in self.packages.iter() {
+            packages.insert(pkg.path(), pkg.metadata().clone());
         }
+
+        for unit in self.units.iter() {
+            log::info!("Unit: {}: {:?}", unit.source(), unit.documentation());
+            if let Some(docs) = unit.documentation() {
+                let unit_path = PackagePath::from(unit.source());
+                let pkg = packages.entry(unit_path).or_default();
+                pkg.add_documentation(docs);
+            }
+        }
+
+        for (path, meta) in packages {
+            world.define_package(path, meta);
+        }
+
+        // done
 
         if errors.is_empty() {
             Ok(world)

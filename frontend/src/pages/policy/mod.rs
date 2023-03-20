@@ -48,7 +48,7 @@ fn last(parent: &Vec<String>) -> String {
         .rev()
         .filter(|s| !s.is_empty())
         .next()
-        .map(|s| s.as_str())
+        .map(|s| s.as_str().trim_end_matches(':'))
         .unwrap_or("Root")
         .to_string()
 }
@@ -143,29 +143,33 @@ pub fn component_title(props: &ComponentProps) -> Html {
         <>
         <Flex>
             <FlexItem>
-                <Title>
-                {
-                    match &props.component {
-                        ComponentMetadata::Pattern(pattern) => html!(
-                            <>
-                                <Label color={Color::Blue} label={"T"} /> { " " }
-                                { render_full_type(pattern) }
-                                if pattern.metadata.unstable {
-                                    {" "}<Label color={Color::Orange} compact=true label="unstable" />
-                                }
-                            </>
-                        ),
-                        ComponentMetadata::Package(_module) => {
-                            html!(
+                <Content>
+                    {
+                        match &props.component {
+                            ComponentMetadata::Pattern(pattern) => html!(
                                 <>
-                                    <Label color={Color::Blue} label={"M"} /> { " " }
-                                    { last(&props.base_path) }
+                                    <Title size={Size::XXXXLarge}>
+                                        <Label color={Color::Blue} label={"T"} /> { " " }
+                                        { render_full_type(pattern) }
+                                        if pattern.metadata.unstable {
+                                            {" "}<Label color={Color::Orange} compact=true label="unstable" />
+                                        }
+                                    </Title>
+                                    <div>{ pattern.metadata.documentation.summary() }</div>
                                 </>
-                            )
+                            ),
+                            ComponentMetadata::Package(package) => html!(
+                                <>
+                                    <Title size={Size::XXXXLarge}>
+                                        <Label color={Color::Blue} label={"M"} /> { " " }
+                                        { last(&props.base_path) }
+                                    </Title>
+                                    <div>{ package.documentation.summary() }</div>
+                                </>
+                            ),
                         }
                     }
-                }
-                </Title>
+                </Content>
             </FlexItem>
             <FlexItem modifiers={[FlexModifier::Align(Alignment::Right)]}>
                 <Link<AppRoute> target={monitor}>
@@ -338,41 +342,23 @@ fn render_module(base: Rc<Vec<String>>, module: &PackageMetadata) -> Html {
 
     html!(
         <>
-        if !package_entries.is_empty() {
-            <PageSection variant={PageSectionVariant::Light}>
-                <Content>
-                    <Table<SharedTableModel<PackageRow>> header={packages_header} entries={package_entries} mode={TableMode::Compact}/>
-            /*
-                    <Title size={Size::XXLarge}>{"Modules"}</Title>
-
-                    <ul>
-                        { for module.packages.iter().map(|package| {
-                            let path = format!("{path}{name}::", name=package.name);
-                            html!(<li key={package.name.clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&package.name}</Link<AppRoute>></li>)
-                        })}
-                    </ul>
-
-             */
-                </Content>
-            </PageSection>
-        }
-        if !pattern_entries.is_empty() {
-            <PageSection variant={PageSectionVariant::Light}>
-                    <Content>
-                        <Table<SharedTableModel<PatternRow>> header={patterns_header} entries={pattern_entries} mode={TableMode::Compact}/>
-            /*
-                        <Title size={Size::XXLarge}>{"Patterns"}</Title>
-                        <ul>
-                            { for module.patterns.iter().filter(|e|e.name.is_some()).map(|pattern| {
-                                let path = format!("{path}{name}", name=pattern.name.as_ref().unwrap());
-                                html!(<li key={pattern.name.as_ref().unwrap().clone()}><Link<AppRoute> target={AppRoute::Policy {path}}>{&pattern.name.as_ref().unwrap()}</Link<AppRoute>></li>)
-                            })}
-                        </ul>
-
-             */
-                    </Content>
-            </PageSection>
-        }
+            <Flex space_items={[SpaceItems::Large]}>
+                <FlexItem modifiers={[FlexModifier::Flex2]}>
+                    if !package_entries.is_empty() {
+                        <div class="pf-u-mb-xl">
+                            <Table<SharedTableModel<PackageRow>> header={packages_header} entries={package_entries} mode={TableMode::Compact}/>
+                        </div>
+                    }
+                    if !pattern_entries.is_empty() {
+                        <div class="pf-u-mb-xl">
+                            <Table<SharedTableModel<PatternRow>> header={patterns_header} entries={pattern_entries} mode={TableMode::Compact}/>
+                        </div>
+                    }
+                </FlexItem>
+                <FlexItem modifiers={[FlexModifier::Flex1]}>
+                    { module.documentation.details() }
+                </FlexItem>
+            </Flex>
         </>
     )
 }
@@ -390,7 +376,7 @@ impl TableEntryRenderer for PackageRow {
                 )
             }
             1 => html!(
-                <p>{&self.1.documentation.as_deref().unwrap_or("")}</p>
+                <p>{&self.1.documentation.summary()}</p>
             ),
             _ => html!(),
         }
@@ -411,7 +397,7 @@ impl TableEntryRenderer for PatternRow {
                 )
             },
             1 => html!(
-                <p>{&self.1.metadata.documentation.as_deref().unwrap_or("")}</p>
+                <p>{&self.1.metadata.documentation.summary()}</p>
             ),
             _ => html!(),
         }.into()

@@ -16,7 +16,7 @@ const DOCUMENTATION: &str = include_str!("purl.adoc");
 impl BlockingFunction for Purl {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }

@@ -513,12 +513,7 @@ impl Lowerer {
         // insert the root
         self.packages.insert(
             PackagePath::root(),
-            PackageMetadata {
-                name: "".to_string(),
-                documentation: None,
-                packages: vec![],
-                patterns: vec![],
-            },
+            PackageMetadata::new(PackagePath::root()),
         );
 
         for (slot, handle) in self.world.type_slots.iter().enumerate() {
@@ -548,7 +543,7 @@ impl Lowerer {
                         meta.packages.push(SubpackageMetadata {
                             // we can unwrap, as there always is a name, if we had a parent
                             name: child.name().unwrap(),
-                            documentation: None,
+                            documentation: Default::default(),
                         });
                     }
                     // and insert it

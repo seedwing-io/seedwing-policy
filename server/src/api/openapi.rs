@@ -53,7 +53,7 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
             ..Default::default()
         };
         let mut post = Operation {
-            description: pattern.metadata().documentation.clone(),
+            description: pattern.metadata().documentation.0.clone(),
             deprecated: pattern.metadata().is_deprecated(),
             ..Default::default()
         };

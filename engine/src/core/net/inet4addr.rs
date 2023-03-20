@@ -19,7 +19,7 @@ pub struct Inet4Addr;
 impl Function for Inet4Addr {
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(DOCUMENTATION.into()),
+            documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
     }
