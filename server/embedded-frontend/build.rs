@@ -31,15 +31,16 @@ fn main() -> std::io::Result<()> {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dist = Path::new(&out_dir).join("dist");
 
+    let debug = matches!(env::var("PROFILE").as_deref(), Ok("debug"));
+
+    let mut args = vec!["build", "-d", dist.to_str().unwrap(), "--public-url", "/"];
+
+    if !debug {
+        args.push("--release");
+    }
+
     let trunk = Command::new("trunk")
-        .args([
-            "build",
-            "--release",
-            "-d",
-            dist.to_str().unwrap(),
-            "--public-url",
-            "/",
-        ])
+        .args(args)
         .current_dir("../../frontend")
         .output()
         .expect("failed to execute frontend build");
