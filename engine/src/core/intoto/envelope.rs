@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha2::Sha256;
 use sigstore::tuf::SigstoreRepository;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::task::spawn_blocking;
 
 use crate::lang::PatternMeta;
@@ -23,7 +23,6 @@ use std::sync::Arc;
 const DOCUMENTATION: &str = include_str!("verify-envelope.adoc");
 const ATTESTERS: &str = "attesters";
 const BLOB: &str = "blob";
-const CHECKOUT_DIR: &str = "checkout_dir";
 
 #[derive(Debug)]
 pub struct Verify;
@@ -99,7 +98,7 @@ impl Function for Verify {
     }
 
     fn parameters(&self) -> Vec<String> {
-        vec![ATTESTERS.into(), BLOB.into(), CHECKOUT_DIR.into()]
+        vec![ATTESTERS.into(), BLOB.into()]
     }
 
     /// This function follows the validation model specified in:
@@ -146,19 +145,15 @@ impl Function for Verify {
                     let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
 
                     // Fetch from The Update Framework (TUF) repository
-                    let checkout_dir = match get_parameter(CHECKOUT_DIR, bindings) {
-                        Ok(value) => Some(value),
-                        Err(_) => None,
-                    };
+                    #[cfg(not(target_arch = "wasm32"))]
                     let _repo: sigstore::errors::Result<SigstoreRepository> =
                         spawn_blocking(move || {
-                            if checkout_dir.is_some() {
-                                sigstore::tuf::SigstoreRepository::fetch(Some(Path::new(
-                                    &checkout_dir.unwrap(),
-                                )))
-                            } else {
-                                sigstore::tuf::SigstoreRepository::fetch(None)
-                            }
+                            let checkout_dir: Option<PathBuf> = home::home_dir()
+                                .as_ref()
+                                .map(|h| h.join(".sigstore").join("root").join("targets"));
+                            let path: Option<&Path> = checkout_dir.as_ref().map(|p| p.as_path());
+                            log::info!("checkout_dir: {:?}", path);
+                            sigstore::tuf::SigstoreRepository::fetch(path)
                         })
                         .await
                         .unwrap();
@@ -273,19 +268,6 @@ async fn get_blob<'v>(
     return Err(anyhow::anyhow!("Could not evaluate blob"));
 }
 
-fn get_parameter(param: &str, bindings: &Bindings) -> Result<String, String> {
-    match bindings.get(param) {
-        Some(pattern) => match pattern.inner() {
-            InnerPattern::Const(pattern) => match pattern {
-                ValuePattern::String(value) => Ok(value.to_string()),
-                _ => Err(format!("invalid type specified for {param} parameter")),
-            },
-            _ => Err(format!("invalid type specified for {param} parameter")),
-        },
-        None => Err(format!("invalid type specified for {param} parameter")),
-    }
-}
-
 /// Pre-Authenticated Encoding (PAE) for DSSEv1
 fn pae<'a>(payload_type: &'a str, payload: &str) -> String {
     let pae = format!(
@@ -369,9 +351,7 @@ mod test {
               {name: "dan", public_key: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR3RENDQTBhZ0F3SUJBZ0lVTEpaajZlQVp0c1dkSUhGcktnK00rTFZkTkEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd016RTBNVEF5TlRBMVdoY05Nak13TXpFME1UQXpOVEExV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVtSUF2WFZMVGg2NkUzV2RXUkZac1ZTSE9VQ2swbUwrazRLSXYKYU4zOWhHekhncHozalp2Ylp3NnhTaHJidVZYVW4wMUFQck0vUWh0YVZhMWJtZUJLV0tPQ0FtVXdnZ0poTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVkbkhyCjlKdFFlQlFHVnhtU0JkWHFBMnhDVXlVd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d2ZRWURWUjBSQVFIL0JITXdjWVp2YUhSMGNITTZMeTluYVhSb2RXSXVZMjl0TDNOc2MyRXRabkpoYldWMwpiM0pyTDNOc2MyRXRaMmwwYUhWaUxXZGxibVZ5WVhSdmNpOHVaMmwwYUhWaUwzZHZjbXRtYkc5M2N5OWlkV2xzClpHVnlYMmR2WDNOc2MyRXpMbmx0YkVCeVpXWnpMM1JoWjNNdmRqRXVOUzR3TURrR0Npc0dBUVFCZzc4d0FRRUUKSzJoMGRIQnpPaTh2ZEc5clpXNHVZV04wYVc5dWN5NW5hWFJvZFdKMWMyVnlZMjl1ZEdWdWRDNWpiMjB3RWdZSwpLd1lCQkFHRHZ6QUJBZ1FFY0hWemFEQTJCZ29yQmdFRUFZTy9NQUVEQkNoaU5qQXhZek13WWpNeFl6UmxPRE14CllqRmhPRFF4T0daa01Ua3paakEwWXpJM05XUXlNVEJqTUJNR0Npc0dBUVFCZzc4d0FRUUVCVWR2SUVOSk1ERUcKQ2lzR0FRUUJnNzh3QVFVRUkzTmxaV1IzYVc1bkxXbHZMM05sWldSM2FXNW5MV2R2YkdGdVp5MWxlR0Z0Y0d4bApNQjhHQ2lzR0FRUUJnNzh3QVFZRUVYSmxabk12ZEdGbmN5OTJNQzR4TGpFMU1JR0tCZ29yQmdFRUFkWjVBZ1FDCkJId0VlZ0I0QUhZQTNUMHdhc2JIRVRKakdSNGNtV2MzQXFKS1hyamVQSzMvaDRweWdDOHA3bzRBQUFHRzM2YnkKSmdBQUJBTUFSekJGQWlFQTlyYnVNRDNoeHFkbTRCU1kxNmNncGlFMCtabWZITk9FbjhrblJqenB3WkVDSURnaAo2a1g0d005ZDVJUGlsdkZ6bjJ4KytJU0tYaU9LdmZyS24xa0tUaFR3TUFvR0NDcUdTTTQ5QkFNREEyZ0FNR1VDCk1FTy9qeG11aVBpUGRmVkREY1hBRVowSFRSVXA5V3Bjc2Y4dlhkdTFqODRVd291ZzUzaXZsdW1Yb0ZxN2hlSzEKdGdJeEFQQ29sOTk3QTgrTnFLVWllcmw5RGFFd2hBcG5HWlVTNXJ2MS9TcWpwbEpJSGhFTHFUMzZoNjR5dzl1QwprUDhlRGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="}
             ]
 
-            pattern checkout_dir = ".sigstore/root/targets"
-
-            pattern envelope = intoto::verify-envelope<attesters, blob, checkout_dir>
+            pattern envelope = intoto::verify-envelope<attesters, blob>
         "#,
         );
 
@@ -411,8 +391,7 @@ mod test {
             r#"
             pattern blob = *data::from<"binary-linux-amd64">
             pattern attesters = [{name: "dan", public_key: "bogus"}]
-            pattern checkout_dir = "$HOME/.sigstore/root/targets"
-            pattern envelope = intoto::verify-envelope<attesters, blob, checkout_dir>
+            pattern envelope = intoto::verify-envelope<attesters, blob>
         "#,
         );
 

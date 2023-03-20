@@ -1810,6 +1810,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "home"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "747309b4b440c06d57b0b25f2aee03ee9b5e5397d288c60e21fc709bb98a7408"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "http"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3389,6 +3398,7 @@ dependencies = [
  "env_logger 0.10.0",
  "futures-util",
  "guac-rs",
+ "home",
  "http",
  "indexmap",
  "iref",
