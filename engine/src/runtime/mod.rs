@@ -1,35 +1,28 @@
 //! Policy evaluation runtime.
 //!
 //! All policies are parsed and compiled into a `World` used to evaluate policy decisions for different inputs.
-use crate::runtime::cache::SourceCache;
+use crate::lang::lir::Bindings;
+use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
+use crate::runtime::{cache::SourceCache, rationale::Rationale};
+use crate::value::RuntimeValue;
 use ariadne::{Label, Report, ReportKind};
 use chumsky::error::SimpleReason;
+use config::EvalConfig;
 use core::future::Future;
 use core::pin::Pin;
-use std::time::Instant;
-
-use std::io;
-
-use crate::lang::lir::Bindings;
-pub use crate::lang::lir::Pattern;
-use crate::lang::mir::PatternHandle;
-use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
-use crate::lang::{lir, PackageMeta};
-use crate::runtime::rationale::Rationale;
-use crate::value::RuntimeValue;
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::io;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use config::EvalConfig;
 #[cfg(feature = "monitor")]
 use {monitor::dispatcher::Monitor, tokio::sync::Mutex};
+
+pub use crate::lang::lir::Pattern;
 
 pub mod cache;
 pub mod config;
@@ -41,7 +34,7 @@ pub mod sources;
 pub mod statistics;
 
 pub use crate::core::Example;
-use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata};
+use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata, WorldLike};
 pub use response::Response;
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -225,16 +218,27 @@ pub struct World {
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
 
-    packages: HashMap<PackagePath, PackageMeta>,
+    packages: HashMap<PackagePath, PackageMetadata>,
+}
+
+impl WorldLike for World {
+    fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>> {
+        World::get_by_slot(self, slot)
+    }
 }
 
 impl World {
-    pub fn new(config: EvalConfig) -> Self {
+    pub(crate) fn new(
+        config: EvalConfig,
+        types: HashMap<PatternName, usize>,
+        type_slots: Vec<Arc<Pattern>>,
+        packages: HashMap<PackagePath, PackageMetadata>,
+    ) -> Self {
         Self {
             config,
-            types: Default::default(),
-            type_slots: Default::default(),
-            packages: Default::default(),
+            types,
+            type_slots,
+            packages,
         }
     }
 
@@ -248,25 +252,6 @@ impl World {
 
     pub fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>> {
         self.type_slots.get(slot).cloned()
-    }
-
-    pub(crate) fn add(&mut self, path: PatternName, handle: Arc<PatternHandle>) {
-        let ty = handle.ty();
-        let name = handle.name();
-        let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
-        let converted = lir::convert(
-            name,
-            handle.metadata().clone(),
-            handle.examples(),
-            parameters,
-            &ty,
-        );
-        self.type_slots.push(converted);
-        self.types.insert(path, self.type_slots.len() - 1);
-    }
-
-    pub(crate) fn add_packages(&mut self, packages: HashMap<PackagePath, PackageMeta>) {
-        self.packages.extend(packages);
     }
 
     pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
@@ -289,6 +274,9 @@ impl World {
     }
 
     pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {
+        self.packages.get(&name.into()).cloned()
+
+        /*
         let name = name.into();
 
         let pkg_meta = self.packages.get(&name).cloned().unwrap_or_default();
@@ -324,7 +312,7 @@ impl World {
             None
         } else {
             Some(meta.sort())
-        }
+        }*/
     }
 
     pub fn get_pattern_meta<S: Into<PatternName>>(&self, name: S) -> Option<PatternMetadata> {
@@ -441,6 +429,18 @@ impl PackageName {
     }
 }
 
+impl From<&str> for PackageName {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl From<String> for PackageName {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
 impl Deref for PackageName {
     type Target = String;
 
@@ -506,6 +506,10 @@ impl Display for PackagePath {
 }
 
 impl PackagePath {
+    pub const fn root() -> Self {
+        Self { path: vec![] }
+    }
+
     pub fn from_parts(segments: Vec<&str>) -> Self {
         Self {
             path: segments
@@ -527,6 +531,11 @@ impl PackagePath {
         }
     }
 
+    /// Get the last element of the path
+    pub fn name(&self) -> Option<String> {
+        self.path.last().map(|s| s.to_string())
+    }
+
     pub fn as_package_str(&self) -> String {
         self.to_string()
     }
@@ -537,6 +546,35 @@ impl PackagePath {
 
     pub fn segments(&self) -> Vec<String> {
         self.path.iter().map(|e| e.0.clone()).collect()
+    }
+
+    /// Get the parent path, if there is one.
+    ///
+    /// If there is more than one segment, remove the last one. Otherwise, return [`None`].
+    pub fn parent(&self) -> Option<PackagePath> {
+        let len = self.path.len();
+        if len > 1 {
+            Some(Self {
+                path: self.path[0..(len - 1)].to_vec(),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Split into base path and name
+    pub fn split_name(&self) -> Option<(PackagePath, PackageName)> {
+        if !self.path.is_empty() {
+            let len = self.path.len();
+            Some((
+                Self {
+                    path: self.path[0..(len - 1)].to_vec(),
+                },
+                self.path[len - 1].clone(),
+            ))
+        } else {
+            None
+        }
     }
 }
 
@@ -818,6 +856,7 @@ mod test {
     use crate::lang::builder::Builder;
     use crate::runtime::sources::{Directory, Ephemeral};
 
+    use crate::runtime::metadata::{InnerPatternMetadata, SubpackageMetadata};
     use serde_json::json;
     use std::env;
 
@@ -943,5 +982,91 @@ mod test {
         assert!(testutil::test_pattern(pat, f("Jim", 53)).await.satisfied());
         assert!(!testutil::test_pattern(pat, f("Jim", 49)).await.satisfied());
         assert!(!testutil::test_pattern(pat, f("Bob", 42)).await.satisfied());
+    }
+
+    #[tokio::test]
+    async fn get_root_package() {
+        let mut builder = Builder::new();
+
+        let world = builder.finish().await.unwrap();
+
+        let root = world.get_package_meta("");
+        assert!(root.is_some());
+        let root = root.unwrap();
+        assert_eq!(root.name, "");
+
+        // the root contains a lot, just check if we find something
+
+        assert!(!root.packages.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_package() {
+        let mut builder = Builder::new();
+
+        let src = Ephemeral::new("foo::bar", "pattern bob");
+        builder.build(src.iter()).unwrap();
+        let src = Ephemeral::new("foo::baz", "pattern jim");
+        builder.build(src.iter()).unwrap();
+        let src = Ephemeral::new("foo::baz::crash", "pattern boom");
+        builder.build(src.iter()).unwrap();
+        let src = Ephemeral::new("foo::baz::crash::boom", "pattern bang");
+        builder.build(src.iter()).unwrap();
+
+        let world = builder.finish().await.unwrap();
+
+        let foo = world.get_package_meta("foo");
+        assert_eq!(
+            foo,
+            Some(PackageMetadata {
+                name: "foo".to_string(),
+                documentation: None,
+                packages: vec![
+                    SubpackageMetadata {
+                        name: "bar".to_string(),
+                        documentation: None
+                    },
+                    SubpackageMetadata {
+                        name: "baz".to_string(),
+                        documentation: None
+                    }
+                ],
+
+                patterns: vec![],
+            }),
+        );
+
+        let foo_bar = world.get_package_meta("foo::bar");
+        assert!(foo_bar.is_some());
+        assert_eq!(
+            foo_bar,
+            Some(PackageMetadata {
+                name: "foo::bar".to_string(),
+                documentation: None,
+                packages: vec![],
+                patterns: vec![PatternMetadata {
+                    name: Some("bob".to_string()),
+                    path: Some("foo::bar::bob".to_string()),
+                    metadata: Default::default(),
+                    parameters: vec![],
+                    inner: InnerPatternMetadata::Nothing,
+                    examples: vec![],
+                }],
+            }),
+        );
+    }
+
+    #[test]
+    fn split_name() {
+        assert_eq!(PackagePath::root().split_name(), None);
+        assert_eq!(PackagePath::from("").split_name(), None);
+        assert_eq!(
+            PackagePath::from("foo").split_name(),
+            Some((PackagePath::root(), "foo".into()))
+        );
+        assert_eq!(
+            PackagePath::from("foo::bar").split_name(),
+            Some((PackagePath::from(vec!["foo".to_string()]), "bar".into()))
+        );
     }
 }

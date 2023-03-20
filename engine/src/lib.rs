@@ -1,5 +1,5 @@
 #![doc = include_str!("../../README.md")]
-#![deny(warnings)]
+//#![deny(warnings)]
 //#![warn(missing_docs)]
 
 mod core;
