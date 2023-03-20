@@ -1,7 +1,7 @@
 pattern required-tasks = {
   predicate: {
     buildConfig: {
-      tasks: lang::map<self.ref.name> | list::contains-all<required-taskrefs>
+      tasks: list::map<self.ref.name> | list::contains-all<required-taskrefs>
     }
   }
 }

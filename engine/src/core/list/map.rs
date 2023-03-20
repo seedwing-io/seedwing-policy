@@ -76,13 +76,8 @@ impl Function for Map {
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
                     }
                     _ => {
-                        let result = self
-                            .eval_element(map_fn.clone(), input.clone(), ctx, bindings, world)
-                            .await?;
-                        Ok(
-                            Output::Transform(Arc::new(RuntimeValue::List(vec![result.into()])))
-                                .into(),
-                        )
+                        let msg = "Input is not a list";
+                        Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
                     }
                 }
             } else {
@@ -102,42 +97,27 @@ pub struct MapOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_not_satisfied;
     use crate::runtime::testutil::test_pattern;
     use serde_json::json;
 
     #[tokio::test]
     async fn test_map_single_element() {
         let result = test_pattern(
-            r#"lang::map<uri::purl>"#,
+            r#"list::map<uri::purl>"#,
             RuntimeValue::String(
                 "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".to_string(),
             ),
         )
         .await;
 
-        assert_eq!(
-            result.output(),
-            Some(Arc::new(
-                json!([
-                    {
-                        "value": {
-                            "type": "github",
-                            "namespace": "package-url",
-                            "name": "purl-spec",
-                            "version": "244fd47e07d1004",
-                            "subpath": "everybody/loves/dogs",
-                        }
-                    }
-                ])
-                .into()
-            ))
-        );
+        assert_not_satisfied!(result);
     }
 
     #[tokio::test]
     async fn test_map_list() {
         let result = test_pattern(
-            r#"lang::map<uri::purl>"#,
+            r#"list::map<uri::purl>"#,
             vec![
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
