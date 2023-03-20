@@ -1,3 +1,4 @@
+use crate::runtime::EvalContext;
 use crate::{
     lang::lir::Pattern,
     package::Package,
@@ -6,8 +7,6 @@ use crate::{
 };
 use std::sync::Arc;
 
-use crate::runtime::EvalContext;
-
 pub mod all;
 pub mod any;
 pub mod concat;
@@ -15,6 +14,8 @@ pub mod contains;
 pub mod count;
 pub mod filter;
 pub mod head;
+pub mod map;
+pub mod map_or_null;
 pub mod none;
 pub mod slice;
 pub mod some;
@@ -38,6 +39,8 @@ pub fn package() -> Package {
     pkg.register_function("length".into(), count::Count);
     pkg.register_function("contains-all".into(), contains::ContainsAll);
     pkg.register_function("filter".into(), filter::Filter);
+    pkg.register_function("map".into(), map::Map);
+    pkg.register_function("map-or-null".into(), map_or_null::MapOrNull);
     pkg
 }
 
