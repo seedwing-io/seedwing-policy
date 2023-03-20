@@ -181,7 +181,6 @@ impl Function for Verify {
                                     attesters_names
                                         .push(Arc::new(RuntimeValue::from(name.to_string())));
                                     log::info!("Verified succeeded!");
-                                    log::debug!("{:?}", &decoded_payload);
                                     let statement: Statement =
                                         match serde_json::from_str(&decoded_payload) {
                                             Ok(value) => value,
@@ -329,40 +328,36 @@ fn invalid_type(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::data::DirectoryDataSource;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
+    use crate::{
+        assert_not_satisfied, assert_satisfied, runtime::testutil::test_data_dir,
+        runtime::testutil::test_patterns,
+    };
     use serde_json::json;
     use std::fs;
-    use std::path::{Path, PathBuf};
 
     #[actix_rt::test]
     async fn verify_envelope() {
-        let src = Ephemeral::new(
-            "test",
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("example-intoto-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
             r#"
-            pattern blob = *data::from<"binary-linux-amd64">
+            pattern blob = *data::from<"intoto/binary-linux-amd64">
 
             pattern attesters = [
               {name: "dan", public_key: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR3RENDQTBhZ0F3SUJBZ0lVTEpaajZlQVp0c1dkSUhGcktnK00rTFZkTkEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd016RTBNVEF5TlRBMVdoY05Nak13TXpFME1UQXpOVEExV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVtSUF2WFZMVGg2NkUzV2RXUkZac1ZTSE9VQ2swbUwrazRLSXYKYU4zOWhHekhncHozalp2Ylp3NnhTaHJidVZYVW4wMUFQck0vUWh0YVZhMWJtZUJLV0tPQ0FtVXdnZ0poTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVkbkhyCjlKdFFlQlFHVnhtU0JkWHFBMnhDVXlVd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d2ZRWURWUjBSQVFIL0JITXdjWVp2YUhSMGNITTZMeTluYVhSb2RXSXVZMjl0TDNOc2MyRXRabkpoYldWMwpiM0pyTDNOc2MyRXRaMmwwYUhWaUxXZGxibVZ5WVhSdmNpOHVaMmwwYUhWaUwzZHZjbXRtYkc5M2N5OWlkV2xzClpHVnlYMmR2WDNOc2MyRXpMbmx0YkVCeVpXWnpMM1JoWjNNdmRqRXVOUzR3TURrR0Npc0dBUVFCZzc4d0FRRUUKSzJoMGRIQnpPaTh2ZEc5clpXNHVZV04wYVc5dWN5NW5hWFJvZFdKMWMyVnlZMjl1ZEdWdWRDNWpiMjB3RWdZSwpLd1lCQkFHRHZ6QUJBZ1FFY0hWemFEQTJCZ29yQmdFRUFZTy9NQUVEQkNoaU5qQXhZek13WWpNeFl6UmxPRE14CllqRmhPRFF4T0daa01Ua3paakEwWXpJM05XUXlNVEJqTUJNR0Npc0dBUVFCZzc4d0FRUUVCVWR2SUVOSk1ERUcKQ2lzR0FRUUJnNzh3QVFVRUkzTmxaV1IzYVc1bkxXbHZMM05sWldSM2FXNW5MV2R2YkdGdVp5MWxlR0Z0Y0d4bApNQjhHQ2lzR0FRUUJnNzh3QVFZRUVYSmxabk12ZEdGbmN5OTJNQzR4TGpFMU1JR0tCZ29yQmdFRUFkWjVBZ1FDCkJId0VlZ0I0QUhZQTNUMHdhc2JIRVRKakdSNGNtV2MzQXFKS1hyamVQSzMvaDRweWdDOHA3bzRBQUFHRzM2YnkKSmdBQUJBTUFSekJGQWlFQTlyYnVNRDNoeHFkbTRCU1kxNmNncGlFMCtabWZITk9FbjhrblJqenB3WkVDSURnaAo2a1g0d005ZDVJUGlsdkZ6bjJ4KytJU0tYaU9LdmZyS24xa0tUaFR3TUFvR0NDcUdTTTQ5QkFNREEyZ0FNR1VDCk1FTy9qeG11aVBpUGRmVkREY1hBRVowSFRSVXA5V3Bjc2Y4dlhkdTFqODRVd291ZzUzaXZsdW1Yb0ZxN2hlSzEKdGdJeEFQQ29sOTk3QTgrTnFLVWllcmw5RGFFd2hBcG5HWlVTNXJ2MS9TcWpwbEpJSGhFTHFUMzZoNjR5dzl1QwprUDhlRGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="}
             ]
 
-            pattern envelope = intoto::verify-envelope<attesters, blob>
-        "#,
-        );
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json)
+        ).await;
+        assert_satisfied!(result);
 
-        let mut builder = init();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let input_str =
-            fs::read_to_string(test_data_dir().join("example-intoto-envelope.json")).unwrap();
-        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
-        let result = runtime
-            .evaluate("test::envelope", &input_json, EvalContext::default())
-            .await;
-
-        assert!(result.as_ref().unwrap().satisfied());
-        let output = result.unwrap().output().unwrap().as_json();
+        let output = result.output().unwrap().as_json();
         assert!(output.is_array());
         let output = &output[0];
 
@@ -384,28 +379,23 @@ mod test {
 
     #[actix_rt::test]
     async fn verify_envelope_invalid_payload_type() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern blob = *data::from<"binary-linux-amd64">
-            pattern attesters = [{name: "dan", public_key: "bogus"}]
-            pattern envelope = intoto::verify-envelope<attesters, blob>
-        "#,
-        );
-
-        let mut builder = init();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
         let input = json!({
            "payloadType": "application/vnd.in-typo+json",
            "payload": "dummy",
            "signatures": [{"sig": "dummy", "cert": "anything"}]
         });
-        let result = runtime
-            .evaluate("test::envelope", input, EvalContext::default())
-            .await;
-        assert!(!result.as_ref().unwrap().satisfied());
-        match result.as_ref().unwrap().rationale() {
+        let value = RuntimeValue::from(input);
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"binary-linux-amd64">
+            pattern attesters = [{name: "dan", public_key: "bogus"}]
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            value,
+        )
+        .await;
+        assert_not_satisfied!(result);
+
+        match result.rationale() {
             Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
                 Rationale::InvalidArgument(msg) => {
                     assert_eq!(
@@ -417,18 +407,6 @@ mod test {
             },
             _ => {}
         }
-    }
-
-    fn init() -> Builder {
-        let _ = env_logger::builder().is_test(true).try_init();
-        let mut builder = Builder::new();
-        builder.data(DirectoryDataSource::new(test_data_dir().into()));
-        builder
-    }
-
-    fn test_data_dir() -> PathBuf {
-        let cargo_manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        cargo_manifest_dir.join("test-data").join("intoto")
     }
 
     fn payload_as_json(input: &serde_json::Value) -> serde_json::Value {
