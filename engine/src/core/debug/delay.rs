@@ -1,5 +1,8 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, ValuePattern};
+use crate::lang::{
+    lir::{Bindings, ValuePattern},
+    PatternMeta,
+};
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::fmt::Debug;
@@ -24,8 +27,11 @@ impl Function for DelayMs {
         vec![DELAY.into()]
     }
 
-    fn documentation(&self) -> Option<String> {
-        Some(DOCUMENTATION.into())
+    fn metadata(&self) -> PatternMeta {
+        PatternMeta {
+            documentation: Some(DOCUMENTATION.into()),
+            ..Default::default()
+        }
     }
 
     fn call<'v>(
