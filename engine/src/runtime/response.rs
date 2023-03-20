@@ -186,7 +186,7 @@ fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
     result
 }
 
-fn reason(rationale: &Rationale) -> String {
+pub(crate) fn reason(rationale: &Rationale) -> String {
     let tmp;
     match rationale {
         Rationale::Anything => "anything is satisfied by anything",
