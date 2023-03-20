@@ -53,15 +53,10 @@ impl Function for MapOrNull {
                         }
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
                     }
-                    _ => match map_fn.evaluate(input, ctx, bindings, world).await?.output() {
-                        Some(value) => {
-                            Ok(Output::Transform(Arc::new(RuntimeValue::List(vec![value]))).into())
-                        }
-                        None => Ok(Output::Transform(Arc::new(RuntimeValue::List(vec![
-                            RuntimeValue::Null.into(),
-                        ])))
-                        .into()),
-                    },
+                    _ => {
+                        let msg = "Input is not a list";
+                        Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                    }
                 }
             } else {
                 let msg = "Unable to lookup map function";
@@ -74,38 +69,27 @@ impl Function for MapOrNull {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_not_satisfied;
     use crate::runtime::testutil::test_pattern;
     use serde_json::json;
 
     #[tokio::test]
     async fn test_map_or_null_single_element() {
         let result = test_pattern(
-            r#"lang::map-or-null<uri::purl>"#,
+            r#"list::map-or-null<uri::purl>"#,
             RuntimeValue::String(
                 "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".to_string(),
             ),
         )
         .await;
 
-        assert_eq!(
-            result.output(),
-            Some(Arc::new(
-                json!([{
-                    "type": "github",
-                    "namespace": "package-url",
-                    "name": "purl-spec",
-                    "version": "244fd47e07d1004",
-                    "subpath": "everybody/loves/dogs",
-                }])
-                .into()
-            ))
-        );
+        assert_not_satisfied!(result);
     }
 
     #[tokio::test]
     async fn test_map_or_null_list_no_filtering() {
         let result = test_pattern(
-            r#"lang::map-or-null<uri::purl>"#,
+            r#"list::map-or-null<uri::purl>"#,
             vec![
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
@@ -135,7 +119,7 @@ mod tests {
     #[tokio::test]
     async fn test_map_or_null_list() {
         let result = test_pattern(
-            r#"lang::map-or-null<uri::purl>"#,
+            r#"list::map-or-null<uri::purl>"#,
             vec![
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"

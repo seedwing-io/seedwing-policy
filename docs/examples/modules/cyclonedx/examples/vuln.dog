@@ -3,7 +3,7 @@
 /// produce an OpenVEX document for it.
 pattern not-affected =
   cyclonedx::component-purls
-  | lang::map<uri::purl>
-  | lang::map<osv::scan-purl>
-  | lang::map<openvex::from-osv>
+  | list::map<uri::purl>
+  | list::map<osv::scan-purl>
+  | list:map<openvex::from-osv>
   | list::none<openvex::affected>
