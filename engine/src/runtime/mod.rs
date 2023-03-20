@@ -821,7 +821,7 @@ mod test {
     use serde_json::json;
     use std::env;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn ephemeral_sources() {
         let src = Ephemeral::new("foo::bar", "pattern bob");
 
@@ -831,7 +831,7 @@ mod test {
         assert!(matches!(result, Ok(_)));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn link_test_data() {
         let src = Directory::new(env::current_dir().unwrap().join("test-data"));
 
@@ -842,7 +842,7 @@ mod test {
         assert!(matches!(result, Ok(_)));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn evaluate_function() {
         let result = testutil::test_pattern(
             r#"
@@ -879,7 +879,7 @@ mod test {
         assert!(result.satisfied())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn evaluate_parameterized_literals() {
         let pattern = r#"
             jim || bob
@@ -901,7 +901,7 @@ mod test {
         assert!(!testutil::test_pattern(pattern, frank).await.satisfied());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn evaluate_parameterized_types() {
         let pattern = r#"
             jim || bob
@@ -923,7 +923,7 @@ mod test {
         assert!(testutil::test_pattern(pattern, jim).await.satisfied());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn evaluate_matches() {
         let pat = r#"
             bob || jim
