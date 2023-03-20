@@ -10,3 +10,6 @@ exclude = [
   # in this project.
     "frontend"
 ]
+
+[profile.bench]
+debug = true

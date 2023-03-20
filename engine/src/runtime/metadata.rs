@@ -1,10 +1,10 @@
 use crate::lang;
 use crate::lang::{lir, Expr, PackageMeta, PatternMeta, SyntacticSugar, ValuePattern};
-use crate::runtime::{Example, PackageName, PackagePath, Pattern, PatternName, World};
+use crate::runtime::{Example, PackagePath, Pattern, PatternName};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ComponentMetadata {
@@ -33,26 +33,13 @@ impl PackageMetadata {
         }
     }
 
-    pub fn add_pattern(&mut self, pattern: PatternMetadata) {
-        if !&self.patterns.iter().any(|e| e.name == pattern.name) {
-            self.patterns.push(pattern);
-        }
+    pub(crate) fn apply_meta(&mut self, meta: &PackageMeta) {
+        self.documentation = meta.documentation.clone();
     }
 
-    pub fn add_subpackage(&mut self, name: PackageName, meta: PackageMeta) {
-        if !self.packages.iter().any(|e| e.name == name.0) {
-            self.packages.push(SubpackageMetadata {
-                name: name.0,
-                documentation: meta.documentation,
-            })
-        }
-    }
-
-    pub fn sort(mut self) -> Self {
+    pub(crate) fn sort(&mut self) {
         self.packages.sort_by(|l, r| l.name.cmp(&r.name));
         self.patterns.sort_by(|l, r| l.name.cmp(&r.name));
-
-        self
     }
 }
 
@@ -60,6 +47,19 @@ impl PackageMetadata {
 pub struct SubpackageMetadata {
     pub name: String,
     pub documentation: Option<String>,
+}
+
+impl SubpackageMetadata {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            documentation: None,
+        }
+    }
+
+    pub(crate) fn apply_meta(&mut self, meta: &PackageMeta) {
+        self.documentation = meta.documentation.clone();
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -152,7 +152,7 @@ pub struct Field {
 /// A pattern or a reference to another pattern.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PatternOrReference {
-    Pattern(Rc<InnerPatternMetadata>),
+    Pattern(Arc<InnerPatternMetadata>),
     Ref(PatternRef),
 }
 
@@ -163,14 +163,18 @@ pub enum Error {
     UnknownPatternSlot(usize),
 }
 
+pub trait WorldLike {
+    fn get_by_slot(&self, slot: usize) -> Option<Arc<Pattern>>;
+}
+
 /// Convert type information into an `*Metadata` struct.
 pub trait ToMetadata<T> {
     /// Convert internal type information into an `*Metadata` struct.
-    fn to_meta(&self, world: &World) -> Result<T, Error>;
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<T, Error>;
 }
 
 impl ToMetadata<PatternMetadata> for Pattern {
-    fn to_meta(&self, world: &World) -> Result<PatternMetadata, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<PatternMetadata, Error> {
         Ok(PatternMetadata {
             metadata: self.metadata().clone(),
             parameters: self.parameters(),
@@ -183,7 +187,7 @@ impl ToMetadata<PatternMetadata> for Pattern {
 }
 
 impl ToMetadata<InnerPatternMetadata> for lir::InnerPattern {
-    fn to_meta(&self, world: &World) -> Result<InnerPatternMetadata, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<InnerPatternMetadata, Error> {
         Ok(match self {
             Self::Anything => InnerPatternMetadata::Anything,
             Self::Primordial(r#type) => InnerPatternMetadata::Primordial(r#type.to_meta(world)?),
@@ -218,7 +222,7 @@ impl ToMetadata<InnerPatternMetadata> for lir::InnerPattern {
 }
 
 impl ToMetadata<PrimordialPattern> for lang::PrimordialPattern {
-    fn to_meta(&self, world: &World) -> Result<PrimordialPattern, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<PrimordialPattern, Error> {
         Ok(match self {
             Self::Integer => PrimordialPattern::Integer,
             Self::Decimal => PrimordialPattern::Decimal,
@@ -232,7 +236,7 @@ impl ToMetadata<PrimordialPattern> for lang::PrimordialPattern {
 }
 
 impl ToMetadata<PatternRef> for PatternName {
-    fn to_meta(&self, _world: &World) -> Result<PatternRef, Error> {
+    fn to_meta<W: WorldLike>(&self, _world: &W) -> Result<PatternRef, Error> {
         Ok(PatternRef {
             name: self.name().to_string(),
             package: self.package().map(|p| p.segments()).unwrap_or_default(),
@@ -241,16 +245,16 @@ impl ToMetadata<PatternRef> for PatternName {
 }
 
 impl ToMetadata<PatternOrReference> for Pattern {
-    fn to_meta(&self, world: &World) -> Result<PatternOrReference, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<PatternOrReference, Error> {
         Ok(match self.name() {
             Some(name) => PatternOrReference::Ref(name.to_meta(world)?),
-            None => PatternOrReference::Pattern(Rc::new(self.inner().to_meta(world)?)),
+            None => PatternOrReference::Pattern(Arc::new(self.inner().to_meta(world)?)),
         })
     }
 }
 
 impl ToMetadata<Bindings> for lir::Bindings {
-    fn to_meta(&self, world: &World) -> Result<Bindings, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<Bindings, Error> {
         Ok(Bindings {
             bindings: self
                 .iter()
@@ -261,7 +265,7 @@ impl ToMetadata<Bindings> for lir::Bindings {
 }
 
 impl ToMetadata<ObjectPattern> for lir::ObjectPattern {
-    fn to_meta(&self, world: &World) -> Result<ObjectPattern, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<ObjectPattern, Error> {
         Ok(ObjectPattern {
             fields: self
                 .fields()
@@ -273,7 +277,7 @@ impl ToMetadata<ObjectPattern> for lir::ObjectPattern {
 }
 
 impl ToMetadata<Field> for lir::Field {
-    fn to_meta(&self, world: &World) -> Result<Field, Error> {
+    fn to_meta<W: WorldLike>(&self, world: &W) -> Result<Field, Error> {
         Ok(Field {
             ty: self.ty().to_meta(world)?,
             optional: self.optional(),

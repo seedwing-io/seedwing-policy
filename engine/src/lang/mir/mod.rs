@@ -1,12 +1,13 @@
 use crate::core::{Example, Function};
 use crate::lang::hir::Expr;
 use crate::lang::parser::Located;
-use crate::lang::SyntacticSugar;
 use crate::lang::{hir, mir};
+use crate::lang::{lir, SyntacticSugar};
 use crate::lang::{PackageMeta, PrimordialPattern};
 use crate::lang::{PatternMeta, ValuePattern};
 use crate::runtime;
 use crate::runtime::config::EvalConfig;
+use crate::runtime::metadata::{PackageMetadata, SubpackageMetadata, ToMetadata, WorldLike};
 use crate::runtime::PatternName;
 use crate::runtime::{BuildError, PackagePath};
 use std::cell::RefCell;
@@ -441,16 +442,194 @@ impl World {
     }
 
     pub fn lower(self) -> Result<runtime::World, Vec<BuildError>> {
-        let mut world = runtime::World::new(self.config.clone());
+        Lowerer::new(self).lower()
+    }
+}
 
-        log::info!("Compiling {} patterns", self.types.len());
+struct Lowerer {
+    world: World,
 
-        for (_slot, ty) in self.type_slots.iter().enumerate() {
-            world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+    types: HashMap<PatternName, usize>,
+    type_slots: Vec<Arc<lir::Pattern>>,
+    packages: HashMap<PackagePath, PackageMetadata>,
+}
+
+struct SlotAccessor<'a>(&'a [Arc<lir::Pattern>]);
+
+impl<'a> WorldLike for SlotAccessor<'a> {
+    fn get_by_slot(&self, slot: usize) -> Option<Arc<runtime::Pattern>> {
+        self.0.get(slot).cloned()
+    }
+}
+
+impl Lowerer {
+    fn new(world: World) -> Self {
+        Self {
+            world,
+            types: Default::default(),
+            type_slots: Default::default(),
+            packages: Default::default(),
         }
+    }
 
-        world.add_packages(self.packages);
+    fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+        log::info!("Compiling {} patterns", self.world.types.len());
 
-        Ok(world)
+        self.add_types();
+        self.build_packages();
+        self.apply_packages();
+        self.sort_world();
+
+        // done
+
+        Ok(runtime::World::new(
+            self.world.config,
+            self.types,
+            self.type_slots,
+            self.packages,
+        ))
+    }
+
+    fn add_types(&mut self) {
+        for (slot, handle) in self.world.type_slots.iter().enumerate() {
+            let path = handle.name.as_ref().unwrap().clone();
+
+            let name = handle.name();
+            let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
+            let converted = lir::convert(
+                name,
+                handle.metadata().clone(),
+                handle.examples(),
+                parameters,
+                &handle.ty(),
+            );
+            self.type_slots.push(converted.clone());
+            self.types.insert(path, slot);
+        }
+    }
+
+    /// Build the package hierarchy from the known types
+    fn build_packages(&mut self) {
+        // insert the root
+        self.packages.insert(
+            PackagePath::root(),
+            PackageMetadata {
+                name: "".to_string(),
+                documentation: None,
+                packages: vec![],
+                patterns: vec![],
+            },
+        );
+
+        for (slot, handle) in self.world.type_slots.iter().enumerate() {
+            // get the name
+
+            let path = match handle.name.as_ref().and_then(|n| n.package.as_ref()) {
+                Some(path) => path.clone(),
+                None => {
+                    continue;
+                }
+            };
+
+            // create from leaf to root
+
+            {
+                // current path
+                let mut path = path.clone();
+                // carry over child when creating the parent
+                let mut child: Option<PackagePath> = None;
+
+                // while we don't have the "current" path
+                while !self.packages.contains_key(&path) {
+                    // create a new instance
+                    let mut meta = PackageMetadata::new(path.clone());
+                    if let Some(child) = child {
+                        // fill with the parent information
+                        meta.packages.push(SubpackageMetadata {
+                            // we can unwrap, as there always is a name, if we had a parent
+                            name: child.name().unwrap(),
+                            documentation: None,
+                        });
+                    }
+                    // and insert it
+                    self.packages.insert(path.clone(), meta);
+
+                    // eval parent information
+                    path = match path.parent() {
+                        Some(parent) => {
+                            child = Some(path);
+                            parent
+                        }
+                        None => {
+                            child = None;
+                            // we reached to root, ensure that we registered there too
+                            // we use the root is present, so we can use .unwrap()
+                            let root = self.packages.get_mut(&PackagePath::root()).unwrap();
+                            if let Some(name) = path.name() {
+                                root.packages.push(SubpackageMetadata::new(name));
+                            }
+
+                            // then bail out
+                            break;
+                        }
+                    }
+                    // and continue with the parent level (if there is one)
+                }
+
+                if let Some(child) = child {
+                    // we did insert something, and did have a parent, but the parent existed
+                    // however, we didn't add ourselves to the (existing) parent, so do that now
+                    let parent_pkg = self.packages.get_mut(&child.parent().unwrap()).unwrap();
+
+                    // we can unwrap, as there always is a name, if we had a parent
+                    parent_pkg
+                        .packages
+                        .push(SubpackageMetadata::new(child.name().unwrap()));
+                }
+            }
+
+            // add the type
+
+            if let Some(pkg) = self.packages.get_mut(&path) {
+                // we can call to_meta here, as we have a full set of types
+                if let Ok(meta) = self.type_slots[slot].to_meta(&SlotAccessor(&self.type_slots)) {
+                    pkg.patterns.push(meta);
+                }
+            }
+        }
+    }
+
+    fn apply_packages(&mut self) {
+        for (path, meta) in &self.world.packages {
+            log::info!("Apply package metadata: {path}: {meta:?}");
+
+            if let Some(pkg) = self.packages.get_mut(path) {
+                pkg.apply_meta(meta);
+            } else {
+                log::warn!("Found package metadata but no package: {path}");
+            }
+
+            if let Some((parent_pkg, child_name)) = path
+                .split_name()
+                .and_then(|(parent, child)| self.packages.get_mut(&parent).map(|p| (p, child)))
+            {
+                // find the child in the sub-packages list (we could do better here)
+                if let Some(child) = parent_pkg
+                    .packages
+                    .iter_mut()
+                    .filter(|s| s.name == child_name.0)
+                    .next()
+                {
+                    child.apply_meta(meta);
+                }
+            }
+        }
+    }
+
+    /// The world should be sorted, providing a stable order of entries, even over restarts.
+    fn sort_world(&mut self) {
+        for pkg in self.packages.values_mut() {
+            pkg.sort();
+        }
     }
 }

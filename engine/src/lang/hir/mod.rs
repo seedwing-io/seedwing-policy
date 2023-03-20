@@ -417,7 +417,7 @@ impl World {
     {
         let mut errors = Vec::new();
         for (source, stream) in sources {
-            log::info!("loading policies from {}", source);
+            log::debug!("loading policies from {}", source);
 
             let input = stream.into();
 
@@ -465,7 +465,7 @@ impl World {
 
         for pkg in &self.packages {
             for (source, stream) in pkg.source_iter() {
-                log::info!("loading {}", source);
+                log::debug!("loading {}", source);
                 self.source_cache.add(source.clone(), stream.clone().into());
                 let unit = PolicyParser::default().parse(source.to_owned(), stream);
                 match unit {
@@ -667,8 +667,7 @@ impl<'b> Lowerer<'b> {
         }
 
         for pkg in self.packages {
-            let path = pkg.path();
-            world.define_package(path, pkg.metadata().clone());
+            world.define_package(pkg.path(), pkg.metadata().clone());
         }
 
         if errors.is_empty() {
