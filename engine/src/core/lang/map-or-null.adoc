@@ -1,0 +1,7 @@
+Parameterized patterns that maps a function over the values and returns the transformed values as output.
+
+Values that are not matching will be transformed to `null` values, which is different from the semantics of the `lang::map` pattern.
+
+For lists, the function will apply the parameterized function to each element in the list.
+
+For other values, the input will be passed as is.

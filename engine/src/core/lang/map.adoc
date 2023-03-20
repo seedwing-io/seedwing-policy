@@ -1,4 +1,4 @@
-Parameterized patterns that maps a function over the values.
+Parameterized patterns that maps a function over the values. Each element in the input will produce a corresponding output object with the output type, value and rationale if available.
 
 For lists, the function will apply the parameterized function to each element in the list.
 
