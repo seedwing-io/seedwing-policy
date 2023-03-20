@@ -158,6 +158,7 @@ impl Function for Verify {
                         .await
                         .unwrap();
 
+                    let mut verified: Vec<Arc<RuntimeValue>> = Vec::new();
                     for sig in envelope.signatures.iter() {
                         let cert_base64 = sig.cert_as_base64();
                         log::debug!("cert_base64: {:?}", cert_base64);
@@ -174,7 +175,7 @@ impl Function for Verify {
                             match sigstore::cosign::verify_blob(
                                 &cert_base64.trim(),
                                 &sig.value,
-                                &pae.into_bytes(),
+                                &pae.clone().into_bytes(),
                             ) {
                                 Ok(_) => {
                                     attesters_names
@@ -197,7 +198,6 @@ impl Function for Verify {
                                     for subject in statement.subjects {
                                         for (alg, digest) in &subject.digest {
                                             if let Ok(hash) = hash(&blob, alg) {
-                                                log::info!("hash: {hash:?} : digest: {digest:?}");
                                                 if &hash == digest {
                                                     artifact_names.push(Arc::new(
                                                         RuntimeValue::from(
@@ -211,22 +211,18 @@ impl Function for Verify {
 
                                     let mut output = Object::new();
                                     output.set("predicate_type", statement.predicate_type);
-                                    output.set("predicate", statement.predicate);
-                                    output.set("attesters_names", attesters_names);
-                                    output.set("artifact_names", artifact_names);
-                                    let output = RuntimeValue::Object(output);
-                                    return Ok(Output::Transform(Arc::new(output)).into());
+                                    output.set("predicate", statement.predicate.clone());
+                                    output.set("attesters_names", attesters_names.clone());
+                                    output.set("artifact_names", artifact_names.clone());
+                                    verified.push(Arc::new(RuntimeValue::Object(output)));
                                 }
                                 Err(e) => {
                                     log::error!("verify_blob failed with {:?}", e);
-                                    return Ok(Output::Transform(Arc::new(RuntimeValue::Boolean(
-                                        false,
-                                    )))
-                                    .into());
                                 }
                             }
                         }
                     }
+                    return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
                 }
                 _ => {}
             }
@@ -367,6 +363,8 @@ mod test {
 
         assert!(result.as_ref().unwrap().satisfied());
         let output = result.unwrap().output().unwrap().as_json();
+        assert!(output.is_array());
+        let output = &output[0];
 
         let input_payload: serde_json::Value = payload_as_json(&input_json);
         assert_eq!(
