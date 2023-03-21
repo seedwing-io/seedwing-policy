@@ -216,7 +216,9 @@ impl Function for Verify {
                             }
                         }
                     }
-                    return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
+                    if !verified.is_empty() {
+                        return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
+                    }
                 }
                 _ => {}
             }
@@ -370,6 +372,30 @@ mod test {
             output.get("artifact_names").unwrap()[0],
             "binary-linux-amd64"
         );
+    }
+
+    #[actix_rt::test]
+    async fn verify_envelope_invalid_attesters() {
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("example-intoto-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"intoto/binary-linux-amd64">
+
+            pattern attesters = [
+              {name: "dan", public_key: "dummy-value"}
+            ]
+
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json),
+        )
+        .await;
+        assert_not_satisfied!(result);
     }
 
     #[actix_rt::test]
