@@ -856,7 +856,7 @@ mod test {
     use crate::lang::builder::Builder;
     use crate::runtime::sources::{Directory, Ephemeral};
 
-    use crate::runtime::metadata::{InnerPatternMetadata, SubpackageMetadata};
+    use crate::runtime::metadata::{Documentation, InnerPatternMetadata, SubpackageMetadata};
     use serde_json::json;
     use std::env;
 
@@ -1020,15 +1020,15 @@ mod test {
             foo,
             Some(PackageMetadata {
                 name: "foo".to_string(),
-                documentation: None,
+                documentation: Documentation::default(),
                 packages: vec![
                     SubpackageMetadata {
                         name: "bar".to_string(),
-                        documentation: None
+                        documentation: Documentation::default()
                     },
                     SubpackageMetadata {
                         name: "baz".to_string(),
-                        documentation: None
+                        documentation: Documentation::default()
                     }
                 ],
 
@@ -1042,7 +1042,7 @@ mod test {
             foo_bar,
             Some(PackageMetadata {
                 name: "foo::bar".to_string(),
-                documentation: None,
+                documentation: Documentation::default(),
                 packages: vec![],
                 patterns: vec![PatternMetadata {
                     name: Some("bob".to_string()),
