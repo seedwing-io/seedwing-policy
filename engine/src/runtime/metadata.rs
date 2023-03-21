@@ -3,6 +3,7 @@ use crate::lang::{lir, Expr, PackageMeta, PatternMeta, SyntacticSugar, ValuePatt
 use crate::runtime::{Example, PackagePath, Pattern, PatternName};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
@@ -14,6 +15,15 @@ pub enum ComponentMetadata {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Documentation(pub Option<String>);
+
+impl Display for Documentation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(docs) = &self.0 {
+            f.write_str(&docs)?;
+        }
+        Ok(())
+    }
+}
 
 impl From<String> for Documentation {
     fn from(value: String) -> Self {

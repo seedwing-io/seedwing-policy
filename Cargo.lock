@@ -3890,6 +3890,7 @@ name = "swio"
 version = "0.1.0"
 dependencies = [
  "actix-rt",
+ "anyhow",
  "clap 4.1.11",
  "env_logger 0.10.0",
  "futures-util",
@@ -3902,6 +3903,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "termcolor",
+ "thiserror",
  "tokio",
  "toml",
  "walkdir",
