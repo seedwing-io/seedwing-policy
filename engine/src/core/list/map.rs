@@ -1,9 +1,8 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::{Bindings, Pattern};
+use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{response::reason, EvalContext, Output, RuntimeError, World};
-use crate::value::{Object, RuntimeValue};
-use serde::Serialize;
+use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
@@ -16,32 +15,6 @@ const MAP_FN: &str = "map-fn";
 
 #[derive(Debug)]
 pub struct Map;
-
-impl Map {
-    async fn eval_element(
-        &self,
-        map_fn: Arc<Pattern>,
-        input: Arc<RuntimeValue>,
-        ctx: &EvalContext,
-        bindings: &Bindings,
-        world: &World,
-    ) -> Result<RuntimeValue, RuntimeError> {
-        let mut object = Object::new();
-        let result = map_fn.evaluate(input.clone(), ctx, bindings, world).await?;
-        match result.raw_output() {
-            Output::None => {
-                object.set("reason", reason(result.rationale()));
-            }
-            Output::Identity => {
-                object.set("value", input.as_json());
-            }
-            Output::Transform(value) => {
-                object.set("value", value.as_json());
-            }
-        }
-        Ok(RuntimeValue::Object(object))
-    }
-}
 
 impl Function for Map {
     fn parameters(&self) -> Vec<String> {
@@ -66,12 +39,17 @@ impl Function for Map {
             if let Some(map_fn) = bindings.get(MAP_FN) {
                 match input.as_ref() {
                     RuntimeValue::List(inputs) => {
-                        let mut result: Vec<Arc<RuntimeValue>> = Vec::new();
+                        let mut result = Vec::new();
                         for input in inputs.iter() {
-                            let value = self
-                                .eval_element(map_fn.clone(), input.clone(), ctx, bindings, world)
-                                .await?;
-                            result.push(value.into());
+                            if let Some(value) = map_fn
+                                .evaluate(input.clone(), ctx, bindings, world)
+                                .await?
+                                .output()
+                            {
+                                result.push(value);
+                            } else {
+                                result.push(RuntimeValue::Null.into());
+                            }
                         }
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
                     }
@@ -86,12 +64,6 @@ impl Function for Map {
             }
         })
     }
-}
-
-#[derive(Serialize)]
-pub struct MapOutput {
-    value: Option<Arc<RuntimeValue>>,
-    reason: Option<String>,
 }
 
 #[cfg(test)]
@@ -115,6 +87,36 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_map_list_no_filtering() {
+        let result = test_pattern(
+            r#"list::map<uri::purl>"#,
+            vec![
+                RuntimeValue::String(
+                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
+                        .to_string(),
+                ),
+                RuntimeValue::String("nomatch".to_string()),
+            ],
+        )
+        .await;
+
+        assert_eq!(
+            result.output(),
+            Some(Arc::new(
+                json!([{
+                    "type": "github",
+                    "namespace": "package-url",
+                    "name": "purl-spec",
+                    "version": "244fd47e07d1004",
+                    "subpath": "everybody/loves/dogs",
+                }, null,
+                ])
+                .into()
+            ))
+        );
+    }
+
+    #[tokio::test]
     async fn test_map_list() {
         let result = test_pattern(
             r#"list::map<uri::purl>"#,
@@ -127,7 +129,6 @@ mod tests {
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/cats"
                         .to_string(),
                 ),
-                RuntimeValue::Integer(44),
             ],
         )
         .await;
@@ -135,29 +136,19 @@ mod tests {
         assert_eq!(
             result.output(),
             Some(Arc::new(
-                json!([
-                    {
-                        "value": {
-                            "type": "github",
-                            "namespace": "package-url",
-                            "name": "purl-spec",
-                            "version": "244fd47e07d1004",
-                            "subpath": "everybody/loves/dogs",
-                        }
-                    },
-                    {
-                        "value": {
-                            "type": "github",
-                            "namespace": "package-url",
-                            "name": "purl-spec",
-                            "version": "244fd47e07d1004",
-                            "subpath": "everybody/loves/cats",
-                        }
-                    },
-                    {
-                        "reason": "invalid argument: input is neither a String nor an Object"
-                    }
-                ])
+                json!([{
+                    "type": "github",
+                    "namespace": "package-url",
+                    "name": "purl-spec",
+                    "version": "244fd47e07d1004",
+                    "subpath": "everybody/loves/dogs",
+                }, {
+                    "type": "github",
+                    "namespace": "package-url",
+                    "name": "purl-spec",
+                    "version": "244fd47e07d1004",
+                    "subpath": "everybody/loves/cats",
+                }])
                 .into()
             ))
         );

@@ -1,3 +1,5 @@
-Parameterized patterns that maps a function over the elements of a list. Each element in the input will produce a corresponding output object with the output type, value and rationale if available.
+Parameterized patterns that maps a function over the values and returns the transformed values as output.
+
+Values that are not matching will be transformed to `null` values.
 
 Input must be a list.
