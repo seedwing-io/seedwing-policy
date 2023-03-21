@@ -32,7 +32,7 @@ impl Function for VerifyBlob {
 
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: Some(VERIFY_BLOB_DOCUMENATION.into()),
+            documentation: VERIFY_BLOB_DOCUMENATION.into(),
             ..Default::default()
         }
     }
