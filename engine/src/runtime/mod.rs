@@ -576,6 +576,12 @@ impl PackagePath {
             None
         }
     }
+
+    pub fn join(&self, name: impl Into<PackageName>) -> Self {
+        let mut path = self.path.clone();
+        path.push(name.into());
+        Self { path }
+    }
 }
 
 impl From<SourceLocation> for PackagePath {
