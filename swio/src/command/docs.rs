@@ -11,9 +11,6 @@ use std::path::PathBuf;
     args_conflicts_with_subcommands = true
 )]
 pub struct Docs {
-    /// Generate a module for Antora
-    #[arg(short = 'a', long = "antora", default_value_t = false)]
-    pub antora: bool,
     /// Output directory
     #[arg(short = 'o', long = "output")]
     pub output: PathBuf,
