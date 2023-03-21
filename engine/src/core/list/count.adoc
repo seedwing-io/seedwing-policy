@@ -1,4 +1,6 @@
 Function that produces the length of a list
-```
+
+[source]
+----
 pattern nr_of_items = list::count()
-```
+----

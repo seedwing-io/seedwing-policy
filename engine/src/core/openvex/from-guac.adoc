@@ -2,6 +2,7 @@ Produce an OpenVEX report based on an Guac query response.
 
 You can combine this with other patterns to check if a given package has any known vulnerabilities:
 
-```
+[source]
+----
 pattern vuln = uri::purl(guac::certify-vulnerability(openvex::from-guac(openvex::not-affected)))
-```
+----

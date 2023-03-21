@@ -1,9 +1,13 @@
 Function that returns true if the string contains the specified substring.
-```
+
+[source]
+----
 pattern contains_people = string::contains<"people">
-```
+----
 
 Example input:
-```
+
+[source,json]
+----
 "Some people like coffee."
-```
+----

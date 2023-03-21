@@ -4,26 +4,30 @@ An empty input list *does* match this pattern.
 
 For instance, this pattern:
 
-```
+[source]
+----
 pattern only-numbers = list::all<integer>
-```
+----
 
 would match
 
-```json
+[source,json]
+----
 [ 1, 2, 3, 4 ]
-```
+----
 
 and would also match
 
-```json
+[source,json]
+----
 [ ]
-```
+----
 
 but would not match
 
-```json
+[source,json]
+----
 [ 1, 2, 3, "bob" ]
-```
+----
 
 

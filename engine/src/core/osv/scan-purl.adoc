@@ -8,8 +8,9 @@ The function accepts the following inputs:
 
 You can combine this function with other patterns to check if a given package has any known vulnerabilities:
 
-```
+[source]
+----
 pattern not-vulnerable = osv::scan-purl(openvex::from-osv(openvex::not-affected))
-```
+----
 
 This converts the package URL input into an OpenVEX document, on which the not-affected pattern is used to verify that this package is not affected by any vulnerability.
