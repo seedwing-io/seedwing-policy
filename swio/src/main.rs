@@ -1,6 +1,6 @@
 use crate::cli::Cli;
+use std::process::Termination;
 
-use crate::error::CliError;
 use clap::Parser;
 
 mod cli;
@@ -10,7 +10,6 @@ mod error;
 mod util;
 
 #[tokio::main]
-async fn main() -> Result<(), CliError> {
-    let mut cli = Cli::parse();
-    cli.run().await
+async fn main() -> impl Termination {
+    Cli::parse().run().await
 }

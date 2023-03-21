@@ -1,11 +1,9 @@
-use crate::cli::InputType;
-use crate::command::verify::Verify;
+use crate::cli::{Context, InputType};
 use crate::util;
 use crate::util::load_value;
-use crate::Cli;
-use seedwing_policy_engine::runtime::{Response, RuntimeError};
+use seedwing_policy_engine::runtime::Response;
 use std::path::PathBuf;
-use std::process::exit;
+use std::process::ExitCode;
 
 #[derive(clap::Args, Debug)]
 #[command(
@@ -24,42 +22,26 @@ pub struct Eval {
 }
 
 impl Eval {
-    pub async fn run(&self, args: &Cli) -> Result<(), ()> {
-        let world = Verify::verify(args).await?;
+    pub async fn run(&self, context: Context) -> anyhow::Result<ExitCode> {
+        let world = context.world().await?.1;
 
-        let value = load_value(self.typ, self.input.clone())
-            .await
-            .map_err(|_| ())?;
-
+        let value = load_value(self.typ, self.input.clone()).await?;
         let eval = util::eval::Eval::new(world, self.name.clone(), value);
 
         println!("evaluate pattern: {}", self.name);
 
-        match eval.run().await {
-            Ok(result) => {
-                let response = if self.verbose {
-                    Response::new(&result)
-                } else {
-                    Response::new(&result).collapse()
-                };
+        let result = eval.run().await?;
+        let response = if self.verbose {
+            Response::new(&result)
+        } else {
+            Response::new(&result).collapse()
+        };
 
-                println!("{}", serde_json::to_string_pretty(&response).unwrap());
-                if !result.satisfied() {
-                    exit(-1);
-                }
-            }
-            Err(e) => {
-                match e {
-                    RuntimeError::NoSuchPattern(name) => {
-                        println!("error: no such pattern: {}", name.as_type_str());
-                    }
-                    _ => {
-                        println!("error");
-                    }
-                }
-                exit(-10);
-            }
+        println!("{}", serde_json::to_string_pretty(&response).unwrap());
+        if !result.satisfied() {
+            return Ok(ExitCode::from(2));
         }
-        Ok(())
+
+        Ok(ExitCode::SUCCESS)
     }
 }

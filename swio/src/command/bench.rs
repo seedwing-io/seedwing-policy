@@ -1,11 +1,8 @@
-use crate::cli::InputType;
-use crate::command::verify::Verify;
-use crate::util;
-use crate::util::load_value;
-use crate::Cli;
+use crate::cli::{Context, InputType};
+use crate::util::{self, load_value};
 use seedwing_policy_engine::runtime::RuntimeError;
 use std::path::PathBuf;
-use std::process::exit;
+use std::process::ExitCode;
 use std::time::Instant;
 
 #[derive(clap::Args, Debug)]
@@ -22,13 +19,10 @@ pub struct Bench {
 }
 
 impl Bench {
-    pub async fn run(&self, args: &Cli) -> Result<(), ()> {
-        let world = Verify::verify(args).await?;
+    pub async fn run(&self, context: Context) -> anyhow::Result<ExitCode> {
+        let world = context.world().await?.1;
 
-        let value = load_value(self.typ, self.input.clone())
-            .await
-            .map_err(|_| ())?;
-
+        let value = load_value(self.typ, self.input.clone()).await?;
         let eval = util::eval::Eval::new(world, self.name.clone(), value);
 
         use hdrhistogram::Histogram;
@@ -47,7 +41,7 @@ impl Bench {
                             println!("error");
                         }
                     }
-                    exit(-10);
+                    return Ok(ExitCode::from(10));
                 }
             }
         }
@@ -69,7 +63,7 @@ impl Bench {
                             println!("error");
                         }
                     }
-                    exit(-10);
+                    return Ok(ExitCode::from(10));
                 }
             }
         }
@@ -90,6 +84,6 @@ impl Bench {
             .unwrap()
         );
 
-        Ok(())
+        return Ok(ExitCode::SUCCESS);
     }
 }

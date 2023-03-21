@@ -1,16 +1,16 @@
-use crate::command::verify::Verify;
-use crate::Cli;
-use seedwing_policy_engine::lang::builder::Builder;
-use seedwing_policy_engine::runtime::config::EvalConfig;
-use seedwing_policy_engine::runtime::sources::Ephemeral;
-use seedwing_policy_engine::runtime::{
-    BuildError, EvalContext, Output, PatternName, RuntimeError, World,
+use crate::cli::Context;
+use seedwing_policy_engine::{
+    lang::builder::Builder,
+    runtime::{
+        config::EvalConfig, sources::Ephemeral, BuildError, EvalContext, Output, PatternName,
+        RuntimeError, World,
+    },
+    value::RuntimeValue,
 };
-use seedwing_policy_engine::value::RuntimeValue;
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use std::process::exit;
+use std::process::ExitCode;
 use std::str::from_utf8;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -27,8 +27,8 @@ pub struct Test {
 }
 
 impl Test {
-    pub async fn run(&self, args: &Cli) -> Result<(), ()> {
-        let (builder, world) = Verify::verify_with_builder(args).await?;
+    pub async fn run(&self, context: Context) -> anyhow::Result<ExitCode> {
+        let (builder, world) = context.world().await?;
         let mut plan = TestPlan::new(&self.test_directories, &self.r#match);
         println!();
         println!("running {} tests", plan.tests.len());
@@ -48,10 +48,11 @@ impl Test {
             plan.error()
         );
         println!();
-        if plan.had_failures() {
-            exit(-42);
-        }
-        Ok(())
+        Ok(if plan.had_failures() {
+            ExitCode::from(42)
+        } else {
+            ExitCode::SUCCESS
+        })
     }
 
     pub fn display_results(&self, plan: &TestPlan) {

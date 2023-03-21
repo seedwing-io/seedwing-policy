@@ -1,4 +1,4 @@
-use crate::Cli;
+use crate::cli::Context;
 use env_logger::Builder;
 use log::LevelFilter;
 
@@ -16,19 +16,19 @@ pub struct Serve {
 }
 
 impl Serve {
-    pub async fn run(&self, args: &Cli) -> Result<(), ()> {
+    pub async fn run(&self, context: Context) -> anyhow::Result<()> {
         Builder::new()
             .filter_level(LevelFilter::Warn)
             .filter_module("seedwing_policy_server", LevelFilter::Info)
             .filter_module("seedwing_policy_engine", LevelFilter::Info)
             .init();
         seedwing_policy_server::run(
-            args.policy_directories.clone(),
-            args.data_directories.clone(),
+            context.policy_directories.clone(),
+            context.data_directories.clone(),
             self.bind.clone(),
             self.port,
         )
-        .await
-        .map_err(|_| ())
+        .await?;
+        Ok(())
     }
 }

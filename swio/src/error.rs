@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub enum CliError {
     Unknown,
@@ -16,11 +18,15 @@ impl From<ConfigError> for CliError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
-    FileNotFound,
+    #[error("File not found: {0}")]
+    FileNotFound(PathBuf),
+    #[error("Not readable")]
     NotReadable,
+    #[error("Invalid format")]
     InvalidFormat,
+    #[error("Parser error: {0}")]
     Deserialization(toml::de::Error),
 }
 
