@@ -1,5 +1,0 @@
-Parameterized patterns that maps a function over the values and returns the transformed values as output.
-
-Values that are not matching will be transformed to `null` values, which is different from the semantics of the `list::map` pattern.
-
-Input must be a list.
