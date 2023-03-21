@@ -65,7 +65,7 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e571e1d6bc82cb71b755a0beb51ba819aa6a67ee74c190cf9be3832214c0717d"
 dependencies = [
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.4.5",
  "serde_json",
  "wasm-bindgen",
  "yew",
@@ -838,7 +838,7 @@ dependencies = [
  "gloo-events",
  "gloo-utils",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.4.5",
  "serde_urlencoded",
  "thiserror",
  "wasm-bindgen",
@@ -1972,7 +1972,7 @@ dependencies = [
  "ropey",
  "seedwing-policy-engine",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.5.0",
  "serde_json",
  "serde_yaml",
  "wasm-bindgen",
@@ -1997,6 +1997,17 @@ name = "serde-wasm-bindgen"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
 dependencies = [
  "js-sys",
  "serde",
