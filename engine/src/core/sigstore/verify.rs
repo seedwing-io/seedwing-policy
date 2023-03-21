@@ -17,7 +17,7 @@ use tokio::task::spawn_blocking;
 #[derive(Debug)]
 pub struct VerifyBlob;
 
-const VERIFY_BLOB_DOCUMENATION: &str = include_str!("verify-blob.adoc");
+const VERIFY_BLOB_DOCUMENTATION: &str = include_str!("verify-blob.adoc");
 const CERTIFICATE: &str = "certificate";
 const SIGNATURE: &str = "signature";
 
@@ -32,7 +32,7 @@ impl Function for VerifyBlob {
 
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
-            documentation: VERIFY_BLOB_DOCUMENATION.into(),
+            documentation: VERIFY_BLOB_DOCUMENTATION.into(),
             ..Default::default()
         }
     }
