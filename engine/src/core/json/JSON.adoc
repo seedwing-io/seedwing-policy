@@ -9,9 +9,10 @@ The primary input is indeed a stringy object, which may contain any valid JSON, 
 
 Example inputs include
 
-```
+[source,json]
+----
 "{ \"foo\": 42 }"
-```
+----
 
 
 

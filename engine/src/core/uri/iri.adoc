@@ -1,2 +1,2 @@
-Pattern that matches valid Internationalized Resource Identifiers (IRI) according to
+A pattern that matches valid Internationalized Resource Identifiers (IRI) according to
 https://www.rfc-editor.org/rfc/rfc3987[https://www.rfc-editor.org/rfc/rfc3987].

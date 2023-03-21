@@ -1,11 +1,15 @@
 Function that produces concatenates a list to an input list.
 
 Example pattern:
-```
+
+[source]
+----
 pattern new_list = list::concat<[4, 5, 6]>
-```
+----
 
 Example input:
-```
+
+[source,json]
+----
 [1, 2, 3]
-```
+----

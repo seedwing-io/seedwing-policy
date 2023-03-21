@@ -4,21 +4,24 @@ An empty input list does *not* match.
 
 For instance:
 
-```
+[source]
+----
 pattern contains-bob = list::any<"Bob">
-```
+----
 
 Would match
 
-```
+[source,json]
+----
 [ "Bob", "Jim" ]
-```
+----
 
 but would not match
 
-```
+[source,json]
+----
 [ "Robert", 42 ]
-```
+----
 
 
 

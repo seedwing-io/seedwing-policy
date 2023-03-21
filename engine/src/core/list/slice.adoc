@@ -1,11 +1,15 @@
 Function that produces a slice of a list given the start and end indices.
 
 Example pattern:
-```
+
+[source]
+----
 pattern slice = list::slice<2, 4>
-```
+----
 
 Example input:
-```
+
+[source,json]
+----
 [1, 2, 3, 4, 5]
-```
+----
