@@ -28,7 +28,6 @@ const BLOB: &str = "blob";
 pub struct Verify;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde()]
 struct Envelope {
     #[serde(rename = "payloadType")]
     payload_type: String,
@@ -46,7 +45,6 @@ impl Envelope {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde()]
 struct Signature {
     cert: String,
     #[serde(rename = "kid")]
@@ -63,7 +61,6 @@ impl Signature {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde()]
 struct Statement {
     _type: String,
     #[serde(rename = "subject")]
@@ -74,14 +71,12 @@ struct Statement {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde()]
 struct Subject {
     name: String,
     digest: HashMap<String, String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde()]
 struct VerifyOutput {
     predicate_type: String,
     predicate: serde_json::Value,
