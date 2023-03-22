@@ -60,6 +60,14 @@ jobs:
       - name: Check
         run: cargo check --features frontend
 
+      - name: Generate docs
+        run: |
+          mkdir -p "${RUNNER_TEMP}/docs"
+          cargo run --bin swio -- docs --output "${RUNNER_TEMP}/docs"
+
+      - name: Ensure the docs are up-to-date
+        run: diff -r "docs/modules/policies" "${RUNNER_TEMP}/docs"
+
       - name: Test
         run: cargo test -- --nocapture
 
