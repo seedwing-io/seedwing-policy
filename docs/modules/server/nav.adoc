@@ -1,0 +1,2 @@
+* xref:index.adoc[Server]
+** xref:openapi.adoc[OpenAPI 3]

@@ -1,0 +1,3 @@
+* xref::index.adoc[Examples]
+** xref:cyclonedx.adoc[]
+** xref:hacbs.adoc[]

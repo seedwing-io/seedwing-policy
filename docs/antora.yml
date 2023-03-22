@@ -1,0 +1,16 @@
+name: seedwing
+title: Seedwing
+version: master # "master" is a special identifier for Antora
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/nav.adoc
+  - modules/dogma/nav.adoc
+
+  - modules/cli/nav.adoc
+  - modules/server/nav.adoc
+
+  - modules/examples/nav.adoc
+  - modules/examples_cyclonedx/nav.adoc
+  - modules/examples_hacbs/nav.adoc
+
+  - modules/faq/nav.adoc

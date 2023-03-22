@@ -1,0 +1,30 @@
+= Seedwing
+
+`Seedwing-Policy` is a type/pattern/function-based _policy engine_ which can be embedded in another process, or accessed over REST APIs. The general idea of a policy engine is that a consumer requiring a decision presents the information they have available, and the policy engine inspects the information, possibly transforming or augmenting it, to provide a decision as to if the inputs represent compliance or violation of the policy.
+
+Seedwing Policy consists of components that may be combined or used standalone:
+
+* *Dogma* - a policy language.
+* *Engine* - a policy evaluation engine.
+
+image::https://raw.githubusercontent.com/seedwing-io/seedwing-policy/main/docs/images/seedwing_overview.drawio.png[Seedwing Policy overview diagram showing the engine cli and server components and how the policices are ingested and applied]
+
+With Seedwing, you can:
+
+* Validate, destructure and inspect payload according to standards like CycloneDX, SPDX, OpenVEX, PEM and more.
+* Check for permitted licenses according to organization policy.
+* Check for trusted signatures against link:https://sigstore.dev)[Sigstore].
+* Check SBOM dependencies for vulnerabilities against link:https://osv.dev[OSV].
+
+Additionally, Seedwing provides detailed explanations of the decision process.
+
+The Seedwing engine includes _core patterns_ to assist in policy authoring.
+Some examples include:
+
+* Sigstore
+* x509
+* CycloneDX
+* OpenVEX
+* SPDX
+* Maven
+* Base64

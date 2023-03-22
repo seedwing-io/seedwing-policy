@@ -1,0 +1,4 @@
+* xref:index.adoc[]
+** xref:foundational-concepts.adoc[Foundational Concepts]
+** xref:syntax.adoc[General Syntax]
+** xref:primordial.adoc[Primordial Patterns]

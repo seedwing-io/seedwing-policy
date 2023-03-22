@@ -10,14 +10,14 @@ With the following policies:
 
 [source,json]
 ----
-include::example$hacbs.dog[]
+include::example$hacbs/hacbs.dog[]
 ----
 
 and this attestation:
 
 [source,json]
 ----
-include::example$attestation.json[]
+include::example$hacbs/attestation.json[]
 ----
 
 You can apply this policy using `swio`:

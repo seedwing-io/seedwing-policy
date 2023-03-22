@@ -1,5 +1,0 @@
-name: cli
-title: CLI
-version: dev
-nav:
-  - modules/ROOT/nav.adoc

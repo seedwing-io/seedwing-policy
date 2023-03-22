@@ -1,0 +1,133 @@
+= Why do I want a policy engine?
+
+In order to prevent the world from descending into chaos, humans have a tendency to create rules as to what is allowed and what is not.
+These rules often times describe things you cannot do ("no smoking!") and things you can do, if you meet some requirements ("you must be _this tall_ to ride this rollercoaster").
+
+== Types of policies
+
+Policies, like rollercoasters, come in a variety of shapes and sizes.
+You may have familiarity of policies with regards to _access control_ and permissions for performing certain tasks within certain applications.
+With the upswing in _software supply-chain security_ concerns, we realize we can apply policy to the creation and delivery of software, to ensure that we are being explicit and intentional about these activities.
+
+=== Soft policies
+
+Your organization may have _soft_ policies, regarding how we do our work towards delivering software.
+This includes pronouncements such as:
+
+* All code must have unit tests.
+* All PRs should be reviewed by two other people prior to merging.
+* Your code should be formatted according to a specific standard.
+
+Any policy that must be enforced and verified by a human has an increased probability of not actually being applied.
+As software developers, we add hooks and constraints to our repositories to ensure these soft policies are followed as much as possible.
+
+By allowing a system to enforce policies, we convert _soft_ policies into _hard_ policies, and remove the opportunity to argue about them.
+
+Generally, though, soft policies revolve around the actions of humans:
+
+* How do we write code?
+* How do we format code?
+* How do we integrate code?
+
+=== Hard policies
+
+A policy that is absolutely enforced is a _hard_ policy.
+Configuring GitHub to not allow commits directly to the main branch, but instead requiring sign-offs and reviews ensures that our process is as we expect it to be.
+
+Hard policies are capable of not only evaluating what a huamn does, but evaluating the qualitative aspects of the output of the aforementioned human.
+
+With enough information conveyed alongside the code, policies can enforce aspects such as:
+
+* License compatibility.
+* Existance of known vulnerabilities.
+* Allow/deny lists of 2rd-order transitive dependency inclusion.
+
+== Ways of describing policies
+
+Just as rollercoasters can be made of wood or metal, with or without loops, traditional cars or dangerous-looking rigging, policies themselves can be described in a multitude of ways.
+
+=== Procedural
+
+The simplest policy is just code that manually scans and qualifies the subject of the decision.
+Imagine any shell script that walks a directory tree or analyzes a pull-request, going through file-by-file or line-by-line, looking up whatever it can, to decide if the subject is compliant with or in violation of "the policy".
+
+While effective, procedural policies can be difficult to understand, extend and rationalize.
+
+=== Declarative
+
+[quote]
+I don't _know_ art, but I know what I like.
+
+Declarative policies generally describe what "good" or "bad" looks like, and leave it up to the policy engine to figure out if the subject being evaluated fits either description.
+
+One form of declarative policy looks a lot like _pattern matching_.
+
+==== Pattern Matching
+
+Taking the idea of describing "good" or "bad" and matching it against a subject, we're now thinking in terms of pattern-matching.
+A sign in front of the turnstile has a pointer set to 4 feet (121.9cm), and if a child fits under the pointer, regardless of their actual height, they've matched the "too short" pattern.
+Likewise, if their head is above the pointer, they've matched the "tall enough" pattern, and can enjoy vomiting on the rollercoaster.
+
+==== Deriving more information
+
+Sometimes the subject being evaluated is not directly evaluatable.
+Perhaps the individual who is taller than 4 feet (121.9cm) wants to enjoy a beer prior to riding the rollercoaster, there is no direct visual match of "good" or "bad" at the concession stand.
+Instead, they present their identification, which converts the person (who presumably matches the photo on the ID) into a birthday, which can then be converted into an age, which is then used to determine "good" or "bad" with regards to alcohol sales.
+
+== Using Policies
+
+The primary usage of policies is everywhere, though _policy enforcement points_ (PEPs).
+At rollercoasters, the turnstile with the height pointer is PEP.
+At the concession stand, the human checking IDs is a PEP.
+
+=== Policy enforcement in the Software Development Lifecycle
+
+A given bit of code exists through a lifecycle starting with the conception of the code all the way through to the deployment an subsequent maintenance of the application it is in service of.
+
+* Think of some code.
+* Write some code.
+* Borrow some other code to support this code.
+* Test the code.
+* Build the code.
+* Build it again a few more times.
+* Test the code.
+* Press out a _gold master_ CD of the code.
+* Deploy the code.
+* Notice the code is bad bad bad
+* Fix the code.
+* Go back quite a few steps and do it all again.
+
+Policy enforcement is applicable almost anywhere that something _moves_.
+Just as it's preferable to discover bugs early in the lifecycle, it's also beneficial to enforce policy sooner rather than later, in order to provide more time (and require less effort) to remediate any discovered violations.
+
+When code moves from our fingers into the repository, policies could be enforced.
+When code passes the CI build, and needs to move towards QE or production, policy can be enforced.
+
+Each move may require _different_ policies, enforced to different degrees.
+What's okay within an upstream open-source project's CI policy set may not be sufficient for a Fortune 1000 company moving the same code into a customer-facing production cluster.
+
+=== Common Policy Enforcement Points
+
+1. Selecting dependencies
+2. Committing code
+3. Pull-request merging
+4. Accepting the output of a CI run
+5. Accepting a workload for deployment
+
+== A note about "exceptions to the policy"
+
+Exceptions don't exist, they are just a conspiracy by Big Decision to sell more policies.
+
+Any true exception that routes around policy is indistinguishable from a violated policy.
+
+In order to support "exceptional" circumstances, it is our view that exceptions should be codified as policies.
+
+For instance, the policy of "People under 4ft (121.9cm) tall cannot drink beer" is both weird and straight-forward.
+To allow for exceptions, the policy can be reformulated as "People under 4ft (121.9cm) tall cannot drink beer, unless Bob says it's okay."
+
+Now the person who can't ride the rollercoaster can have a beer if Bob gives the thumbs-up, and no policy violation has occurred.
+In fact, now the "exception" is even tracked and auditable.
+
+
+
+

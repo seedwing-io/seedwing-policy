@@ -1,5 +1,0 @@
-name: server
-title: Server
-version: dev
-nav:
-  - modules/ROOT/nav.adoc
