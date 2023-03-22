@@ -258,32 +258,23 @@ fn render_type(pattern: Rc<PatternMetadata>) -> Html {
 
     html!(
         <>
-            <Content>
-                <dl>
-                    <dt>{"Name"}</dt>
-                    <dd>
-                        { render_full_type(&pattern) }
-                    </dd>
-                </dl>
-            </Content>
-
             <Flex modifiers={[FlexModifier::Column.all(), FlexModifier::Row.md()]}>
 
                 <Flex modifiers={[FlexModifier::Column, FlexModifier::Flex1]}>
 
-                    <FlexItem>
-                        if let Some(deprecation) = &pattern.metadata.deprecation {
-
-                            <Alert
-                                inline=true
-                                r#type={AlertType::Warning}
-                                title={format!("Deprecated{}", deprecation.since.as_deref().map(|s|format!(" since {}", s)).unwrap_or_default())}
-                            >
-                                if let Some(reason) = &deprecation.reason { {reason} }
-                            </Alert>
-
-                        }
-                    </FlexItem>
+                    {if let Some(deprecation) = &pattern.metadata.deprecation {
+                        Some(html_nested!(
+                            <FlexItem>
+                                <Alert
+                                    inline=true
+                                    r#type={AlertType::Warning}
+                                    title={format!("Deprecated{}", deprecation.since.as_deref().map(|s|format!(" since {}", s)).unwrap_or_default())}
+                                >
+                                    if let Some(reason) = &deprecation.reason { {reason} }
+                                </Alert>
+                            </FlexItem>
+                        ))
+                    } else { None }}
 
                     <FlexItem>
                         <Title level={Level::H2}> { "Documentation" } </Title>
