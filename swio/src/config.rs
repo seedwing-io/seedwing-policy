@@ -34,16 +34,50 @@ impl Config {
             EvalConfig::default()
         }
     }
+
+    pub fn inputs(&self, relative_to: &Path) -> Vec<PathBuf> {
+        if let Some(policy) = &self.policy {
+            policy.inputs(relative_to)
+        } else {
+            Vec::default()
+        }
+    }
+
+    pub fn required_policies(&self) -> Vec<String> {
+        if let Some(policy) = &self.policy {
+            policy.required_policies()
+        } else {
+            Vec::default()
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
 pub struct PolicyConfig {
     dirs: Vec<PathBuf>,
+    inputs: Option<Vec<PathBuf>>,
+    required: Option<Vec<String>>,
 }
 
 impl PolicyConfig {
     pub fn directories(&self, relative_to: &Path) -> Vec<PathBuf> {
         self.dirs.iter().map(|dir| relative_to.join(dir)).collect()
+    }
+
+    pub fn inputs(&self, relative_to: &Path) -> Vec<PathBuf> {
+        if let Some(inputs) = &self.inputs {
+            inputs.iter().map(|dir| relative_to.join(dir)).collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn required_policies(&self) -> Vec<String> {
+        if let Some(required) = &self.required {
+            required.clone()
+        } else {
+            Vec::new()
+        }
     }
 }
 

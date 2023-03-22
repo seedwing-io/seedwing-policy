@@ -1,6 +1,6 @@
 use crate::cli::{Context, InputType};
 use crate::util;
-use crate::util::load_value;
+use crate::util::load_values;
 use seedwing_policy_engine::runtime::Response;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -16,7 +16,7 @@ pub struct Eval {
     #[arg(short, long)]
     input: Option<PathBuf>,
     #[arg(short = 'n', long = "name")]
-    name: String,
+    name: Option<String>,
     #[arg(short = 'v', long = "verbose", default_value_t = false)]
     verbose: bool,
 }
@@ -25,21 +25,41 @@ impl Eval {
     pub async fn run(&self, context: Context) -> anyhow::Result<ExitCode> {
         let world = context.world().await?.1;
 
-        let value = load_value(self.typ, self.input.clone()).await?;
-        let eval = util::eval::Eval::new(world, self.name.clone(), value);
-
-        println!("evaluate pattern: {}", self.name);
-
-        let result = eval.run().await?;
-        let response = if self.verbose {
-            Response::new(&result)
+        let inputs: Vec<PathBuf> = if let Some(input) = &self.input {
+            vec![input.clone()]
         } else {
-            Response::new(&result).collapse()
+            context.inputs.clone()
         };
 
-        println!("{}", serde_json::to_string_pretty(&response).unwrap());
-        if !result.satisfied() {
-            return Ok(ExitCode::from(2));
+        let names = if let Some(name) = &self.name {
+            vec![name.clone()]
+        } else {
+            if context.required_policies.is_empty() {
+                eprintln!("No policies specified on command line (-n) or in config file");
+                return Ok(ExitCode::FAILURE);
+            }
+            context.required_policies.clone()
+        };
+
+        // Load from config
+
+        let values = load_values(self.typ, inputs).await?;
+        for value in values {
+            for name in names.iter() {
+                let eval = util::eval::Eval::new(&world, &name, value.clone());
+
+                let result = eval.run().await?;
+                let response = if self.verbose {
+                    Response::new(&result)
+                } else {
+                    Response::new(&result).collapse()
+                };
+
+                println!("{}", serde_json::to_string_pretty(&response).unwrap());
+                if !result.satisfied() {
+                    return Ok(ExitCode::from(2));
+                }
+            }
         }
 
         Ok(ExitCode::SUCCESS)

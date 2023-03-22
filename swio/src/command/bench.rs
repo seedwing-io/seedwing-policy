@@ -1,5 +1,5 @@
 use crate::cli::{Context, InputType};
-use crate::util::{self, load_value};
+use crate::util::{self, load_values};
 use seedwing_policy_engine::runtime::RuntimeError;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -11,7 +11,7 @@ pub struct Bench {
     #[arg(short = 't', value_name = "TYPE", value_enum, default_value_t = InputType::Json)]
     typ: InputType,
     #[arg(short, long)]
-    input: Option<PathBuf>,
+    input: PathBuf,
     #[arg(short = 'n', long = "name")]
     name: String,
     #[arg(short = 'c', long = "count")]
@@ -22,8 +22,8 @@ impl Bench {
     pub async fn run(&self, context: Context) -> anyhow::Result<ExitCode> {
         let world = context.world().await?.1;
 
-        let value = load_value(self.typ, self.input.clone()).await?;
-        let eval = util::eval::Eval::new(world, self.name.clone(), value);
+        let value = load_values(self.typ, vec![self.input.clone()]).await?[0].clone();
+        let eval = util::eval::Eval::new(&world, &self.name, value);
 
         use hdrhistogram::Histogram;
         let mut hist = Histogram::<u64>::new(2).unwrap();

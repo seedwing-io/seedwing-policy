@@ -61,9 +61,13 @@ pub struct Context {
 
     pub policy_directories: Vec<PathBuf>,
 
+    pub inputs: Vec<PathBuf>,
+
     pub data_directories: Vec<PathBuf>,
 
     pub eval_config: Option<EvalConfig>,
+
+    pub required_policies: Vec<String>,
 }
 
 impl Cli {
@@ -80,8 +84,10 @@ impl Cli {
     async fn run_command(self) -> anyhow::Result<ExitCode> {
         let mut context = Context {
             config_file: self.config_file,
+            inputs: Vec::new(),
             policy_directories: self.policy_directories,
             data_directories: self.data_directories,
+            required_policies: Vec::new(),
             eval_config: None,
         };
 
@@ -91,7 +97,7 @@ impl Cli {
         Ok(match self.command {
             Command::Verify(verify) => {
                 verify.run(context).await?;
-                println!("ok!");
+                log::debug!("ok!");
                 ExitCode::SUCCESS
             }
             Command::Eval(eval) => eval.run(context).await?,
@@ -122,12 +128,16 @@ impl Context {
                 if read_result.is_ok() {
                     if let Ok(toml) = from_utf8(&config) {
                         let config: Config = toml::from_str(toml)?;
-                        println!("{:?}", config);
+                        log::debug!("{:?}", config);
                         if let Some(parent) = path.parent() {
                             let policy_dirs = config.policy_directories(parent);
                             self.policy_directories.extend_from_slice(&policy_dirs);
                             let data_dirs = config.data_directories(parent);
                             self.data_directories.extend_from_slice(&data_dirs);
+                            let inputs = config.inputs(parent);
+                            self.inputs.extend_from_slice(&inputs);
+                            let required_policies = config.required_policies();
+                            self.required_policies.extend_from_slice(&required_policies);
                         }
                         Ok(config.eval_config())
                     } else {

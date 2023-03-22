@@ -2,17 +2,17 @@ use seedwing_policy_engine::runtime::EvalContext;
 use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError, World};
 use seedwing_policy_engine::value::RuntimeValue;
 
-pub struct Eval {
-    world: World,
-    name: String,
+pub struct Eval<'a> {
+    world: &'a World,
+    name: &'a str,
     value: RuntimeValue,
 }
 
-impl Eval {
-    pub fn new<N: Into<String>, V: Into<RuntimeValue>>(world: World, name: N, value: V) -> Self {
+impl<'a> Eval<'a> {
+    pub fn new<V: Into<RuntimeValue>>(world: &'a World, name: &'a str, value: V) -> Self {
         Self {
             world,
-            name: name.into(),
+            name,
             value: value.into(),
         }
     }

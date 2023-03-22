@@ -8,25 +8,29 @@ use tokio::fs;
 
 pub mod eval;
 
-pub async fn load_value(
+pub async fn load_values(
     typ: InputType,
-    input: Option<PathBuf>,
-) -> Result<RuntimeValue, std::io::Error> {
-    if let Some(input) = input {
-        let data = fs::read(input).await?;
+    inputs: Vec<PathBuf>,
+) -> Result<Vec<RuntimeValue>, std::io::Error> {
+    if !inputs.is_empty() {
+        let mut values = Vec::new();
+        for input in inputs.iter() {
+            let data = fs::read(input).await?;
 
-        match typ {
-            InputType::Json => {
-                let value: serde_json::Value = serde_json::from_slice(&data)?;
-                Ok(value.into())
-            }
-            InputType::Yaml => {
-                let value: serde_json::Value = serde_yaml::from_slice(&data)
-                    .map_err(YamlError::from)
-                    .unwrap();
-                Ok(value.into())
+            match typ {
+                InputType::Json => {
+                    let value: serde_json::Value = serde_json::from_slice(&data)?;
+                    values.push(value.into());
+                }
+                InputType::Yaml => {
+                    let value: serde_json::Value = serde_yaml::from_slice(&data)
+                        .map_err(YamlError::from)
+                        .unwrap();
+                    values.push(value.into());
+                }
             }
         }
+        Ok(values)
     } else {
         if stdin().is_terminal() {
             println!("Enter input value, ^D to finish");
@@ -34,13 +38,13 @@ pub async fn load_value(
         match typ {
             InputType::Json => {
                 let value: serde_json::Value = serde_json::from_reader(stdin())?;
-                Ok(value.into())
+                Ok(vec![value.into()])
             }
             InputType::Yaml => {
                 let value: serde_json::Value = serde_yaml::from_reader(stdin())
                     .map_err(YamlError::from)
                     .unwrap();
-                Ok(value.into())
+                Ok(vec![value.into()])
             }
         }
     }
