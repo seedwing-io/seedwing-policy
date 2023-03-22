@@ -5,7 +5,9 @@ use crate::runtime::PackagePath;
 mod envelope;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["intoto"]));
+    let mut pkg = Package::new(PackagePath::from_parts(vec!["intoto"])).with_documentation(
+        "Patterns for working with link:https://in-toto.io/[in-toto] attestations.",
+    );
     pkg.register_source("".into(), include_str!("envelope.dog"));
     #[cfg(feature = "sigstore")]
     pkg.register_function("verify-envelope".into(), envelope::Verify);
