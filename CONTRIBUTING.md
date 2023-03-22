@@ -93,6 +93,7 @@ toolbox enter seedwing
 ```
 
 ### VSCode Devcontainer
+
 If you simply have the extension installed in VSCode it shoul pick up the `.devcontainer.json` file we provide in the repo. 
 Let us know if you encounter any problems.
 
@@ -118,6 +119,12 @@ Here is what you should do:
 
   ```shell
   cargo build
+  ```
+
+* Ensure that the generated documentation is up-to-date:
+
+  ```shell
+  cargo run --bin swio -- docs --output docs/modules/policies
   ```
 
 ### Creating a PR
