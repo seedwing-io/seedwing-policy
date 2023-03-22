@@ -35,10 +35,20 @@ struct Generator {
 
 impl Generator {
     fn render(self) -> anyhow::Result<()> {
+        // nav bar
+
         self.render_nav()?;
+
+        // main content
+
+        self.walk_packages(PackagePath::root(), &mut |path, meta| {
+            self.render_page(path, meta)
+        })?;
+
         Ok(())
     }
 
+    /// Render the nav section.
     fn render_nav(&self) -> anyhow::Result<()> {
         let path = self.base.join("nav.adoc");
         if let Some(parent) = path.parent() {
@@ -50,10 +60,14 @@ impl Generator {
         self.walk_packages(PackagePath::root(), &mut |path, _meta| {
             let name = match path.name() {
                 Some(name) => name,
-                None => return Ok(()),
+                None => {
+                    writeln!(out, "* xref:index.adoc[Policies]")?;
+                    return Ok(());
+                }
             };
 
-            let level = path.path().len();
+            // +1 as the root counts as the first
+            let level = 1 + path.path().len();
             let xref = path
                 .path
                 .iter()
@@ -68,10 +82,6 @@ impl Generator {
             )?;
 
             Ok(())
-        })?;
-
-        self.walk_packages(PackagePath::root(), &mut |path, meta| {
-            self.render_page(path, meta)
         })?;
 
         Ok(())
