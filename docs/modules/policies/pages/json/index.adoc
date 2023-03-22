@@ -1,0 +1,28 @@
+= json
+:sectanchors:
+
+
+
+[#json]
+== `json`
+
+Attempts to decode a string as a JSON value type.
+
+The primary input is indeed a stringy object, which may contain any valid JSON, such as:
+
+* Strings
+* Objects
+* Lists
+* Booleans
+
+Example inputs include
+
+[source,json]
+----
+"{ \"foo\": 42 }"
+----
+
+
+
+
+

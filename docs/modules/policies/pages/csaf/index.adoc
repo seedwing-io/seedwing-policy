@@ -1,0 +1,209 @@
+= csaf
+:sectanchors:
+
+
+
+[#acknowledgement]
+== `acknowledgement`
+
+
+
+[#aggregate-severity]
+== `aggregate-severity`
+
+
+
+[#branch]
+== `branch`
+
+
+
+[#branch-category]
+== `branch-category`
+
+
+
+[#csaf]
+== `csaf`
+
+
+
+[#cve-flag]
+== `cve-flag`
+
+
+
+[#cvss-v3]
+== `cvss-v3`
+
+
+
+[#cwe]
+== `cwe`
+
+
+
+[#distribution]
+== `distribution`
+
+
+
+[#document]
+== `document`
+
+
+
+[#full-product-name]
+== `full-product-name`
+
+
+
+[#hash]
+== `hash`
+
+
+
+[#hash-collection]
+== `hash-collection`
+
+
+
+[#involvement]
+== `involvement`
+
+
+
+[#involvement-party]
+== `involvement-party`
+
+
+
+[#involvement-status]
+== `involvement-status`
+
+
+
+[#note]
+== `note`
+
+
+
+[#note-category]
+== `note-category`
+
+
+
+[#product-group]
+== `product-group`
+
+
+
+[#product-status]
+== `product-status`
+
+
+
+[#product-tree]
+== `product-tree`
+
+
+
+[#publisher]
+== `publisher`
+
+
+
+[#publisher-category]
+== `publisher-category`
+
+
+
+[#reference]
+== `reference`
+
+
+
+[#reference-category]
+== `reference-category`
+
+
+
+[#relationship]
+== `relationship`
+
+
+
+[#relationship-category]
+== `relationship-category`
+
+
+
+[#remediation]
+== `remediation`
+
+
+
+[#remediation-category]
+== `remediation-category`
+
+
+
+[#reporter-id]
+== `reporter-id`
+
+
+
+[#restart-category]
+== `restart-category`
+
+
+
+[#restart-required]
+== `restart-required`
+
+
+
+[#revision]
+== `revision`
+
+
+
+[#score]
+== `score`
+
+
+
+[#threat]
+== `threat`
+
+
+
+[#threat-category]
+== `threat-category`
+
+
+
+[#tlp-label]
+== `tlp-label`
+
+
+
+[#tracking]
+== `tracking`
+
+
+
+[#tracking-status]
+== `tracking-status`
+
+
+
+[#vulnerability]
+== `vulnerability`
+
+
+
+[#vulnerability-id]
+== `vulnerability-id`
+
+

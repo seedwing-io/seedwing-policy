@@ -1,0 +1,15 @@
+= cyclonedx
+:description: Tools for working with CycloneDX
+:sectanchors:
+
+Tools for working with CycloneDX
+
+OWASP CycloneDX is a full-stack Bill of Materials (BOM) standard that provides advanced supply chain capabilities for cyber risk reduction. 
+
+
+
+[#component-purls]
+== `component-purls`
+
+Transforms an SBOM into a list of package URLs (pURLs).
+

@@ -1,0 +1,14 @@
+= data
+:sectanchors:
+
+
+
+[#from]
+== `from<path>`
+
+Ignores the input value and returns data loaded from the specified relative path.
+
+[#lookup]
+== `lookup<path, steps>`
+
+Ignores the input value and returns data loaded from the specified relative path.

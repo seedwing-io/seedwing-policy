@@ -1,0 +1,14 @@
+= x509::oid
+:sectanchors:
+
+
+
+[#common]
+== `common<pattern>`
+
+Matches OID of 85.4.3, common name.
+
+[#organization]
+== `organization<pattern>`
+
+Matches OID of 85.4.10, organization name.

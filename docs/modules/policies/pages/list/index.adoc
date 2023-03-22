@@ -1,0 +1,273 @@
+= list
+:sectanchors:
+
+
+
+[#all]
+== `all<pattern>`
+
+Parameterized pattern that ensures all members of an input list match the pattern.
+
+An empty input list *does* match this pattern.
+
+For instance, this pattern:
+
+[source]
+----
+pattern only-numbers = list::all<integer>
+----
+
+would match
+
+[source,json]
+----
+[ 1, 2, 3, 4 ]
+----
+
+and would also match
+
+[source,json]
+----
+[ ]
+----
+
+but would not match
+
+[source,json]
+----
+[ 1, 2, 3, "bob" ]
+----
+
+
+
+
+[#any]
+== `any<pattern>`
+
+Parameterized pattern that ensures any member of an input list match the pattern.
+
+An empty input list does *not* match.
+
+For instance:
+
+[source]
+----
+pattern contains-bob = list::any<"Bob">
+----
+
+Would match
+
+[source,json]
+----
+[ "Bob", "Jim" ]
+----
+
+but would not match
+
+[source,json]
+----
+[ "Robert", 42 ]
+----
+
+
+
+
+
+[#append]
+== `append<list>`
+
+Function that produces concatenates a list to an input list.
+
+Example pattern:
+
+[source]
+----
+pattern new_list = list::concat<[4, 5, 6]>
+----
+
+Example input:
+
+[source,json]
+----
+[1, 2, 3]
+----
+
+
+[#concat]
+== `concat<list>`
+
+Function that produces concatenates a list to an input list.
+
+Example pattern:
+
+[source]
+----
+pattern new_list = list::concat<[4, 5, 6]>
+----
+
+Example input:
+
+[source,json]
+----
+[1, 2, 3]
+----
+
+
+[#contains-all]
+== `contains-all<parameter>`
+
+Check if the input list contains all elements in the parameter list.
+
+
+[#count]
+== `count`
+
+Function that produces the length of a list
+
+[source]
+----
+pattern nr_of_items = list::count()
+----
+
+
+[#filter]
+== `filter<parameter>`
+
+Applies a filter function on each element in a list and returns the input values that matched the pattern.
+
+
+[#head]
+== `head<count>`
+
+Get the head section of a list.
+
+For instance, this pattern:
+
+[source,subs=normal]
+----
+pattern split = list::head<2>({
+  head: [1, 2],
+  main: [3, 4, 5],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`
+
+The logic is greedy, it tries to fill the `head` section first:
+
+[source,subs=normal]
+----
+pattern split = list::head<3>({
+  head: [1, 2],
+  main: [],
+})
+----
+
+Would match the input: `[1, 2]`
+
+It is also possible to just get one item, omitting the binding:
+
+[source,subs=normal]
+----
+pattern split = list::head({
+  head: [1],
+  main: [2, 3, 4, 5],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`
+
+
+[#length]
+== `length`
+
+Function that produces the length of a list
+
+[source]
+----
+pattern nr_of_items = list::count()
+----
+
+
+[#map]
+== `map<map-fn>`
+
+Parameterized patterns that maps a function over the values and returns the transformed values as output.
+
+Values that are not matching will be transformed to `null` values.
+
+Input must be a list.
+
+
+[#none]
+== `none<pattern>`
+
+
+
+[#slice]
+== `slice<start, end>`
+
+Function that produces a slice of a list given the start and end indices.
+
+Example pattern:
+
+[source]
+----
+pattern slice = list::slice<2, 4>
+----
+
+Example input:
+
+[source,json]
+----
+[1, 2, 3, 4, 5]
+----
+
+
+[#some]
+== `some<count, pattern>`
+
+
+
+[#tail]
+== `tail<count>`
+
+Get the tail section of a list.
+
+For instance, this pattern:
+
+[source,subs=normal]
+----
+pattern split = list::tail<2>({
+  tail: [4, 5],
+  main: [1, 2, 3],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`
+
+The logic is greedy, it tries to fill the `tail` section first:
+
+[source,subs=normal]
+----
+pattern split = list::tail<3>({
+  tail: [1, 2],
+  main: [],
+})
+----
+
+Would match the input: `[1, 2]`
+
+It is also possible to just get one item, omitting the binding:
+
+[source,subs=normal]
+----
+pattern split = list::tail({
+  tail: [5],
+  main: [1, 2, 3, 4],
+})
+----
+
+Would match the input: `[1, 2, 3, 4, 5]`
+
+

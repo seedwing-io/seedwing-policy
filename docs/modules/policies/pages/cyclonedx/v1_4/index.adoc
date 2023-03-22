@@ -1,0 +1,284 @@
+= cyclonedx::v1_4
+:sectanchors:
+
+
+
+[#advisory]
+== `advisory`
+
+
+
+[#bom]
+== `bom`
+
+
+
+[#commit]
+== `commit`
+
+
+
+[#component]
+== `component`
+
+
+
+[#composition]
+== `composition`
+
+
+
+[#contact]
+== `contact`
+
+
+
+[#copyright]
+== `copyright`
+
+
+
+[#data]
+== `data`
+
+
+
+[#dependency]
+== `dependency`
+
+
+
+[#evidence]
+== `evidence`
+
+
+
+[#external-reference]
+== `external-reference`
+
+
+
+[#hash]
+== `hash`
+
+
+
+[#issue]
+== `issue`
+
+
+
+[#license]
+== `license`
+
+
+
+[#metadata]
+== `metadata`
+
+
+
+[#organization]
+== `organization`
+
+
+
+[#patch]
+== `patch`
+
+
+
+[#pedigree]
+== `pedigree`
+
+
+
+[#property]
+== `property`
+
+
+
+[#rating]
+== `rating`
+
+
+
+[#release-note]
+== `release-note`
+
+
+
+[#service]
+== `service`
+
+
+
+[#source]
+== `source`
+
+
+
+[#supplier]
+== `supplier`
+
+
+
+[#text]
+== `text`
+
+
+
+[#tool]
+== `tool`
+
+
+
+[#vulnerability]
+== `vulnerability`
+
+
+
+[#with-advisories]
+== `with-advisories<A>`
+
+
+
+[#with-ancestors]
+== `with-ancestors<A>`
+
+
+
+[#with-authors]
+== `with-authors<T>`
+
+
+
+[#with-commits]
+== `with-commits<C>`
+
+
+
+[#with-components]
+== `with-components<C>`
+
+
+
+[#with-composition]
+== `with-composition<C>`
+
+
+
+[#with-contact]
+== `with-contact<C>`
+
+
+
+[#with-copyright]
+== `with-copyright<C>`
+
+
+
+[#with-data]
+== `with-data<D>`
+
+
+
+[#with-dependencies]
+== `with-dependencies<D>`
+
+
+
+[#with-descendants]
+== `with-descendants<D>`
+
+
+
+[#with-evidence]
+== `with-evidence<E>`
+
+
+
+[#with-external-references]
+== `with-external-references<E>`
+
+
+
+[#with-hashes]
+== `with-hashes<H>`
+
+
+
+[#with-individuals]
+== `with-individuals<I>`
+
+
+
+[#with-licenses]
+== `with-licenses<L>`
+
+
+
+[#with-metadata]
+== `with-metadata<M>`
+
+
+
+[#with-notes]
+== `with-notes<N>`
+
+
+
+[#with-organizations]
+== `with-organizations<O>`
+
+
+
+[#with-patches]
+== `with-patches<P>`
+
+
+
+[#with-pedigree]
+== `with-pedigree<P>`
+
+
+
+[#with-properties]
+== `with-properties<P>`
+
+
+
+[#with-ratings]
+== `with-ratings<R>`
+
+
+
+[#with-release-notes]
+== `with-release-notes<R>`
+
+
+
+[#with-services]
+== `with-services<S>`
+
+
+
+[#with-supplier]
+== `with-supplier<S>`
+
+
+
+[#with-tools]
+== `with-tools<T>`
+
+
+
+[#with-variants]
+== `with-variants<V>`
+
+
+
+[#with-vulnerabilities]
+== `with-vulnerabilities<V>`
+
+

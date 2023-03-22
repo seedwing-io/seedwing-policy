@@ -1,0 +1,68 @@
+= base64
+:description: Functionality for processing base64 encoded data
+:sectanchors:
+
+Functionality for processing base64 encoded data
+
+[#base64]
+== `base64`
+
+Applies Base64 decoding on a string input, resulting in a sequence of octets.
+
+
+
+
+=== Examples
+
+
+==== Simple base64 encoded value
+
+Validates the base64 string and transforms it into the BLOB.
+
+[source,json]
+----
+"SGVsbG8gUm9kbmV5IQ=="
+----
+
+==== Non-base64 encoded value
+
+Fails to validate, as it is not a base64 encoded value
+
+[source,json]
+----
+"foo bar"
+----
+
+[#base64-encode]
+== `base64-encode`
+
+Applies Base64 encoding on octet input, resulting in a base64 encoded string.
+
+[#base64-url]
+== `base64-url`
+
+Applies Base64 URL-safe decoding on a string input, resulting in a sequence of octets.
+
+
+
+
+=== Examples
+
+
+==== Simple base64 encoded value
+
+Validates the base64 string and transforms it into the BLOB.
+
+[source,json]
+----
+"SGVsbG8gUm9kbmV5IQ=="
+----
+
+==== Non-base64 encoded value
+
+Fails to validate, as it is not a base64 encoded value
+
+[source,json]
+----
+"foo bar"
+----

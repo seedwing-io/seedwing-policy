@@ -1,0 +1,114 @@
+= uri
+:sectanchors:
+
+
+
+[#iri]
+== `iri`
+
+A pattern that matches valid Internationalized Resource Identifiers (IRI) according to
+https://www.rfc-editor.org/rfc/rfc3987[https://www.rfc-editor.org/rfc/rfc3987].
+
+
+[#purl]
+== `purl`
+
+A Package URL
+
+Also see: https://github.com/package-url/purl-spec
+
+This parses either a string, or an object returned by `Url` into a "purl".
+
+Assume the following input:
+
+[source]
+----
+"pkg:rpm/fedora/curl@7.50.3-1.fc25?arch=i386&distro=fedora-25"
+----
+
+This would match:
+
+[source]
+----
+pattern example = purl({
+    "type": "rpm",
+    "namespace": "fedora",
+    "name": "curl",
+    "version": "7.50.3-1.fc25",
+    "qualifiers": {
+        "arch": "i386",
+        "distro": "fedora-25",
+    }
+})
+----
+
+
+=== Examples
+
+
+==== Match a string
+
+Ensures that a string is a URL, and that the URL parts match a Package URL, translating into the PURL components
+
+[source,json]
+----
+"pkg:rpm/fedora/curl@7.50.3-1.fc25?arch=i386&distro=fedora-25"
+----
+
+==== Match a URL
+
+Same as before, but using a URL already processed by `url`
+
+[source,json]
+----
+{
+  "path": "rpm/fedora/curl@7.50.3-1.fc25",
+  "query": {
+    "arch": "i386",
+    "distro": "fedora-25"
+  },
+  "scheme": "pkg"
+}
+----
+
+[#url]
+== `url`
+
+A pattern that matches a URL, splitting it up in its parts. The input must be a string.
+
+NOTE: A URL can be `https://`, but also all other kinds of schemes, like `gopher://`
+
+To verify it is a URL:
+
+[source]
+----
+pattern is_url = net::url
+----
+
+To verify it is an HTTPS URL:
+
+[source]
+----
+pattern is_url = net::url({
+    scheme: "https",
+})
+----
+
+The following attributes are provided (for example from `https://foo.bar:123/path/to?a=b&c=d#link`):
+
+|===
+|Name | Mandatory | Type | Description
+
+| `scheme` | x | String | Scheme/protocol part (`https`)
+| `host` |  | String | Hostname part (`foo.bar`)
+| `port` |  | Integer | Port information (`123`)
+| `path` |  | String | Path (`/path/to`)
+| `query` |  | String | (encoded) query parameters (`a=b&c=d`)
+| `fragment` |  | String | Trailing fragment: (`#link`)
+| `username` |  | String | Username of the credentials
+| `password` |  | String | Password of the credentials
+
+NOTE: Optional fields with no value are represented as `Null`.
+
+|===
+

@@ -1,0 +1,24 @@
+= showcase
+:sectanchors:
+
+
+
+[#builtin]
+== `builtin`
+
+This is documentation for a built-in function.
+
+[#deprecated_details]
+== `deprecated_details`
+
+This pattern is marked deprecated, with additional details.
+
+[#deprecated_simple]
+== `deprecated_simple`
+
+This pattern is marked deprecated, without further information.
+
+[#unstable]
+== `unstable`
+
+This pattern is considered unstable/experimental.

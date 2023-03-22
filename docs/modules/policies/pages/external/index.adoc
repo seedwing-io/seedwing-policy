@@ -1,0 +1,11 @@
+= external
+:sectanchors:
+
+
+
+[#eval]
+== `eval<url>`
+
+Evaluate an input against an external *compatible-enough* server endpoint.
+
+Takes a single parameter of the URL to the external server.

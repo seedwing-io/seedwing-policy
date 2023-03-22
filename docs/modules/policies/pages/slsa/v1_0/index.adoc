@@ -1,0 +1,53 @@
+= slsa::v1_0
+:sectanchors:
+
+
+
+[#artifact-reference]
+== `artifact-reference`
+
+Reference to an artifact used in the build or by the builder.
+
+[#build-definition]
+== `build-definition`
+
+The input to the build. The accuracy and completeness are implied by runDetails.builder.id.
+
+[#build-metadata]
+== `build-metadata`
+
+Metadata about this particular execution of the build.
+
+[#build-type]
+== `build-type`
+
+Identifies the template for how to perform the build and interpret the parameters and dependencies.
+
+[#builder]
+== `builder`
+
+Identifies the entity that executed the invocation, which is trusted to have correctly performed the operation and populated this provenance.
+
+[#builder-id]
+== `builder-id`
+
+URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
+
+If a build platform has multiple modes of operations that have differing security attributes or SLSA Build levels, each mode MUST
+have a different builder.id and SHOULD have a different signer identity. This is to minimize the risk that a less secure mode
+compromises a more secure one.
+
+[#predicate]
+== `predicate`
+
+SLSA 1.0 predicate.
+
+[#provenance]
+== `provenance`
+
+SLSA 1.0 build provenance statement.
+
+[#run-details]
+== `run-details`
+
+Details specific to this particular execution of the build.

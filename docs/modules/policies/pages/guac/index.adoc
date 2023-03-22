@@ -1,0 +1,16 @@
+= guac
+:sectanchors:
+
+
+
+[#certify-vulnerability]
+== `certify-vulnerability`
+
+Lookup vulnerability information for a package URL (pURL) in Guac (https://github.com/guacsec/guac).
+
+You can combine this with other patterns to check if a given package has any known vulnerabilities:
+
+[source]
+----
+pattern not-vulnerable = uri::purl(guac::certify-vulnerability())
+----

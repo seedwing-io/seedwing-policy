@@ -1,0 +1,9 @@
+= spdx::license
+:sectanchors:
+
+
+
+[#id]
+== `id`
+
+

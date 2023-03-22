@@ -1,0 +1,99 @@
+= kafka::opa
+:sectanchors:
+
+
+
+[#action]
+== `action`
+
+
+
+[#any_operation]
+== `any_operation`
+
+
+
+[#any_security_protocol]
+== `any_security_protocol`
+
+
+
+[#clientInformation]
+== `clientInformation`
+
+
+
+[#client_address]
+== `client_address<T>`
+
+
+
+[#connection_id]
+== `connection_id<T>`
+
+
+
+[#header]
+== `header`
+
+
+
+[#headerName]
+== `headerName`
+
+
+
+[#operation]
+== `operation<T>`
+
+Pattern matching for Kafka authorization created by OpaAuthorizer
+
+[#patternType]
+== `patternType`
+
+
+
+[#principal]
+== `principal<NAME, TYPE>`
+
+
+
+[#principalData]
+== `principalData`
+
+
+
+[#request]
+== `request`
+
+
+
+[#requestContext]
+== `requestContext`
+
+
+
+[#resourcePattern]
+== `resourcePattern`
+
+
+
+[#resourceType]
+== `resourceType`
+
+
+
+[#resource_name]
+== `resource_name<T>`
+
+
+
+[#resource_type]
+== `resource_type<T>`
+
+
+
+[#security_protocol]
+== `security_protocol<PROTO>`
+
+

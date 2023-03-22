@@ -1,0 +1,25 @@
+= osv
+:sectanchors:
+
+
+
+[#scan-purl]
+== `scan-purl`
+
+Lookup vulnerability information for one or more package URLs (pURL) using Open Source Vulnerability (OSV) service.
+
+The function accepts the following inputs:
+
+. A single package URL string
+. A list package URL strings
+. An object or a list of objects created by the uri::purl function.
+
+You can combine this function with other patterns to check if a given package has any known vulnerabilities:
+
+[source]
+----
+pattern not-vulnerable = osv::scan-purl(openvex::from-osv(openvex::not-affected))
+----
+
+This converts the package URL input into an OpenVEX document, on which the not-affected pattern is used to verify that this package is not affected by any vulnerability.
+

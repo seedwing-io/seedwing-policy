@@ -1,0 +1,22 @@
+= timestamp
+:sectanchors:
+
+
+
+[#iso8601]
+== `iso8601`
+
+Pattern for validating timestamps in the RFC3339/ISO8601 format.
+
+
+[#rfc2822]
+== `rfc2822`
+
+Pattern for validating timestamps in the RFC2822 format.
+
+
+[#rfc3339]
+== `rfc3339`
+
+Pattern for validating timestamps in the RFC3339/ISO8601 format.
+

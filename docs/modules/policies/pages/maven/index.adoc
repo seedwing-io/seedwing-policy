@@ -1,0 +1,21 @@
+= maven
+:sectanchors:
+
+
+
+[#GAV]
+== `GAV`
+
+Convert a Maven coordinate string into a `coordinates` object.
+
+Example input:
+
+[source,json]
+----
+"org.quarkus:quarkus:2.3"
+----
+
+[#coordinates]
+== `coordinates`
+
+

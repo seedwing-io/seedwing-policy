@@ -1,0 +1,41 @@
+= lang
+:sectanchors:
+
+
+
+[#and]
+== `and<terms>`
+
+Parameterized pattern that the input value satisifies all members of the list parameters.
+
+
+[#chain]
+== `chain<terms>`
+
+Parameterized pattern that passes the input value to the first member of the chain, and its output to the next, and so on and so forth.
+
+
+[#not]
+== `not<pattern>`
+
+Parameterized pattern that fails if the input value satisfies the parameter pattern.
+
+
+[#or]
+== `or<terms>`
+
+Parameterized pattern that the input value satisifies at least one member of the list parameters.
+If the parameter is a list of patterns, each pattern will be individually checked.
+If the parameter is *not* a list of patterns, the parameter is first evaluated, and if the result is a list of patterns, then the process proceeds as above.
+
+
+[#refine]
+== `refine<refinement>`
+
+Pattern which applies the first parameter pattern, and if successful, applies the second the output of the first.
+
+[#traverse]
+== `traverse<step>`
+
+Pattern which produces the result of traversing to the named field of an input object.
+

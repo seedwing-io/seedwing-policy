@@ -1,0 +1,116 @@
+= string
+:sectanchors:
+
+
+
+[#append]
+== `append<value>`
+
+Function that concatenates a parameter with an input strings, if they are strings.
+
+Example input:
+
+[source,json]
+----
+"bob"
+----
+
+Example patterns:
+
+[source]
+----
+pattern a = string::append<".json">
+pattern b = string::prepend<"my:">
+----
+
+
+[#contains]
+== `contains<substring>`
+
+Function that returns true if the string contains the specified substring.
+
+[source]
+----
+pattern contains_people = string::contains<"people">
+----
+
+Example input:
+
+[source,json]
+----
+"Some people like coffee."
+----
+
+
+[#count]
+== `count`
+
+Function that produces the length of an input string, if it is a string.
+
+Example input:
+
+[source,json]
+----
+"bob"
+----
+
+
+[#length]
+== `length`
+
+Function that produces the length of an input string, if it is a string.
+
+Example input:
+
+[source,json]
+----
+"bob"
+----
+
+
+[#prepend]
+== `prepend<value>`
+
+Function that concatenates a parameter with an input strings, if they are strings.
+
+Example input:
+
+[source,json]
+----
+"bob"
+----
+
+Example patterns:
+
+[source]
+----
+pattern a = string::append<".json">
+pattern b = string::prepend<"my:">
+----
+
+
+[#regexp]
+== `regexp<regexp>`
+
+Function that produces a type that matches strings against a regular expression.
+
+
+[#split]
+== `split<pattern>`
+
+Function that produces a list of strings split by the specified pattern.
+
+Example pattern:
+
+[source]
+----
+pattern sp = string::split<",">
+----
+
+Example input:
+
+[source, jsopn]
+----
+"1, 2, 3, 4"
+----
+

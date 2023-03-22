@@ -1,0 +1,9 @@
+= pem
+:sectanchors:
+
+
+
+[#as-certificate]
+== `as-certificate`
+
+

@@ -1,0 +1,36 @@
+= net
+:sectanchors:
+
+
+
+[#inet4addr]
+== `inet4addr<address>`
+
+Parameterized pattern that matches Ipv4 addresses and address ranges.
+
+An empty input string does *not* match.
+
+For instance:
+
+[source]
+----
+pattern allowed = net::inet4addr<"10.0.0.0/16">
+----
+
+Would match
+
+[source, json]
+----
+"10.0.0.1"
+----
+
+but would not match
+
+[source, json]
+----
+"10.1.0.1"
+----
+
+
+
+

@@ -1,0 +1,49 @@
+= slsa::github
+:sectanchors:
+
+
+
+[#build-definition]
+== `build-definition`
+
+A SLSA Provenance buildType that describes the execution of a GitHub Actions workflow.
+
+[#deployment]
+== `deployment`
+
+
+
+[#external-parameters]
+== `external-parameters`
+
+
+
+[#inputs]
+== `inputs`
+
+
+
+[#predicate]
+== `predicate`
+
+SLSA 1.0 predicate.
+
+[#provenance]
+== `provenance`
+
+SLSA 1.0 build provenance statement.
+
+[#release]
+== `release`
+
+
+
+[#system-parameters]
+== `system-parameters`
+
+
+
+[#workflow]
+== `workflow`
+
+
