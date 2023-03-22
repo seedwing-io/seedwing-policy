@@ -21,6 +21,7 @@ use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
 use seedwing_policy_engine::runtime::monitor::MonitorEvent;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
+use seedwing_policy_server_embedded_swaggerui::SwaggerOptions;
 
 pub async fn run(
     policy_directories: Vec<PathBuf>,
@@ -123,7 +124,10 @@ pub async fn run(
                     use actix_web_static_files::ResourceFiles;
 
                     let app = app.service(web::scope("/openapi").service(
-                        seedwing_policy_server_embedded_swaggerui::service("/api/openapi.json"),
+                        seedwing_policy_server_embedded_swaggerui::service(
+                            "/api/openapi.json",
+                            SwaggerOptions { collapse: true },
+                        ),
                     ));
 
                     let spa = seedwing_policy_server_embedded_frontend::console_assets();
