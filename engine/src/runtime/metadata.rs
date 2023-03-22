@@ -72,6 +72,24 @@ impl Documentation {
     pub fn details(&self) -> &str {
         self.split().1
     }
+
+    pub fn summary_opt(&self) -> Option<&str> {
+        let s = self.split().0;
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    }
+
+    pub fn details_opt(&self) -> Option<&str> {
+        let s = self.split().1;
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

@@ -472,6 +472,12 @@ impl From<String> for PackagePath {
     }
 }
 
+impl From<&String> for PackagePath {
+    fn from(value: &String) -> Self {
+        value.as_str().into()
+    }
+}
+
 impl From<Vec<String>> for PackagePath {
     fn from(mut segments: Vec<String>) -> Self {
         let is_absolute = segments.get(0).map(String::is_empty).unwrap_or_default();

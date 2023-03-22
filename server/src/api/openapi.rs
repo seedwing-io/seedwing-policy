@@ -8,9 +8,10 @@ use okapi::openapi3::{
     Components, ExampleValue, Info, MediaType, OpenApi, Operation, PathItem, Ref, RefOr,
     RequestBody, Response, Responses, SchemaObject, Tag,
 };
-use okapi::schemars::schema::{Metadata, Schema};
+use okapi::schemars::schema::Metadata;
 use seedwing_policy_engine::runtime::{Example, World};
 use serde_json::json;
+use std::collections::BTreeSet;
 
 const APPLICATION_JSON: &str = "application/json";
 
@@ -35,6 +36,8 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
     });
 
     let mut has_unstable = false;
+    // use a BTreeSet for a sorted set
+    let mut pkg_tags = BTreeSet::new();
 
     let mut schemas = okapi::Map::default();
 
@@ -45,8 +48,14 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
             continue;
         }
 
+        let mut tags = vec![];
         let path = format!("/api/policy/v1alpha1/{}", name.as_type_str());
         let mut path_item = PathItem::default();
+
+        if let Some(pkg) = name.package.as_ref().and_then(|p| p.path.first()) {
+            tags.push(pkg.as_str());
+            pkg_tags.insert(pkg.to_string());
+        }
 
         let mut get = Operation {
             description: Some("Retrieve the pattern definition".into()),
@@ -62,9 +71,9 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
             // there is no official way to mark something experimental, so we improvise
 
             has_unstable = true;
+            tags.push("unstable");
 
             for op in [&mut get, &mut post] {
-                op.tags.push("unstable".to_string());
                 op.extensions.insert("x-beta".to_string(), json!(true));
                 op.extensions
                     .insert("x-experimental".to_string(), json!(true));
@@ -72,31 +81,30 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         }
 
         let mut content = okapi::Map::new();
-        let json_schema = pattern.as_json_schema(world.as_ref(), &vec![]);
 
-        if let Schema::Object(mut json_schema) = json_schema {
-            json_schema.metadata = Some(Box::new(Metadata {
-                id: None,
-                title: Some(name.as_type_str()),
-                description: None,
-                default: None,
-                deprecated: false,
-                read_only: false,
-                write_only: false,
-                examples: vec![],
-            }));
+        let mut schema = pattern.as_json_schema(world.as_ref(), &vec![]);
+        // set some metadata
+        schema.metadata = Some(Box::new(Metadata {
+            id: None,
+            title: Some(name.as_type_str()),
+            description: None,
+            default: None,
+            deprecated: false,
+            read_only: false,
+            write_only: false,
+            examples: vec![],
+        }));
 
-            schemas.insert(name.as_type_str(), json_schema);
-        }
+        // insert to global schemas list
+        schemas.insert(name.as_type_str(), schema.clone());
 
-        let mut json_schema = SchemaObject {
-            reference: Some(format!("#/components/schemas/{}", name.as_type_str())),
-            ..Default::default()
-        };
-        json_schema.reference = Some(format!("#/components/schemas/{}", name.as_type_str()));
+        // set a reference to the operation's content
 
         let json_media_type = MediaType {
-            schema: Some(json_schema),
+            schema: Some(SchemaObject {
+                reference: Some(format!("#/components/schemas/{}", name.as_type_str())),
+                ..Default::default()
+            }),
             example: None,
             examples: build_examples(pattern.examples()),
             encoding: Default::default(),
@@ -114,9 +122,23 @@ pub async fn openapi(world: web::Data<World>) -> HttpResponse {
         post.request_body = Some(request_body);
         post.responses = default_post_responses.clone();
 
+        for op in [&mut get, &mut post] {
+            op.tags.extend(tags.iter().map(ToString::to_string));
+        }
+
         path_item.get = Some(get);
         path_item.post = Some(post);
         api.paths.insert(path, path_item);
+    }
+
+    for tag in pkg_tags {
+        if let Some(pkg) = world.get_package_meta(&tag) {
+            api.tags.push(Tag {
+                name: tag,
+                description: pkg.documentation.summary_opt().map(ToString::to_string),
+                ..Default::default()
+            })
+        }
     }
 
     if has_unstable {
