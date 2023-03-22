@@ -1,4 +1,5 @@
 = Seedwing
+:page-aliases: docs:ROOT:index.adoc
 
 `Seedwing-Policy` is a type/pattern/function-based _policy engine_ which can be embedded in another process, or accessed over REST APIs. The general idea of a policy engine is that a consumer requiring a decision presents the information they have available, and the policy engine inspects the information, possibly transforming or augmenting it, to provide a decision as to if the inputs represent compliance or violation of the policy.
 
