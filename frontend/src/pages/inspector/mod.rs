@@ -17,8 +17,7 @@ pub fn inspector() -> Html {
 
     let on_change = use_callback(
         |text: String, value| {
-            // we just test-parse the JSON, and then discard it again, returning the actual string
-            value.set(serde_yaml::from_str(&text).map_err(|err| err.to_string()));
+            value.set(serde_json::from_str(&text).map_err(|err| err.to_string()));
         },
         result.clone(),
     );
