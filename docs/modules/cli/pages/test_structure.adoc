@@ -8,13 +8,14 @@ For a given pattern-under-test, a directory tree should exist under the root mat
 
 For instance, if a pattern of `mycorp::licenses::allowed` is being tested, the following structure is expect:
 
-```
+[source]
+----
 tests/
   mycorp/
     licenses/
       allowed/ # pattern being tested
         ..
-```
+----
 
 Within that leaf directory, an additional directory should be created for each test-case.
 
@@ -23,7 +24,8 @@ Additionally, it is useful to not only test positive cases, but also testing *kn
 
 For instance, to test both allowed and disallowed licenses, one may create a pair of directories:
 
-```
+[source]
+----
 tests/
   mycorp/
     licenses/
@@ -32,7 +34,7 @@ tests/
           ..
         gpl3-disallowed/ # policy should not allow GPL3
           ..
-```
+----
 
 Within each test-case directory, the contents follow the xref:test_case.adoc[test-case definition].
 

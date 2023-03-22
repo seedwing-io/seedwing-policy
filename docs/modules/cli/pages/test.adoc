@@ -6,7 +6,7 @@ The `test` command runs a set of inputs against policies to test that their outp
 
 === Input test directory: `-t <DIR>`
 
-The `-t <DIR>` argument specifies the a directory containing the root of a tree matching the xref:test_structure.adoc[test structure] and containing a suite of xref::test_case.adoc[test cases].
+The `-t <DIR>` argument specifies the a directory containing the root of a tree matching the xref:test_structure.adoc[test structure] and containing a suite of xref:test_case.adoc[test cases].
 
 === Pattern matching: `-m <MATCH>`
 

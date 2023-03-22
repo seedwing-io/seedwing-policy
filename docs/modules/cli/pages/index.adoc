@@ -12,7 +12,7 @@ Have a look at the xref:examples.adoc[examples] for how to use it.
 
 A single optional configuration may be specified by providing either a full path to a file or a path to a directory containing a `Seedwing.toml`.
 
-The contents of the file should match the xref::seedwing_toml.adoc['Seedwing.toml'] format.
+The contents of the file should match the xref:seedwing_toml.adoc['Seedwing.toml'] format.
 
 === Policy Directories: `-p <DIR>`
 

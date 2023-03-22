@@ -6,14 +6,20 @@ This first example show the simplest possible rule.
 
 First we need to generate a rule:
 
-```console
+[source,console]
+----
 $ echo "pattern nr = 18" > nr-rule.dog
-```
+----
+
 And we also need have an input file:
-```console
+
+[source,console]
+----
 $ echo 18 > input.txt
-```
-```console
+----
+
+[source,console]
+----
 $ cargo r -q -- \
      eval \
      --policy nr-rule.dog \
@@ -28,50 +34,61 @@ Rationale:
   primordial(true)
 
 ok!
-```
+----
 
 == JSON input format
 
 First we create our rule, and save it in a file named `json-rule.dog`:
 
-```console
+[source,console]
+----
 $ echo "pattern nr = {
    nr: integer,
 }" > json-rule.dog
-```
+----
 
 And then we create an input file, and save it in a file named `input.json`:
-```console
+
+[source,console]
+----
 $ echo "{
   "nr": 18
 }" > input.json
-```
+----
 And we can run the `eval` command:
-```console
+
+[source,console]
+----
 $ cargo r -q -- \
      eval \
      --policy json-rule.dog \
      --input input.json \
      --name json-rule::nr
-```
+----
 
 == YAML input format
 First we create our rule, and save it in a file named `yaml-rule.dog`:
-```console
+
+[source,console]
+----
 $ echo "pattern nr = {
    nr: integer,
 }" > yaml-rule.dog
-```
+----
 
 And then we create an input file, and save it in a file named `input.yaml`:
-```console
+
+[source,console]
+----
 $ echo "---
   nr: 18" > input.yaml
-```
+----
 
 And then we specify the `-t` option to the `eval` command and specify the format
 as `yaml`:
-```console
+
+[source,console]
+----
 $ cargo r -q -- \
      eval -t yaml \
      --policy yaml-rule.dog \
@@ -92,16 +109,17 @@ Rationale:
       primordial(true)
 
 ok!
-```
+----
 
 == Server
 
 The `swio` command can also be used to run the policy server:
 
-```console
+[source,console]
+----
 $ cargo r -q -- \
      serve \
      --policy json-rule.dog
-```
+----
 
 You can then open link:http://localhost:8080[] in your browser and navigate using the web UI.

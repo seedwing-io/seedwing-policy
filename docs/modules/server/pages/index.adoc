@@ -2,8 +2,9 @@
 
 The Seedwing Policy Server provides a collection of HTTP endpoints to allow remote evaluation of your policy patterns.
 
-To run the server, you can use the `swio` tool, or using pre-made docker images.
+To run the server, you can use the `swio` tool (see the xref:cli:serve.adoc[serve] command), or using pre-made docker
+images.
 
 We also host a policy server at link:https://playground.seedwing.io[], which you can use to experiment with policies.
 
-To run the policy server on link:https://kubernetes.io[Kubernetes], have a look at the link:https://github.com/seedwing-io/playground.seedwing.io[github repository] for the playground for example manifests.
+To run the policy server on link:https://kubernetes.io[Kubernetes], have a look at the link:https://github.com/seedwing-io/playground.seedwing.io[GitHub repository] for the playground for example manifests.
