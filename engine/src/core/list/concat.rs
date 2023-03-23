@@ -82,28 +82,15 @@ fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, Runti
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied, runtime::testutil::test_pattern};
     use serde_json::json;
 
     #[actix_rt::test]
     async fn list_concat() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern sl = list::concat<[4, 5, 6]>
-        "#,
-        );
+        let result = test_pattern(r#"list::concat<[4, 5, 6]>"#, json!([1, 2, 3])).await;
+        assert_satisfied!(result);
 
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::sl", json!([1, 2, 3]), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-
-        let output = result.unwrap().output().unwrap();
+        let output = result.output().unwrap();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 6);
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(1))));
@@ -116,22 +103,10 @@ mod test {
 
     #[actix_rt::test]
     async fn list_append_empty_list() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern sl = list::append<[1, 2, 3]>
-        "#,
-        );
+        let result = test_pattern(r#"list::append<[1, 2, 3]>"#, json!([])).await;
+        assert_satisfied!(result);
 
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::sl", json!([]), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-
-        let output = result.unwrap().output().unwrap();
+        let output = result.output().unwrap();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 3);
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(1))));
@@ -141,21 +116,10 @@ mod test {
 
     #[actix_rt::test]
     async fn list_concat_invalid_input() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern sl = list::concat<"some string">
-        "#,
-        );
+        let result = test_pattern(r#"list::concat<"some string">"#, json!([1, 2, 3])).await;
+        assert_not_satisfied!(result);
 
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate("test::sl", json!([1, 2, 3]), EvalContext::default())
-            .await;
-        assert!(!result.as_ref().unwrap().satisfied());
-        match result.as_ref().unwrap().rationale() {
+        match result.rationale() {
             Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
                 Rationale::InvalidArgument(msg) => {
                     assert_eq!(msg, "invalid type specified for list parameter")
