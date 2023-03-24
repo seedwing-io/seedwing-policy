@@ -77,7 +77,7 @@ pub fn inspector() -> Html {
             </PageSection>
 
             <PageSection r#type={PageSectionType::Tabs} variant={PageSectionVariant::Light} sticky={[PageSectionSticky::Top]}>
-                <Tabs inset={Inset::Page} detached=true {onselect}>
+                <Tabs inset={TabInset::Page} detached=true {onselect}>
                     <Tab label="Paste"/>
                     <Tab label="Inspect"/>
                 </Tabs>
