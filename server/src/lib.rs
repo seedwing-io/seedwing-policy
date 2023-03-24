@@ -21,6 +21,8 @@ use seedwing_policy_engine::runtime::monitor::dispatcher::Monitor;
 use seedwing_policy_engine::runtime::monitor::MonitorEvent;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
+
+#[cfg(feature = "frontend")]
 use seedwing_policy_server_embedded_swaggerui::SwaggerOptions;
 
 pub async fn run(
