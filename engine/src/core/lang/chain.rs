@@ -41,8 +41,7 @@ impl Function for Chain {
                     let _original_input = input.clone();
                     let mut rationale = Vec::new();
                     let mut cur = input;
-                    let mut cur_output = Output::None;
-                    let _last_output = Output::Identity;
+                    let mut cur_output = Output::Identity;
                     for term in terms {
                         let result = term.evaluate(cur.clone(), ctx, bindings, world).await?;
 
@@ -66,5 +65,32 @@ impl Function for Chain {
 
             Ok(Output::None.into())
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{assert_satisfied, runtime::testutil::test_pattern};
+
+    #[tokio::test]
+    async fn chain_default_output() {
+        let result = test_pattern("integer", 42).await;
+        assert_satisfied!(result);
+    }
+
+    #[tokio::test]
+    async fn chain_identity_refine() {
+        let result = test_pattern("integer | 42", 42).await;
+        assert_satisfied!(result);
+    }
+
+    #[tokio::test]
+    async fn chain_transform() {
+        let result = test_pattern(
+            "string | uri::purl",
+            "pkg:maven/org.apache.logging.log4j:log4j-core@2.14.0",
+        )
+        .await;
+        assert_satisfied!(result);
     }
 }
