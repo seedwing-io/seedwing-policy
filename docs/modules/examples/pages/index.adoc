@@ -1,5 +1,3 @@
 = Seedwing examples
 
-Example Seedwing patterns for solving real world use cases.
-
-In addition to these examples, check the link:https://github.com/seedwing-io/seedwing-examples[Seedwing Examples Repository] which contains examples projects along with policies and CI setup.
+Example Seedwing patterns used for real world use cases.

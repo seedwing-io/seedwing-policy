@@ -1,3 +1,5 @@
+//! Policies that can be used to check build attestations similar to HACBS Enterprise Contract.
+
 pattern required-tasks = {
   predicate: {
     buildConfig: {

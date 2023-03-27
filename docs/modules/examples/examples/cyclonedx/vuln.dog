@@ -1,3 +1,5 @@
+//! Policies that can be used together with the CycloneDX SBOM.
+
 /// For a given CycloneDX SBOM, check if any of the
 /// component package URLs for vulnerabilities and
 /// produce an OpenVEX document for it.
