@@ -45,85 +45,27 @@ impl Function for Count {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
+    use crate::{assert_satisfied, runtime::testutil::test_pattern};
     use serde_json::json;
 
     #[actix_rt::test]
     async fn list_count() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern count = list::count( $(self == 4) )
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let value = json!([1, 2, 3, 4]);
-        let result = runtime
-            .evaluate("test::count", value, EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-        assert_eq!(
-            result
-                .as_ref()
-                .unwrap()
-                .output()
-                .unwrap()
-                .try_get_integer()
-                .unwrap(),
-            4
-        );
+        let result = test_pattern(r#"list::count( $(self == 4) )"#, json!([1, 2, 3, 4])).await;
+        assert_satisfied!(result);
+        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 4);
     }
 
     #[actix_rt::test]
     async fn list_length() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern len = list::length( $(self == 2) )
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let value = json!([1, 2]);
-        let result = runtime
-            .evaluate("test::len", value, EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-        assert_eq!(
-            result
-                .as_ref()
-                .unwrap()
-                .output()
-                .unwrap()
-                .try_get_integer()
-                .unwrap(),
-            2
-        );
+        let result = test_pattern(r#"list::count( $(self == 2) )"#, json!([1, 2])).await;
+        assert_satisfied!(result);
+        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 2);
     }
 
     #[actix_rt::test]
     async fn list_count_none_list() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern count = list::length( $(self == 0) )
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let value = json!(123);
-        let result = runtime
-            .evaluate("test::count", value, EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
+        let result = test_pattern(r#"list::count( $(self == 0) )"#, json!(123)).await;
+        assert_satisfied!(result);
+        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 0);
     }
 }
