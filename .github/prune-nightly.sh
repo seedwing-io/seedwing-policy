@@ -1,7 +1,4 @@
 #!/bin/bash
-set -x
-set -e
-
 TAGS=$(git for-each-ref --sort=taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep "nightly")
 NOW=$(date +%s)
 # 30 days = 24 * 3600 * 30
