@@ -49,6 +49,10 @@ impl PatternHandle {
         }
     }
 
+    pub fn set_metadata(&mut self, metadata: PatternMeta) {
+        self.metadata = metadata;
+    }
+
     pub fn with_metadata(mut self, metadata: PatternMeta) -> Self {
         self.metadata = metadata;
         self
@@ -242,7 +246,7 @@ impl World {
         ty: &Located<hir::Pattern>,
     ) -> Result<(), BuildError> {
         log::debug!("define type {}", path);
-        let converted = self.convert(ty)?;
+        let converted = Arc::new(self.convert(ty)?);
         if let Some(handle) = self.types.get_mut(&path) {
             self.type_slots[*handle].define_from(converted);
         } else {
@@ -273,172 +277,174 @@ impl World {
     }
 
     #[allow(clippy::result_large_err)]
-    fn convert<'c>(
-        &'c self,
-        ty: &'c Located<hir::Pattern>,
-    ) -> Result<Arc<PatternHandle>, BuildError> {
-        match &**ty {
-            hir::Pattern::Anything => Ok(Arc::new(
-                PatternHandle::new(None).with(Located::new(mir::Pattern::Anything, ty.location())),
-            )),
-            hir::Pattern::Ref(sugar, inner, arguments) => {
-                let primary_type_handle = self.types[&(inner.inner())];
-                if arguments.is_empty() {
-                    Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                        mir::Pattern::Ref(sugar.clone(), primary_type_handle, Vec::default()),
-                        inner.location(),
-                    ))))
-                } else {
-                    let primary_type = &self.type_slots[primary_type_handle];
-                    let parameter_names = primary_type.parameters();
+    fn convert<'c>(&'c self, ty: &'c Located<hir::Pattern>) -> Result<PatternHandle, BuildError> {
+        let handle =
+            match &**ty {
+                hir::Pattern::Anything => PatternHandle::new(None)
+                    .with(Located::new(mir::Pattern::Anything, ty.location())),
+                hir::Pattern::Ref(sugar, inner, arguments) => {
+                    let primary_type_handle = self.types[&(inner.inner())];
+                    if arguments.is_empty() {
+                        PatternHandle::new(None).with(Located::new(
+                            mir::Pattern::Ref(sugar.clone(), primary_type_handle, Vec::default()),
+                            inner.location(),
+                        ))
+                    } else {
+                        let primary_type = &self.type_slots[primary_type_handle];
+                        let parameter_names = primary_type.parameters();
 
-                    if parameter_names.len() != arguments.len() {
-                        return Err(BuildError::ArgumentMismatch(
-                            String::new().into(),
-                            arguments[0].location().span(),
-                        ));
+                        if parameter_names.len() != arguments.len() {
+                            return Err(BuildError::ArgumentMismatch(
+                                String::new().into(),
+                                arguments[0].location().span(),
+                            ));
+                        }
+
+                        let mut bindings = Vec::new();
+
+                        for (_name, arg) in parameter_names.iter().zip(arguments.iter()) {
+                            bindings.push(Arc::new(self.convert(arg)?))
+                        }
+                        PatternHandle::new(None).with(Located::new(
+                            mir::Pattern::Ref(sugar.clone(), primary_type_handle, bindings),
+                            inner.location(),
+                        ))
                     }
-
-                    let mut bindings = Vec::new();
-
-                    for (_name, arg) in parameter_names.iter().zip(arguments.iter()) {
-                        bindings.push(self.convert(arg)?)
-                    }
-                    Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                        mir::Pattern::Ref(sugar.clone(), primary_type_handle, bindings),
-                        inner.location(),
-                    ))))
                 }
-            }
-            hir::Pattern::Parameter(name) => Ok(Arc::new(PatternHandle::new(None).with(
-                Located::new(mir::Pattern::Argument(name.inner()), name.location()),
-            ))),
-            hir::Pattern::Const(inner) => Ok(Arc::new(PatternHandle::new(None).with(
-                Located::new(mir::Pattern::Const(inner.inner()), ty.location()),
-            ))),
-            hir::Pattern::Deref(inner) => Ok(Arc::new(PatternHandle::new(None).with(
-                Located::new(mir::Pattern::Deref(self.convert(inner)?), ty.location()),
-            ))),
-            hir::Pattern::Object(inner) => {
-                let mut fields = Vec::new();
+                hir::Pattern::Parameter(name) => PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Argument(name.inner()),
+                    name.location(),
+                )),
+                hir::Pattern::Const(inner) => PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Const(inner.inner()),
+                    ty.location(),
+                )),
+                hir::Pattern::Deref(inner) => PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Deref(Arc::new(self.convert(inner)?)),
+                    ty.location(),
+                )),
+                hir::Pattern::Object(inner) => {
+                    let mut fields = Vec::new();
 
-                for f in inner.fields().iter() {
-                    fields.push(Arc::new(Located::new(
-                        Field::new(f.name().clone(), self.convert(f.ty())?, f.optional()),
+                    for f in inner.fields().iter() {
+                        let mut field_ty = self.convert(f.ty())?;
+                        field_ty.set_metadata(f.metadata().clone().try_into()?);
+
+                        fields.push(Arc::new(Located::new(
+                            Field::new(f.name().clone(), Arc::new(field_ty), f.optional()),
+                            ty.location(),
+                        )));
+                    }
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Object(ObjectPattern::new(fields)),
                         ty.location(),
-                    )));
+                    ))
                 }
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Object(ObjectPattern::new(fields)),
+                hir::Pattern::Expr(inner) => PatternHandle::new(None).with(Located::new(
+                    mir::Pattern::Expr(Arc::new(inner.clone())),
                     ty.location(),
-                ))))
-            }
-            hir::Pattern::Expr(inner) => Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                mir::Pattern::Expr(Arc::new(inner.clone())),
-                ty.location(),
-            )))),
-            hir::Pattern::Not(inner) => {
-                let primary_type_handle = self.types[&(String::from("lang::not").into())];
+                )),
+                hir::Pattern::Not(inner) => {
+                    let primary_type_handle = self.types[&(String::from("lang::not").into())];
 
-                let bindings = vec![self.convert(inner)?];
+                    let bindings = vec![Arc::new(self.convert(inner)?)];
 
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::Not, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Join(terms) => {
-                let mut inner = Vec::new();
-                for e in terms {
-                    inner.push(self.convert(e)?)
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::Not, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
                 }
+                hir::Pattern::Join(terms) => {
+                    let mut inner = Vec::new();
+                    for e in terms {
+                        inner.push(Arc::new(self.convert(e)?))
+                    }
 
-                let primary_type_handle = self.types[&(String::from("lang::or").into())];
+                    let primary_type_handle = self.types[&(String::from("lang::or").into())];
 
-                let bindings = vec![Arc::new(
+                    let bindings = vec![Arc::new(
+                        PatternHandle::new(None)
+                            .with(Located::new(Pattern::List(inner), ty.location())),
+                    )];
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
+                }
+                hir::Pattern::Meet(terms) => {
+                    let mut inner = Vec::new();
+                    for e in terms {
+                        inner.push(Arc::new(self.convert(e)?));
+                    }
+
+                    let primary_type_handle = self.types[&(String::from("lang::and").into())];
+
+                    let bindings = vec![Arc::new(
+                        PatternHandle::new(None)
+                            .with(Located::new(Pattern::List(inner), ty.location())),
+                    )];
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::And, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
+                }
+                hir::Pattern::Refinement(refinement) => {
+                    let primary_type_handle = self.types[&(String::from("lang::refine").into())];
+
+                    let bindings = vec![Arc::new(self.convert(refinement)?)];
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
+                }
+                hir::Pattern::Traverse(step) => {
+                    let primary_type_handle = self.types[&(String::from("lang::traverse").into())];
+
+                    let bindings = vec![Arc::new(PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Const(ValuePattern::String(step.inner())),
+                        step.location(),
+                    )))];
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::Traverse, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
+                }
+                hir::Pattern::Chain(terms) => {
+                    let primary_type_handle = self.types[&(String::from("lang::chain").into())];
+
+                    let mut inner = Vec::new();
+                    for e in terms {
+                        inner.push(Arc::new(self.convert(e)?))
+                    }
+
+                    let bindings = vec![Arc::new(
+                        PatternHandle::new(None)
+                            .with(Located::new(Pattern::List(inner), ty.location())),
+                    )];
+
+                    PatternHandle::new(None).with(Located::new(
+                        mir::Pattern::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),
+                        ty.location(),
+                    ))
+                }
+                hir::Pattern::List(terms) => {
+                    let mut inner = Vec::new();
+                    for e in terms {
+                        inner.push(Arc::new(self.convert(e)?));
+                    }
                     PatternHandle::new(None)
-                        .with(Located::new(Pattern::List(inner), ty.location())),
-                )];
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::Or, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Meet(terms) => {
-                let mut inner = Vec::new();
-                for e in terms {
-                    inner.push(self.convert(e)?)
+                        .with(Located::new(mir::Pattern::List(inner), ty.location()))
                 }
+                hir::Pattern::Nothing => PatternHandle::new(None)
+                    .with(Located::new(mir::Pattern::Nothing, ty.location())),
+            };
 
-                let primary_type_handle = self.types[&(String::from("lang::and").into())];
-
-                let bindings = vec![Arc::new(
-                    PatternHandle::new(None)
-                        .with(Located::new(Pattern::List(inner), ty.location())),
-                )];
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::And, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Refinement(refinement) => {
-                let primary_type_handle = self.types[&(String::from("lang::refine").into())];
-
-                let bindings = vec![self.convert(refinement)?];
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::Refine, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Traverse(step) => {
-                let primary_type_handle = self.types[&(String::from("lang::traverse").into())];
-
-                let bindings = vec![Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Const(ValuePattern::String(step.inner())),
-                    step.location(),
-                )))];
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::Traverse, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Chain(terms) => {
-                let primary_type_handle = self.types[&(String::from("lang::chain").into())];
-
-                let mut inner = Vec::new();
-                for e in terms {
-                    inner.push(self.convert(e)?)
-                }
-
-                let bindings = vec![Arc::new(
-                    PatternHandle::new(None)
-                        .with(Located::new(Pattern::List(inner), ty.location())),
-                )];
-
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::Ref(SyntacticSugar::Chain, primary_type_handle, bindings),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::List(terms) => {
-                let mut inner = Vec::new();
-                for e in terms {
-                    inner.push(self.convert(e)?)
-                }
-                Ok(Arc::new(PatternHandle::new(None).with(Located::new(
-                    mir::Pattern::List(inner),
-                    ty.location(),
-                ))))
-            }
-            hir::Pattern::Nothing => Ok(Arc::new(
-                PatternHandle::new(None).with(Located::new(mir::Pattern::Nothing, ty.location())),
-            )),
-        }
+        Ok(handle)
     }
 
     pub fn lower(self) -> Result<runtime::World, Vec<BuildError>> {
@@ -596,7 +602,7 @@ impl Lowerer {
 
     fn apply_packages(&mut self) {
         for (path, meta) in &self.world.packages {
-            log::info!("Apply package metadata: {path}: {meta:?}");
+            log::debug!("Apply package metadata: {path}: {meta:?}");
 
             if let Some(pkg) = self.packages.get_mut(path) {
                 pkg.apply_meta(meta);
