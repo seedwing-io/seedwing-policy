@@ -32,7 +32,7 @@ jobs:
           token: ${{ secrets.NIGHTLY_TOKEN }}
       - name: Clean old tags
         run: |
-          bash .github/prune-nightly.sh
+          ./.github/prune-nightly.sh
       - name: Tag it
         run: |
           git config --global user.email "ci@seedwing.io"
