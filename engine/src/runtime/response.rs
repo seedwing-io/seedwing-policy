@@ -202,14 +202,35 @@ pub(crate) fn reason(r#type: &Pattern, rationale: &Rationale) -> String {
 pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String {
     match rationale {
         Rationale::Anything => "anything is satisfied by anything".into(),
-        Rationale::Nothing
-        | Rationale::Const(_)
-        | Rationale::Primordial(_)
-        | Rationale::Expression(_) => String::new(),
-        Rationale::Object(_) => if rationale.satisfied() {
-            "because all fields were satisfied"
+        Rationale::Nothing => "Nothing".into(),
+        Rationale::Const(_) => {
+            if rationale.satisfied() {
+                "The input matches the expected constant value expected in the pattern"
+            } else {
+                "The input does not match the constant value expected in the pattern"
+            }
+        }
+        .into(),
+        Rationale::Primordial(_) => {
+            if rationale.satisfied() {
+                "The primordial type defined in the pattern is satisfied"
+            } else {
+                "The primordial type defined in the pattern is not satisfied"
+            }
+        }
+        .into(),
+        Rationale::Expression(_) => if rationale.satisfied() {
+            "The expression defined in the pattern is satisfied"
         } else {
-            "because not all fields were satisfied"
+            "The expression defined in the pattern is not satisfied"
+        }
+        .into(),
+        Rationale::Object(_) => {
+            if rationale.satisfied() {
+                "Because all fields were satisfied"
+            } else {
+                "Because not all fields were satisfied"
+            }
         }
         .into(),
         Rationale::List(_terms) => if rationale.satisfied() {
@@ -224,8 +245,8 @@ pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String 
             "because the chain was not satisfied"
         }
         .into(),
-        Rationale::NotAnObject => "not an object".into(),
-        Rationale::NotAList => "not a list".into(),
+        Rationale::NotAnObject => "not an object".to_string(),
+        Rationale::NotAList => "not a list".to_string(),
         Rationale::MissingField(name) => {
             format!("missing field: {name}")
         }
@@ -234,11 +255,17 @@ pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String 
         }
         Rationale::Function(_, r, _) => match r {
             Some(x) => reason(r#type, x),
-            None => "".into(),
+            None => if rationale.satisfied() {
+                "The input satisfies the function"
+            } else {
+                "The input does not satisfy the function"
+            }
+            .to_string(),
         },
         Rationale::Refinement(_, _) => String::new(),
         Rationale::Bound(inner, _) => reason(r#type, inner),
     }
+    .into()
 }
 
 fn support(rationale: &Rationale) -> Vec<Response> {
