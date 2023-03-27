@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 set -e
 
 TAGS=$(git for-each-ref --sort=taggerdate --format '%(refname:short) %(taggerdate:short)' refs/tags | grep "nightly")
