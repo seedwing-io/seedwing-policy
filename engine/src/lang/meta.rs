@@ -11,6 +11,8 @@ pub struct PatternMeta {
     pub unstable: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deprecation: Option<Deprecation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub explanation: Option<String>,
 }
 
 impl PatternMeta {
@@ -28,8 +30,18 @@ impl TryFrom<hir::Metadata> for PatternMeta {
             documentation: Documentation(value.documentation),
             unstable: value.attributes.contains_key("unstable"),
             deprecation: value.attributes.remove("deprecated").map(Into::into),
+            explanation: value
+                .attributes
+                .remove("explain")
+                .and_then(|a| a.into_flags().next()),
         })
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Deprecation {
+    pub reason: Option<String>,
+    pub since: Option<String>,
 }
 
 impl From<hir::AttributeValues> for Deprecation {
@@ -39,12 +51,6 @@ impl From<hir::AttributeValues> for Deprecation {
         let since = value.values.remove("since").flatten();
         Deprecation { reason, since }
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Deprecation {
-    pub reason: Option<String>,
-    pub since: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

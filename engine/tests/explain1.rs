@@ -1,7 +1,7 @@
-use seedwing_policy_engine::runtime::{EvalContext, EvaluationResult};
+use seedwing_policy_engine::runtime::Response;
 use seedwing_policy_engine::{
     lang::builder::Builder,
-    runtime::{sources::Ephemeral, World},
+    runtime::{sources::Ephemeral, EvalContext, EvaluationResult, World},
 };
 use serde_json::{json, Value};
 use std::fmt::Display;
@@ -10,14 +10,18 @@ use std::fmt::Display;
 async fn simple() -> anyhow::Result<()> {
     let result = eval(
         r#"
+#[explain("Not foo")]
 pattern foo = {}
 "#,
         "foo",
-        json!({}),
+        json!(false),
     )
     .await;
 
-    assert_eq!(result.satisfied(), true);
+    assert_eq!(result.satisfied(), false);
+    let response = Response::new(&result);
+
+    assert_eq!(response.reason, "Not foo");
 
     Ok(())
 }
