@@ -3,4 +3,4 @@
 *** xref:cyclonedx.adoc[]
 *** xref:hacbs.adoc[]
 ** xref:seedwing-tekton:ROOT:index.adoc[Tekton]
-** xref:seedwing-tekton:ROOT:index.adoc[Java]
+** xref:seedwing-java:ROOT:index.adoc[Java]
