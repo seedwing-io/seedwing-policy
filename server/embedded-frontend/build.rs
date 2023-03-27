@@ -12,7 +12,9 @@ fn main() -> std::io::Result<()> {
     println!("cargo:rerun-if-changed=../../frontend/Cargo.lock");
     println!("cargo:rerun-if-changed=../../frontend/Trunk.toml");
     println!("cargo:rerun-if-changed=../../frontend/package-lock.json");
+    println!("cargo:rerun-if-changed=../../frontend/package.json");
     println!("cargo:rerun-if-changed=../../frontend/src");
+    println!("cargo:rerun-if-changed=../../frontend/textmate");
     println!("cargo:rerun-if-changed=../../frontend/assets");
 
     let npm = Command::new("npm")
