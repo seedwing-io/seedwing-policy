@@ -110,7 +110,6 @@
       "name": "comment.line.double-slash",
       "match": "//.*$"
     },
-
     "attributes": {
       "begin": "#(\\[)([a-zA-Z]+[a-zA-Z_-]*)",
       "beginCaptures": {
@@ -139,12 +138,26 @@
       "patterns": [
         {
           "include": "#attributes-item"
+        },
+        {
+          "include": "#string-literal"
         }
       ]
     },
     "attributes-item": {
-      "match": "[a-aA-Z]+(=[a-aA-Z]+)?,?",
+      "match": "[a-zA-Z]+(=[a-zA-Z]+)?,?",
       "name": "constant.other"
+    },
+    "string-literal": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.dogma",
+      "patterns": [
+        {
+          "name": "constant.character.escape.dogma",
+          "match": "\\\\[\"\\\\]"
+        }
+      ]
     }
   }
 }
