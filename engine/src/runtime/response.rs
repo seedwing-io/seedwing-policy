@@ -12,7 +12,7 @@ use crate::runtime::Pattern;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Name {
     #[serde(rename = "pattern")]
     Pattern(Option<PatternName>),
@@ -243,22 +243,31 @@ pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String 
 
 fn support(rationale: &Rationale) -> Vec<Response> {
     match rationale {
-        Rationale::Object(fields) => fields
-            .iter()
-            .filter_map(|(n, r)| {
-                r.as_ref().map(|er| {
-                    let v = Response::new(er);
-                    if v.rationale.is_empty() {
-                        let mut x = v.clone();
-                        x.name = Name::Field(n.to_string());
-                        x.rationale = vec![v];
-                        x
-                    } else {
-                        v
-                    }
+        Rationale::Object(fields) => {
+            let mut result = fields
+                .iter()
+                .filter_map(|(n, r)| {
+                    r.as_ref().map(|er| {
+                        let v = Response::new(er);
+                        if v.rationale.is_empty() {
+                            let mut x = v.clone();
+                            x.name = Name::Field(n.to_string());
+                            if let Some(explanation) = &er.ty.metadata().explanation {
+                                x.reason = explanation.to_string();
+                            }
+                            x.rationale = vec![v];
+                            x
+                        } else {
+                            v
+                        }
+                    })
                 })
-            })
-            .collect(),
+                .collect::<Vec<_>>();
+
+            result.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+
+            result
+        }
         Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
             terms.iter().map(Response::new).collect()
         }
@@ -282,7 +291,7 @@ fn support(rationale: &Rationale) -> Vec<Response> {
 #[cfg(test)]
 mod test {
     use super::Response;
-    use crate::runtime::{testutil::test_pattern, PatternName};
+    use crate::runtime::{response::Name, testutil::test_pattern, PatternName};
     use serde_json::json;
 
     #[tokio::test]
@@ -411,5 +420,24 @@ mod test {
             r#"{"name":{"pattern":"test::test-pattern"},"bindings":{"terms":[]},"input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
+    }
+
+    #[test]
+    fn test_ord() {
+        let mut names = vec![
+            Name::Pattern(Some("baz::foo".into())),
+            Name::Pattern(None),
+            Name::Field("foo".to_string()),
+            Name::Field("bar".to_string()),
+        ];
+
+        names.sort();
+
+        // convert to strings
+        let names = names.into_iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        // and then to &str, making it easier to assert
+        let names = names.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+
+        assert_eq!(names, vec!["", "baz::foo", "bar", "foo"]);
     }
 }

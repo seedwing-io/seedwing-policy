@@ -118,8 +118,8 @@ impl PackageMetadata {
     }
 
     pub(crate) fn sort(&mut self) {
-        self.packages.sort_by(|l, r| l.name.cmp(&r.name));
-        self.patterns.sort_by(|l, r| l.name.cmp(&r.name));
+        self.packages.sort_unstable_by(|l, r| l.name.cmp(&r.name));
+        self.patterns.sort_unstable_by(|l, r| l.name.cmp(&r.name));
     }
 }
 

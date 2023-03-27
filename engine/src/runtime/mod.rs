@@ -326,7 +326,7 @@ impl World {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug, PartialOrd, Ord)]
 pub struct PatternName {
     pub package: Option<PackagePath>,
     pub name: String,
@@ -397,9 +397,16 @@ impl PatternName {
     }
 }
 
-impl From<String> for PatternName {
-    fn from(path: String) -> Self {
-        let mut segments = path.split("::").map(|e| e.into()).collect::<Vec<String>>();
+impl<T> From<T> for PatternName
+where
+    T: AsRef<str>,
+{
+    fn from(path: T) -> Self {
+        let mut segments = path
+            .as_ref()
+            .split("::")
+            .map(|e| e.into())
+            .collect::<Vec<String>>();
         if segments.is_empty() {
             Self::new(None, "".into())
         } else {
@@ -420,7 +427,7 @@ impl From<String> for PatternName {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug, Ord, PartialOrd)]
 pub struct PackageName(pub(crate) String);
 
 impl PackageName {
@@ -449,7 +456,7 @@ impl Deref for PackageName {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug, Ord, PartialOrd)]
 pub struct PackagePath {
     pub path: Vec<PackageName>,
 }

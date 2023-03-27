@@ -328,6 +328,10 @@ impl Field {
     pub fn set_metadata(&mut self, metadata: Metadata) {
         self.metadata = metadata;
     }
+
+    pub fn metadata(&self) -> &Metadata {
+        &self.metadata
+    }
 }
 
 pub struct World {
