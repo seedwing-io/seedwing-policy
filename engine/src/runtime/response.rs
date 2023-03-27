@@ -86,16 +86,18 @@ impl Response {
             bindings: bound(bindings),
         }
     }
+
     pub fn collapse(mut self) -> Self {
         self.rationale = if self.satisfied {
             Vec::new()
         } else {
             deeply_unsatisfied(self.rationale)
         };
-        self.input = serde_json::json!("<collapsed>");
-        self.output = self.output.map(|_| serde_json::json!("<collapsed>"));
+        self.input = json!("<collapsed>");
+        self.output = self.output.map(|_| json!("<collapsed>"));
         self
     }
+
     fn has_input(&self) -> bool {
         match &self.input {
             Value::Null => false,
@@ -187,58 +189,45 @@ fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
 }
 
 pub(crate) fn reason(rationale: &Rationale) -> String {
-    let tmp;
     match rationale {
-        Rationale::Anything => "anything is satisfied by anything",
+        Rationale::Anything => "anything is satisfied by anything".into(),
         Rationale::Nothing
         | Rationale::Const(_)
         | Rationale::Primordial(_)
-        | Rationale::Expression(_) => "",
-        Rationale::Object(_) => {
-            if rationale.satisfied() {
-                "because all fields were satisfied"
-            } else {
-                "because not all fields were satisfied"
-            }
+        | Rationale::Expression(_) => String::new(),
+        Rationale::Object(_) => if rationale.satisfied() {
+            "because all fields were satisfied"
+        } else {
+            "because not all fields were satisfied"
         }
-        Rationale::List(_terms) => {
-            if rationale.satisfied() {
-                "because all members were satisfied"
-            } else {
-                "because not all members were satisfied"
-            }
+        .into(),
+        Rationale::List(_terms) => if rationale.satisfied() {
+            "because all members were satisfied"
+        } else {
+            "because not all members were satisfied"
         }
-        Rationale::Chain(_terms) => {
-            if rationale.satisfied() {
-                "because the chain was satisfied"
-            } else {
-                "because the chain was not satisfied"
-            }
+        .into(),
+        Rationale::Chain(_terms) => if rationale.satisfied() {
+            "because the chain was satisfied"
+        } else {
+            "because the chain was not satisfied"
         }
-        Rationale::NotAnObject => "not an object",
-        Rationale::NotAList => "not a list",
+        .into(),
+        Rationale::NotAnObject => "not an object".into(),
+        Rationale::NotAList => "not a list".into(),
         Rationale::MissingField(name) => {
-            tmp = format!("missing field: {name}");
-            &tmp
+            format!("missing field: {name}")
         }
         Rationale::InvalidArgument(name) => {
-            tmp = format!("invalid argument: {name}");
-            &tmp
+            format!("invalid argument: {name}")
         }
         Rationale::Function(_, r, _) => match r {
-            Some(x) => {
-                tmp = reason(x);
-                &tmp
-            }
-            None => "",
+            Some(x) => reason(x),
+            None => "".into(),
         },
-        Rationale::Refinement(_, _) => "",
-        Rationale::Bound(inner, _) => {
-            tmp = reason(inner);
-            &tmp
-        }
+        Rationale::Refinement(_, _) => String::new(),
+        Rationale::Bound(inner, _) => reason(inner),
     }
-    .into()
 }
 
 fn support(rationale: &Rationale) -> Vec<Response> {
