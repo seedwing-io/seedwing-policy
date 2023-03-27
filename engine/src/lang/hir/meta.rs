@@ -17,6 +17,20 @@ impl AttributeValues {
                 true => None,
             })
     }
+
+    /// Turn attribute values into an iterator to flags, entries which only have a key, but no value.
+    ///
+    /// Same a [Self::flags], but consumes the instance.
+    pub fn into_flags(self) -> impl Iterator<Item = String> {
+        self.values
+            .into_iter()
+            .filter_map(|(key, value)| match value.is_some() {
+                // we don't have a value, so it's a flag
+                false => Some(key),
+                // we have a value, so its a field name
+                true => None,
+            })
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

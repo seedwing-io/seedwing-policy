@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::lang::lir::{Bindings, InnerPattern, ValuePattern};
+use crate::runtime::Pattern;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
@@ -81,7 +82,7 @@ impl Response {
             input: result.input().as_json(),
             output,
             satisfied: result.satisfied(),
-            reason: reason(rationale),
+            reason: reason(&result.ty(), rationale),
             rationale: support(rationale),
             bindings: bound(bindings),
         }
@@ -188,7 +189,17 @@ fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
     result
 }
 
-pub(crate) fn reason(rationale: &Rationale) -> String {
+pub(crate) fn reason(r#type: &Pattern, rationale: &Rationale) -> String {
+    if !rationale.satisfied() {
+        if let Some(explanation) = &r#type.metadata().explanation {
+            return explanation.to_string();
+        }
+    }
+
+    default_reason(r#type, rationale)
+}
+
+pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String {
     match rationale {
         Rationale::Anything => "anything is satisfied by anything".into(),
         Rationale::Nothing
@@ -222,11 +233,11 @@ pub(crate) fn reason(rationale: &Rationale) -> String {
             format!("invalid argument: {name}")
         }
         Rationale::Function(_, r, _) => match r {
-            Some(x) => reason(x),
+            Some(x) => reason(r#type, x),
             None => "".into(),
         },
         Rationale::Refinement(_, _) => String::new(),
-        Rationale::Bound(inner, _) => reason(inner),
+        Rationale::Bound(inner, _) => reason(r#type, inner),
     }
 }
 
