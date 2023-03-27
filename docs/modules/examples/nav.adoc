@@ -1,3 +1,5 @@
 * xref::index.adoc[Examples]
-** xref:cyclonedx.adoc[]
-** xref:hacbs.adoc[]
+** Policies
+*** xref:cyclonedx.adoc[]
+*** xref:hacbs.adoc[]
+** xref:seedwing-tekton:ROOT:index.adoc[Tekton]
