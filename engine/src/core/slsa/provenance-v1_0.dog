@@ -1,3 +1,4 @@
+//! Patterns to work with SLSA 1.0 provenance statements.
 
 /// SLSA 1.0 build provenance statement.
 pattern provenance = {

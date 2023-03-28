@@ -1,7 +1,8 @@
 = slsa::github
+:description: Patterns to work with SLSA 1.0 provenance statements produced by GitHub Actions.
 :sectanchors:
 
-
+Patterns to work with SLSA 1.0 provenance statements produced by GitHub Actions.
 
 [#build-definition]
 == `build-definition`

@@ -1,7 +1,8 @@
 = slsa::v1_0
+:description: Patterns to work with SLSA 1.0 provenance statements.
 :sectanchors:
 
-
+Patterns to work with SLSA 1.0 provenance statements.
 
 [#artifact-reference]
 == `artifact-reference`

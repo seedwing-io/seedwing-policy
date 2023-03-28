@@ -1,3 +1,5 @@
+//! Patterns to work with SLSA 1.0 provenance statements produced by GitHub Actions.
+
 /// SLSA 1.0 build provenance statement.
 pattern provenance = {
   _type: "https://in-toto.io/Statement/v0.1",
