@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 use crate::{lang::PrimordialPattern, runtime::Output};
+use serde::ser::{self, SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -43,25 +44,77 @@ impl Display for Name {
 }
 
 /// A response is used to transform a policy result into different formats.
-#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Response {
-    #[serde(default, skip_serializing_if = "Name::is_empty")]
+    #[serde(default)]
     pub name: Name,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default)]
     pub bindings: HashMap<String, Value>,
     pub input: Value,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub output: Option<Value>,
     pub satisfied: bool,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
     pub reason: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub rationale: Vec<Response>,
+    #[serde(skip)]
+    fields: Vec<String>,
 }
 
 impl From<EvaluationResult> for Response {
     fn from(result: EvaluationResult) -> Self {
         Self::new(&result)
+    }
+}
+
+impl Serialize for Response {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let check = |s| match s {
+            "name" => !self.name.is_empty(),
+            "bindings" => !self.bindings.is_empty(),
+            "output" => self.output.is_some(),
+            "reason" => !self.reason.is_empty(),
+            "rationale" => !self.rationale.is_empty(),
+            _ => true,
+        };
+        let write = |s, state: &mut S::SerializeStruct| match s {
+            "name" => state.serialize_field("name", &self.name),
+            "bindings" => state.serialize_field("bindings", &self.bindings),
+            "input" => state.serialize_field("input", &self.input),
+            "output" => state.serialize_field("output", &self.output),
+            "satisfied" => state.serialize_field("satisfied", &self.satisfied),
+            "reason" => state.serialize_field("reason", &self.reason),
+            "rationale" => state.serialize_field("rationale", &self.rationale),
+            _ => Err(ser::Error::custom("Unknown field name")),
+        };
+        let fields = if self.fields.len() > 0 {
+            self.fields.clone()
+        } else {
+            [
+                "name",
+                "bindings",
+                "input",
+                "output",
+                "satisfied",
+                "reason",
+                "rationale",
+            ]
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>()
+        };
+        let count = fields.iter().map(|s| check(s) as usize).sum();
+        let mut state = serializer.serialize_struct("Response", count)?;
+        for name in &fields {
+            if check(name) {
+                write(name, &mut state)?;
+            }
+        }
+        state.end()
     }
 }
 
@@ -85,6 +138,7 @@ impl Response {
             reason: reason(&result.ty(), rationale),
             rationale: support(rationale),
             bindings: bound(bindings),
+            fields: Vec::new(),
         }
     }
 
@@ -94,8 +148,15 @@ impl Response {
         } else {
             deeply_unsatisfied(self.rationale)
         };
-        self.input = json!("<collapsed>");
-        self.output = self.output.map(|_| json!("<collapsed>"));
+        self
+    }
+
+    // Expects a comma-delimited list, e.g. "name,bindings,input,output,satisfied,reason,rationale"
+    pub fn filter(&mut self, fields: &str) -> &mut Self {
+        let fields = fields.trim().to_lowercase();
+        if !fields.is_empty() {
+            self.fields = fields.split(',').map(String::from).collect();
+        }
         self
     }
 
@@ -348,12 +409,17 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":[1,42,99],"output":[1,42,99],"satisfied":true,"reason":"The input satisfies the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":42,"output":42,"satisfied":true,"reason":"The input matches the expected constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
-            serde_json::to_string(&Response::new(&result)).unwrap()
+            r#"{"name":{"pattern":"list::any"},"reason":"The input satisfies the function","input":[1,42,99]}"#,
+            serde_json::to_string(&Response::new(&result).filter("name,reason,input")).unwrap()
         );
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
-            serde_json::to_string(&Response::new(&result).collapse()).unwrap()
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"satisfied":true}"#,
+            serde_json::to_string(
+                &Response::new(&result)
+                    .collapse()
+                    .filter("name,bindings,satisfied")
+            )
+            .unwrap()
         );
     }
 
@@ -366,8 +432,13 @@ mod test {
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","satisfied":false,"reason":"The input does not satisfy the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
-            serde_json::to_string(&Response::new(&result).collapse()).unwrap()
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"reason":"The input does not satisfy the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
+            serde_json::to_string(
+                &Response::new(&result)
+                    .collapse()
+                    .filter("name,bindings,reason,rationale")
+            )
+            .unwrap()
         );
     }
 
@@ -412,7 +483,7 @@ mod test {
         let result = test_pattern("list::any<list::none<98>>", json!([[1, 99]])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":["list::none",{"pattern":98}]},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":["list::none",{"pattern":98}]},"input":[[1,99]],"output":[[1,99]],"satisfied":true,"reason":"The input satisfies the function"}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -444,8 +515,13 @@ mod test {
         )
         .await;
         assert_eq!(
-            r#"{"name":{"pattern":"test::test-pattern"},"bindings":{"terms":[]},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
-            serde_json::to_string(&Response::new(&result).collapse()).unwrap()
+            r#"{"name":{"pattern":"test::test-pattern"},"bindings":{"terms":[]},"satisfied":true}"#,
+            serde_json::to_string(
+                &Response::new(&result)
+                    .collapse()
+                    .filter("name,bindings,satisfied")
+            )
+            .unwrap()
         );
     }
 

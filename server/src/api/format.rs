@@ -8,40 +8,36 @@ use serde::Deserialize;
 pub enum Format {
     Html,
     Json,
-    JsonMinimal,
     Yaml,
 }
 
 impl Format {
-    pub fn format(&self, result: &EvaluationResult, collapse: bool) -> String {
-        let response = if let Self::Html = self {
+    pub fn format(
+        &self,
+        result: &EvaluationResult,
+        collapse: bool,
+        fields: Option<String>,
+    ) -> String {
+        let mut response = if let Self::Html = self {
             Response::default()
         } else if collapse {
             Response::new(result).collapse()
         } else {
             Response::new(result)
         };
+        if let Some(s) = fields {
+            response.filter(&s);
+        }
         match self {
             Self::Html => Rationalizer::new(result).rationale(),
             Self::Json => serde_json::to_string_pretty(&response).unwrap(),
-            Self::JsonMinimal => {
-                if response.satisfied {
-                    if let Some(output) = &response.output {
-                        serde_json::to_string_pretty(output).unwrap()
-                    } else {
-                        "".into()
-                    }
-                } else {
-                    "".into()
-                }
-            }
             Self::Yaml => serde_yaml::to_string(&response).unwrap(),
         }
     }
     pub fn content_type(&self) -> ContentType {
         match self {
             Self::Html => ContentType::html(),
-            Self::Json | Self::JsonMinimal => ContentType::json(),
+            Self::Json => ContentType::json(),
             Self::Yaml => ContentType::plaintext(), // TODO: not this?
         }
     }
