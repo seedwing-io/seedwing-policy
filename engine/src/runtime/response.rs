@@ -125,7 +125,7 @@ impl Serialize for Response {
 
 impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
-        let severity = result.severity();
+        let (severity, reason) = result.outcome();
         let output = match &result.output {
             Output::Identity if !matches!(severity, Severity::Error) => {
                 Some(result.input.as_json())
@@ -143,7 +143,7 @@ impl Response {
             input: result.input().as_json(),
             output,
             severity,
-            reason: result.reason(),
+            reason,
             rationale: support(rationale),
             bindings: bound(bindings),
             fields: Vec::new(),
