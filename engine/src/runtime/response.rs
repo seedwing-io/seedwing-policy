@@ -279,8 +279,10 @@ fn support(rationale: &Rationale) -> Vec<Response> {
                         let v = Response::new(er);
                         if v.rationale.is_empty() {
                             let mut x = v.clone();
+                            let (severity, reason) = er.outcome();
                             x.name = Name::Field(n.to_string());
-                            x.reason = er.reason();
+                            x.severity = severity;
+                            x.reason = reason;
                             x.rationale = vec![v];
                             x
                         } else {
