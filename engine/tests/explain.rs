@@ -34,7 +34,7 @@ pattern test = {
         json!({"bar": "bar"}),
         json!({
             "name": "test::test",
-            "failed": "because not all fields were satisfied",
+            "failed": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
@@ -68,7 +68,7 @@ pattern test = {
         }),
         json!({
             "name": "test::test",
-            "failed": "because not all fields were satisfied",
+            "failed": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
@@ -104,7 +104,7 @@ pattern test = {
         }),
         json!({
             "name": "test::test",
-            "failed": "because not all fields were satisfied",
+            "failed": "Because not all fields were satisfied",
             "rationale": [
             ]
         }),
