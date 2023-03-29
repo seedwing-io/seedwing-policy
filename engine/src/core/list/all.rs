@@ -1,13 +1,13 @@
-use crate::core::list::PATTERN;
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{list::PATTERN, Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
+use crate::runtime::rationale::Rationale;
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("all.adoc");
@@ -46,13 +46,10 @@ impl Function for All {
                     );
                 }
 
-                if supporting.iter().all(|e| e.satisfied()) {
-                    Ok((Output::Identity, supporting).into())
-                } else {
-                    Ok((Output::None, supporting).into())
-                }
+                let severity = supporting.iter().map(|s| s.severity()).collect();
+                Ok((severity, supporting).into())
             } else {
-                Ok(Output::None.into())
+                Ok((Severity::Error, Rationale::NotAList).into())
             }
         })
     }

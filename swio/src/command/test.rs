@@ -158,8 +158,6 @@ impl TestPlan {
                                                 Expected::Identity
                                             } else if parent.join("output.any").exists() {
                                                 Expected::Anything
-                                            } else if parent.join("output.none").exists() {
-                                                Expected::None
                                             } else {
                                                 Expected::Pending
                                             };
@@ -394,9 +392,6 @@ impl TestCase {
 
                     match result {
                         Ok(result) => match (result.raw_output(), &self.expected) {
-                            (Output::None, Expected::None) => {
-                                self.result.replace(TestResult::Passed);
-                            }
                             (Output::Identity, Expected::Identity) => {
                                 self.result.replace(TestResult::Passed);
                             }
@@ -457,7 +452,6 @@ pub enum Expected {
     Anything,
     Identity,
     Transform(PathBuf),
-    None,
 }
 
 #[derive(Debug)]

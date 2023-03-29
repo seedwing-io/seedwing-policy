@@ -1,12 +1,13 @@
 use crate::core::{Function, FunctionEvaluationResult, FunctionInput, FunctionInputPattern};
 use crate::lang::lir::{Bindings, InnerPattern};
-use crate::runtime::{EvalContext, Output, Pattern, RuntimeError, World};
+use crate::runtime::{EvalContext, Pattern, RuntimeError, World};
 use crate::value::RuntimeValue;
+use std::cmp::max;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
 use crate::lang::PrimordialPattern;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("or.adoc");
@@ -56,23 +57,40 @@ impl Function for Or {
         Box::pin(async move {
             if let Some(terms) = bindings.get(TERMS) {
                 if let InnerPattern::List(terms) = terms.inner() {
-                    let mut rationale = Vec::new();
+                    let mut supporting = Vec::new();
                     let mut terms = terms.clone();
                     terms.sort_by_key(|a| a.order(world));
+
+                    let mut satisfied = false;
+                    let mut base_severity = Severity::None;
+
                     for term in terms {
+                        // eval term
                         let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
-                        if result.satisfied() {
-                            rationale.push(result);
-                            return Ok((Output::Identity, rationale).into());
+
+                        let severity = result.severity();
+                        if !matches!(severity, Severity::Error) {
+                            // not failed, so we have at least one
+                            satisfied = true;
+                            // record highest (not failed) severity
+                            base_severity = max(base_severity, severity);
                         }
-                        rationale.push(result);
+
+                        // record result
+                        supporting.push(result);
                     }
 
-                    return Ok((Output::None, rationale).into());
+                    // eval our severity (max non-failed, or failed)
+                    let severity = match satisfied {
+                        true => base_severity,
+                        false => Severity::Error,
+                    };
+
+                    return Ok((severity, supporting).into());
                 }
             }
 
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

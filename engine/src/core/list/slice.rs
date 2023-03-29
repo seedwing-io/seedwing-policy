@@ -1,5 +1,5 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::ValuePattern;
+use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
 //use crate::lang::lir::{Bindings, InnerPattern, ValuePattern};
 use crate::lang::lir::{Bindings, InnerPattern};
@@ -76,7 +76,7 @@ fn get_parameter(param: &str, bindings: &Bindings) -> Result<usize, String> {
 }
 
 fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 #[cfg(test)]

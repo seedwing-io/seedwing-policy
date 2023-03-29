@@ -11,6 +11,8 @@ use base64::Engine;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::Severity;
+use crate::runtime::rationale::Rationale;
 use std::str::from_utf8;
 use std::sync::Arc;
 
@@ -37,7 +39,11 @@ impl Function for AsCertificate {
             let bytes = if let Some(inner) = input.try_get_octets() {
                 inner
             } else {
-                return Ok(Output::None.into());
+                return Ok((
+                    Severity::Error,
+                    Rationale::InvalidArgument("Requires octets as input".to_string()),
+                )
+                    .into());
             };
 
             let contents = PEM_ENGINE.encode(bytes);

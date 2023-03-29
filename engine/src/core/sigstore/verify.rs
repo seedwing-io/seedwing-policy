@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
-use crate::lang::ValuePattern;
+use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
 
 use crate::lang::PatternMeta;
@@ -87,7 +87,7 @@ impl Function for VerifyBlob {
                     }
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }
@@ -103,7 +103,7 @@ fn get_parameter(param: &str, bindings: &Bindings) -> Result<String, String> {
 }
 
 fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 #[cfg(test)]

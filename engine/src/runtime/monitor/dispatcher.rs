@@ -1,5 +1,6 @@
 //! Sharing monitoring results in memory between modules.
 use crate::lang::lir::Pattern;
+use crate::lang::Severity;
 use crate::runtime::monitor::{CompleteEvent, Completion, MonitorEvent, StartEvent};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
@@ -58,6 +59,7 @@ impl Monitor {
         &self,
         correlation: u64,
         ty: Arc<Pattern>,
+        severity: Severity,
         output: Output,
         elapsed: Option<Duration>,
     ) {
@@ -65,7 +67,7 @@ impl Monitor {
             correlation,
             timestamp: Utc::now(),
             ty,
-            completion: Completion::Output(output),
+            completion: Completion::Ok { severity, output },
             elapsed,
         };
         self.fanout(event.into()).await;

@@ -8,7 +8,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -45,12 +45,12 @@ impl Function for FromCve {
                             .collect();
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(output))).into())
                     } else {
-                        Ok(Output::None.into())
+                        Ok(Severity::Error.into())
                     }
                 }
                 _v => {
                     let msg = "input is not a string";
-                    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
                 }
             }
         })

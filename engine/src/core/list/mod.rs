@@ -1,3 +1,4 @@
+use crate::lang::Severity;
 use crate::runtime::EvalContext;
 use crate::{
     lang::lir::Pattern,
@@ -42,6 +43,10 @@ pub fn package() -> Package {
     pkg
 }
 
+/// Split a list of values at given predicate.
+///
+/// This takes an iterator of values, splitting it in two lists. Filling the first one until the
+/// pattern in `count` is satisfied. Adding the remainder to the second one.
 pub(crate) async fn split_fill<I>(
     ctx: &EvalContext,
     world: &World,
@@ -64,7 +69,7 @@ where
                         world,
                     )
                     .await?;
-                expected_result.satisfied()
+                !matches!(expected_result.severity(), Severity::Error)
             }
             None => !greedy.is_empty(),
         };

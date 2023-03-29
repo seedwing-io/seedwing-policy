@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 
 use crate::ui::rationale::Rationalizer;
 use actix_web::http::header::ContentType;
+use seedwing_policy_engine::lang::Severity;
 use seedwing_policy_engine::runtime::{EvaluationResult, Response};
 use serde::Deserialize;
 
@@ -37,7 +38,7 @@ impl Format {
         let mut response = if let Self::Html = self {
             Response::default()
         } else if collapse {
-            Response::new(result).collapse()
+            Response::new(result).collapse(Severity::Error)
         } else {
             Response::new(result)
         };
@@ -50,6 +51,7 @@ impl Format {
             Self::Yaml => serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         }
     }
+
     pub fn content_type(&self) -> ContentType {
         match self {
             Self::Html => ContentType::html(),

@@ -37,6 +37,10 @@ pub use crate::core::Example;
 use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata, WorldLike};
 pub use response::Response;
 
+mod utils;
+use crate::lang::Severity;
+pub use utils::is_default;
+
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {
     #[error("type ({2}) not found (@ {0}:{1:?})")]
@@ -122,16 +126,19 @@ impl<'c> ErrorPrinter<'c> {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Output {
-    None,
+    /// Output equal to input
     Identity,
+    /// Output transformed
     Transform(Arc<RuntimeValue>),
 }
 
+/*
 impl Output {
     pub fn is_some(&self) -> bool {
-        !matches!(self, Self::None)
+        !matches!(self, Self::None(_))
     }
 }
+*/
 
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
@@ -158,8 +165,36 @@ impl EvaluationResult {
         }
     }
 
-    pub fn satisfied(&self) -> bool {
-        self.rationale.satisfied()
+    pub fn outcome(&self) -> (Severity, String) {
+        // the evaluated severity
+        let mut severity = self.rationale.severity();
+
+        let reason;
+
+        if severity > Severity::None {
+            // a possible override severity
+            let override_severity = self.ty.metadata().reporting.severity;
+
+            if override_severity > Severity::None {
+                severity = override_severity;
+            }
+
+            reason = self.ty.metadata().reporting.explanation.clone();
+        } else {
+            reason = None;
+        }
+
+        let reason = reason.unwrap_or_else(|| self.rationale.reason());
+
+        (severity, reason)
+    }
+
+    pub fn severity(&self) -> Severity {
+        self.outcome().0
+    }
+
+    pub fn reason(&self) -> String {
+        self.outcome().1
     }
 
     pub fn ty(&self) -> Arc<Pattern> {
@@ -174,11 +209,10 @@ impl EvaluationResult {
         &self.rationale
     }
 
-    pub fn output(&self) -> Option<Arc<RuntimeValue>> {
+    pub fn output(&self) -> Arc<RuntimeValue> {
         match &self.output {
-            Output::None => None,
-            Output::Identity => Some(self.input.clone()),
-            Output::Transform(inner) => Some(inner.clone()),
+            Output::Identity => self.input.clone(),
+            Output::Transform(inner) => inner.clone(),
         }
     }
 
@@ -708,7 +742,13 @@ impl EvalContext {
                     monitor
                         .lock()
                         .await
-                        .complete_ok(correlation, ty, result.raw_output().clone(), elapsed)
+                        .complete_ok(
+                            correlation,
+                            ty,
+                            result.severity(),
+                            result.raw_output().clone(),
+                            elapsed,
+                        )
                         .await
                 }
                 Err(err) => {

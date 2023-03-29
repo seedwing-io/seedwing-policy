@@ -4,7 +4,7 @@ use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use spdx;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc; // as spdx_parser;
@@ -49,10 +49,10 @@ impl Function for Compatible {
                         })
                         .collect::<Vec<String>>(),
                     InnerPattern::Const(ValuePattern::String(license)) => vec![license.clone()],
-                    _ => return Ok(Output::None.into()),
+                    _ => return Ok(Severity::Error.into()),
                 }
             } else {
-                return Ok(Output::None.into());
+                return Ok(Severity::Error.into());
             };
 
             // the input should be a string
@@ -67,7 +67,7 @@ impl Function for Compatible {
                     }
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

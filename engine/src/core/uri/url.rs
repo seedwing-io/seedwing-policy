@@ -1,11 +1,8 @@
 use crate::core::{BlockingFunction, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
-use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::lang::{lir::Bindings, PatternMeta, Severity};
+use crate::runtime::{rationale::Rationale, EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::fmt::Debug;
-
-use crate::lang::PatternMeta;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -34,7 +31,7 @@ impl BlockingFunction for Url {
                 Err(result) => Ok(result),
             },
             _ => Ok((
-                Output::None,
+                Severity::Error,
                 Rationale::InvalidArgument("input is not a String".into()),
             )
                 .into()),
@@ -60,7 +57,7 @@ impl Url {
                 Ok(result)
             }
             Err(err) => Err((
-                Output::None,
+                Severity::Error,
                 Rationale::InvalidArgument(format!("input is not a URL: {err}")),
             )
                 .into()),

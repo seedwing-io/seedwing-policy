@@ -14,7 +14,7 @@ use std::borrow::Borrow;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 mod verify;
@@ -83,10 +83,10 @@ impl Function for SHA256 {
 
                     Ok(Output::Transform(Arc::new(transform.into())).into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

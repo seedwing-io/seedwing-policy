@@ -1,15 +1,19 @@
 //! Response handling a policy decision.
 
+use crate::{
+    lang::{
+        lir::{Bindings, InnerPattern, ValuePattern},
+        PrimordialPattern, Severity,
+    },
+    runtime::Output,
+};
+use serde::{
+    ser::{self, SerializeStruct, Serializer},
+    Deserialize, Serialize,
+};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-
-use crate::{lang::PrimordialPattern, runtime::Output};
-use serde::ser::{self, SerializeStruct, Serializer};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use crate::lang::lir::{Bindings, InnerPattern, ValuePattern};
-use crate::runtime::Pattern;
 
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 
@@ -53,8 +57,9 @@ pub struct Response {
     pub input: Value,
     #[serde(default)]
     pub output: Option<Value>,
-    pub satisfied: bool,
     #[serde(default)]
+    pub severity: Severity,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub reason: String,
     #[serde(default)]
     pub rationale: Vec<Response>,
@@ -120,9 +125,12 @@ impl Serialize for Response {
 
 impl Response {
     pub fn new(result: &EvaluationResult) -> Self {
+        let severity = result.severity();
         let output = match &result.output {
-            Output::Identity if result.satisfied() => Some(result.input.as_json()),
-            Output::Transform(val) if result.satisfied() => Some(val.as_json()),
+            Output::Identity if !matches!(severity, Severity::Error) => {
+                Some(result.input.as_json())
+            }
+            Output::Transform(val) if !matches!(severity, Severity::Error) => Some(val.as_json()),
             _ => None,
         };
         let none = Bindings::default();
@@ -134,19 +142,19 @@ impl Response {
             name: Name::Pattern(result.ty().name()),
             input: result.input().as_json(),
             output,
-            satisfied: result.satisfied(),
-            reason: reason(&result.ty(), rationale),
+            severity,
+            reason: result.reason(),
             rationale: support(rationale),
             bindings: bound(bindings),
             fields: Vec::new(),
         }
     }
 
-    pub fn collapse(mut self) -> Self {
-        self.rationale = if self.satisfied {
+    pub fn collapse(mut self, severity: Severity) -> Self {
+        self.rationale = if self.satisfied(severity) {
             Vec::new()
         } else {
-            deeply_unsatisfied(self.rationale)
+            deeply_unsatisfied(severity, self.rationale)
         };
         self
     }
@@ -168,6 +176,13 @@ impl Response {
             Value::Object(m) => !m.is_empty(),
             _ => true,
         }
+    }
+
+    /// Evaluate if the reason is "satisfied"
+    ///
+    /// A reason is satisfied if its severity is lower than the requested severity.
+    fn satisfied(&self, severity: Severity) -> bool {
+        self.severity < severity
     }
 }
 
@@ -233,99 +248,25 @@ fn display(inner: &InnerPattern) -> Value {
     }
 }
 
-fn deeply_unsatisfied(tree: Vec<Response>) -> Vec<Response> {
+fn deeply_unsatisfied(severity: Severity, tree: Vec<Response>) -> Vec<Response> {
     let mut result = Vec::new();
     for i in tree.into_iter() {
-        if !i.satisfied {
+        if !i.satisfied(severity) {
             // We want the deepest relevant response with input
-            if i.has_input() && i.rationale.iter().all(|x| x.satisfied || !x.has_input()) {
+            if i.has_input()
+                && i.rationale
+                    .iter()
+                    .all(|x| x.satisfied(severity) || !x.has_input())
+            {
                 // We're assuming no descendents have unsatisfied
                 // input if no children do. If wrong, we must recur.
                 result.push(i);
             } else {
-                result.append(&mut deeply_unsatisfied(i.rationale.clone()));
+                result.append(&mut deeply_unsatisfied(severity, i.rationale.clone()));
             }
         }
     }
     result
-}
-
-pub(crate) fn reason(r#type: &Pattern, rationale: &Rationale) -> String {
-    if !rationale.satisfied() {
-        if let Some(explanation) = &r#type.metadata().explanation {
-            return explanation.to_string();
-        }
-    }
-
-    default_reason(r#type, rationale)
-}
-
-pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String {
-    match rationale {
-        Rationale::Anything => "anything is satisfied by anything".into(),
-        Rationale::Nothing => "Nothing".into(),
-        Rationale::Const(_) => {
-            if rationale.satisfied() {
-                "The input matches the expected constant value expected in the pattern"
-            } else {
-                "The input does not match the constant value expected in the pattern"
-            }
-        }
-        .into(),
-        Rationale::Primordial(_) => {
-            if rationale.satisfied() {
-                "The primordial type defined in the pattern is satisfied"
-            } else {
-                "The primordial type defined in the pattern is not satisfied"
-            }
-        }
-        .into(),
-        Rationale::Expression(_) => if rationale.satisfied() {
-            "The expression defined in the pattern is satisfied"
-        } else {
-            "The expression defined in the pattern is not satisfied"
-        }
-        .into(),
-        Rationale::Object(_) => {
-            if rationale.satisfied() {
-                "Because all fields were satisfied"
-            } else {
-                "Because not all fields were satisfied"
-            }
-        }
-        .into(),
-        Rationale::List(_terms) => if rationale.satisfied() {
-            "because all members were satisfied"
-        } else {
-            "because not all members were satisfied"
-        }
-        .into(),
-        Rationale::Chain(_terms) => if rationale.satisfied() {
-            "because the chain was satisfied"
-        } else {
-            "because the chain was not satisfied"
-        }
-        .into(),
-        Rationale::NotAnObject => "not an object".to_string(),
-        Rationale::NotAList => "not a list".to_string(),
-        Rationale::MissingField(name) => {
-            format!("missing field: {name}")
-        }
-        Rationale::InvalidArgument(name) => {
-            format!("invalid argument: {name}")
-        }
-        Rationale::Function(_, r, _) => match r {
-            Some(x) => reason(r#type, x),
-            None => if rationale.satisfied() {
-                "The input satisfies the function"
-            } else {
-                "The input does not satisfy the function"
-            }
-            .to_string(),
-        },
-        Rationale::Refinement(_, _) => String::new(),
-        Rationale::Bound(inner, _) => reason(r#type, inner),
-    }
 }
 
 fn support(rationale: &Rationale) -> Vec<Response> {
@@ -339,9 +280,7 @@ fn support(rationale: &Rationale) -> Vec<Response> {
                         if v.rationale.is_empty() {
                             let mut x = v.clone();
                             x.name = Name::Field(n.to_string());
-                            if let Some(explanation) = &er.ty.metadata().explanation {
-                                x.reason = explanation.to_string();
-                            }
+                            x.reason = er.reason();
                             x.rationale = vec![v];
                             x
                         } else {
@@ -355,9 +294,11 @@ fn support(rationale: &Rationale) -> Vec<Response> {
 
             result
         }
-        Rationale::List(terms) | Rationale::Chain(terms) | Rationale::Function(_, _, terms) => {
-            terms.iter().map(Response::new).collect()
-        }
+        Rationale::List(terms)
+        | Rationale::Chain(terms)
+        | Rationale::Function {
+            supporting: terms, ..
+        } => terms.iter().map(Response::new).collect(),
         Rationale::Refinement(primary, refinement) => match refinement {
             Some(r) => vec![Response::new(primary), Response::new(r)],
             None => vec![Response::new(primary)],

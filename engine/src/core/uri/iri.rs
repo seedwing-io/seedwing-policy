@@ -5,7 +5,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("iri.adoc");
@@ -32,10 +32,10 @@ impl Function for Iri {
             if let Some(value) = input.try_get_string() {
                 match ::iref::Iri::new(&value) {
                     Ok(_) => Ok(Output::Identity.into()),
-                    Err(_) => Ok(Output::None.into()),
+                    Err(_) => Ok(Severity::Error.into()),
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

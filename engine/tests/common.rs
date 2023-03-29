@@ -1,6 +1,9 @@
 use seedwing_policy_engine::{
-    lang::builder::Builder,
-    runtime::{response::Name, sources::Ephemeral, EvalContext, EvaluationResult, Response, World},
+    lang::{builder::Builder, Severity},
+    runtime::{
+        is_default, response::Name, sources::Ephemeral, EvalContext, EvaluationResult, Response,
+        World,
+    },
 };
 use serde_json::Value;
 use std::fmt::{Debug, Display};
@@ -9,8 +12,10 @@ use std::fmt::{Debug, Display};
 pub struct Reason {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub failed: Option<String>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub severity: Severity,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub reason: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rationale: Vec<Reason>,
 }
@@ -31,10 +36,8 @@ impl From<Response> for Reason {
                 Name::Pattern(Some(pattern)) => pattern.to_string(),
                 Name::Pattern(None) => String::new(),
             },
-            failed: match value.satisfied {
-                true => None,
-                false => Some(value.reason),
-            },
+            severity: value.severity,
+            reason: value.reason,
             rationale: value
                 .rationale
                 .into_iter()

@@ -6,7 +6,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("contains-all.adoc");
@@ -58,7 +58,7 @@ impl Function for ContainsAll {
                                     }
                                 }
                                 if !found {
-                                    return Ok(Output::None.into());
+                                    return Ok(Severity::Error.into());
                                 }
                             } else {
                                 return Err(RuntimeError::InvalidState);
@@ -68,7 +68,7 @@ impl Function for ContainsAll {
                     }
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

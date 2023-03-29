@@ -1,4 +1,4 @@
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use crate::runtime::EvalContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
@@ -47,17 +47,17 @@ impl Function for Inet4Addr {
                                         if range.contains(&addr) {
                                             Ok(Output::Identity.into())
                                         } else {
-                                            Ok(Output::None.into())
+                                            Ok(Severity::Error.into())
                                         }
                                     }
                                     Err(e) => {
                                         return Ok((
-                                            Output::None,
+                                            Severity::Error,
                                             vec![EvaluationResult::new(
                                                 input,
                                                 address_pattern,
                                                 Rationale::InvalidArgument(e.to_string()),
-                                                Output::None,
+                                                Output::Identity,
                                             )],
                                         )
                                             .into())
@@ -68,12 +68,12 @@ impl Function for Inet4Addr {
                         Err(e) => {
                             let e = format!("error parsing inet4addr<\"{range}\">: {e}");
                             return Ok((
-                                Output::None,
+                                Severity::Error,
                                 vec![EvaluationResult::new(
                                     input,
                                     address_pattern,
                                     Rationale::InvalidArgument(e),
-                                    Output::None,
+                                    Output::Identity,
                                 )],
                             )
                                 .into());
@@ -81,7 +81,7 @@ impl Function for Inet4Addr {
                     }
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

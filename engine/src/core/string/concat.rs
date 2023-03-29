@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::ValuePattern;
+use crate::lang::{Severity, ValuePattern};
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -48,10 +48,10 @@ impl Function for Concat {
                     };
                     Ok(Output::Transform(Arc::new(transformed.into())).into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

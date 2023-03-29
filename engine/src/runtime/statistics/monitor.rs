@@ -1,12 +1,13 @@
 use crate::runtime::monitor::Completion;
 use crate::runtime::statistics::Snapshot;
-use crate::runtime::{Output, PatternName};
+use crate::runtime::PatternName;
 use num_integer::Roots;
 
 use rand::Rng;
 
 use std::collections::HashMap;
 
+use crate::lang::Severity;
 use std::time::Duration;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -135,8 +136,11 @@ impl<const N: usize> PatternStats<N> {
     fn record(&mut self, elapsed: Duration, completion: &Completion) {
         self.invocations += 1;
         match completion {
-            Completion::Output(output) => match output {
-                Output::None => self.unsatisfied_invocations += 1,
+            Completion::Ok {
+                severity,
+                output: _,
+            } => match severity {
+                Severity::Error => self.unsatisfied_invocations += 1,
                 _ => self.satisfied_invocations += 1,
             },
             Completion::Err(_) => {

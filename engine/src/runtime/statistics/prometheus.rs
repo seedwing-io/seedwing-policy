@@ -1,6 +1,7 @@
 use crate::runtime::monitor::Completion;
-use crate::runtime::{Output, PatternName};
+use crate::runtime::PatternName;
 
+use crate::lang::Severity;
 use std::time::Duration;
 
 #[cfg(feature = "prometheus")]
@@ -53,8 +54,11 @@ impl PrometheusStats {
         completion: &Completion,
     ) {
         match completion {
-            Completion::Output(output) => match output {
-                Output::None => self.unsatisfied.with_label_values(&[name.name()]).inc(),
+            Completion::Ok {
+                severity,
+                output: _,
+            } => match severity {
+                Severity::Error => self.unsatisfied.with_label_values(&[name.name()]).inc(),
                 _ => self.satisfied.with_label_values(&[name.name()]).inc(),
             },
             Completion::Err(_) => self.error.with_label_values(&[name.name()]).inc(),

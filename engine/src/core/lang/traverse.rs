@@ -5,7 +5,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("traverse.adoc");
@@ -45,7 +45,7 @@ impl Function for Traverse {
                 }
             }
 
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

@@ -9,7 +9,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -60,7 +60,7 @@ impl Function for ComponentPurls {
                     }
                     Ok(Output::Transform(Arc::new(RuntimeValue::List(purls))).into())
                 }
-                _ => Ok(Output::None.into()),
+                _ => Ok(Severity::None.into()),
             }
         })
     }

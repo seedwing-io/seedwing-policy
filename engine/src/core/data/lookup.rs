@@ -6,7 +6,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -71,31 +71,31 @@ impl Function for Lookup {
                                                 if let Some(next) = obj.get(step) {
                                                     current = next;
                                                 } else {
-                                                    return Ok(Output::None.into());
+                                                    return Ok(Severity::Error.into());
                                                 }
                                             } else {
-                                                return Ok(Output::None.into());
+                                                return Ok(Severity::Error.into());
                                             }
                                         } else {
-                                            return Ok(Output::None.into());
+                                            return Ok(Severity::Error.into());
                                         }
                                     }
                                     return Ok(Output::Transform(current).into());
                                 } else {
                                     //todo!("support single non-list lookups")
-                                    return Ok(Output::None.into());
+                                    return Ok(Severity::Error.into());
                                 }
                             } else {
-                                return Ok(Output::None.into());
+                                return Ok(Severity::Error.into());
                             }
                         }
                     }
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

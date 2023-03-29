@@ -6,7 +6,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -59,10 +59,10 @@ impl Function for GAV {
 
                     Ok(Output::Transform(Arc::new(coordinates.into())).into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

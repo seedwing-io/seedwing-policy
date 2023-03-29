@@ -1,6 +1,7 @@
 use crate::cli::{Context, InputType};
 use crate::util;
 use crate::util::load_values;
+use seedwing_policy_engine::lang::Severity;
 use seedwing_policy_engine::runtime::Response;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -52,11 +53,11 @@ impl Eval {
                 let response = if self.verbose {
                     Response::new(&result)
                 } else {
-                    Response::new(&result).collapse()
+                    Response::new(&result).collapse(Severity::Error)
                 };
 
                 println!("{}", serde_json::to_string_pretty(&response).unwrap());
-                if !result.satisfied() {
+                if result.severity() >= Severity::Error {
                     return Ok(ExitCode::from(2));
                 }
             }

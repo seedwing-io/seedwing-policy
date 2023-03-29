@@ -21,6 +21,7 @@ mod format;
 mod openapi;
 
 pub use openapi::*;
+use seedwing_policy_engine::lang::Severity;
 use seedwing_policy_engine::runtime::metadata::ComponentMetadata;
 
 #[get("/policy/v1alpha1/{path:.*}")]
@@ -191,7 +192,7 @@ async fn run_eval(
 fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpResponse {
     match encoding {
         OutputEncoding::Opa => {
-            let satisfied = result.satisfied();
+            let satisfied = result.severity() < Severity::Error;
             HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
         }
         OutputEncoding::Seedwing {
@@ -200,7 +201,7 @@ fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpR
             select,
         } => match format.format(&result, collapse, select) {
             Ok(rationale) => {
-                if result.satisfied() {
+                if result.severity() < Severity::Error {
                     HttpResponse::Ok()
                         .content_type(format.content_type())
                         .body(rationale)

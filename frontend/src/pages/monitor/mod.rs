@@ -3,6 +3,7 @@ use crate::utils::format_duration;
 use anyhow::Error;
 use chrono::DateTime;
 use patternfly_yew::prelude::*;
+use seedwing_policy_engine::lang::Severity;
 use seedwing_policy_engine::runtime::monitor::{
     SimpleMonitorEvent, SimpleMonitorStart, SimpleOutput,
 };
@@ -183,19 +184,14 @@ fn timing(props: &TimingProps) -> Html {
 fn status(props: &OutputProps) -> Html {
     if let Some(output) = &props.output {
         match output {
-            SimpleOutput::None => {
+            SimpleOutput::Identity(severity) => {
                 html!(
-                    <Label label={"Unsatisfied"} color={Color::Red} compact=true/>
+                    <Label label={"Identity"} color={color(*severity)} compact=true/>
                 )
             }
-            SimpleOutput::Identity => {
+            SimpleOutput::Transform(severity, _) => {
                 html!(
-                    <Label label={"Identity"} color={Color::Green} compact=true/>
-                )
-            }
-            SimpleOutput::Transform(_) => {
-                html!(
-                    <Label label={"Transform"} color={Color::Green} compact=true/>
+                    <Label label={"Transform"} color={color(*severity)} compact=true/>
                 )
             }
             SimpleOutput::Err(_) => {
@@ -208,6 +204,15 @@ fn status(props: &OutputProps) -> Html {
         html!(
           <Label label={"Running"} compact=true/>
         )
+    }
+}
+
+fn color(severity: Severity) -> Color {
+    match severity {
+        Severity::None => Color::Green,
+        Severity::Advice => Color::Cyan,
+        Severity::Warning => Color::Orange,
+        Severity::Error => Color::Red,
     }
 }
 
@@ -236,13 +241,10 @@ pub struct OutputProps {
 fn output(props: &OutputProps) -> Html {
     if let Some(output) = &props.output {
         match output {
-            SimpleOutput::None => {
-                html!(<i>{"None"}</i>)
-            }
-            SimpleOutput::Identity => {
+            SimpleOutput::Identity(_) => {
                 html!(<i>{"Identity"}</i>)
             }
-            SimpleOutput::Transform(value) => {
+            SimpleOutput::Transform(_, value) => {
                 if let Ok(formatted) = serde_json::to_string_pretty(&value) {
                     html!(
                         <pre><code>{formatted}</code></pre>

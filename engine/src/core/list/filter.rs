@@ -7,7 +7,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("filter.adoc");
@@ -45,26 +45,23 @@ impl Function for Filter {
                     RuntimeValue::List(inputs) => {
                         let mut result = Vec::new();
                         for input in inputs.iter() {
-                            match binding
+                            let eval = binding
                                 .evaluate(input.clone(), ctx, bindings, world)
-                                .await?
-                                .raw_output()
-                            {
-                                Output::Identity => result.push(input.clone()),
-                                Output::Transform(_) => result.push(input.clone()),
-                                Output::None => {}
+                                .await?;
+                            match eval.severity() {
+                                Severity::Error => {
+                                    // skip
+                                }
+                                _ => result.push(input.clone()),
                             }
                         }
-                        Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
+                        Ok(Output::Transform(Arc::new(RuntimeValue::List(result))).into())
                     }
-                    _ => {
-                        let msg = "Input is not a list";
-                        Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
-                    }
+                    _ => Ok((Severity::Error, Rationale::NotAList).into()),
                 }
             } else {
                 let msg = "Unable to find filter function";
-                Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
             }
         })
     }

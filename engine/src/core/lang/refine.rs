@@ -1,11 +1,11 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("refine.adoc");
@@ -35,18 +35,19 @@ impl Function for Refine {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            let mut rationale = Vec::new();
             if let Some(refinement) = bindings.get(REFINEMENT) {
                 let refinement_result = refinement.evaluate(input, ctx, bindings, world).await?;
-                rationale.push(refinement_result.clone());
-                if refinement_result.satisfied() {
-                    return Ok((refinement_result.raw_output().clone(), rationale).into());
-                } else {
-                    return Ok((Output::None, rationale).into());
-                }
-            }
+                let refinement_severity = refinement_result.severity();
 
-            Ok((Output::None, rationale).into())
+                Ok(FunctionEvaluationResult {
+                    function_severity: refinement_severity,
+                    function_rationale: None,
+                    function_output: refinement_result.raw_output().clone(),
+                    supporting: vec![refinement_result],
+                })
+            } else {
+                Ok(Severity::Error.into())
+            }
         })
     }
 }

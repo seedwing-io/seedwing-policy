@@ -1,13 +1,10 @@
 use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
+use crate::lang::{lir::Bindings, Severity};
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, RuntimeError};
-use crate::runtime::{PackagePath, World};
+use crate::runtime::{EvalContext, Output, PackagePath, RuntimeError, World};
 use crate::value::RuntimeValue;
-
 use std::future::Future;
 use std::pin::Pin;
-
 use std::sync::Arc;
 use x509_parser::parse_x509_certificate;
 use x509_parser::pem::Pem;
@@ -43,7 +40,7 @@ impl Function for PEM {
             } else if let Some(inner) = input.try_get_octets() {
                 bytes.extend_from_slice(inner);
             } else {
-                return Ok(Output::None.into());
+                return Ok(Severity::Error.into());
             };
 
             let mut certs: Vec<RuntimeValue> = Vec::new();
@@ -58,7 +55,7 @@ impl Function for PEM {
             }
 
             if certs.is_empty() {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             } else {
                 Ok(Output::Transform(Arc::new(certs.into())).into())
             }
@@ -86,12 +83,12 @@ impl Function for DER {
             let bytes = if let Some(inner) = input.try_get_octets() {
                 inner
             } else {
-                return Ok(Output::None.into());
+                return Ok(Severity::Error.into());
             };
 
             match parse_x509_certificate(bytes) {
                 Ok((_, cert)) => Ok(Output::Transform(Arc::new((&cert).into())).into()),
-                Err(_) => Ok(Output::None.into()),
+                Err(_) => Ok(Severity::Error.into()),
             }
         })
     }

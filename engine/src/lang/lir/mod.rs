@@ -1,5 +1,6 @@
 pub mod json_schema;
 
+use crate::lang::Severity::Error;
 use crate::{
     core::Example,
     lang::{lir, meta::PatternMeta, mir, parser::Located, PrimordialPattern, SyntacticSugar},
@@ -9,9 +10,7 @@ use crate::{
     },
     value::RuntimeValue,
 };
-
 use serde::{Deserialize, Serialize};
-
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -279,7 +278,7 @@ impl Pattern {
                         value.clone(),
                         self.clone(),
                         Rationale::InvalidArgument(name.clone()),
-                        Output::None,
+                        Output::Identity,
                     ))
                 }
             })),
@@ -298,7 +297,7 @@ impl Pattern {
                             value.clone(),
                             self.clone(),
                             Rationale::Primordial(false),
-                            Output::None,
+                            Output::Identity,
                         ))
                     }
                 })),
@@ -316,7 +315,7 @@ impl Pattern {
                             value.clone(),
                             self.clone(),
                             Rationale::Primordial(false),
-                            Output::None,
+                            Output::Identity,
                         ))
                     }
                 })),
@@ -335,7 +334,7 @@ impl Pattern {
                             value.clone(),
                             self.clone(),
                             Rationale::Primordial(false),
-                            Output::None,
+                            Output::Identity,
                         ))
                     }
                 })),
@@ -353,7 +352,7 @@ impl Pattern {
                             value.clone(),
                             self.clone(),
                             Rationale::Primordial(false),
-                            Output::None,
+                            Output::Identity,
                         ))
                     }
                 })),
@@ -363,11 +362,11 @@ impl Pattern {
                         Ok(EvaluationResult::new(
                             value.clone(),
                             self.clone(),
-                            Rationale::Function(
-                                result.output().is_some(),
-                                result.rationale().map(Box::new),
-                                result.supporting(),
-                            ),
+                            Rationale::Function {
+                                severity: result.severity(),
+                                rationale: result.rationale().map(Box::new),
+                                supporting: result.supporting(),
+                            },
                             result.output(),
                         ))
                     }))
@@ -395,6 +394,7 @@ impl Pattern {
                 let locked_value = (*value).borrow();
                 if let Some(obj) = locked_value.try_get_object() {
                     let mut result = HashMap::new();
+
                     for field in &inner.fields {
                         if let Some(ref field_value) = obj.get(field.name()) {
                             result.insert(
@@ -411,25 +411,18 @@ impl Pattern {
                         }
                     }
 
-                    let rationale = Rationale::Object(result);
-                    let output = if rationale.satisfied() {
-                        Output::Identity
-                    } else {
-                        Output::None
-                    };
-
                     Ok(EvaluationResult::new(
                         value.clone(),
                         self.clone(),
-                        rationale,
-                        output,
+                        Rationale::Object(result),
+                        Output::Identity,
                     ))
                 } else {
                     Ok(EvaluationResult::new(
                         value.clone(),
                         self.clone(),
                         Rationale::NotAnObject,
-                        Output::None,
+                        Output::Identity,
                     ))
                 }
             })),
@@ -449,7 +442,7 @@ impl Pattern {
                         value.clone(),
                         self.clone(),
                         Rationale::Expression(false),
-                        Output::None,
+                        Output::Identity,
                     ))
                 }
             })),
@@ -473,7 +466,7 @@ impl Pattern {
                     value.clone(),
                     self.clone(),
                     Rationale::NotAList,
-                    Output::None,
+                    Output::Identity,
                 ))
             })),
             InnerPattern::Nothing => trace.run(Box::pin(async move {
@@ -481,7 +474,7 @@ impl Pattern {
                     value.clone(),
                     self.clone(),
                     Rationale::Nothing,
-                    Output::None,
+                    Output::Identity,
                 ))
             })),
         }
@@ -913,18 +906,8 @@ fn possibly_deref<'b>(
                 .evaluate(value.clone(), ctx, &Bindings::default(), world)
                 .await?;
 
-            if result.satisfied() {
-                if let Some(output) = result.output() {
-                    Ok(Arc::new(output.into()))
-                } else {
-                    Ok(Arc::new(Pattern::new(
-                        None,
-                        Default::default(),
-                        Vec::default(),
-                        Vec::default(),
-                        InnerPattern::Nothing,
-                    )))
-                }
+            if !matches!(result.severity(), Error) {
+                Ok(Arc::new(result.output().into()))
             } else {
                 Ok(Arc::new(Pattern::new(
                     None,

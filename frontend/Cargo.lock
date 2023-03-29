@@ -1531,8 +1531,7 @@ checksum = "9f746c4065a8fa3fe23974dd82f15431cc8d40779821001404d10d2e79ca7d79"
 [[package]]
 name = "patternfly-yew"
 version = "0.4.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66546818b7b756aa0643b40d906ab4cc261443aa714254e2f7051c9f3904148e"
+source = "git+https://github.com/ctron/patternfly-yew?rev=9e9479d00e28dbbf072eca8717503c42e8859822#9e9479d00e28dbbf072eca8717503c42e8859822"
 dependencies = [
  "chrono",
  "gloo-events",

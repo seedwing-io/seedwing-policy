@@ -6,7 +6,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("concat.adoc");
@@ -76,7 +76,7 @@ fn get_parameter(param: &str, bindings: &Bindings) -> Result<Vec<Arc<RuntimeValu
 }
 
 fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 #[cfg(test)]
