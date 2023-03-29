@@ -165,6 +165,7 @@ impl EvaluationResult {
         }
     }
 
+    /// Get both the severity and the reason.
     pub fn outcome(&self) -> (Severity, String) {
         // the evaluated severity
         let mut severity = self.rationale.severity();
@@ -189,12 +190,21 @@ impl EvaluationResult {
         (severity, reason)
     }
 
+    /// Get the severity only.
     pub fn severity(&self) -> Severity {
-        self.outcome().0
-    }
+        // the evaluated severity
+        let mut severity = self.rationale.severity();
 
-    pub fn reason(&self) -> String {
-        self.outcome().1
+        if severity > Severity::None {
+            // a possible override severity
+            let override_severity = self.ty.metadata().reporting.severity;
+
+            if override_severity > Severity::None {
+                severity = override_severity;
+            }
+        }
+
+        severity
     }
 
     pub fn ty(&self) -> Arc<Pattern> {
