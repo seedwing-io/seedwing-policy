@@ -332,13 +332,13 @@ mod test {
         let result = test_pattern(pat, json!({"age": 65})).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"test::person"},"bindings":{"AGE":65},"input":{"age":65},"output":{"age":65},"satisfied":true,"reason":"because all fields were satisfied","rationale":[{"name":{"field":"age"},"input":65,"output":65,"satisfied":true,"rationale":[{"input":65,"output":65,"satisfied":true}]}]}"#,
+            r#"{"name":{"pattern":"test::person"},"bindings":{"AGE":65},"input":{"age":65},"output":{"age":65},"satisfied":true,"reason":"Because all fields were satisfied","rationale":[{"name":{"field":"age"},"input":65,"output":65,"satisfied":true,"reason":"The input matches the expected constant value expected in the pattern","rationale":[{"input":65,"output":65,"satisfied":true,"reason":"The input matches the expected constant value expected in the pattern"}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         let result = test_pattern(pat, json!({"age": 42})).await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"test::person"},"bindings":{"AGE":65},"input":{"age":42},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":{"field":"age"},"input":42,"satisfied":false,"rationale":[{"input":42,"satisfied":false}]}]}"#,
+            r#"{"name":{"pattern":"test::person"},"bindings":{"AGE":65},"input":{"age":42},"satisfied":false,"reason":"Because not all fields were satisfied","rationale":[{"name":{"field":"age"},"input":42,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern","rationale":[{"input":42,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
     }
@@ -348,11 +348,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":[1,42,99],"output":[1,42,99],"satisfied":true,"rationale":[{"input":1,"satisfied":false},{"input":42,"output":42,"satisfied":true},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":[1,42,99],"output":[1,42,99],"satisfied":true,"reason":"The input satisfies the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":42,"output":42,"satisfied":true,"reason":"The input matches the expected constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -362,11 +362,11 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 99])).await;
         assert!(!result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":[1,99],"satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":[1,99],"satisfied":false,"reason":"The input does not satisfy the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","satisfied":false,"rationale":[{"input":1,"satisfied":false},{"input":99,"satisfied":false}]}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"input":"<collapsed>","satisfied":false,"reason":"The input does not satisfy the function","rationale":[{"input":1,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"},{"input":99,"satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -386,7 +386,7 @@ mod test {
         let result = test_pattern(r#"{ trained: boolean }"#, json!({"trained": "true"})).await;
 
         assert_eq!(
-            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"rationale":[{"name":{"pattern":"boolean"},"input":"true","satisfied":false}]}]}"#,
+            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"Because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"reason":"The primordial type defined in the pattern is not satisfied","rationale":[{"name":{"pattern":"boolean"},"input":"true","satisfied":false,"reason":"The primordial type defined in the pattern is not satisfied"}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         );
 
@@ -402,7 +402,7 @@ mod test {
         .await;
 
         assert_eq!(
-            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"rationale":[{"name":{"pattern":"test::is_trained"},"input":"true","satisfied":false}]}]}"#,
+            r#"{"name":{"pattern":"test::test-pattern"},"input":{"trained":"true"},"satisfied":false,"reason":"Because not all fields were satisfied","rationale":[{"name":{"field":"trained"},"input":"true","satisfied":false,"reason":"The input does not match the constant value expected in the pattern","rationale":[{"name":{"pattern":"test::is_trained"},"input":"true","satisfied":false,"reason":"The input does not match the constant value expected in the pattern"}]}]}"#,
             serde_json::to_string(&Response::new(&result)).unwrap()
         )
     }
@@ -412,7 +412,7 @@ mod test {
         let result = test_pattern("list::any<list::none<98>>", json!([[1, 99]])).await;
         assert!(result.satisfied());
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":["list::none",{"pattern":98}]},"input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
+            r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":["list::none",{"pattern":98}]},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
@@ -444,7 +444,7 @@ mod test {
         )
         .await;
         assert_eq!(
-            r#"{"name":{"pattern":"test::test-pattern"},"bindings":{"terms":[]},"input":"<collapsed>","output":"<collapsed>","satisfied":true}"#,
+            r#"{"name":{"pattern":"test::test-pattern"},"bindings":{"terms":[]},"input":"<collapsed>","output":"<collapsed>","satisfied":true,"reason":"The input satisfies the function"}"#,
             serde_json::to_string(&Response::new(&result).collapse()).unwrap()
         );
     }
