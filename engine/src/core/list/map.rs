@@ -6,7 +6,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("map.adoc");
@@ -41,26 +41,26 @@ impl Function for Map {
                     RuntimeValue::List(inputs) => {
                         let mut result = Vec::new();
                         for input in inputs.iter() {
-                            if let Some(value) = map_fn
-                                .evaluate(input.clone(), ctx, bindings, world)
-                                .await?
-                                .output()
-                            {
-                                result.push(value);
-                            } else {
-                                result.push(RuntimeValue::Null.into());
+                            let eval = map_fn.evaluate(input.clone(), ctx, bindings, world).await?;
+                            match eval.severity() {
+                                Severity::Error => {
+                                    result.push(RuntimeValue::Null.into());
+                                }
+                                _ => {
+                                    result.push(eval.output());
+                                }
                             }
                         }
-                        Ok(Output::Transform(Arc::new(RuntimeValue::List(result.clone()))).into())
+                        Ok(Output::Transform(Arc::new(RuntimeValue::List(result))).into())
                     }
                     _ => {
                         let msg = "Input is not a list";
-                        Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                        Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
                     }
                 }
             } else {
                 let msg = "Unable to lookup map function";
-                Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
             }
         })
     }

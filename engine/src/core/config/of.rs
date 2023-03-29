@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::PatternMeta;
 use crate::lang::ValuePattern;
+use crate::lang::{PatternMeta, Severity};
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
@@ -44,13 +44,13 @@ impl Function for Of {
                     if let Some(value) = ctx.config().get(&key) {
                         Ok(Output::Transform(Arc::new(value.into())).into())
                     } else {
-                        Ok(Output::None.into())
+                        Ok(Severity::Error.into())
                     }
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

@@ -10,7 +10,7 @@ use csaf::Csaf;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -48,11 +48,11 @@ impl Function for FindAdvisory {
                             return Ok(Output::Transform(Arc::new(json.into())).into());
                         }
                     }
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
                 _v => {
                     let msg = "input is not a string";
-                    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
                 }
             }
         })

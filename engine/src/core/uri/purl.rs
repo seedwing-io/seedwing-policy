@@ -1,7 +1,7 @@
 use crate::core::uri::url::Url;
 use crate::core::{BlockingFunction, Example, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
@@ -125,7 +125,7 @@ impl Purl {
     }
 
     fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-        Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+        Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
     }
 }
 

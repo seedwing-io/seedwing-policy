@@ -6,6 +6,7 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 
 use crate::lang::lir::Pattern;
+use crate::lang::Severity;
 use crate::runtime::Output;
 use crate::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
@@ -59,7 +60,7 @@ pub struct CompleteEvent {
 
 #[derive(Debug, Clone)]
 pub enum Completion {
-    Output(Output),
+    Ok { severity: Severity, output: Output },
     Err(String),
 }
 
@@ -90,9 +91,8 @@ pub struct SimpleMonitorComplete {
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type", content = "value")]
 pub enum SimpleOutput {
-    None,
-    Identity,
-    Transform(serde_json::Value),
+    Identity(Severity),
+    Transform(Severity, serde_json::Value),
     Err(String),
 }
 
@@ -112,11 +112,14 @@ impl TryFrom<MonitorEvent> for SimpleMonitorEvent {
                     correlation: inner.correlation,
                     timestamp: inner.timestamp.to_rfc2822(),
                     output: match inner.completion {
-                        Completion::Output(Output::None) => SimpleOutput::None,
-                        Completion::Output(Output::Identity) => SimpleOutput::Identity,
-                        Completion::Output(Output::Transform(val)) => {
-                            SimpleOutput::Transform(val.as_json())
-                        }
+                        Completion::Ok {
+                            output: Output::Identity,
+                            severity,
+                        } => SimpleOutput::Identity(severity),
+                        Completion::Ok {
+                            output: Output::Transform(val),
+                            severity,
+                        } => SimpleOutput::Transform(severity, val.as_json()),
                         Completion::Err(err) => SimpleOutput::Err(err),
                     },
                 }))

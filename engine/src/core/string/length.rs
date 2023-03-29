@@ -5,7 +5,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("length.adoc");
@@ -32,7 +32,7 @@ impl Function for Length {
             if let Some(value) = input.try_get_string() {
                 Ok(Output::Transform(Arc::new(value.len().into())).into())
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

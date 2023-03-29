@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 pub mod base64;
@@ -47,12 +47,21 @@ pub mod x509;
 
 #[derive(Debug)]
 pub struct FunctionEvaluationResult {
+    /// Severity reported but the function
+    function_severity: Severity,
+    /// The output of the function
     function_output: Output,
+    /// The rationale, including if we succeeded or not
     function_rationale: Option<Rationale>,
+    /// Supporting information
     supporting: Vec<EvaluationResult>,
 }
 
 impl FunctionEvaluationResult {
+    pub fn severity(&self) -> Severity {
+        self.function_severity
+    }
+
     pub fn output(&self) -> Output {
         self.function_output.clone()
     }
@@ -69,6 +78,7 @@ impl FunctionEvaluationResult {
 impl From<Output> for FunctionEvaluationResult {
     fn from(function_output: Output) -> Self {
         Self {
+            function_severity: Severity::None,
             function_output,
             function_rationale: None,
             supporting: vec![],
@@ -76,16 +86,40 @@ impl From<Output> for FunctionEvaluationResult {
     }
 }
 
-impl From<(Output, Vec<EvaluationResult>)> for FunctionEvaluationResult {
-    fn from((function_output, supporting): (Output, Vec<EvaluationResult>)) -> Self {
+impl From<Severity> for FunctionEvaluationResult {
+    fn from(value: Severity) -> Self {
         Self {
-            function_output,
+            function_severity: value,
+            function_output: Output::Identity,
+            function_rationale: None,
+            supporting: vec![],
+        }
+    }
+}
+
+impl From<(Severity, Vec<EvaluationResult>)> for FunctionEvaluationResult {
+    fn from((function_severity, supporting): (Severity, Vec<EvaluationResult>)) -> Self {
+        Self {
+            function_severity,
+            function_output: Output::Identity,
             function_rationale: None,
             supporting,
         }
     }
 }
 
+impl From<(Severity, Rationale)> for FunctionEvaluationResult {
+    fn from((function_severity, rationale): (Severity, Rationale)) -> Self {
+        Self {
+            function_severity,
+            function_output: Output::Identity,
+            function_rationale: Some(rationale),
+            supporting: vec![],
+        }
+    }
+}
+
+/*
 impl From<(Output, Rationale)> for FunctionEvaluationResult {
     fn from((function_output, function_rationale): (Output, Rationale)) -> Self {
         Self {
@@ -94,7 +128,7 @@ impl From<(Output, Rationale)> for FunctionEvaluationResult {
             supporting: vec![],
         }
     }
-}
+}*/
 
 #[derive(Debug)]
 pub enum FunctionInput {

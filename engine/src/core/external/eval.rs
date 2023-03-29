@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::PatternMeta;
 use crate::lang::ValuePattern;
+use crate::lang::{PatternMeta, Severity};
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use serde_json::Value;
@@ -62,36 +62,36 @@ impl Function for Eval {
                                             if let Ok(output) = output {
                                                 let output: RuntimeValue = output.into();
                                                 if *input.as_ref() == output {
-                                                    Ok(Output::Identity.into())
+                                                    Ok(Severity::None.into())
                                                 } else {
                                                     Ok(Output::Transform(Arc::new(output)).into())
                                                 }
                                             } else {
-                                                Ok(Output::Identity.into())
+                                                Ok(Severity::None.into())
                                             }
                                         } else {
-                                            Ok(Output::Identity.into())
+                                            Ok(Severity::None.into())
                                         }
                                     } else {
-                                        Ok(Output::Identity.into())
+                                        Ok(Severity::None.into())
                                     }
                                 } else {
-                                    Ok(Output::Identity.into())
+                                    Ok(Severity::None.into())
                                 }
                             } else {
-                                Ok(Output::None.into())
+                                Ok(Severity::Error.into())
                             }
                         } else {
-                            Ok(Output::None.into())
+                            Ok(Severity::Error.into())
                         }
                     } else {
-                        Ok(Output::None.into())
+                        Ok(Severity::Error.into())
                     }
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

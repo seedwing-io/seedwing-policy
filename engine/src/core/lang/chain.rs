@@ -1,12 +1,13 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
+use std::cmp::max;
 
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("chain.adoc");
@@ -39,31 +40,41 @@ impl Function for Chain {
             if let Some(terms) = bindings.get(TERMS) {
                 if let InnerPattern::List(terms) = terms.inner() {
                     let _original_input = input.clone();
-                    let mut rationale = Vec::new();
+                    let mut supporting = Vec::new();
                     let mut cur = input;
                     let mut cur_output = Output::Identity;
+                    let mut cur_severity = Severity::None;
+
                     for term in terms {
                         let result = term.evaluate(cur.clone(), ctx, bindings, world).await?;
 
-                        rationale.push(result.clone());
+                        let severity = result.severity();
+                        let output = result.raw_output().clone();
+                        supporting.push(result);
 
-                        match result.raw_output() {
-                            Output::None => {
-                                return Ok((Output::None, rationale).into());
-                            }
+                        if matches!(severity, Severity::Error) {
+                            return Ok((Severity::Error, supporting).into());
+                        }
+                        cur_severity = max(cur_severity, severity);
+
+                        match output {
                             Output::Identity => { /* keep trucking */ }
                             Output::Transform(val) => {
                                 cur_output = Output::Transform(val.clone());
-                                cur = val.clone()
+                                cur = val;
                             }
                         }
                     }
 
-                    return Ok((cur_output, rationale).into());
+                    return Ok(FunctionEvaluationResult {
+                        function_severity: cur_severity,
+                        function_output: cur_output,
+                        function_rationale: None,
+                        supporting,
+                    });
                 }
             }
-
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

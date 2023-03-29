@@ -11,7 +11,7 @@ use guac_rs::client::vulns2vex;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ impl Function for FromGuac {
                             }
                             Err(e) => {
                                 log::warn!("Error looking up {:?}", e);
-                                return Ok(Output::None.into());
+                                return Ok(Severity::Error.into());
                             }
                         }
                     }
@@ -59,7 +59,7 @@ impl Function for FromGuac {
                 }
                 _v => {
                     let msg = "input is neither a Object nor a List";
-                    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
                 }
             }
         })

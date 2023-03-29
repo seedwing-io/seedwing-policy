@@ -8,7 +8,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 use super::client::*;
@@ -126,7 +126,7 @@ impl Function for ScanPurl {
         Box::pin(async move {
             match ScanPurl::from_purls(input.as_json()).await {
                 Ok(Some(json)) => Ok(Output::Transform(Arc::new(json.into())).into()),
-                _ => Ok(Output::None.into()),
+                _ => Ok(Severity::Error.into()),
             }
         })
     }

@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 pub fn package() -> Package {
@@ -48,10 +48,10 @@ impl Function for JSON {
                 if let Ok(json_value) = json_value {
                     Ok(Output::Transform(Arc::new(json_value.into())).into())
                 } else {
-                    Ok(Output::None.into())
+                    Ok(Severity::Error.into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::{
     lir::{Bindings, ValuePattern},
-    PatternMeta,
+    PatternMeta, Severity,
 };
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -48,7 +48,7 @@ impl Function for DelayMs {
                 }
             }
 
-            Ok(Output::None.into())
+            Ok(Severity::None.into())
         })
     }
 }

@@ -1,5 +1,5 @@
 use crate::core::{Example, Function, FunctionEvaluationResult, FunctionInput};
-use crate::lang::{lir::Bindings, PatternMeta};
+use crate::lang::{lir::Bindings, PatternMeta, Severity};
 use crate::package::Package;
 use crate::runtime::{EvalContext, Output, Pattern, RuntimeError};
 use crate::runtime::{PackagePath, World};
@@ -13,6 +13,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::runtime::rationale::Rationale;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -107,10 +108,18 @@ impl Function for Base64 {
                     Ok(Output::Transform(Arc::new(decoded.into())).into())
                 } else {
                     //Err(FunctionError::Other("unable to decode base64".into()))
-                    Ok(Output::None.into())
+                    Ok((
+                        Severity::Error,
+                        Rationale::InvalidArgument("Invalid base64 encoding".to_string()),
+                    )
+                        .into())
                 }
             } else {
-                Ok(Output::None.into())
+                Ok((
+                    Severity::Error,
+                    Rationale::InvalidArgument("Expected a string".to_string()),
+                )
+                    .into())
             }
         })
     }
@@ -141,7 +150,7 @@ impl Function for Base64Encode {
 
                 Ok(Output::Transform(Arc::new(result.into())).into())
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

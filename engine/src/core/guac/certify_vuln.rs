@@ -8,7 +8,7 @@ use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use guac_rs::client::{certify_vuln::*, GuacClient};
 use std::sync::Arc;
 
@@ -105,7 +105,7 @@ impl Function for CertifyVuln {
         Box::pin(async move {
             match CertifyVuln::from_purls(input.as_json()).await {
                 Ok(Some(json)) => Ok(Output::Transform(Arc::new(json.into())).into()),
-                _ => Ok(Output::None.into()),
+                _ => Ok(Severity::Error.into()),
             }
         })
     }

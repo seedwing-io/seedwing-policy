@@ -10,7 +10,7 @@ use std::pin::Pin;
 
 use std::sync::Arc;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use csaf::{vulnerability::FlagLabel, *};
 use openvex::*;
 
@@ -48,7 +48,7 @@ impl Function for FromCsaf {
                             }
                             Err(e) => {
                                 log::warn!("Error looking up {:?}", e);
-                                return Ok(Output::None.into());
+                                return Ok(Severity::Error.into());
                             }
                         }
                     }
@@ -67,13 +67,13 @@ impl Function for FromCsaf {
                         Err(e) => {
                             log::warn!("Error looking up {:?}", e);
                             println!("Unable to parse: {:?}", e);
-                            Ok(Output::None.into())
+                            Ok(Severity::Error.into())
                         }
                     }
                 }
                 _v => {
                     let msg = "input is neither a Object nor a List";
-                    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+                    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
                 }
             }
         })

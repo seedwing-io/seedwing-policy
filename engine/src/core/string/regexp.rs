@@ -6,7 +6,7 @@ use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("regexp.adoc");
@@ -50,7 +50,7 @@ impl Function for Regexp {
                     }
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }

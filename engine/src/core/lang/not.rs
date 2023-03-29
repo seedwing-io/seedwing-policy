@@ -1,11 +1,11 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("not.adoc");
@@ -35,22 +35,16 @@ impl Function for Not {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            println!("A");
             if let Some(pattern) = bindings.get(PATTERN) {
-                println!("B");
                 let result = pattern.evaluate(input, ctx, bindings, world).await?;
-                println!("C {result:?}");
-                if result.satisfied() {
-                    println!("D");
-                    return Ok((Output::None, vec![result]).into());
-                } else {
-                    println!("E");
-                    return Ok(Output::Identity.into());
-                }
+                let severity = match result.severity() {
+                    Severity::Error => Severity::None,
+                    _ => Severity::Error,
+                };
+                Ok((severity, vec![result]).into())
+            } else {
+                Ok(Severity::Error.into())
             }
-
-            println!("F");
-            Ok(Output::None.into())
         })
     }
 }

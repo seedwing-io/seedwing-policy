@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
-use crate::lang::ValuePattern;
+use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::Object;
@@ -216,7 +216,7 @@ impl Function for Verify {
                     return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
                 }
             }
-            Ok(Output::None.into())
+            Ok(Severity::Error.into())
         })
     }
 }
@@ -243,11 +243,10 @@ async fn get_blob<'v>(
         let result = pattern
             .evaluate(input.clone(), ctx, bindings, world)
             .await?;
-        if result.satisfied() {
-            if let Some(output) = result.output() {
-                if let Some(octs) = output.try_get_octets() {
-                    return Ok(octs.to_owned());
-                }
+
+        if matches!(result.severity(), Severity::Error) {
+            if let Some(octs) = result.output().try_get_octets() {
+                return Ok(octs.to_owned());
             }
         }
     }
@@ -289,22 +288,22 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
 
 fn base64_decode_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not decode {} field to base64", field.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 fn json_parse_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not parse {}", field.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 fn missing_attesters() -> Result<FunctionEvaluationResult, RuntimeError> {
-    let msg = "Atleast one attester must be provided in the attesters parameter";
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    let msg = "At least one attester must be provided in the attesters parameter";
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 fn blob_error() -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = "Blob could not be parsed. Please check if a data source directory was set.";
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 fn invalid_type(
@@ -312,7 +311,7 @@ fn invalid_type(
     value: impl Into<String>,
 ) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("invalid {} specified {}", field.into(), value.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 #[cfg(test)]

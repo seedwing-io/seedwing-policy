@@ -1,12 +1,14 @@
 use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, EvaluationResult, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, EvaluationResult, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::lang::Severity;
+use crate::runtime::rationale::Rationale;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -31,8 +33,6 @@ impl Function for Some {
 
                 let mut supporting: Vec<EvaluationResult> = Vec::new();
 
-                let mut satisfied = false;
-
                 for item in list {
                     let item_result = pattern
                         .clone()
@@ -40,30 +40,30 @@ impl Function for Some {
                         .await?;
 
                     supporting.push(item_result.clone());
-
-                    if !satisfied && item_result.satisfied() {
-                        let count = supporting.iter().filter(|e| e.satisfied()).count();
-                        let expected_result = expected_count
-                            .evaluate(
-                                Arc::new((count as i64).into()),
-                                ctx,
-                                &Default::default(),
-                                world,
-                            )
-                            .await?;
-                        if expected_result.satisfied() {
-                            satisfied = true
-                        }
-                    }
                 }
 
-                if satisfied {
-                    Ok((Output::Identity, supporting).into())
-                } else {
-                    Ok((Output::None, supporting).into())
-                }
+                let count = supporting
+                    .iter()
+                    .filter(|e| e.severity() < Severity::Error)
+                    .count();
+
+                let expected_result = expected_count
+                    .evaluate(
+                        Arc::new((count as i64).into()),
+                        ctx,
+                        &Default::default(),
+                        world,
+                    )
+                    .await?;
+
+                let severity = match expected_result.severity() < Severity::Error {
+                    true => Severity::None,
+                    false => Severity::Error,
+                };
+
+                Ok((severity, supporting).into())
             } else {
-                Ok(Output::None.into())
+                Ok((Severity::Error, Rationale::NotAList).into())
             }
         })
     }

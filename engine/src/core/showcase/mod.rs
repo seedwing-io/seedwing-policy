@@ -1,8 +1,8 @@
 use crate::core::{BlockingFunction, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{EvalContext, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 use std::sync::Arc;
@@ -14,6 +14,7 @@ pub fn package() -> Package {
     pkg
 }
 
+/// Example for a built-in function, adding metadata.
 #[derive(Debug)]
 pub struct BuiltIn;
 
@@ -35,6 +36,6 @@ impl BlockingFunction for BuiltIn {
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {
         // does nothing
-        Ok(Output::Identity.into())
+        Ok(Severity::None.into())
     }
 }

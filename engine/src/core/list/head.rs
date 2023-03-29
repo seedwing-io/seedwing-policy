@@ -7,7 +7,8 @@ use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
+use crate::runtime::rationale::Rationale;
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("head.adoc");
@@ -46,7 +47,7 @@ impl Function for Head {
 
                 Ok(Output::Transform(Arc::new(result.into())).into())
             } else {
-                Ok(Output::None.into())
+                Ok((Severity::Error, Rationale::NotAList).into())
             }
         })
     }

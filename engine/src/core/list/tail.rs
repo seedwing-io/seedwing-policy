@@ -7,7 +7,7 @@ use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::lang::PatternMeta;
+use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 const DOCUMENTATION: &str = include_str!("tail.adoc");
@@ -49,7 +49,7 @@ impl Function for Tail {
 
                 Ok(Output::Transform(Arc::new(result.into())).into())
             } else {
-                Ok(Output::None.into())
+                Ok(Severity::Error.into())
             }
         })
     }

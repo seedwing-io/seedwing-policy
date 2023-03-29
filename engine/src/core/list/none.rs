@@ -1,13 +1,9 @@
-use crate::core::list::PATTERN;
-use crate::core::{Function, FunctionEvaluationResult};
-use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, World};
-use crate::runtime::{Output, RuntimeError};
+use crate::core::{list::PATTERN, Function, FunctionEvaluationResult};
+use crate::lang::{lir::Bindings, Severity};
+use crate::runtime::{rationale::Rationale, EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
-
 use std::future::Future;
 use std::pin::Pin;
-
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -37,13 +33,12 @@ impl Function for None {
                     );
                 }
 
-                if supporting.iter().all(|e| !e.satisfied()) {
-                    Ok((Output::Identity, supporting).into())
-                } else {
-                    Ok(Output::None.into())
+                match supporting.iter().all(|e| e.severity() == Severity::Error) {
+                    true => Ok((Severity::None, supporting).into()),
+                    false => Ok((Severity::Error, supporting).into()),
                 }
             } else {
-                Ok(Output::None.into())
+                Ok((Severity::Error, Rationale::NotAList).into())
             }
         })
     }

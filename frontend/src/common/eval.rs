@@ -1,4 +1,5 @@
 use patternfly_yew::prelude::*;
+use seedwing_policy_engine::lang::Severity;
 use seedwing_policy_engine::runtime::response::{Name, Response};
 use serde_json::Value;
 use std::rc::Rc;
@@ -34,16 +35,16 @@ impl TreeNode for ResponseModel {
     fn render_cell(&self, ctx: CellContext) -> Cell {
         match ctx.column {
             0 => {
-                let state = match self.0.satisfied {
-                    true => HelperTextState::Success,
-                    false => HelperTextState::Error,
+                let (icon,state) = match self.0.severity {
+                    Severity::None => (None, HelperTextState::Success),
+                    Severity::Advice=> (Some(Icon::InfoCircle), HelperTextState::Default),
+                    Severity::Warning => (None, HelperTextState::Warning),
+                    Severity::Error => (None, HelperTextState::Error),
                 };
                 html!(
-                    <>
-                        <HelperText>
-                            <HelperTextItem {state}>{ &self.0.reason }</HelperTextItem>
-                        </HelperText>
-                    </>
+                    <HelperText>
+                        <HelperTextItem {state} {icon}>{ &self.0.reason }</HelperTextItem>
+                    </HelperText>
                 )
             }
             1 => {

@@ -14,7 +14,8 @@ pattern test = {}
         json!(false),
         json!({
             "name": "test::test",
-            "failed": "Not foo",
+            "severity": "error",
+            "reason": "Not foo",
         }),
     )
     .await;
@@ -34,13 +35,16 @@ pattern test = {
         json!({"bar": "bar"}),
         json!({
             "name": "test::test",
+            "severity": "error",
             "failed": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
-                    "failed": "Not baz",
+                    "severity": "error",
+                    "reason": "Not baz",
                     "rationale": [{
-                        "failed": "Not baz"
+                        "severity": "error",
+                        "reason": "Not baz"
                     }]
                 }
             ]
@@ -68,13 +72,16 @@ pattern test = {
         }),
         json!({
             "name": "test::test",
+            "severity": "error",
             "failed": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
-                    "failed": "Not baz",
+                    "severity": "error",
+                    "reason": "Not baz",
                     "rationale": [{
-                        "failed": "Not baz",
+                        "severity": "error",
+                        "reason": "Not baz",
                     }]
                 },
                 {
@@ -104,6 +111,7 @@ pattern test = {
         }),
         json!({
             "name": "test::test",
+            "severity": "error",
             "failed": "Because not all fields were satisfied",
             "rationale": [
             ]
