@@ -132,6 +132,7 @@ impl Purl {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::assert_satisfied;
     use crate::runtime::testutil::test_pattern;
     use serde_json::json;
 
@@ -145,7 +146,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "rpm",
                     "namespace": "fedora",
@@ -157,7 +158,7 @@ mod test {
                     },
                 })
                 .into()
-            ))
+            )
         );
     }
 
@@ -171,7 +172,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "docker",
                     "namespace": "customer",
@@ -182,7 +183,7 @@ mod test {
                     },
                 })
                 .into()
-            ))
+            )
         );
     }
 
@@ -192,14 +193,14 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "cargo",
                     "name": "rand",
                     "version": "0.7.2",
                 })
                 .into()
-            ))
+            )
         );
     }
 
@@ -213,7 +214,7 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "github",
                     "namespace": "package-url",
@@ -222,7 +223,7 @@ mod test {
                     "subpath": "everybody/loves/dogs",
                 })
                 .into()
-            ))
+            )
         );
     }
 
@@ -241,13 +242,11 @@ mod test {
         )
         .await;
 
-        eprintln!("Rationale: {:#?}", result.rationale());
-
-        assert!(result.satisfied());
+        assert_satisfied!(&result);
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "rpm",
                     "namespace": "fedora",
@@ -259,7 +258,7 @@ mod test {
                     },
                 })
                 .into()
-            ))
+            )
         );
     }
 
@@ -269,13 +268,13 @@ mod test {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!({
                     "type": "pypi",
                     "name": "django",
                 })
                 .into()
-            ))
+            )
         );
     }
 }

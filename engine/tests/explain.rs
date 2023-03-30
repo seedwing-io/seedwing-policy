@@ -36,7 +36,7 @@ pattern test = {
         json!({
             "name": "test::test",
             "severity": "error",
-            "failed": "Because not all fields were satisfied",
+            "reason": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
@@ -73,7 +73,7 @@ pattern test = {
         json!({
             "name": "test::test",
             "severity": "error",
-            "failed": "Because not all fields were satisfied",
+            "reason": "Because not all fields were satisfied",
             "rationale": [
                 {
                     "name": "field:bar",
@@ -86,9 +86,10 @@ pattern test = {
                 },
                 {
                     "name": "field:foo",
-                    "rationale": [
-                        {}
-                    ]
+                    "reason": "The input matches the expected constant value expected in the pattern",
+                    "rationale": [{
+                        "reason": "The input matches the expected constant value expected in the pattern",
+                    }]
                 },
             ]
         }),
@@ -112,7 +113,7 @@ pattern test = {
         json!({
             "name": "test::test",
             "severity": "error",
-            "failed": "Because not all fields were satisfied",
+            "reason": "Because not all fields were satisfied",
             "rationale": [
             ]
         }),

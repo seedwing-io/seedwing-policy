@@ -75,10 +75,7 @@ mod test {
     async fn list_filter() {
         let json = serde_json::json!([1, 2, "foo"]);
         let result = test_pattern(r#"list::filter<integer>"#, json).await;
-        assert_satisfied!(result);
-        assert_eq!(
-            result.output().unwrap().as_json(),
-            serde_json::json!([1, 2])
-        );
+        assert_satisfied!(&result);
+        assert_eq!(result.output().as_json(), serde_json::json!([1, 2]));
     }
 }

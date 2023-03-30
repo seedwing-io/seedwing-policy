@@ -14,12 +14,13 @@ pub fn package() -> Package {
 
 #[cfg(test)]
 mod test {
+    use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvalContext;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn envelope() {
         let src = Ephemeral::new(
             "test",
@@ -43,9 +44,10 @@ mod test {
         });
         let result = runtime
             .evaluate("test::envelope", input, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
         //println!("result: {:?}", result);
-        assert!(result.as_ref().unwrap().satisfied());
+        assert_satisfied!(result);
 
         //let _output = result.unwrap().output().unwrap();
     }

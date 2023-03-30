@@ -62,9 +62,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_parseable() {
         let src = Ephemeral::new(
             "test",
@@ -89,13 +90,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-json", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        assert!(result.unwrap().satisfied())
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonparseable() {
         let src = Ephemeral::new(
             "test",
@@ -116,9 +117,9 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-json", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 }

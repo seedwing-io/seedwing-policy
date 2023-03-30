@@ -48,24 +48,24 @@ mod test {
     use crate::{assert_satisfied, runtime::testutil::test_pattern};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_count() {
         let result = test_pattern(r#"list::count( $(self == 4) )"#, json!([1, 2, 3, 4])).await;
-        assert_satisfied!(result);
-        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 4);
+        assert_satisfied!(&result);
+        assert_eq!(result.output().try_get_integer().unwrap(), 4);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_length() {
         let result = test_pattern(r#"list::count( $(self == 2) )"#, json!([1, 2])).await;
-        assert_satisfied!(result);
-        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 2);
+        assert_satisfied!(&result);
+        assert_eq!(result.output().try_get_integer().unwrap(), 2);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_count_none_list() {
         let result = test_pattern(r#"list::count( $(self == 0) )"#, json!(123)).await;
-        assert_satisfied!(result);
-        assert_eq!(result.output().unwrap().try_get_integer().unwrap(), 0);
+        assert_satisfied!(&result);
+        assert_eq!(result.output().try_get_integer().unwrap(), 0);
     }
 }

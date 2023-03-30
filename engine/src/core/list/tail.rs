@@ -59,6 +59,7 @@ impl Function for Tail {
 mod test {
     use crate::runtime::testutil::*;
 
+    use crate::assert_satisfied;
     use serde_json::json;
 
     #[tokio::test]
@@ -72,7 +73,7 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -86,7 +87,7 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -100,7 +101,7 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -114,7 +115,7 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -128,7 +129,7 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -142,6 +143,6 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 }

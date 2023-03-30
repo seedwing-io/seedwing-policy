@@ -43,9 +43,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_length() {
         let src = Ephemeral::new(
             "test",
@@ -64,11 +65,10 @@ mod test {
             .evaluate("test::ten", json!("abcdefghij"), EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_alias() {
         let src = Ephemeral::new(
             "test",
@@ -87,10 +87,10 @@ mod test {
             .evaluate("test::ten", json!("abcdefghij"), EvalContext::default())
             .await;
 
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_non_matching_length() {
         let src = Ephemeral::new(
             "test",
@@ -113,13 +113,10 @@ mod test {
             )
             .await;
 
-        println!("result --> {result:?}");
-
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_non_matching_not_a_string() {
         let src = Ephemeral::new(
             "test",
@@ -138,7 +135,6 @@ mod test {
             .evaluate("test::ten", json!(10), EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 }

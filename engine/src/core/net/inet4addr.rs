@@ -91,9 +91,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_exact_match() {
         let src = Ephemeral::new(
             "test",
@@ -103,13 +104,13 @@ mod test {
         );
 
         let result = eval(src.clone(), "test::allow", "10.0.0.1").await.unwrap();
-        assert!(result.satisfied(), "{:?}", result.rationale());
+        assert_satisfied!(result);
 
         let result = eval(src, "test::allow", "10.0.0.2").await.unwrap();
-        assert!(!result.satisfied(), "{:?}", result.rationale());
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_cidr_match() {
         let src = Ephemeral::new(
             "test",
@@ -118,18 +119,11 @@ mod test {
         "#,
         );
 
-        assert!(eval(src.clone(), "test::allow", "10.0.0.1")
-            .await
-            .unwrap()
-            .satisfied());
-
-        assert!(!eval(src, "test::allow", "10.1.0.1")
-            .await
-            .unwrap()
-            .satisfied());
+        assert_satisfied!(eval(src.clone(), "test::allow", "10.0.0.1").await.unwrap());
+        assert_not_satisfied!(eval(src, "test::allow", "10.1.0.1").await.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_invalid_matcher() {
         let src = Ephemeral::new(
             "test",
@@ -138,13 +132,10 @@ mod test {
         "#,
         );
 
-        assert!(!eval(src, "test::allow", "10.0.0.1")
-            .await
-            .unwrap()
-            .satisfied());
+        assert_not_satisfied!(eval(src, "test::allow", "10.0.0.1").await.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_invalid_input() {
         let src = Ephemeral::new(
             "test",
@@ -153,10 +144,7 @@ mod test {
         "#,
         );
 
-        assert!(!eval(src, "test::allow", "10.0.0.a")
-            .await
-            .unwrap()
-            .satisfied());
+        assert_not_satisfied!(eval(src, "test::allow", "10.0.0.a").await.unwrap());
     }
 
     async fn eval(

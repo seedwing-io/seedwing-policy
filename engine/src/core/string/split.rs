@@ -53,11 +53,12 @@ impl Function for Split {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn string_split() {
         let src = Ephemeral::new(
             "test",
@@ -71,10 +72,11 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sp", json!("1,2,3,4"), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
 
-        let output = result.unwrap().output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 4);
         assert!(list.contains(&Arc::new(RuntimeValue::String("1".to_string()))));
@@ -83,7 +85,7 @@ mod test {
         assert!(list.contains(&Arc::new(RuntimeValue::String("4".to_string()))));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn string_split_no_pattern() {
         let src = Ephemeral::new(
             "test",
@@ -97,15 +99,16 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sp", json!("1,2,3,4"), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
 
-        let output = result.unwrap().output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 0);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn string_split_no_pattern_found() {
         let src = Ephemeral::new(
             "test",
@@ -119,10 +122,11 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sp", json!("1:2:3:4"), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
 
-        let output = result.unwrap().output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 1);
         assert!(list.contains(&Arc::new(RuntimeValue::String("1:2:3:4".to_string()))));

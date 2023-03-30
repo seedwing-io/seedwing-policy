@@ -84,9 +84,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_slice() {
         let src = Ephemeral::new(
             "test",
@@ -100,17 +101,18 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
 
-        let output = result.unwrap().output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 2);
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(3))));
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(4))));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_slice_invalid_start_index() {
         let src = Ephemeral::new(
             "test",
@@ -124,16 +126,25 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
-            .await;
-        assert!(!result.as_ref().unwrap().satisfied());
-        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid start index specified")
-            }
+            .await
+            .unwrap();
+        assert_not_satisfied!(&result);
+        match result.rationale() {
+            Rationale::Function {
+                severity: _,
+                rationale: out,
+                supporting: _,
+            } => match &**(out.as_ref().unwrap()) {
+                Rationale::InvalidArgument(msg) => {
+                    assert_eq!(msg, "invalid start index specified")
+                }
+                _ => {}
+            },
+            _ => {}
         }
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_slice_invalid_end_index() {
         let src = Ephemeral::new(
             "test",
@@ -147,16 +158,25 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
-            .await;
-        assert!(!result.as_ref().unwrap().satisfied());
-        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid end index specified")
-            }
+            .await
+            .unwrap();
+        assert_not_satisfied!(&result);
+        match result.rationale() {
+            Rationale::Function {
+                severity: _,
+                rationale: out,
+                supporting: _,
+            } => match &**(out.as_ref().unwrap()) {
+                Rationale::InvalidArgument(msg) => {
+                    assert_eq!(msg, "invalid end index specified")
+                }
+                _ => {}
+            },
+            _ => {}
         }
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_slice_invalid_index() {
         let src = Ephemeral::new(
             "test",
@@ -170,12 +190,21 @@ mod test {
         let runtime = builder.finish().await.unwrap();
         let result = runtime
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
-            .await;
-        assert!(!result.as_ref().unwrap().satisfied());
-        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "start index cannot be greater than end index")
-            }
+            .await
+            .unwrap();
+        assert_not_satisfied!(&result);
+        match result.rationale() {
+            Rationale::Function {
+                severity: _,
+                rationale: out,
+                supporting: _,
+            } => match &**(out.as_ref().unwrap()) {
+                Rationale::InvalidArgument(msg) => {
+                    assert_eq!(msg, "start index cannot be greater than end index")
+                }
+                _ => {}
+            },
+            _ => {}
         }
     }
 }

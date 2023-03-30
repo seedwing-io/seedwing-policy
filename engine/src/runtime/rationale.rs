@@ -35,7 +35,7 @@ impl Rationale {
             Rationale::Nothing => Severity::Error,
             Rationale::Object(fields) => fields
                 .values()
-                .filter_map(|r| r.as_ref().map(|r| r.severity()))
+                .map(|r| r.as_ref().map(|e| e.severity()).unwrap_or(Severity::Error))
                 .collect(),
             Rationale::List(items) => items.iter().collect(),
             Rationale::NotAnObject => Severity::Error,

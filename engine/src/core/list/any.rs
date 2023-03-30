@@ -1,5 +1,4 @@
-use crate::core::list::PATTERN;
-use crate::core::{Function, FunctionEvaluationResult};
+use crate::core::{list::PATTERN, Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::runtime::{EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
@@ -64,9 +63,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -87,11 +87,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -112,11 +111,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -137,10 +135,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -161,11 +159,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_heterogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -186,11 +183,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_heterogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -211,11 +207,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_heterogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -236,11 +231,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_empty() {
         let src = Ephemeral::new(
             "test",
@@ -261,11 +255,10 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nested() {
         let src = Ephemeral::new(
             "test",
@@ -288,7 +281,6 @@ mod test {
             .evaluate("test::test-any", value, EvalContext::default())
             .await;
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result.unwrap());
     }
 }

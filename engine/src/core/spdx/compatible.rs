@@ -77,9 +77,10 @@ mod test {
 
     use crate::runtime::testutil::test_pattern;
 
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn gpl() {
         let result = test_pattern(
             r#"
@@ -89,10 +90,10 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn fail() {
         let result = test_pattern(
             r#"
@@ -102,10 +103,10 @@ mod test {
         )
         .await;
 
-        assert!(!result.satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn multiple() {
         let result = test_pattern(
             r#"
@@ -115,10 +116,10 @@ mod test {
         )
         .await;
 
-        assert!(result.satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn multiple_fails() {
         let result = test_pattern(
             r#"
@@ -128,6 +129,6 @@ mod test {
         )
         .await;
 
-        assert!(!result.satisfied())
+        assert_not_satisfied!(result);
     }
 }

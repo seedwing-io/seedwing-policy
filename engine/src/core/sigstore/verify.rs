@@ -112,7 +112,7 @@ mod test {
     use super::*;
     use crate::{assert_satisfied, runtime::testutil::test_patterns};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn verify_blob() {
         let result = test_patterns(
             r#"
@@ -124,10 +124,10 @@ mod test {
             RuntimeValue::String("something\n".to_string()),
         )
         .await;
-        assert_satisfied!(result);
+        assert_satisfied!(&result);
 
-        let output = result.output().unwrap();
-        assert!(output.is_boolean());
-        assert!(output.try_get_boolean().unwrap());
+        let output = result.output();
+        assert_eq!(output.is_boolean(), true);
+        assert_eq!(output.try_get_boolean().unwrap(), true);
     }
 }

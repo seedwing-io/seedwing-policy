@@ -102,7 +102,7 @@ mod tests {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!([{
                     "type": "github",
                     "namespace": "package-url",
@@ -112,7 +112,7 @@ mod tests {
                 }, null,
                 ])
                 .into()
-            ))
+            )
         );
     }
 
@@ -135,7 +135,7 @@ mod tests {
 
         assert_eq!(
             result.output(),
-            Some(Arc::new(
+            Arc::new(
                 json!([{
                     "type": "github",
                     "namespace": "package-url",
@@ -150,7 +150,7 @@ mod tests {
                     "subpath": "everybody/loves/cats",
                 }])
                 .into()
-            ))
+            )
         );
     }
 }
