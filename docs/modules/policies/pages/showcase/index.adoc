@@ -22,3 +22,20 @@ This pattern is marked deprecated, without further information.
 == `unstable`
 
 This pattern is considered unstable/experimental.
+
+[#using_asciidoc]
+== `using_asciidoc`
+
+A pattern making use of Asciidoc
+
+Like *bold*, _italic_, or `monospace`.
+
+NOTE: Also more complex constructs should be possible.
+
+Like code blocks:
+
+[source,json]
+----
+{ "foo": {"bar": true}} <1>
+----
+<1> The usual "foo bar"
