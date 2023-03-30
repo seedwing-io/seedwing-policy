@@ -1,7 +1,7 @@
 use crate::lang::lir::Bindings;
-use crate::runtime::rationale::Rationale;
 use crate::runtime::{
-    EvalContext, EvaluationResult, Output, Pattern, PatternName, RuntimeError, World,
+    rationale::Rationale, EvalContext, EvaluationResult, Output, Pattern, PatternName,
+    RuntimeError, World,
 };
 use crate::value::RuntimeValue;
 

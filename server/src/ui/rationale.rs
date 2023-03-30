@@ -73,7 +73,6 @@ impl<'r> Rationalizer<'r> {
                         Self::rationale_inner(html, each);
                     }
                 }
-                Rationale::Refinement(_, _) => {}
             }
             html.push_str("</div>");
         } else if result.severity() < Severity::Error {
@@ -221,12 +220,6 @@ impl<'r> Rationalizer<'r> {
                     }
                 }
                  */
-            }
-            Rationale::Refinement(primary, refinement) => {
-                Self::rationale_inner(html, primary);
-                if let Some(refinement) = refinement {
-                    Self::rationale_inner(html, refinement);
-                }
             }
         }
     }
