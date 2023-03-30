@@ -89,7 +89,7 @@ impl Serialize for Response {
             "satisfied" => state.serialize_field("satisfied", &self.satisfied),
             "reason" => state.serialize_field("reason", &self.reason),
             "rationale" => state.serialize_field("rationale", &self.rationale),
-            _ => Err(ser::Error::custom("Unknown field name")),
+            _ => Err(ser::Error::custom(format!("Unknown field name: {s}"))),
         };
         let fields = if self.fields.len() > 0 {
             self.fields.clone()

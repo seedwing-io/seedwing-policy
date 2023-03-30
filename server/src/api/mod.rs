@@ -200,19 +200,20 @@ fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpR
             format,
             collapse,
             select,
-        } => {
-            let rationale = format.format(&result, collapse, select);
-
-            if result.satisfied() {
-                HttpResponse::Ok()
-                    .content_type(format.content_type())
-                    .body(rationale)
-            } else {
-                HttpResponse::UnprocessableEntity()
-                    .content_type(format.content_type())
-                    .body(rationale)
+        } => match format.format(&result, collapse, select) {
+            Ok(rationale) => {
+                if result.satisfied() {
+                    HttpResponse::Ok()
+                        .content_type(format.content_type())
+                        .body(rationale)
+                } else {
+                    HttpResponse::UnprocessableEntity()
+                        .content_type(format.content_type())
+                        .body(rationale)
+                }
             }
-        }
+            Err(e) => HttpResponse::BadRequest().json(json!({ "error": e.to_string() })),
+        },
     }
 }
 
