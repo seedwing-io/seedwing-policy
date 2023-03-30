@@ -2,12 +2,13 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
 use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
+use sigstore::cosign::client::Client as Cosign;
+use sigstore::cosign::CosignCapabilities;
 
 use crate::lang::PatternMeta;
 use crate::runtime::{EvalContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
-use sigstore::cosign::CosignCapabilities;
 use sigstore::tuf::SigstoreRepository;
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -78,7 +79,7 @@ impl Function for VerifyBlob {
                     .await
                     .unwrap();
 
-                match sigstore::cosign::client::Client::verify_blob(&cert, &sig, blob.as_bytes()) {
+                match Cosign::verify_blob(&cert, &sig, blob.as_bytes()) {
                     Ok(_) => {
                         return Ok(Output::Transform(Arc::new(RuntimeValue::Boolean(true))).into())
                     }

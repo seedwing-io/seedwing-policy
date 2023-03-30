@@ -62,12 +62,12 @@ Same as before, but using a URL already processed by `url`
 [source,json]
 ----
 {
+  "scheme": "pkg",
   "path": "rpm/fedora/curl@7.50.3-1.fc25",
   "query": {
     "arch": "i386",
     "distro": "fedora-25"
-  },
-  "scheme": "pkg"
+  }
 }
 ----
 
