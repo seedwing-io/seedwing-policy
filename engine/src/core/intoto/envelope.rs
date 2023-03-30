@@ -244,7 +244,7 @@ async fn get_blob<'v>(
             .evaluate(input.clone(), ctx, bindings, world)
             .await?;
 
-        if matches!(result.severity(), Severity::Error) {
+        if result.severity() < Severity::Error {
             if let Some(octs) = result.output().try_get_octets() {
                 return Ok(octs.to_owned());
             }
@@ -324,7 +324,7 @@ mod test {
     use serde_json::json;
     use std::fs;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn verify_envelope() {
         let input_str = fs::read_to_string(
             test_data_dir()
@@ -344,9 +344,9 @@ mod test {
             pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
             RuntimeValue::from(&input_json)
         ).await;
-        assert_satisfied!(result);
+        assert_satisfied!(&result);
 
-        let output = result.output().unwrap().as_json();
+        let output = result.output().as_json();
         assert!(output.is_array());
         let output = &output[0];
 
@@ -366,7 +366,7 @@ mod test {
         );
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn verify_envelope_invalid_attesters() {
         let input_str = fs::read_to_string(
             test_data_dir()
@@ -390,7 +390,7 @@ mod test {
         assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn verify_envelope_invalid_payload_type() {
         let input = json!({
            "payloadType": "application/vnd.in-typo+json",
@@ -406,15 +406,23 @@ mod test {
             value,
         )
         .await;
-        assert_not_satisfied!(result);
+        assert_not_satisfied!(&result);
 
-        if let Rationale::Function(_, out, _) = result.rationale() {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(
-                    msg,
-                    "invalid payloadType specified application/vnd.in-typo+json"
-                );
-            }
+        match result.rationale() {
+            Rationale::Function {
+                severity: _,
+                rationale: out,
+                supporting: _,
+            } => match &**(out.as_ref().unwrap()) {
+                Rationale::InvalidArgument(msg) => {
+                    assert_eq!(
+                        msg,
+                        "invalid payloadType specified application/vnd.in-typo+json"
+                    );
+                }
+                _ => {}
+            },
+            _ => {}
         }
     }
 

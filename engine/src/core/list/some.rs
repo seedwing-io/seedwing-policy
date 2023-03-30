@@ -27,11 +27,25 @@ impl Function for Some {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Option::Some(list) = input.try_get_list() {
-                let expected_count = bindings.get(COUNT).unwrap();
-                let pattern = bindings.get(PATTERN).unwrap();
+            let expected_count = match bindings.get(COUNT) {
+                Option::Some(expected_count) => expected_count,
+                Option::None => return Ok(Severity::Error.into()),
+            };
 
+            let pattern = match bindings.get(PATTERN) {
+                Option::Some(pattern) => pattern,
+                Option::None => return Ok(Severity::Error.into()),
+            };
+
+            if let Option::Some(list) = input.try_get_list() {
+                let mut satisfied = false;
                 let mut supporting: Vec<EvaluationResult> = Vec::new();
+                let mut count = 0usize;
+
+                // Fill the target until we reach the COUNT pattern, or more.
+                // This means that we need to check every successful item, as otherwise
+                // we may run over the target amount, which would also lead to a failed
+                // COUNT check (as would "not enough").
 
                 for item in list {
                     let item_result = pattern
@@ -40,23 +54,30 @@ impl Function for Some {
                         .await?;
 
                     supporting.push(item_result.clone());
+
+                    let item_satisfied = item_result.severity() < Severity::Error;
+
+                    // check if we now reached the target, but only if we didn't succeed it so far
+                    if !satisfied && item_satisfied {
+                        // we did succeed with this item, so count that
+                        count += 1;
+
+                        // now check
+                        let expected_result = expected_count
+                            .evaluate(
+                                Arc::new((count as i64).into()),
+                                ctx,
+                                &Default::default(),
+                                world,
+                            )
+                            .await?;
+
+                        // record the outcome
+                        satisfied = expected_result.severity() < Severity::Error;
+                    }
                 }
 
-                let count = supporting
-                    .iter()
-                    .filter(|e| e.severity() < Severity::Error)
-                    .count();
-
-                let expected_result = expected_count
-                    .evaluate(
-                        Arc::new((count as i64).into()),
-                        ctx,
-                        &Default::default(),
-                        world,
-                    )
-                    .await?;
-
-                let severity = match expected_result.severity() < Severity::Error {
+                let severity = match satisfied {
                     true => Severity::None,
                     false => Severity::Error,
                 };
@@ -74,9 +95,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -95,13 +117,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -120,13 +142,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_type_more_than_necessary() {
         let src = Ephemeral::new(
             "test",
@@ -145,13 +167,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -170,13 +192,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -195,13 +217,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_heterogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -220,13 +242,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_heterogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -245,13 +267,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_heterogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -270,13 +292,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_empty() {
         let src = Ephemeral::new(
             "test",
@@ -295,9 +317,9 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-some", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 }

@@ -60,9 +60,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_with_valid_param() {
         let src = Ephemeral::new(
             "test",
@@ -84,10 +85,11 @@ mod test {
                 EvalContext::default(),
             )
             .await;
-        assert!(result.unwrap().satisfied())
+
+        assert_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_with_valid_param() {
         let src = Ephemeral::new(
             "test",
@@ -109,10 +111,11 @@ mod test {
                 EvalContext::default(),
             )
             .await;
-        assert!(!result.unwrap().satisfied());
+
+        assert_not_satisfied!(result.unwrap());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_with_invalid_param() {
         let src = Ephemeral::new(
             "test",
@@ -134,6 +137,7 @@ mod test {
                 EvalContext::default(),
             )
             .await;
-        assert!(!result.unwrap().satisfied());
+
+        assert_not_satisfied!(result.unwrap());
     }
 }

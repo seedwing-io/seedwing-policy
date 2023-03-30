@@ -60,11 +60,12 @@ impl Function for Concat {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn can_append() {
         let src = Ephemeral::new(
             "test",
@@ -84,13 +85,13 @@ mod test {
             .await
             .unwrap();
 
-        assert!(result.satisfied());
-        let output = result.output().unwrap();
+        assert_satisfied!(&result);
+        let output = result.output();
         assert!(output.is_string());
         assert_eq!(output.as_json(), json!("data.json"));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn can_prepend() {
         let src = Ephemeral::new(
             "test",
@@ -110,8 +111,8 @@ mod test {
             .await
             .unwrap();
 
-        assert!(result.satisfied());
-        let output = result.output().unwrap();
+        assert_satisfied!(&result);
+        let output = result.output();
         assert!(output.is_string());
         assert_eq!(output.as_json(), json!("my:data"));
     }

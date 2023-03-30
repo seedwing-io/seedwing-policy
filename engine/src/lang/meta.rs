@@ -1,6 +1,5 @@
-use crate::runtime::EvaluationResult;
 use crate::{
-    lang::hir,
+    lang::{hir, Severity},
     runtime::{is_default, metadata::Documentation, BuildError},
 };
 use serde::{Deserialize, Serialize};
@@ -48,51 +47,6 @@ impl From<hir::AttributeValues> for Deprecation {
         let reason = value.flags().next().map(ToString::to_string);
         let since = value.values.remove("since").flatten();
         Deprecation { reason, since }
-    }
-}
-
-/// Severity of the outcome
-///
-/// | Value     | Satisfied |
-/// | --------- | :-------: |
-/// | `None`    | ✅        |
-/// | `Advice`  | ✅        |
-/// | `Warning` | ✅        |
-/// | `Error`   | ❌        |
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Severity {
-    /// Good
-    #[default]
-    None,
-    /// All good, but there is something you might want to know
-    Advice,
-    /// Good, but smells fishy
-    Warning,
-    /// Boom! Bad!
-    Error,
-}
-
-impl FromIterator<Severity> for Severity {
-    fn from_iter<T: IntoIterator<Item = Severity>>(iter: T) -> Self {
-        let mut highest = Severity::None;
-
-        for s in iter {
-            if s == Severity::Error {
-                return Severity::Error;
-            }
-            if s > highest {
-                highest = s;
-            }
-        }
-
-        highest
-    }
-}
-
-impl<'a> FromIterator<&'a EvaluationResult> for Severity {
-    fn from_iter<T: IntoIterator<Item = &'a EvaluationResult>>(iter: T) -> Self {
-        iter.into_iter().map(|e| e.severity()).collect()
     }
 }
 
@@ -166,7 +120,7 @@ mod test {
 
     #[test]
     fn test_empty() {
-        let s: Severity = vec![].into_iter().collect();
+        let s: Severity = Vec::<Severity>::new().into_iter().collect();
         assert_eq!(Severity::None, s);
     }
 
@@ -175,6 +129,6 @@ mod test {
         let s: Severity = vec![Severity::Warning, Severity::Error, Severity::Advice]
             .into_iter()
             .collect();
-        assert_eq!(Severity::None, s);
+        assert_eq!(Severity::Error, s);
     }
 }

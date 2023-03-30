@@ -98,11 +98,12 @@ impl Function for Or {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_operation() {
         let src = Ephemeral::new(
             "test",
@@ -121,8 +122,9 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-or", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 }

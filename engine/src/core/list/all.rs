@@ -60,9 +60,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -81,13 +82,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -106,13 +107,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_literal() {
         let src = Ephemeral::new(
             "test",
@@ -131,13 +132,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::None),))
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_nonmatching_homogenous_type() {
         let src = Ephemeral::new(
             "test",
@@ -156,12 +157,13 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        assert!(!result.unwrap().satisfied())
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_empty() {
         let src = Ephemeral::new(
             "test",
@@ -180,9 +182,9 @@ mod test {
 
         let result = runtime
             .evaluate("test::test-all", value, EvalContext::default())
-            .await;
+            .await
+            .unwrap();
 
-        //assert!(matches!(result, Ok(RationaleResult::Same(_)),))
-        assert!(result.unwrap().satisfied())
+        assert_satisfied!(result);
     }
 }

@@ -395,6 +395,8 @@ impl Pattern {
                 if let Some(obj) = locked_value.try_get_object() {
                     let mut result = HashMap::new();
 
+                    // TODO: think about pre-aggregating the severity to later on just use the result
+
                     for field in &inner.fields {
                         if let Some(ref field_value) = obj.get(field.name()) {
                             result.insert(

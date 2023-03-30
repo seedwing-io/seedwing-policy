@@ -3,10 +3,11 @@
 //! Types used for compiling policies and evaluating them.
 use crate::core::Function;
 
-use crate::runtime::PatternName;
+use crate::runtime::{EvaluationResult, PatternName};
 use serde::{Deserialize, Serialize};
 
 use std::fmt;
+use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -117,5 +118,62 @@ impl PartialEq for PrimordialPattern {
             (Self::Function(_, lhs, _), Self::Function(_, rhs, _)) => lhs.eq(rhs),
             _ => false,
         }
+    }
+}
+
+/// Severity of the outcome
+///
+/// | Value     | Satisfied |
+/// | --------- | :-------: |
+/// | `None`    | ✅        |
+/// | `Advice`  | ✅        |
+/// | `Warning` | ✅        |
+/// | `Error`   | ❌        |
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Severity {
+    /// Good
+    #[default]
+    None,
+    /// All good, but there is something you might want to know
+    Advice,
+    /// Good, but smells fishy
+    Warning,
+    /// Boom! Bad!
+    Error,
+}
+
+impl fmt::Display for Severity {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => f.write_str("none"),
+            Self::Advice => f.write_str("advice"),
+            Self::Warning => f.write_str("warning"),
+            Self::Error => f.write_str("error"),
+        }
+    }
+}
+
+/// Allow building a severity from a list of severities, the highest will win.
+impl FromIterator<Severity> for Severity {
+    fn from_iter<T: IntoIterator<Item = Severity>>(iter: T) -> Self {
+        let mut highest = Severity::None;
+
+        for s in iter {
+            if s == Severity::Error {
+                return Severity::Error;
+            }
+            if s > highest {
+                highest = s;
+            }
+        }
+
+        highest
+    }
+}
+
+impl<'a> FromIterator<&'a EvaluationResult> for Severity {
+    fn from_iter<T: IntoIterator<Item = &'a EvaluationResult>>(iter: T) -> Self {
+        iter.into_iter().map(EvaluationResult::severity).collect()
     }
 }

@@ -9,7 +9,7 @@ pub fn package() -> Package {
 
 #[cfg(test)]
 mod test {
-
+    use crate::lang::Severity;
     use crate::runtime::testutil::test_pattern;
 
     #[tokio::test]
@@ -18,6 +18,6 @@ mod test {
         let json: serde_json::Value = serde_json::from_str(input).unwrap();
         let result = test_pattern(r#"csaf::csaf"#, json).await;
 
-        assert!(result.satisfied());
+        assert_eq!(result.severity(), Severity::None);
     }
 }

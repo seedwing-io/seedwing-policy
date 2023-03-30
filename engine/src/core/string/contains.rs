@@ -51,11 +51,12 @@ impl Function for Contains {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn string_contains() {
         let src = Ephemeral::new(
             "test",
@@ -73,18 +74,13 @@ mod test {
                 json!("Some people like coffee."),
                 EvalContext::default(),
             )
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-        assert!(result
-            .as_ref()
-            .unwrap()
-            .output()
-            .unwrap()
-            .try_get_boolean()
-            .unwrap());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
+        assert_eq!(result.output().try_get_boolean().unwrap(), true);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn string_contains_no_substring() {
         let src = Ephemeral::new(
             "test",
@@ -102,14 +98,9 @@ mod test {
                 json!("anything old text here..."),
                 EvalContext::default(),
             )
-            .await;
-        assert!(result.as_ref().unwrap().satisfied());
-        assert!(!result
-            .as_ref()
-            .unwrap()
-            .output()
-            .unwrap()
-            .try_get_boolean()
-            .unwrap());
+            .await
+            .unwrap();
+        assert_satisfied!(&result);
+        assert_eq!(result.output().try_get_boolean().unwrap(), false);
     }
 }

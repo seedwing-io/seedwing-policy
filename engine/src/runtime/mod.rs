@@ -896,26 +896,30 @@ pub mod testutil {
 
     #[macro_export]
     macro_rules! assert_satisfied {
-        ( $result:expr ) => {
+        ( $result:expr ) => {{
+            let __result = $result;
             assert!(
-                $result.satisfied(),
-                "{}",
-                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&$result))
+                __result.severity() < $crate::lang::Severity::Error,
+                "severity: {}, response: {}",
+                __result.severity(),
+                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&__result))
                     .unwrap()
             );
-        };
+        }};
     }
 
     #[macro_export]
     macro_rules! assert_not_satisfied {
-        ( $result:expr ) => {
+        ( $result:expr ) => {{
+            let __result = $result;
             assert!(
-                !$result.satisfied(),
-                "{}",
-                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&$result))
+                __result.severity() == $crate::lang::Severity::Error,
+                "severity: {}, response: {}",
+                __result.severity(),
+                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&__result))
                     .unwrap()
             );
-        };
+        }};
     }
 }
 
@@ -926,6 +930,7 @@ mod test {
     use crate::runtime::sources::{Directory, Ephemeral};
 
     use crate::runtime::metadata::{Documentation, InnerPatternMetadata, SubpackageMetadata};
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
     use std::env;
 
@@ -984,7 +989,8 @@ mod test {
             }),
         )
         .await;
-        assert!(result.satisfied())
+
+        assert_satisfied!(result);
     }
 
     #[tokio::test]
@@ -1005,8 +1011,9 @@ mod test {
                 "name": "Frank",
                 "age": 66,
         });
-        assert!(testutil::test_pattern(pattern, bob).await.satisfied());
-        assert!(!testutil::test_pattern(pattern, frank).await.satisfied());
+
+        assert_satisfied!(testutil::test_pattern(pattern, bob).await);
+        assert_not_satisfied!(testutil::test_pattern(pattern, frank).await);
     }
 
     #[tokio::test]
@@ -1027,8 +1034,9 @@ mod test {
                 "name": 42,
                 "age": 69,
         });
-        assert!(testutil::test_pattern(pattern, bob).await.satisfied());
-        assert!(testutil::test_pattern(pattern, jim).await.satisfied());
+
+        assert_satisfied!(testutil::test_pattern(pattern, bob).await);
+        assert_satisfied!(testutil::test_pattern(pattern, jim).await);
     }
 
     #[tokio::test]
@@ -1047,10 +1055,11 @@ mod test {
             }
             "#;
         let f = |name, age| json!({"name": name, "age": age});
-        assert!(testutil::test_pattern(pat, f("Bob", 49)).await.satisfied());
-        assert!(testutil::test_pattern(pat, f("Jim", 53)).await.satisfied());
-        assert!(!testutil::test_pattern(pat, f("Jim", 49)).await.satisfied());
-        assert!(!testutil::test_pattern(pat, f("Bob", 42)).await.satisfied());
+
+        assert_satisfied!(testutil::test_pattern(pat, f("Bob", 49)).await);
+        assert_satisfied!(testutil::test_pattern(pat, f("Jim", 53)).await);
+        assert_not_satisfied!(testutil::test_pattern(pat, f("Jim", 49)).await);
+        assert_not_satisfied!(testutil::test_pattern(pat, f("Bob", 42)).await);
     }
 
     #[tokio::test]

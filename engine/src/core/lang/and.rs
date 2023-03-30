@@ -64,9 +64,10 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_both_arms() {
         let src = Ephemeral::new(
             "test",
@@ -98,11 +99,13 @@ mod test {
                 ),
                 EvalContext::default(),
             )
-            .await;
-        assert!(result.unwrap().satisfied())
+            .await
+            .unwrap();
+
+        assert_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_only_left_arm() {
         let src = Ephemeral::new(
             "test",
@@ -134,11 +137,13 @@ mod test {
                 ),
                 EvalContext::default(),
             )
-            .await;
-        assert!(!result.unwrap().satisfied())
+            .await
+            .unwrap();
+
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_only_right_arm() {
         let src = Ephemeral::new(
             "test",
@@ -170,11 +175,13 @@ mod test {
                 ),
                 EvalContext::default(),
             )
-            .await;
-        assert!(!result.unwrap().satisfied())
+            .await
+            .unwrap();
+
+        assert_not_satisfied!(result);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn call_matching_no_arms() {
         let src = Ephemeral::new(
             "test",
@@ -207,7 +214,9 @@ mod test {
                 ),
                 EvalContext::default(),
             )
-            .await;
-        assert!(!result.unwrap().satisfied())
+            .await
+            .unwrap();
+
+        assert_not_satisfied!(result);
     }
 }

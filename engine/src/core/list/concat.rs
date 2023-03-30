@@ -85,12 +85,12 @@ mod test {
     use crate::{assert_not_satisfied, assert_satisfied, runtime::testutil::test_pattern};
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_concat() {
         let result = test_pattern(r#"list::concat<[4, 5, 6]>"#, json!([1, 2, 3])).await;
-        assert_satisfied!(result);
+        assert_satisfied!(&result);
 
-        let output = result.output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 6);
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(1))));
@@ -101,12 +101,12 @@ mod test {
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(6))));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_append_empty_list() {
         let result = test_pattern(r#"list::append<[1, 2, 3]>"#, json!([])).await;
-        assert_satisfied!(result);
+        assert_satisfied!(&result);
 
-        let output = result.output().unwrap();
+        let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 3);
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(1))));
@@ -114,15 +114,23 @@ mod test {
         assert!(list.contains(&Arc::new(RuntimeValue::Integer(3))));
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn list_concat_invalid_input() {
         let result = test_pattern(r#"list::concat<"some string">"#, json!([1, 2, 3])).await;
-        assert_not_satisfied!(result);
+        assert_not_satisfied!(&result);
 
-        if let Rationale::Function(_, out, _) = result.rationale() {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid type specified for list parameter")
-            }
+        match result.rationale() {
+            Rationale::Function {
+                severity: _,
+                rationale: out,
+                supporting: _,
+            } => match &**(out.as_ref().unwrap()) {
+                Rationale::InvalidArgument(msg) => {
+                    assert_eq!(msg, "invalid type specified for list parameter")
+                }
+                _ => {}
+            },
+            _ => {}
         }
     }
 }

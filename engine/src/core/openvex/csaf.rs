@@ -209,6 +209,7 @@ fn flag2justification(flag: &FlagLabel) -> Justification {
 
 #[cfg(test)]
 mod tests {
+    use crate::assert_satisfied;
     use crate::runtime::testutil::test_pattern;
 
     #[tokio::test]
@@ -216,6 +217,6 @@ mod tests {
         let input = include_str!("../csaf/rhba-2023_0564.json");
         let json: serde_json::Value = serde_json::from_str(input).unwrap();
         let result = test_pattern(r#"openvex::from-csaf"#, json).await;
-        assert!(result.satisfied());
+        assert_satisfied!(result);
     }
 }

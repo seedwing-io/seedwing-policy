@@ -73,9 +73,10 @@ mod test {
     use crate::runtime::sources::Ephemeral;
     use crate::runtime::EvalContext;
 
+    use crate::assert_satisfied;
     use serde_json::json;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn basic_smoke_test() {
         let src = Ephemeral::new(
             "foo::bar",
@@ -109,6 +110,6 @@ mod test {
             )
             .await;
 
-        assert!(result.unwrap().satisfied());
+        assert_satisfied!(result.unwrap());
     }
 }
