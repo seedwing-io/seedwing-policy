@@ -59,12 +59,16 @@ pub struct PolicyQuery {
     opa: Option<bool>,
     collapse: Option<bool>,
     format: Option<Format>,
-    minimal: Option<bool>,
+    select: Option<String>, // for minimal, pass 'select=output'
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub enum OutputEncoding {
-    Seedwing { format: Format, collapse: bool },
+    Seedwing {
+        format: Format,
+        collapse: bool,
+        select: Option<String>,
+    },
     Opa,
 }
 
@@ -73,6 +77,7 @@ impl Default for OutputEncoding {
         Self::Seedwing {
             format: Format::Html,
             collapse: false,
+            select: None,
         }
     }
 }
@@ -84,16 +89,11 @@ impl OutputEncoding {
         }
 
         let mime = accept.preference();
-        let mut format = query.format.unwrap_or(mime.to_string().into());
-        if let Format::Json = format {
-            if query.minimal.unwrap_or(false) {
-                format = Format::JsonMinimal
-            }
-        }
-
+        let format = query.format.unwrap_or(mime.to_string().into());
         Self::Seedwing {
             format,
             collapse: query.collapse.unwrap_or_default(),
+            select: query.select,
         }
     }
 }
@@ -196,8 +196,12 @@ fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpR
             let satisfied = result.satisfied();
             HttpResponse::Ok().json(serde_json::json!({ "result": satisfied }))
         }
-        OutputEncoding::Seedwing { format, collapse } => {
-            let rationale = format.format(&result, collapse);
+        OutputEncoding::Seedwing {
+            format,
+            collapse,
+            select,
+        } => {
+            let rationale = format.format(&result, collapse, select);
 
             if result.satisfied() {
                 HttpResponse::Ok()
