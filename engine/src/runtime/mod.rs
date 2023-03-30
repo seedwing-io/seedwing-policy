@@ -921,6 +921,25 @@ pub mod testutil {
             );
         }};
     }
+
+    /// Run a common test.
+    ///
+    /// The name of the pattern which will be required is "test".
+    pub async fn test_common(
+        content: impl Into<String>,
+        value: impl Into<RuntimeValue>,
+    ) -> EvaluationResult {
+        let src = Ephemeral::new("test", content);
+
+        let mut builder = Builder::new();
+        builder.build(src.iter()).unwrap();
+        let runtime = builder.finish().await.unwrap();
+
+        runtime
+            .evaluate("test::test", value, EvalContext::default())
+            .await
+            .unwrap()
+    }
 }
 
 #[cfg(test)]

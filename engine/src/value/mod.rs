@@ -180,6 +180,12 @@ impl From<&[u8]> for RuntimeValue {
     }
 }
 
+impl<const N: usize> From<&[u8; N]> for RuntimeValue {
+    fn from(inner: &[u8; N]) -> Self {
+        inner.to_vec().into()
+    }
+}
+
 impl From<Vec<RuntimeValue>> for RuntimeValue {
     fn from(inner: Vec<RuntimeValue>) -> Self {
         Self::List(inner.into_iter().map(Arc::new).collect())
