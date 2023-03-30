@@ -301,10 +301,6 @@ fn support(rationale: &Rationale) -> Vec<Response> {
         | Rationale::Function {
             supporting: terms, ..
         } => terms.iter().map(Response::new).collect(),
-        Rationale::Refinement(primary, refinement) => match refinement {
-            Some(r) => vec![Response::new(primary), Response::new(r)],
-            None => vec![Response::new(primary)],
-        },
         Rationale::Bound(inner, _) => support(inner),
         Rationale::Anything
         | Rationale::Nothing

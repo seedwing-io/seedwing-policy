@@ -24,7 +24,6 @@ pub enum Rationale {
         rationale: Option<Box<Rationale>>,
         supporting: Vec<EvaluationResult>,
     },
-    Refinement(Box<EvaluationResult>, Option<Box<EvaluationResult>>),
     Bound(Box<Rationale>, Bindings),
 }
 
@@ -54,17 +53,6 @@ impl Rationale {
                 supporting: _,
             } => *severity,
             Rationale::Chain(terms) => terms.iter().collect(),
-            // TODO: check if this is still used
-            Rationale::Refinement(primary, refinement) => {
-                if matches!(primary.severity(), Severity::Error) {
-                    Severity::Error
-                } else if let Some(refinement) = refinement {
-                    refinement.severity()
-                } else {
-                    // TODO: check if this is really error, maybe it should be "ok"?
-                    Severity::Error
-                }
-            }
             Rationale::Bound(inner, _) => inner.severity(),
         }
     }
@@ -130,7 +118,6 @@ impl Rationale {
                 }
                 .to_string(),
             },
-            Rationale::Refinement(_, _) => String::new(),
             Rationale::Bound(inner, _) => inner.reason(),
         }
     }
