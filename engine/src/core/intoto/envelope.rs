@@ -5,12 +5,23 @@ use crate::runtime::rationale::Rationale;
 use crate::runtime::{EvalContext, Output, RuntimeError, World};
 use crate::value::Object;
 use crate::value::RuntimeValue;
-use base64::{engine::general_purpose, Engine as _};
+use anyhow::Result;
+use base64::engine::{general_purpose::STANDARD as BASE64_STD_ENGINE, Engine as _};
+use in_toto::crypto::PublicKey;
+use in_toto::crypto::{KeyType, SignatureScheme};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha2::Sha256;
+use sigstore::cosign::client::Client as Cosign;
 use sigstore::cosign::CosignCapabilities;
+use sigstore::errors::SigstoreError;
+use sigstore::rekor::apis::{configuration::Configuration, entries_api, index_api};
+use sigstore::rekor::models::log_entry::Body;
+use sigstore::rekor::models::SearchIndex;
 use sigstore::tuf::SigstoreRepository;
+use ssh_key::public::{EcdsaPublicKey, KeyData};
+use ssh_key::sec1::{consts::U32, EncodedPoint};
+use ssh_key::HashAlg;
 use std::path::{Path, PathBuf};
 use tokio::task::spawn_blocking;
 
@@ -38,7 +49,7 @@ struct Envelope {
 
 impl Envelope {
     fn payload_from_base64(&self) -> Result<String, anyhow::Error> {
-        match general_purpose::STANDARD.decode(&self.payload) {
+        match BASE64_STD_ENGINE.decode(&self.payload) {
             Ok(value) => Ok(String::from_utf8(value).unwrap()),
             Err(e) => Err(e.into()),
         }
@@ -47,16 +58,20 @@ impl Envelope {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Signature {
-    cert: String,
-    #[serde(rename = "kid")]
+    cert: Option<String>,
+    #[serde(rename = "keyid")]
     keyid: Option<String>,
     #[serde(rename = "sig")]
     value: String,
 }
 
 impl Signature {
-    fn cert_as_base64(&self) -> String {
-        general_purpose::STANDARD.encode(&self.cert)
+    fn cert_as_base64(&self) -> Option<String> {
+        if let Some(cert) = &self.cert {
+            let encoded = BASE64_STD_ENGINE.encode(cert);
+            return Some(encoded);
+        }
+        None
     }
 }
 
@@ -76,15 +91,11 @@ struct Subject {
     digest: HashMap<String, String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct VerifyOutput {
-    predicate_type: String,
-    predicate: serde_json::Value,
-    attester_names: Vec<String>,
-    artifact_names: Vec<String>,
-}
-
 impl Function for Verify {
+    fn order(&self) -> u8 {
+        255
+    }
+
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
             documentation: DOCUMENTATION.into(),
@@ -114,9 +125,8 @@ impl Function for Verify {
                     return invalid_type("payloadType", envelope.payload_type);
                 }
 
-                let decoded_payload = match envelope.payload_from_base64() {
-                    Ok(value) => value,
-                    Err(_) => return base64_decode_error("payload"),
+                let Ok(decoded_payload) = envelope.payload_from_base64() else {
+                    return base64_decode_error("payload");
                 };
 
                 // This is Pre-Authenticated Encoding (PAE) which is what
@@ -130,13 +140,9 @@ impl Function for Verify {
                     return missing_attesters();
                 }
 
-                let blob = match get_blob(input, bindings, ctx, world).await {
-                    Ok(value) => value,
-                    Err(_) => return blob_error(),
+                let Ok(blob) = get_blob(&input, bindings, ctx, world).await else {
+                    return blob_error();
                 };
-
-                let mut attesters_names: Vec<Arc<RuntimeValue>> = Vec::new();
-                let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
 
                 // Fetch from The Update Framework (TUF) repository
                 #[cfg(not(target_arch = "wasm32"))]
@@ -146,7 +152,7 @@ impl Function for Verify {
                             .as_ref()
                             .map(|h| h.join(".sigstore").join("root").join("targets"));
                         let path: Option<&Path> = checkout_dir.as_deref();
-                        log::info!("checkout_dir: {:?}", path);
+                        log::debug!("sigstore tuf checkout_dir: {:?}", path);
                         sigstore::tuf::SigstoreRepository::fetch(path)
                     })
                     .await
@@ -154,34 +160,56 @@ impl Function for Verify {
 
                 let mut verified: Vec<Arc<RuntimeValue>> = Vec::new();
                 for sig in envelope.signatures.iter() {
-                    let cert_base64 = sig.cert_as_base64();
-                    log::debug!("cert_base64: {:?}", cert_base64);
-                    log::debug!("sig.keyid: {:?}", sig.keyid);
                     log::debug!("sig.value: {:?}", sig.value);
                     log::debug!("attesters_map: {:?}", attesters_map);
 
-                    for (name, publickey) in &attesters_map {
-                        log::info!("name: {}, key: {}", name, publickey);
-                        if publickey != &cert_base64 {
-                            continue;
-                        }
+                    for (name, field_type) in &attesters_map {
+                        let verify_result = match field_type {
+                            FieldType::Certificate(cert) => match sig.cert_as_base64() {
+                                Some(cert_base64) if &cert_base64 == cert => Cosign::verify_blob(
+                                    cert_base64.trim(),
+                                    &sig.value,
+                                    &pae.clone().into_bytes(),
+                                ),
+                                _ => continue,
+                            },
+                            FieldType::PublicKey(public_key) => {
+                                Cosign::verify_blob_with_public_key(
+                                    public_key.trim(),
+                                    &sig.value,
+                                    &pae.clone().into_bytes(),
+                                )
+                            }
+                            FieldType::SPKIKeyId(keyid)
+                                if sig.keyid.is_some() && sig.keyid.as_ref().unwrap() == keyid =>
+                            {
+                                let envelope = input.as_json().to_string();
+                                match public_key_for_keyid(envelope.as_str(), keyid).await {
+                                    Ok(pubkey) => Cosign::verify_blob_with_public_key(
+                                        &pubkey,
+                                        &sig.value,
+                                        &pae.clone().into_bytes(),
+                                    ),
+                                    Err(e) => {
+                                        Err(SigstoreError::PublicKeyUnsupportedAlgorithmError(
+                                            e.to_string(),
+                                        ))
+                                    }
+                                }
+                            }
+                            _ => continue,
+                        };
 
-                        match sigstore::cosign::client::Client::verify_blob(
-                            cert_base64.trim(),
-                            &sig.value,
-                            &pae.clone().into_bytes(),
-                        ) {
+                        match verify_result {
                             Ok(_) => {
+                                let mut attesters_names: Vec<Arc<RuntimeValue>> = Vec::new();
+                                let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
                                 attesters_names
                                     .push(Arc::new(RuntimeValue::from(name.to_string())));
-                                log::info!("Verified succeeded!");
-                                let statement: Statement =
-                                    match serde_json::from_str(&decoded_payload) {
-                                        Ok(value) => value,
-                                        Err(e) => {
-                                            log::error!("{:?}", e);
-                                            return json_parse_error("payload");
-                                        }
+                                log::debug!("Verification succeeded!");
+                                let Ok(statement) =
+                                    serde_json::from_str::<Statement>(&decoded_payload) else {
+                                        return json_parse_error("payload");
                                     };
 
                                 if statement._type != "https://in-toto.io/Statement/v0.1" {
@@ -199,16 +227,18 @@ impl Function for Verify {
                                         }
                                     }
                                 }
-
-                                let mut output = Object::new();
-                                output.set("predicate_type", statement.predicate_type);
-                                output.set("predicate", statement.predicate.clone());
-                                output.set("attesters_names", attesters_names.clone());
-                                output.set("artifact_names", artifact_names.clone());
-                                verified.push(Arc::new(RuntimeValue::Object(output)));
+                                if !artifact_names.is_empty() {
+                                    let mut output = Object::new();
+                                    output.set("predicate_type", statement.predicate_type);
+                                    output.set("predicate", statement.predicate.clone());
+                                    output.set("attesters_names", attesters_names.clone());
+                                    output.set("artifact_names", artifact_names.clone());
+                                    verified.push(Arc::new(RuntimeValue::Object(output)));
+                                }
                             }
                             Err(e) => {
                                 log::error!("verify_blob failed with {:?}", e);
+                                return error(e.to_string());
                             }
                         }
                     }
@@ -220,6 +250,84 @@ impl Function for Verify {
             Ok(Severity::Error.into())
         })
     }
+}
+
+async fn public_key_for_keyid(envelope: &str, keyid: &str) -> Result<String> {
+    let bytes = envelope.trim().as_bytes();
+    let hash = sha256(&bytes.to_vec());
+    log::debug!("envelope hash: {:?}", hash);
+    log::debug!("keyid: {:?}", keyid);
+    let query = SearchIndex {
+        email: None,
+        public_key: None,
+        hash: Some(hash),
+    };
+    let configuration = Configuration::default();
+    let uuid_vec_res = index_api::search_index(&configuration, query).await;
+    if let Ok(uuid_vec) = uuid_vec_res {
+        log::debug!("Found uuids: {:?}", uuid_vec);
+        for uuid in uuid_vec {
+            let configuration = Configuration::default();
+            let result = entries_api::get_log_entry_by_uuid(&configuration, &uuid).await;
+            match result.unwrap().body {
+                Body::intoto(value) => {
+                    let pub_key_base64 = value.spec.get("publicKey").unwrap();
+                    log::debug!("pub_key base64: {}", pub_key_base64);
+                    let Ok(decoded_pub) = BASE64_STD_ENGINE.decode(pub_key_base64.as_str().unwrap()) else {
+                        continue;
+                    };
+                    let Ok(decoded_pub_str) = std::str::from_utf8(&decoded_pub) else {
+                        continue;
+                    };
+                    log::debug!("pub_key decoded: {:?}", decoded_pub_str);
+                    // We have base64 decoded the public key which we want to
+                    // generate a fingerprint for so that we can compare to the
+                    // keyid that was specified in the attesters field.
+                    //
+                    // The SignatureScheme is not important in our case as
+                    // we are just using in-toto to parse the public key
+                    // string. We will only use the KeyType (typ()) and the
+                    // bytes (as_bytes()) functions below.
+                    if let Ok(pub_key) =
+                        PublicKey::from_pem_spki(decoded_pub_str, SignatureScheme::EcdsaP256Sha256)
+                    {
+                        match pub_key.typ() {
+                            KeyType::Ecdsa => {
+                                if let Ok(encoded_point) =
+                                    EncodedPoint::<U32>::from_bytes(pub_key.as_bytes())
+                                {
+                                    let keydata =
+                                        KeyData::Ecdsa(EcdsaPublicKey::NistP256(encoded_point));
+                                    let fp = keydata.fingerprint(HashAlg::Sha256);
+                                    log::info!("calculated fingerprint: {}", fp.to_string());
+                                    log::info!("keyid      fingerprint: {}", keyid);
+                                    if fp.to_string() == *keyid.to_string() {
+                                        log::debug!("Found public_key: {:?}", decoded_pub_str);
+                                        return Ok(decoded_pub_str.to_string());
+                                    }
+                                }
+                            }
+                            _ => {
+                                return Err(anyhow::anyhow!(
+                                    "Public key algorithm is currently not supported"
+                                ))
+                            }
+                        }
+                    }
+                }
+                _ => continue,
+            }
+        }
+    }
+    Err(anyhow::anyhow!(
+        "Could not find a public key for fingerprint"
+    ))
+}
+
+fn sha256(bytes: &Vec<u8>) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
 }
 
 fn hash(blob: &Vec<u8>, alg: &str) -> Result<String, anyhow::Error> {
@@ -235,7 +343,7 @@ fn hash(blob: &Vec<u8>, alg: &str) -> Result<String, anyhow::Error> {
 }
 
 async fn get_blob<'v>(
-    input: Arc<RuntimeValue>,
+    input: &Arc<RuntimeValue>,
     bindings: &Bindings,
     ctx: &'v EvalContext,
     world: &'v World,
@@ -266,20 +374,38 @@ fn pae(payload_type: &str, payload: &str) -> String {
     pae
 }
 
-fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
+#[derive(Debug, Clone)]
+enum FieldType {
+    PublicKey(String),
+    Certificate(String),
+    SPKIKeyId(String),
+    None,
+}
+
+fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, FieldType> {
     let mut map = HashMap::new();
     if let Some(pattern) = bindings.get(param) {
         if let InnerPattern::List(list) = pattern.inner() {
             for item in list {
                 if let InnerPattern::Object(p) = item.inner() {
-                    let mut values = [Default::default(), Default::default()];
-                    for (i, field) in p.fields().iter().enumerate() {
+                    let mut name: String = "".to_string();
+                    for (_i, field) in p.fields().iter().enumerate() {
                         if let InnerPattern::Const(ValuePattern::String(value)) = field.ty().inner()
                         {
-                            values[i] = value.to_string();
+                            let val = value.to_string();
+                            let field_type = match field.to_string().as_str() {
+                                "name" => {
+                                    name = val;
+                                    continue;
+                                }
+                                "public_key" => FieldType::PublicKey(val),
+                                "certificate" => FieldType::Certificate(val),
+                                "spki_keyid" => FieldType::SPKIKeyId(val),
+                                _ => FieldType::None,
+                            };
+                            map.insert(name.clone(), field_type);
                         };
                     }
-                    map.insert(values[0].to_owned(), values[1].to_owned());
                 }
             }
         }
@@ -288,22 +414,22 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
 }
 
 fn base64_decode_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-    let msg = format!("Could not decode {} field to base64", field.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
+    error(format!("Could not decode {} field to base64", field.into()))
 }
 
 fn json_parse_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
-    let msg = format!("Could not parse {}", field.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
+    error(format!("Could not parse {}", field.into()))
 }
 
 fn missing_attesters() -> Result<FunctionEvaluationResult, RuntimeError> {
-    let msg = "At least one attester must be provided in the attesters parameter";
-    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
+    error("At least one attester must be provided in the attesters parameter")
 }
 
 fn blob_error() -> Result<FunctionEvaluationResult, RuntimeError> {
-    let msg = "Blob could not be parsed. Please check if a data source directory was set.";
+    error("Blob could not be parsed. Please check if a data source directory was set.")
+}
+
+fn error(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
@@ -339,7 +465,7 @@ mod test {
             pattern blob = *data::from<"intoto/binary-linux-amd64">
 
             pattern attesters = [
-              {name: "dan", public_key: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR3RENDQTBhZ0F3SUJBZ0lVTEpaajZlQVp0c1dkSUhGcktnK00rTFZkTkEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd016RTBNVEF5TlRBMVdoY05Nak13TXpFME1UQXpOVEExV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVtSUF2WFZMVGg2NkUzV2RXUkZac1ZTSE9VQ2swbUwrazRLSXYKYU4zOWhHekhncHozalp2Ylp3NnhTaHJidVZYVW4wMUFQck0vUWh0YVZhMWJtZUJLV0tPQ0FtVXdnZ0poTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVkbkhyCjlKdFFlQlFHVnhtU0JkWHFBMnhDVXlVd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d2ZRWURWUjBSQVFIL0JITXdjWVp2YUhSMGNITTZMeTluYVhSb2RXSXVZMjl0TDNOc2MyRXRabkpoYldWMwpiM0pyTDNOc2MyRXRaMmwwYUhWaUxXZGxibVZ5WVhSdmNpOHVaMmwwYUhWaUwzZHZjbXRtYkc5M2N5OWlkV2xzClpHVnlYMmR2WDNOc2MyRXpMbmx0YkVCeVpXWnpMM1JoWjNNdmRqRXVOUzR3TURrR0Npc0dBUVFCZzc4d0FRRUUKSzJoMGRIQnpPaTh2ZEc5clpXNHVZV04wYVc5dWN5NW5hWFJvZFdKMWMyVnlZMjl1ZEdWdWRDNWpiMjB3RWdZSwpLd1lCQkFHRHZ6QUJBZ1FFY0hWemFEQTJCZ29yQmdFRUFZTy9NQUVEQkNoaU5qQXhZek13WWpNeFl6UmxPRE14CllqRmhPRFF4T0daa01Ua3paakEwWXpJM05XUXlNVEJqTUJNR0Npc0dBUVFCZzc4d0FRUUVCVWR2SUVOSk1ERUcKQ2lzR0FRUUJnNzh3QVFVRUkzTmxaV1IzYVc1bkxXbHZMM05sWldSM2FXNW5MV2R2YkdGdVp5MWxlR0Z0Y0d4bApNQjhHQ2lzR0FRUUJnNzh3QVFZRUVYSmxabk12ZEdGbmN5OTJNQzR4TGpFMU1JR0tCZ29yQmdFRUFkWjVBZ1FDCkJId0VlZ0I0QUhZQTNUMHdhc2JIRVRKakdSNGNtV2MzQXFKS1hyamVQSzMvaDRweWdDOHA3bzRBQUFHRzM2YnkKSmdBQUJBTUFSekJGQWlFQTlyYnVNRDNoeHFkbTRCU1kxNmNncGlFMCtabWZITk9FbjhrblJqenB3WkVDSURnaAo2a1g0d005ZDVJUGlsdkZ6bjJ4KytJU0tYaU9LdmZyS24xa0tUaFR3TUFvR0NDcUdTTTQ5QkFNREEyZ0FNR1VDCk1FTy9qeG11aVBpUGRmVkREY1hBRVowSFRSVXA5V3Bjc2Y4dlhkdTFqODRVd291ZzUzaXZsdW1Yb0ZxN2hlSzEKdGdJeEFQQ29sOTk3QTgrTnFLVWllcmw5RGFFd2hBcG5HWlVTNXJ2MS9TcWpwbEpJSGhFTHFUMzZoNjR5dzl1QwprUDhlRGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="}
+              {name: "dan", certificate: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR3RENDQTBhZ0F3SUJBZ0lVTEpaajZlQVp0c1dkSUhGcktnK00rTFZkTkEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd016RTBNVEF5TlRBMVdoY05Nak13TXpFME1UQXpOVEExV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVtSUF2WFZMVGg2NkUzV2RXUkZac1ZTSE9VQ2swbUwrazRLSXYKYU4zOWhHekhncHozalp2Ylp3NnhTaHJidVZYVW4wMUFQck0vUWh0YVZhMWJtZUJLV0tPQ0FtVXdnZ0poTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVkbkhyCjlKdFFlQlFHVnhtU0JkWHFBMnhDVXlVd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d2ZRWURWUjBSQVFIL0JITXdjWVp2YUhSMGNITTZMeTluYVhSb2RXSXVZMjl0TDNOc2MyRXRabkpoYldWMwpiM0pyTDNOc2MyRXRaMmwwYUhWaUxXZGxibVZ5WVhSdmNpOHVaMmwwYUhWaUwzZHZjbXRtYkc5M2N5OWlkV2xzClpHVnlYMmR2WDNOc2MyRXpMbmx0YkVCeVpXWnpMM1JoWjNNdmRqRXVOUzR3TURrR0Npc0dBUVFCZzc4d0FRRUUKSzJoMGRIQnpPaTh2ZEc5clpXNHVZV04wYVc5dWN5NW5hWFJvZFdKMWMyVnlZMjl1ZEdWdWRDNWpiMjB3RWdZSwpLd1lCQkFHRHZ6QUJBZ1FFY0hWemFEQTJCZ29yQmdFRUFZTy9NQUVEQkNoaU5qQXhZek13WWpNeFl6UmxPRE14CllqRmhPRFF4T0daa01Ua3paakEwWXpJM05XUXlNVEJqTUJNR0Npc0dBUVFCZzc4d0FRUUVCVWR2SUVOSk1ERUcKQ2lzR0FRUUJnNzh3QVFVRUkzTmxaV1IzYVc1bkxXbHZMM05sWldSM2FXNW5MV2R2YkdGdVp5MWxlR0Z0Y0d4bApNQjhHQ2lzR0FRUUJnNzh3QVFZRUVYSmxabk12ZEdGbmN5OTJNQzR4TGpFMU1JR0tCZ29yQmdFRUFkWjVBZ1FDCkJId0VlZ0I0QUhZQTNUMHdhc2JIRVRKakdSNGNtV2MzQXFKS1hyamVQSzMvaDRweWdDOHA3bzRBQUFHRzM2YnkKSmdBQUJBTUFSekJGQWlFQTlyYnVNRDNoeHFkbTRCU1kxNmNncGlFMCtabWZITk9FbjhrblJqenB3WkVDSURnaAo2a1g0d005ZDVJUGlsdkZ6bjJ4KytJU0tYaU9LdmZyS24xa0tUaFR3TUFvR0NDcUdTTTQ5QkFNREEyZ0FNR1VDCk1FTy9qeG11aVBpUGRmVkREY1hBRVowSFRSVXA5V3Bjc2Y4dlhkdTFqODRVd291ZzUzaXZsdW1Yb0ZxN2hlSzEKdGdJeEFQQ29sOTk3QTgrTnFLVWllcmw5RGFFd2hBcG5HWlVTNXJ2MS9TcWpwbEpJSGhFTHFUMzZoNjR5dzl1QwprUDhlRGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="}
             ]
 
             pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
@@ -381,7 +507,7 @@ mod test {
             pattern blob = *data::from<"intoto/binary-linux-amd64">
 
             pattern attesters = [
-              {name: "dan", public_key: "dummy-value"}
+              {name: "dan", certificate: "dummy-value"}
             ]
 
             pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
@@ -401,27 +527,148 @@ mod test {
         let value = RuntimeValue::from(input);
         let result = test_patterns(
             r#"
-            pattern blob = *data::from<"binary-linux-amd64">
-            pattern attesters = [{name: "dan", public_key: "bogus"}]
+            pattern blob = *data::from<"intoto/binary-linux-amd64">
+            pattern attesters = [{name: "dan", certificate: "bogus"}]
             pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
             value,
         )
         .await;
         assert_not_satisfied!(&result);
+        assert_eq!(
+            result.rationale().reason(),
+            "invalid argument: invalid payloadType specified application/vnd.in-typo+json"
+        );
+    }
 
-        if let Rationale::Function {
-            severity: _,
-            rationale: out,
-            supporting: _,
-        } = result.rationale()
-        {
-            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(
-                    msg,
-                    "invalid payloadType specified application/vnd.in-typo+json"
-                );
-            }
-        }
+    #[actix_rt::test]
+    async fn verify_envelope_empty_attesters() {
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("tekton-chains-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"intoto/tekton-example.blob">
+
+            pattern attesters = []
+
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json),
+        )
+        .await;
+        assert_not_satisfied!(&result);
+        assert_eq!(
+            result.rationale().reason(),
+            "invalid argument: At least one attester must be provided in the attesters parameter",
+        );
+    }
+
+    #[actix_rt::test]
+    async fn verify_envelope_using_public_key() {
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("tekton-chains-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"intoto/tekton-example.blob">
+
+            pattern attesters = [
+              {name: "dan", public_key: "-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqiLuArRcZCY1s650rgKUDpj7f+b8
+9HMu3K/PDaUcR9kcyyXY8q6U+TFTkc9u84wJTsZe21wBPd/STPEzo0JrzQ==
+-----END PUBLIC KEY-----"}
+            ]
+
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json),
+        )
+        .await;
+        assert_satisfied!(&result);
+
+        let output = result.output().as_json();
+        assert!(output.is_array());
+        let output = &output[0];
+
+        let input_payload: serde_json::Value = payload_as_json(&input_json);
+        assert_eq!(
+            output.get("predicate_type").unwrap(),
+            input_payload.get("predicateType").unwrap(),
+        );
+        assert_eq!(
+            output.get("predicate").unwrap(),
+            input_payload.get("predicate").unwrap(),
+        );
+        assert_eq!(output.get("attesters_names").unwrap()[0], "dan");
+    }
+
+    #[actix_rt::test]
+    async fn verify_envelope_using_keyid() {
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("tekton-chains-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"intoto/tekton-example.blob">
+
+            pattern attesters = [
+              {name: "dan", spki_keyid: "SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI"}
+            ]
+
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json),
+        )
+        .await;
+        assert_satisfied!(&result);
+
+        let output = result.output().as_json();
+        assert!(output.is_array());
+        let output = &output[0];
+
+        let input_payload: serde_json::Value = payload_as_json(&input_json);
+        assert_eq!(
+            output.get("predicate_type").unwrap(),
+            input_payload.get("predicateType").unwrap(),
+        );
+        assert_eq!(
+            output.get("predicate").unwrap(),
+            input_payload.get("predicate").unwrap(),
+        );
+        assert_eq!(output.get("attesters_names").unwrap()[0], "dan");
+    }
+
+    #[actix_rt::test]
+    async fn verify_envelope_using_keyid_wrong_blob() {
+        let input_str = fs::read_to_string(
+            test_data_dir()
+                .join("intoto")
+                .join("tekton-chains-envelope.json"),
+        )
+        .unwrap();
+        let input_json: serde_json::Value = serde_json::from_str(&input_str).unwrap();
+        let result = test_patterns(
+            r#"
+            pattern blob = *data::from<"intoto/tekton-example-invalid.blob">
+
+            pattern attesters = [
+              {name: "dan", spki_keyid: "SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI"}
+            ]
+
+            pattern test-pattern = intoto::verify-envelope<attesters, blob>"#,
+            RuntimeValue::from(&input_json),
+        )
+        .await;
+        assert_not_satisfied!(result);
     }
 
     fn payload_as_json(input: &serde_json::Value) -> serde_json::Value {

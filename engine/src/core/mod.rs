@@ -21,6 +21,7 @@ pub mod data;
 pub mod debug;
 pub mod external;
 pub mod guac;
+#[cfg(feature = "intoto")]
 pub mod intoto;
 pub mod iso;
 pub mod jsf;

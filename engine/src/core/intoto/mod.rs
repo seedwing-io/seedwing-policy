@@ -1,13 +1,11 @@
 use crate::package::Package;
 use crate::runtime::PackagePath;
 
-#[cfg(feature = "sigstore")]
 mod envelope;
 
 pub fn package() -> Package {
     let mut pkg = Package::new(PackagePath::from_parts(vec!["intoto"]));
     pkg.register_source("".into(), include_str!("envelope.dog"));
-    #[cfg(feature = "sigstore")]
     pkg.register_function("verify-envelope".into(), envelope::Verify);
     pkg
 }
