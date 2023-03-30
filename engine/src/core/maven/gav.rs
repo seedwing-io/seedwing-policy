@@ -67,3 +67,36 @@ impl Function for GAV {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::assert_satisfied;
+    use crate::runtime::testutil::test_common;
+    use serde_json::json;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    pub async fn test_gav() {
+        let result = test_common(
+            r#"
+pattern test = maven::GAV
+"#,
+            "org.quarkus:quarkus:2.3",
+        )
+        .await;
+
+        assert_satisfied!(&result);
+        assert_eq!(
+            result.output(),
+            Arc::new(
+                json!({
+                    "groupId": "org.quarkus",
+                    "artifactId": "quarkus",
+                    "version":"2.3",
+                    "packaging": "jar",
+                })
+                .into()
+            )
+        )
+    }
+}

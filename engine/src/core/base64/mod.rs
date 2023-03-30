@@ -107,7 +107,6 @@ impl Function for Base64 {
                 if let Ok(decoded) = result {
                     Ok(Output::Transform(Arc::new(decoded.into())).into())
                 } else {
-                    //Err(FunctionError::Other("unable to decode base64".into()))
                     Ok((
                         Severity::Error,
                         Rationale::InvalidArgument("Invalid base64 encoding".to_string()),
@@ -153,5 +152,53 @@ impl Function for Base64Encode {
                 Ok(Severity::Error.into())
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::runtime::testutil::test_common;
+    use crate::{assert_not_satisfied, assert_satisfied};
+
+    #[tokio::test]
+    async fn test_base64_invalid() {
+        let result = test_common(
+            r#"
+pattern test = base64::base64
+"#,
+            "Clearly not base64",
+        )
+        .await;
+
+        assert_not_satisfied!(result);
+    }
+
+    #[tokio::test]
+    async fn test_base64_valid() {
+        let result = test_common(
+            r#"
+pattern test = base64::base64
+"#,
+            "SGVsbG8gV29ybGQh",
+        )
+        .await;
+
+        assert_satisfied!(&result);
+        assert_eq!(result.output(), Arc::new(b"Hello World!".into()));
+    }
+
+    #[tokio::test]
+    async fn test_base64_encode_valid() {
+        let result = test_common(
+            r#"
+pattern test = base64::base64-encode
+"#,
+            b"Hello World!",
+        )
+        .await;
+
+        assert_satisfied!(&result);
+        assert_eq!(result.output(), Arc::new("SGVsbG8gV29ybGQh".into()));
     }
 }
