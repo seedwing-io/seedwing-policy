@@ -1,3 +1,6 @@
+// Some tests don't use all functions, that might trigger warnings
+#![allow(unused)]
+
 use seedwing_policy_engine::{
     lang::{builder::Builder, Severity},
     runtime::{
