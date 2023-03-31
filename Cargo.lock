@@ -2764,20 +2764,21 @@ checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "picky"
-version = "7.0.0-rc.4"
+version = "7.0.0-rc.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c80faad111028a7dc724b220316209af32d3db6b4a3251d2b8b94277d2af5c"
+checksum = "72ac7d98dfb5e53cdea76b70df8d5e8dd7717a2d685a12f54c547e03b5afd76a"
 dependencies = [
  "base64 0.13.1",
  "digest",
  "md-5",
  "num-bigint-dig",
  "oid",
+ "p256",
+ "p384",
  "picky-asn1",
  "picky-asn1-der",
  "picky-asn1-x509",
  "rand",
- "ring",
  "rsa 0.6.1",
  "serde",
  "sha-1",
@@ -3716,7 +3717,7 @@ dependencies = [
 [[package]]
 name = "sigstore"
 version = "0.6.0"
-source = "git+https://github.com/danbev/sigstore-rs.git?branch=verify-blob#ed9391ea61d50fbecc5a5116237f324b0dc1438a"
+source = "git+https://github.com/danbev/sigstore-rs.git?branch=verify-blob#2a1c81d0ba47615e1cb541b63130effbff7d5559"
 dependencies = [
  "async-trait",
  "base64 0.21.0",
@@ -4146,9 +4147,9 @@ dependencies = [
 
 [[package]]
 name = "tough"
-version = "0.12.5"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc636dd1ee889a366af6731f1b63b60baf19528b46df5a7c2d4b3bf8b60bca2d"
+checksum = "c259b2bd13fdff3305a5a92b45befb1adb315d664612c8991be57fb6a83dc126"
 dependencies = [
  "chrono",
  "dyn-clone",
