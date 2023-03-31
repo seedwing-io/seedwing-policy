@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v3
       - id: getflags
         run: |
-          curl -sSLf "$(curl -sSLf https://api.github.com/repos/tomwright/dasel/releases/latest | grep browser_download_url | grep linux_amd64 | grep -v .gz | cut -d\" -f 4)" -L -o dasel && chmod +x dasel
+          curl -sSLf https://github.com/TomWright/dasel/releases/download/v2.1.2/dasel_linux_amd64 -o dasel && chmod +x dasel
           echo "version=$(./dasel -f swio/Cargo.toml -r toml -s package.version)" >> "$GITHUB_OUTPUT"
           echo "commit=$(echo -n $GITHUB_SHA | head -c 8)" >> "$GITHUB_OUTPUT"
   tag:
