@@ -9,7 +9,6 @@ const INITIAL_VALUE: &str = r#"{
       "pattern": "inspector"
     },
     "input": "If you paste the JSON output of an evaluation into the editor, you can in drill into details on the 'Inspect' tab.",
-    "satisfied": true,
     "reason": "This is just an example"
 }"#;
 
