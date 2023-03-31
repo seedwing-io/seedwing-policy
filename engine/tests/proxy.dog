@@ -1,0 +1,39 @@
+
+pattern context = not-affected
+
+pattern not-affected = {
+  purl: uri::purl | osv::scan-purl | openvex::from-osv | openvex::not-affected
+}
+
+
+
+pattern foo = minimum && require-invalid-sig
+
+pattern minimum = {
+  url: string,
+  hash: string
+}
+
+pattern require-invalid-sig = {
+    hash: sigstore::sha256(
+        list::any<{
+            apiVersion: "0.0.1",
+            spec: {
+                signature: {
+                    publicKey: {
+                        content: base64::base64(
+                            x509::pem( list::any<{
+                                version: 2,
+                                extensions: list::any<{
+                                    subjectAlternativeName: list::any<{
+                                        rfc822: "invalid@invalid.org",
+                                    }>
+                                }>
+                            }> )
+                        )
+                    }
+                }
+            }
+        }>
+    )
+}
