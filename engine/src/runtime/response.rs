@@ -112,7 +112,7 @@ impl Serialize for Response {
             .map(String::from)
             .collect::<Vec<_>>()
         };
-        let count = fields.iter().map(|s| check(s) as usize).sum();
+        let count = fields.iter().map(|s| check(s)).count();
         let mut state = serializer.serialize_struct("Response", count)?;
         for name in &fields {
             if check(name) {
@@ -159,7 +159,7 @@ impl Response {
         self
     }
 
-    // Expects a comma-delimited list, e.g. "name,bindings,input,output,satisfied,reason,rationale"
+    // Expects a comma-delimited list, e.g. "name,bindings,input,output,severity,reason,rationale"
     pub fn filter(&mut self, fields: &str) -> &mut Self {
         let fields = fields.trim().to_lowercase();
         if !fields.is_empty() {
@@ -262,7 +262,7 @@ fn deeply_unsatisfied(severity: Severity, tree: Vec<Response>) -> Vec<Response> 
                 // input if no children do. If wrong, we must recur.
                 result.push(i);
             } else {
-                result.append(&mut deeply_unsatisfied(severity, i.rationale.clone()));
+                result.append(&mut deeply_unsatisfied(severity, i.rationale));
             }
         }
     }
