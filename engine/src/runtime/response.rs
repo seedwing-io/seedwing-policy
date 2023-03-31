@@ -158,7 +158,7 @@ impl Response {
     pub fn collapse(mut self, severity: Severity) -> Self {
         let mut rationale = vec![];
 
-        self.walk_tree(severity, |response| {
+        self.walk_tree(|response| {
             if response.satisfied(severity) {
                 return false;
             }
@@ -182,22 +182,22 @@ impl Response {
     ///
     /// The callback can return `true` if it want to keep descending into the children of
     /// the current response, or `false` otherwise.
-    pub fn walk_tree<'a, F>(&'a self, min_severity: Severity, mut f: F)
+    pub fn walk_tree<'a, F>(&'a self, mut f: F)
     where
         F: FnMut(&'a Response) -> bool,
     {
-        self.walk_tree_internal(min_severity, &mut f);
+        self.walk_tree_internal(&mut f);
     }
 
     /// An internal version of `walk_tree`, which takes a reference to the callback, so
     /// that it can be called recursively.
-    fn walk_tree_internal<'a, F>(&'a self, min_severity: Severity, f: &mut F)
+    fn walk_tree_internal<'a, F>(&'a self, f: &mut F)
     where
         F: FnMut(&'a Response) -> bool,
     {
-        if f(&self) {
+        if f(self) {
             for x in &self.rationale {
-                x.walk_tree_internal(min_severity, f);
+                x.walk_tree_internal(f);
             }
         }
     }

@@ -288,12 +288,12 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
 
 fn base64_decode_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not decode {} field to base64", field.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
 }
 
 fn json_parse_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not parse {}", field.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
 }
 
 fn missing_attesters() -> Result<FunctionEvaluationResult, RuntimeError> {
@@ -311,7 +311,7 @@ fn invalid_type(
     value: impl Into<String>,
 ) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("invalid {} specified {}", field.into(), value.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
 }
 
 #[cfg(test)]
