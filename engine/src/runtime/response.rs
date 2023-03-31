@@ -150,32 +150,65 @@ impl Response {
         }
     }
 
+    /// Collapse the tree of reasons.
+    ///
+    /// This builds a list of reasons which are reachable from the root through only failed
+    /// nodes. Capturing only the deepest failed nodes, which have no more failures underneath them.
+    /// But it does not capture its (succeeded) children.
     pub fn collapse(mut self, severity: Severity) -> Self {
-        self.rationale = if self.satisfied(severity) {
-            Vec::new()
-        } else {
-            deeply_unsatisfied(severity, self.rationale)
-        };
+        let mut rationale = vec![];
+
+        self.walk_tree(severity, |response| {
+            if response.satisfied(severity) {
+                return false;
+            }
+
+            if response.rationale.iter().all(|r| r.satisfied(severity)) {
+                // capture failed leaves
+                let mut response = response.clone();
+                response.rationale = vec![];
+                rationale.push(response);
+                return false;
+            }
+
+            true
+        });
+
+        self.rationale = rationale;
         self
     }
 
-    // Expects a comma-delimited list, e.g. "name,bindings,input,output,severity,reason,rationale"
+    /// Walk the tree of reasons.
+    ///
+    /// The callback can return `true` if it want to keep descending into the children of
+    /// the current response, or `false` otherwise.
+    pub fn walk_tree<'a, F>(&'a self, min_severity: Severity, mut f: F)
+    where
+        F: FnMut(&'a Response) -> bool,
+    {
+        self.walk_tree_internal(min_severity, &mut f);
+    }
+
+    /// An internal version of `walk_tree`, which takes a reference to the callback, so
+    /// that it can be called recursively.
+    fn walk_tree_internal<'a, F>(&'a self, min_severity: Severity, f: &mut F)
+    where
+        F: FnMut(&'a Response) -> bool,
+    {
+        if f(&self) {
+            for x in &self.rationale {
+                x.walk_tree_internal(min_severity, f);
+            }
+        }
+    }
+
+    /// Expects a comma-delimited list, e.g. "name,bindings,input,output,severity,reason,rationale"
     pub fn filter(&mut self, fields: &str) -> &mut Self {
         let fields = fields.trim().to_lowercase();
         if !fields.is_empty() {
             self.fields = fields.split(',').map(String::from).collect();
         }
         self
-    }
-
-    fn has_input(&self) -> bool {
-        match &self.input {
-            Value::Null => false,
-            Value::String(s) => !s.is_empty(),
-            Value::Array(v) => !v.is_empty(),
-            Value::Object(m) => !m.is_empty(),
-            _ => true,
-        }
     }
 
     /// Evaluate if the reason is "satisfied"
@@ -246,27 +279,6 @@ fn display(inner: &InnerPattern) -> Value {
         }
         ip => json!(ip),
     }
-}
-
-fn deeply_unsatisfied(severity: Severity, tree: Vec<Response>) -> Vec<Response> {
-    let mut result = Vec::new();
-    for i in tree.into_iter() {
-        if !i.satisfied(severity) {
-            // We want the deepest relevant response with input
-            if i.has_input()
-                && i.rationale
-                    .iter()
-                    .all(|x| x.satisfied(severity) || !x.has_input())
-            {
-                // We're assuming no descendents have unsatisfied
-                // input if no children do. If wrong, we must recur.
-                result.push(i);
-            } else {
-                result.append(&mut deeply_unsatisfied(severity, i.rationale));
-            }
-        }
-    }
-    result
 }
 
 fn support(rationale: &Rationale) -> Vec<Response> {
