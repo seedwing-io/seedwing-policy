@@ -618,8 +618,7 @@ impl Lowerer {
                 if let Some(child) = parent_pkg
                     .packages
                     .iter_mut()
-                    .filter(|s| s.name == child_name.0)
-                    .next()
+                    .find(|s| s.name == child_name.0)
                 {
                     child.apply_meta(meta);
                 }

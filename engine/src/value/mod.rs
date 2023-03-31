@@ -501,13 +501,14 @@ here:
         assert_eq!(
             RuntimeValue::Object({
                 let mut o = Object::new();
-                o.set("bar", {
-                    let mut s = Vec::new();
-                    s.push(Arc::new(1i64.into()));
-                    s.push(Arc::new("baz".into()));
-                    s.push(Arc::new(true.into()));
-                    s
-                });
+                o.set(
+                    "bar",
+                    vec![
+                        Arc::new(1i64.into()),
+                        Arc::new("baz".into()),
+                        Arc::new(true.into()),
+                    ],
+                );
                 o.set("foo", "bar");
                 o.set("here", {
                     let mut o = Object::new();

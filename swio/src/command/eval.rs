@@ -46,7 +46,7 @@ impl Eval {
         let values = load_values(self.typ, inputs).await?;
         for value in values {
             for name in names.iter() {
-                let eval = util::eval::Eval::new(&world, &name, value.clone());
+                let eval = util::eval::Eval::new(&world, name, value.clone());
 
                 let result = eval.run().await?;
                 let response = if self.verbose {

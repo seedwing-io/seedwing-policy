@@ -19,7 +19,7 @@ pub struct Documentation(pub Option<String>);
 impl Display for Documentation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = &self.0 {
-            f.write_str(&docs)?;
+            f.write_str(docs)?;
         }
         Ok(())
     }
@@ -60,7 +60,7 @@ impl DerefMut for Documentation {
 impl Documentation {
     pub fn split(&self) -> (&str, &str) {
         match &self.0 {
-            Some(docs) => docs.split_once("\n\n").unwrap_or((&docs, "")),
+            Some(docs) => docs.split_once("\n\n").unwrap_or((docs, "")),
             None => ("", ""),
         }
     }

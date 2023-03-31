@@ -95,7 +95,7 @@ pub fn doc_comment_line() -> impl Parser<ParserInput, String, Error = ParserErro
     common_comment_line(just("///"))
 }
 
-fn common_comment_line<'a>(
+fn common_comment_line(
     start: impl Parser<ParserInput, &'static str, Error = ParserError> + Clone,
 ) -> impl Parser<ParserInput, String, Error = ParserError> + Clone {
     start.then(take_until(text::newline())).padded().map(|v| {

@@ -46,8 +46,8 @@ impl Format {
         }
         match self {
             Self::Html => Ok(Rationalizer::new(result).rationale()),
-            Self::Json => serde_json::to_string_pretty(&response).map_err(|e| FormatError::Json(e)),
-            Self::Yaml => serde_yaml::to_string(&response).map_err(|e| FormatError::Yaml(e)),
+            Self::Json => serde_json::to_string_pretty(&response).map_err(FormatError::Json),
+            Self::Yaml => serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         }
     }
     pub fn content_type(&self) -> ContentType {

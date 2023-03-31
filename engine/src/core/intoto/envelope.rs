@@ -55,8 +55,7 @@ struct Signature {
 
 impl Signature {
     fn cert_as_base64(&self) -> String {
-        let encoded = general_purpose::STANDARD.encode(&self.cert);
-        encoded
+        general_purpose::STANDARD.encode(&self.cert)
     }
 }
 
@@ -106,121 +105,116 @@ impl Function for Verify {
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            match input.as_json() {
-                serde_json::Value::Object(o) => {
-                    let envelope: serde_json::Value = o.clone().into();
-                    let envelope: Envelope = serde_json::from_value(envelope).unwrap();
+            if let serde_json::Value::Object(o) = input.as_json() {
+                let envelope: serde_json::Value = o.clone().into();
+                let envelope: Envelope = serde_json::from_value(envelope).unwrap();
 
-                    if envelope.payload_type != "application/vnd.in-toto+json" {
-                        return invalid_type("payloadType", envelope.payload_type);
-                    }
+                if envelope.payload_type != "application/vnd.in-toto+json" {
+                    return invalid_type("payloadType", envelope.payload_type);
+                }
 
-                    let decoded_payload = match envelope.payload_from_base64() {
-                        Ok(value) => value,
-                        Err(_) => return base64_decode_error("payload"),
-                    };
+                let decoded_payload = match envelope.payload_from_base64() {
+                    Ok(value) => value,
+                    Err(_) => return base64_decode_error("payload"),
+                };
 
-                    // This is Pre-Authenticated Encoding (PAE) which is what
-                    // is actually verified (and what is signed by the producer
-                    // of the signature).
-                    let pae = pae(&envelope.payload_type, &decoded_payload);
-                    log::debug!("pae: {}", pae);
+                // This is Pre-Authenticated Encoding (PAE) which is what
+                // is actually verified (and what is signed by the producer
+                // of the signature).
+                let pae = pae(&envelope.payload_type, &decoded_payload);
+                log::debug!("pae: {}", pae);
 
-                    let attesters_map = get_attesters(ATTESTERS, bindings);
-                    if attesters_map.is_empty() {
-                        return missing_attesters();
-                    }
+                let attesters_map = get_attesters(ATTESTERS, bindings);
+                if attesters_map.is_empty() {
+                    return missing_attesters();
+                }
 
-                    let blob = match get_blob(input, bindings, ctx, world).await {
-                        Ok(value) => value,
-                        Err(_) => return blob_error(),
-                    };
+                let blob = match get_blob(input, bindings, ctx, world).await {
+                    Ok(value) => value,
+                    Err(_) => return blob_error(),
+                };
 
-                    let mut attesters_names: Vec<Arc<RuntimeValue>> = Vec::new();
-                    let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
+                let mut attesters_names: Vec<Arc<RuntimeValue>> = Vec::new();
+                let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
 
-                    // Fetch from The Update Framework (TUF) repository
-                    #[cfg(not(target_arch = "wasm32"))]
-                    let _repo: sigstore::errors::Result<SigstoreRepository> =
-                        spawn_blocking(move || {
-                            let checkout_dir: Option<PathBuf> = home::home_dir()
-                                .as_ref()
-                                .map(|h| h.join(".sigstore").join("root").join("targets"));
-                            let path: Option<&Path> = checkout_dir.as_ref().map(|p| p.as_path());
-                            log::info!("checkout_dir: {:?}", path);
-                            sigstore::tuf::SigstoreRepository::fetch(path)
-                        })
-                        .await
-                        .unwrap();
+                // Fetch from The Update Framework (TUF) repository
+                #[cfg(not(target_arch = "wasm32"))]
+                let _repo: sigstore::errors::Result<SigstoreRepository> =
+                    spawn_blocking(move || {
+                        let checkout_dir: Option<PathBuf> = home::home_dir()
+                            .as_ref()
+                            .map(|h| h.join(".sigstore").join("root").join("targets"));
+                        let path: Option<&Path> = checkout_dir.as_deref();
+                        log::info!("checkout_dir: {:?}", path);
+                        sigstore::tuf::SigstoreRepository::fetch(path)
+                    })
+                    .await
+                    .unwrap();
 
-                    let mut verified: Vec<Arc<RuntimeValue>> = Vec::new();
-                    for sig in envelope.signatures.iter() {
-                        let cert_base64 = sig.cert_as_base64();
-                        log::debug!("cert_base64: {:?}", cert_base64);
-                        log::debug!("sig.keyid: {:?}", sig.keyid);
-                        log::debug!("sig.value: {:?}", sig.value);
-                        log::debug!("attesters_map: {:?}", attesters_map);
+                let mut verified: Vec<Arc<RuntimeValue>> = Vec::new();
+                for sig in envelope.signatures.iter() {
+                    let cert_base64 = sig.cert_as_base64();
+                    log::debug!("cert_base64: {:?}", cert_base64);
+                    log::debug!("sig.keyid: {:?}", sig.keyid);
+                    log::debug!("sig.value: {:?}", sig.value);
+                    log::debug!("attesters_map: {:?}", attesters_map);
 
-                        for (name, publickey) in &attesters_map {
-                            log::info!("name: {}, key: {}", name, publickey);
-                            if publickey != &cert_base64 {
-                                continue;
-                            }
+                    for (name, publickey) in &attesters_map {
+                        log::info!("name: {}, key: {}", name, publickey);
+                        if publickey != &cert_base64 {
+                            continue;
+                        }
 
-                            match sigstore::cosign::verify_blob(
-                                &cert_base64.trim(),
-                                &sig.value,
-                                &pae.clone().into_bytes(),
-                            ) {
-                                Ok(_) => {
-                                    attesters_names
-                                        .push(Arc::new(RuntimeValue::from(name.to_string())));
-                                    log::info!("Verified succeeded!");
-                                    let statement: Statement =
-                                        match serde_json::from_str(&decoded_payload) {
-                                            Ok(value) => value,
-                                            Err(e) => {
-                                                log::error!("{:?}", e);
-                                                return json_parse_error("payload");
-                                            }
-                                        };
+                        match sigstore::cosign::verify_blob(
+                            cert_base64.trim(),
+                            &sig.value,
+                            &pae.clone().into_bytes(),
+                        ) {
+                            Ok(_) => {
+                                attesters_names
+                                    .push(Arc::new(RuntimeValue::from(name.to_string())));
+                                log::info!("Verified succeeded!");
+                                let statement: Statement =
+                                    match serde_json::from_str(&decoded_payload) {
+                                        Ok(value) => value,
+                                        Err(e) => {
+                                            log::error!("{:?}", e);
+                                            return json_parse_error("payload");
+                                        }
+                                    };
 
-                                    if statement._type != "https://in-toto.io/Statement/v0.1" {
-                                        return invalid_type("_type", statement._type);
-                                    }
+                                if statement._type != "https://in-toto.io/Statement/v0.1" {
+                                    return invalid_type("_type", statement._type);
+                                }
 
-                                    for subject in statement.subjects {
-                                        for (alg, digest) in &subject.digest {
-                                            if let Ok(hash) = hash(&blob, alg) {
-                                                if &hash == digest {
-                                                    artifact_names.push(Arc::new(
-                                                        RuntimeValue::from(
-                                                            subject.name.to_string(),
-                                                        ),
-                                                    ));
-                                                }
+                                for subject in statement.subjects {
+                                    for (alg, digest) in &subject.digest {
+                                        if let Ok(hash) = hash(&blob, alg) {
+                                            if &hash == digest {
+                                                artifact_names.push(Arc::new(RuntimeValue::from(
+                                                    subject.name.to_string(),
+                                                )));
                                             }
                                         }
                                     }
+                                }
 
-                                    let mut output = Object::new();
-                                    output.set("predicate_type", statement.predicate_type);
-                                    output.set("predicate", statement.predicate.clone());
-                                    output.set("attesters_names", attesters_names.clone());
-                                    output.set("artifact_names", artifact_names.clone());
-                                    verified.push(Arc::new(RuntimeValue::Object(output)));
-                                }
-                                Err(e) => {
-                                    log::error!("verify_blob failed with {:?}", e);
-                                }
+                                let mut output = Object::new();
+                                output.set("predicate_type", statement.predicate_type);
+                                output.set("predicate", statement.predicate.clone());
+                                output.set("attesters_names", attesters_names.clone());
+                                output.set("artifact_names", artifact_names.clone());
+                                verified.push(Arc::new(RuntimeValue::Object(output)));
+                            }
+                            Err(e) => {
+                                log::error!("verify_blob failed with {:?}", e);
                             }
                         }
                     }
-                    if !verified.is_empty() {
-                        return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
-                    }
                 }
-                _ => {}
+                if !verified.is_empty() {
+                    return Ok(Output::Transform(Arc::new(RuntimeValue::List(verified))).into());
+                }
             }
             Ok(Output::None.into())
         })
@@ -257,11 +251,11 @@ async fn get_blob<'v>(
             }
         }
     }
-    return Err(anyhow::anyhow!("Could not evaluate blob"));
+    Err(anyhow::anyhow!("Could not evaluate blob"))
 }
 
 /// Pre-Authenticated Encoding (PAE) for DSSEv1
-fn pae<'a>(payload_type: &'a str, payload: &str) -> String {
+fn pae(payload_type: &str, payload: &str) -> String {
     let pae = format!(
         "DSSEv1 {} {} {} {}",
         payload_type.len(),
@@ -280,10 +274,9 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
                 if let InnerPattern::Object(p) = item.inner() {
                     let mut values = [Default::default(), Default::default()];
                     for (i, field) in p.fields().iter().enumerate() {
-                        if let InnerPattern::Const(value) = field.ty().inner() {
-                            if let ValuePattern::String(value) = value {
-                                values[i] = value.to_string();
-                            };
+                        if let InnerPattern::Const(ValuePattern::String(value)) = field.ty().inner()
+                        {
+                            values[i] = value.to_string();
                         };
                     }
                     map.insert(values[0].to_owned(), values[1].to_owned());
@@ -296,12 +289,12 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, String> {
 
 fn base64_decode_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not decode {} field to base64", field.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
 }
 
 fn json_parse_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("Could not parse {}", field.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
 }
 
 fn missing_attesters() -> Result<FunctionEvaluationResult, RuntimeError> {
@@ -319,7 +312,7 @@ fn invalid_type(
     value: impl Into<String>,
 ) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("invalid {} specified {}", field.into(), value.into());
-    Ok((Output::None, Rationale::InvalidArgument(msg.into())).into())
+    Ok((Output::None, Rationale::InvalidArgument(msg)).into())
 }
 
 #[cfg(test)]
@@ -416,17 +409,13 @@ mod test {
         .await;
         assert_not_satisfied!(result);
 
-        match result.rationale() {
-            Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(
-                        msg,
-                        "invalid payloadType specified application/vnd.in-typo+json"
-                    );
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function(_, out, _) = result.rationale() {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(
+                    msg,
+                    "invalid payloadType specified application/vnd.in-typo+json"
+                );
+            }
         }
     }
 
