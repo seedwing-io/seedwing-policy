@@ -70,14 +70,14 @@ impl Function for VerifyBlob {
                         let checkout_dir: Option<PathBuf> = home::home_dir()
                             .as_ref()
                             .map(|h| h.join(".sigstore").join("root").join("targets"));
-                        let path: Option<&Path> = checkout_dir.as_ref().map(|p| p.as_path());
+                        let path: Option<&Path> = checkout_dir.as_deref();
                         log::info!("checkout_dir: {:?}", path);
                         sigstore::tuf::SigstoreRepository::fetch(path)
                     })
                     .await
                     .unwrap();
 
-                match sigstore::cosign::verify_blob(&cert, &sig, &blob.as_bytes()) {
+                match sigstore::cosign::verify_blob(&cert, &sig, blob.as_bytes()) {
                     Ok(_) => {
                         return Ok(Output::Transform(Arc::new(RuntimeValue::Boolean(true))).into())
                     }
@@ -95,10 +95,7 @@ impl Function for VerifyBlob {
 fn get_parameter(param: &str, bindings: &Bindings) -> Result<String, String> {
     match bindings.get(param) {
         Some(pattern) => match pattern.inner() {
-            InnerPattern::Const(pattern) => match pattern {
-                ValuePattern::String(value) => Ok(value.to_string()),
-                _ => Err(format!("invalid type specified for {param} parameter")),
-            },
+            InnerPattern::Const(ValuePattern::String(value)) => Ok(value.to_string()),
             _ => Err(format!("invalid type specified for {param} parameter")),
         },
         None => Err(format!("invalid type specified for {param} parameter")),
@@ -130,7 +127,7 @@ mod test {
         assert_satisfied!(result);
 
         let output = result.output().unwrap();
-        assert_eq!(output.is_boolean(), true);
-        assert_eq!(output.try_get_boolean().unwrap(), true);
+        assert!(output.is_boolean());
+        assert!(output.try_get_boolean().unwrap());
     }
 }

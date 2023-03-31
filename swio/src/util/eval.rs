@@ -19,11 +19,7 @@ impl<'a> Eval<'a> {
 
     pub async fn run(&self) -> Result<EvaluationResult, RuntimeError> {
         self.world
-            .evaluate(
-                self.name.clone(),
-                self.value.clone(),
-                EvalContext::default(),
-            )
+            .evaluate(self.name, self.value.clone(), EvalContext::default())
             .await
     }
 }

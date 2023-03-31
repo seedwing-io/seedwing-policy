@@ -825,7 +825,7 @@ pub mod testutil {
     {
         init_logger();
         let mut builder = Builder::new();
-        builder.data(DirectoryDataSource::new(test_data_dir().into()));
+        builder.data(DirectoryDataSource::new(test_data_dir()));
         builder.build(src.iter()).unwrap();
         let runtime = builder.finish().await.unwrap();
         let result = runtime
@@ -850,7 +850,7 @@ pub mod testutil {
             assert!(
                 $result.satisfied(),
                 "{}",
-                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&$result))
+                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&$result))
                     .unwrap()
             );
         };
@@ -862,7 +862,7 @@ pub mod testutil {
             assert!(
                 !$result.satisfied(),
                 "{}",
-                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&$result))
+                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&$result))
                     .unwrap()
             );
         };

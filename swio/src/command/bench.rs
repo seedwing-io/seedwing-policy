@@ -84,6 +84,6 @@ impl Bench {
             .unwrap()
         );
 
-        return Ok(ExitCode::SUCCESS);
+        Ok(ExitCode::SUCCESS)
     }
 }

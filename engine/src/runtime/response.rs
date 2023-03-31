@@ -91,7 +91,7 @@ impl Serialize for Response {
             "rationale" => state.serialize_field("rationale", &self.rationale),
             _ => Err(ser::Error::custom(format!("Unknown field name: {s}"))),
         };
-        let fields = if self.fields.len() > 0 {
+        let fields = if !self.fields.is_empty() {
             self.fields.clone()
         } else {
             [
@@ -326,7 +326,6 @@ pub(crate) fn default_reason(r#type: &Pattern, rationale: &Rationale) -> String 
         Rationale::Refinement(_, _) => String::new(),
         Rationale::Bound(inner, _) => reason(r#type, inner),
     }
-    .into()
 }
 
 fn support(rationale: &Rationale) -> Vec<Response> {

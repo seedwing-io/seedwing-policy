@@ -181,8 +181,8 @@ mod test {
         assert_eq!(
             attr,
             Located::new(
-                AttributeDefn::new(Located::new("attr".to_string(), 0..0usize.into()), vec![]),
-                0..0usize.into()
+                AttributeDefn::new(Located::new("attr".to_string(), 0..0usize), vec![]),
+                0..0usize
             )
         );
     }
@@ -192,10 +192,7 @@ mod test {
         let attr = attribute_definition().parse(r#"#[attr()]"#).unwrap();
         assert_eq!(
             attr,
-            Located::new(
-                AttributeDefn::new(located("attr"), vec![]),
-                0..0usize.into()
-            )
+            Located::new(AttributeDefn::new(located("attr"), vec![]), 0..0usize)
         );
     }
 
@@ -206,7 +203,7 @@ mod test {
             attr,
             Located::new(
                 AttributeDefn::new(located("attr"), vec![AttributeValue::Flag(located("foo"))]),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -226,7 +223,7 @@ mod test {
                         AttributeValue::Flag(located("bar"))
                     ]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -246,7 +243,7 @@ mod test {
                         AttributeValue::Flag(located("bar"))
                     ]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -266,7 +263,7 @@ mod test {
                         value: located("true")
                     },]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -289,7 +286,7 @@ mod test {
                         AttributeValue::Flag(located("flag"))
                     ]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -306,7 +303,7 @@ mod test {
                     located("attr"),
                     vec![AttributeValue::Flag(located("foo bar")),]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }
@@ -333,7 +330,7 @@ mod test {
                         },
                     ]
                 ),
-                0..0usize.into()
+                0..0usize
             )
         );
     }

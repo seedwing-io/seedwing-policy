@@ -57,8 +57,8 @@ mod tests {
     fn can_parse_id() {
         assert!("RHSA-2022:1234".parse::<AdvisoryId>().is_ok());
         assert!("RHBA-2022:1234".parse::<AdvisoryId>().is_ok());
-        assert!(!"rhsa-2022:1234".parse::<AdvisoryId>().is_ok());
-        assert!(!"RHSA-2022::1234".parse::<AdvisoryId>().is_ok());
-        assert!(!"RHSA2022:1234".parse::<AdvisoryId>().is_ok());
+        assert!("rhsa-2022:1234".parse::<AdvisoryId>().is_err());
+        assert!("RHSA-2022::1234".parse::<AdvisoryId>().is_err());
+        assert!("RHSA2022:1234".parse::<AdvisoryId>().is_err());
     }
 }

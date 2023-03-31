@@ -22,19 +22,11 @@ fn json_to_pkg(input: serde_json::Value) -> Option<PkgSpec> {
     match input {
         JsonValue::Object(input) => {
             let pkg = PkgSpec {
-                type_: input
-                    .get("type")
-                    .map_or(None, |val| Some(val.as_str()?.to_string())),
-                namespace: input
-                    .get("namespace")
-                    .map_or(None, |val| Some(val.as_str()?.to_string())),
-                name: input
-                    .get("name")
-                    .map_or(None, |val| Some(val.as_str()?.to_string())),
+                type_: input.get("type").map(|val| val.to_string()),
+                namespace: input.get("namespace").map(|val| val.to_string()),
+                name: input.get("name").map(|val| val.to_string()),
                 subpath: None,
-                version: input
-                    .get("version")
-                    .map_or(None, |val| Some(val.as_str()?.to_string())),
+                version: input.get("version").map(|val| val.to_string()),
                 qualifiers: None, //TODO fix qualifiers
                 match_only_empty_qualifiers: Some(false),
             };
@@ -58,8 +50,8 @@ impl CertifyVuln {
             JsonValue::Array(items) => {
                 let mut vulns = Vec::new();
                 for item in items.iter() {
-                    match json_to_pkg(item.clone()) {
-                        Some(value) => match guac.certify_vuln(value).await {
+                    if let Some(value) = json_to_pkg(item.clone()) {
+                        match guac.certify_vuln(value).await {
                             Ok(transform) => {
                                 let json: serde_json::Value =
                                     serde_json::to_value(transform).unwrap();
@@ -68,8 +60,7 @@ impl CertifyVuln {
                             Err(e) => {
                                 log::warn!("Error looking up {:?}", e);
                             }
-                        },
-                        _ => {}
+                        }
                     }
                 }
                 let json: serde_json::Value = serde_json::to_value(vulns).unwrap();

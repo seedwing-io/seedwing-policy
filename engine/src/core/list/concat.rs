@@ -119,14 +119,10 @@ mod test {
         let result = test_pattern(r#"list::concat<"some string">"#, json!([1, 2, 3])).await;
         assert_not_satisfied!(result);
 
-        match result.rationale() {
-            Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(msg, "invalid type specified for list parameter")
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function(_, out, _) = result.rationale() {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(msg, "invalid type specified for list parameter")
+            }
         }
     }
 }

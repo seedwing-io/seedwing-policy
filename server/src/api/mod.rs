@@ -33,12 +33,10 @@ pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> imp
         } else {
             HttpResponse::NotFound().finish()
         }
+    } else if let Some(meta) = world.get_pattern_meta(path) {
+        HttpResponse::Ok().json(ComponentMetadata::Pattern(meta))
     } else {
-        if let Some(meta) = world.get_pattern_meta(path) {
-            HttpResponse::Ok().json(ComponentMetadata::Pattern(meta))
-        } else {
-            HttpResponse::NotFound().finish()
-        }
+        HttpResponse::NotFound().finish()
     }
 
     /*

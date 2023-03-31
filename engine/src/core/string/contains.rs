@@ -75,16 +75,13 @@ mod test {
             )
             .await;
         assert!(result.as_ref().unwrap().satisfied());
-        assert_eq!(
-            result
-                .as_ref()
-                .unwrap()
-                .output()
-                .unwrap()
-                .try_get_boolean()
-                .unwrap(),
-            true
-        );
+        assert!(result
+            .as_ref()
+            .unwrap()
+            .output()
+            .unwrap()
+            .try_get_boolean()
+            .unwrap());
     }
 
     #[actix_rt::test]
@@ -107,15 +104,12 @@ mod test {
             )
             .await;
         assert!(result.as_ref().unwrap().satisfied());
-        assert_eq!(
-            result
-                .as_ref()
-                .unwrap()
-                .output()
-                .unwrap()
-                .try_get_boolean()
-                .unwrap(),
-            false
-        );
+        assert!(!result
+            .as_ref()
+            .unwrap()
+            .output()
+            .unwrap()
+            .try_get_boolean()
+            .unwrap());
     }
 }

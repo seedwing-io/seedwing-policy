@@ -126,14 +126,10 @@ mod test {
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
             .await;
         assert!(!result.as_ref().unwrap().satisfied());
-        match result.as_ref().unwrap().rationale() {
-            Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(msg, "invalid start index specified")
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(msg, "invalid start index specified")
+            }
         }
     }
 
@@ -153,14 +149,10 @@ mod test {
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
             .await;
         assert!(!result.as_ref().unwrap().satisfied());
-        match result.as_ref().unwrap().rationale() {
-            Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(msg, "invalid end index specified")
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(msg, "invalid end index specified")
+            }
         }
     }
 
@@ -180,14 +172,10 @@ mod test {
             .evaluate("test::sl", json!([1, 2, 3, 4, 5]), EvalContext::default())
             .await;
         assert!(!result.as_ref().unwrap().satisfied());
-        match result.as_ref().unwrap().rationale() {
-            Rationale::Function(_, out, _) => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(msg, "start index cannot be greater than end index")
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function(_, out, _) = result.as_ref().unwrap().rationale() {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(msg, "start index cannot be greater than end index")
+            }
         }
     }
 }
