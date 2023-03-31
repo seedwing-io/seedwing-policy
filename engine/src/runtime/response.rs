@@ -112,7 +112,7 @@ impl Serialize for Response {
             .map(String::from)
             .collect::<Vec<_>>()
         };
-        let count = fields.iter().map(|s| check(s)).count();
+        let count = fields.iter().filter(|s| check(s)).count();
         let mut state = serializer.serialize_struct("Response", count)?;
         for name in &fields {
             if check(name) {
