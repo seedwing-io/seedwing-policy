@@ -902,7 +902,7 @@ pub mod testutil {
                 __result.severity() < $crate::lang::Severity::Error,
                 "severity: {}, response: {}",
                 __result.severity(),
-                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&__result))
+                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&__result))
                     .unwrap()
             );
         }};
@@ -916,7 +916,7 @@ pub mod testutil {
                 __result.severity() == $crate::lang::Severity::Error,
                 "severity: {}, response: {}",
                 __result.severity(),
-                serde_json::to_string_pretty(&crate::runtime::response::Response::new(&__result))
+                serde_json::to_string_pretty(&$crate::runtime::response::Response::new(&__result))
                     .unwrap()
             );
         }};

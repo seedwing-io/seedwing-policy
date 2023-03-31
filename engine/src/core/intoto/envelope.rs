@@ -408,21 +408,18 @@ mod test {
         .await;
         assert_not_satisfied!(&result);
 
-        match result.rationale() {
-            Rationale::Function {
-                severity: _,
-                rationale: out,
-                supporting: _,
-            } => match &**(out.as_ref().unwrap()) {
-                Rationale::InvalidArgument(msg) => {
-                    assert_eq!(
-                        msg,
-                        "invalid payloadType specified application/vnd.in-typo+json"
-                    );
-                }
-                _ => {}
-            },
-            _ => {}
+        if let Rationale::Function {
+            severity: _,
+            rationale: out,
+            supporting: _,
+        } = result.rationale()
+        {
+            if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
+                assert_eq!(
+                    msg,
+                    "invalid payloadType specified application/vnd.in-typo+json"
+                );
+            }
         }
     }
 

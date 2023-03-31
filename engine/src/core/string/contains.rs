@@ -77,7 +77,7 @@ mod test {
             .await
             .unwrap();
         assert_satisfied!(&result);
-        assert_eq!(result.output().try_get_boolean().unwrap(), true);
+        assert!(result.output().try_get_boolean().unwrap());
     }
 
     #[tokio::test]
@@ -101,6 +101,6 @@ mod test {
             .await
             .unwrap();
         assert_satisfied!(&result);
-        assert_eq!(result.output().try_get_boolean().unwrap(), false);
+        assert!(!result.output().try_get_boolean().unwrap());
     }
 }

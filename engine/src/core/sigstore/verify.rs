@@ -127,7 +127,7 @@ mod test {
         assert_satisfied!(&result);
 
         let output = result.output();
-        assert_eq!(output.is_boolean(), true);
-        assert_eq!(output.try_get_boolean().unwrap(), true);
+        assert!(output.is_boolean());
+        assert!(output.try_get_boolean().unwrap());
     }
 }

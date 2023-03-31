@@ -3,7 +3,7 @@ use crate::lang::{
     lir::{Bindings, ValuePattern},
     PatternMeta, Severity,
 };
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{EvalContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::fmt::Debug;
 use std::future::Future;
