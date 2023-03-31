@@ -65,7 +65,7 @@ pub fn inspector() -> Html {
 
     html!(
         <>
-            <PageSection variant={PageSectionVariant::Light} sticky={[PageSectionSticky::Top]}>
+            <PageSection variant={PageSectionVariant::Light}>
                 <Content>
                     <Title size={Size::XXXXLarge}>{ "Inspector" }</Title>
                     <p>
