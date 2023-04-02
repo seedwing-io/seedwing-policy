@@ -47,7 +47,7 @@ pub mod x509;
 
 #[derive(Debug)]
 pub struct FunctionEvaluationResult {
-    /// Severity reported but the function
+    /// Severity reported by the function
     function_severity: Severity,
     /// The output of the function
     function_output: Output,
