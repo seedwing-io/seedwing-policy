@@ -9,6 +9,7 @@ use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha2::Sha256;
+use sigstore::cosign::CosignCapabilities;
 use sigstore::tuf::SigstoreRepository;
 use std::path::{Path, PathBuf};
 use tokio::task::spawn_blocking;
@@ -165,7 +166,7 @@ impl Function for Verify {
                             continue;
                         }
 
-                        match sigstore::cosign::verify_blob(
+                        match sigstore::cosign::client::Client::verify_blob(
                             cert_base64.trim(),
                             &sig.value,
                             &pae.clone().into_bytes(),
