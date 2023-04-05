@@ -34,6 +34,7 @@ pub mod openvex;
 pub mod osv;
 pub mod pem;
 pub mod rhsa;
+pub mod semver;
 #[cfg(feature = "showcase")]
 pub mod showcase;
 #[cfg(feature = "sigstore")]

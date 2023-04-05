@@ -402,6 +402,7 @@ impl World {
         world.add_package(crate::core::maven::package());
         world.add_package(crate::core::external::package());
         world.add_package(crate::core::guac::package());
+        world.add_package(crate::core::semver::package());
 
         #[cfg(feature = "showcase")]
         world.add_package(crate::core::showcase::package());

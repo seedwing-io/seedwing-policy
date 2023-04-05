@@ -1,0 +1,11 @@
+
+// TODO restrict to the valid regexp for pre and build fields :
+// 0-9, A-Z, a-z, -
+
+pattern semver = {
+  major: integer,
+  minor: integer,
+  patch: integer,
+  pre?: string,
+  build?: string,
+}
