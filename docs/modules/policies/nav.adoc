@@ -23,6 +23,7 @@
 ** xref:osv/index.adoc[`osv`]
 ** xref:pem/index.adoc[`pem`]
 ** xref:rhsa/index.adoc[`rhsa`]
+** xref:semver/index.adoc[`semver`]
 ** xref:showcase/index.adoc[`showcase`]
 ** xref:sigstore/index.adoc[`sigstore`]
 ** xref:slsa/index.adoc[`slsa`]
