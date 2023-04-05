@@ -47,6 +47,7 @@ openvex = "0.1.0"
 spdx = "0.10.0"
 csaf = {version = "0.4.0", default-features = false }
 guac-rs = { git = "https://github.com/dejanb/guac-rs.git", rev = "67a70e98ffaa17200d256e1afc5c88756b56d5e2" }
+semver = "1.0"
 
 
 # monitoring
