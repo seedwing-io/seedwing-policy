@@ -50,56 +50,27 @@ impl Function for Contains {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::assert_satisfied;
-    use crate::lang::builder::Builder;
-    use crate::runtime::sources::Ephemeral;
+    use crate::{assert_satisfied, runtime::testutil::test_pattern};
     use serde_json::json;
 
     #[tokio::test]
     async fn string_contains() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern has_str = string::contains<"people">( $(self == true) )
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate(
-                "test::has_str",
-                json!("Some people like coffee."),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap();
+        let result = test_pattern(
+            r#"string::contains<"people">( $(self == true) )"#,
+            json!("Some people like coffee."),
+        )
+        .await;
         assert_satisfied!(&result);
         assert!(result.output().try_get_boolean().unwrap());
     }
 
     #[tokio::test]
     async fn string_contains_no_substring() {
-        let src = Ephemeral::new(
-            "test",
-            r#"
-            pattern no_substring = string::contains( $(self == false) )
-        "#,
-        );
-
-        let mut builder = Builder::new();
-        let _result = builder.build(src.iter());
-        let runtime = builder.finish().await.unwrap();
-        let result = runtime
-            .evaluate(
-                "test::no_substring",
-                json!("anything old text here..."),
-                EvalContext::default(),
-            )
-            .await
-            .unwrap();
+        let result = test_pattern(
+            r#"string::contains( $(self == false) )"#,
+            json!("anything old text here..."),
+        )
+        .await;
         assert_satisfied!(&result);
         assert!(!result.output().try_get_boolean().unwrap());
     }
