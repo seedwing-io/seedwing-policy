@@ -3780,7 +3780,7 @@ dependencies = [
 [[package]]
 name = "sigstore"
 version = "0.6.0"
-source = "git+https://github.com/danbev/sigstore-rs.git?rev=0b3074bf44a5c2fb3b81f27d6ddf19cf4372e5f1#0b3074bf44a5c2fb3b81f27d6ddf19cf4372e5f1"
+source = "git+https://github.com/sigstore/sigstore-rs.git?rev=4d2629cd2b0e91c3437c1b29d2ea52b3233d52ff#4d2629cd2b0e91c3437c1b29d2ea52b3233d52ff"
 dependencies = [
  "async-trait",
  "base64 0.21.0",
