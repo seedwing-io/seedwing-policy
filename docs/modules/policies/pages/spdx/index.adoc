@@ -26,3 +26,25 @@ The following input would fail:
 ----
 "MIT OR Apache-2.0"
 ----
+
+[#license-expr]
+== `license-expr`
+
+Verifies that the input is a valid SPDX License expression.
+
+https://spdx.github.io/spdx-spec/v2-draft/SPDX-license-list/
+
+Example:
+
+[source]
+----
+pattern expression = spdx::license-expr
+----
+
+The following input would fail:
+
+[source,json]
+----
+"MIT OR Bogus2.0"
+----
+

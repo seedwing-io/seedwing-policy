@@ -1,0 +1,95 @@
+= spdx::v2_2
+:description: Patterns to work with SPDX 2.2 documents.
+:sectanchors:
+
+Patterns to work with SPDX 2.2 documents.
+
+[#annotation]
+== `annotation`
+
+
+
+[#artifactof]
+== `artifactof`
+
+
+
+[#checksum]
+== `checksum`
+
+
+
+[#creationInfo]
+== `creationInfo`
+
+
+
+[#external-document-ref]
+== `external-document-ref`
+
+
+
+[#external-ref]
+== `external-ref`
+
+
+
+[#extracted-license-info]
+== `extracted-license-info`
+
+
+
+[#file]
+== `file`
+
+
+
+[#package]
+== `package`
+
+
+
+[#packageVerificationCode]
+== `packageVerificationCode`
+
+
+
+[#predicate]
+== `predicate`
+
+
+
+[#range]
+== `range`
+
+
+
+[#range_ptr]
+== `range_ptr`
+
+
+
+[#relationship]
+== `relationship`
+
+
+
+[#relationship-type]
+== `relationship-type`
+
+
+
+[#snippet]
+== `snippet`
+
+
+
+[#spdx_ref]
+== `spdx_ref`
+
+
+
+[#statement]
+== `statement`
+
+SPDX 2.2 in-toto attestation
