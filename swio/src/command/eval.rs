@@ -20,6 +20,13 @@ pub struct Eval {
     name: Option<String>,
     #[arg(short = 'v', long = "verbose", default_value_t = false)]
     verbose: bool,
+    #[arg(
+        short = 's',
+        long = "select",
+	help = "comma-delimited list of 'name,bindings,input,output,severity,reason,rationale'",
+        default_value_t = String::from("name,severity,reason,rationale")
+    )]
+    select: String,
 }
 
 impl Eval {
@@ -50,11 +57,12 @@ impl Eval {
                 let eval = util::eval::Eval::new(&world, name, value.clone());
 
                 let result = eval.run().await?;
-                let response = if self.verbose {
+                let mut response = if self.verbose {
                     Response::new(&result)
                 } else {
                     Response::new(&result).collapse(Severity::Error)
                 };
+                response.filter(&self.select);
 
                 println!("{}", serde_json::to_string_pretty(&response).unwrap());
                 if result.severity() >= Severity::Error {
