@@ -38,8 +38,19 @@ fn json_to_query(input: serde_json::Value) -> Option<OsvQuery> {
                     Some(JsonValue::String(r#type)),
                     Some(JsonValue::String(version)),
                 ) => {
-                    let (ecosystem, name) = purl2osv(r#type, name, namespace);
-                    let payload: OsvQuery = (ecosystem, name.as_str(), version.as_str()).into();
+                    let name = format!("{namespace}{}{name}", separator(r#type));
+                    let payload: OsvQuery =
+                        (ecosystem(r#type), name.as_str(), version.as_str()).into();
+                    Some(payload)
+                }
+                (
+                    Some(JsonValue::String(name)),
+                    None,
+                    Some(JsonValue::String(r#type)),
+                    Some(JsonValue::String(version)),
+                ) => {
+                    let payload: OsvQuery =
+                        (ecosystem(r#type), name.as_str(), version.as_str()).into();
                     Some(payload)
                 }
                 _ => None,
@@ -132,8 +143,8 @@ impl Function for ScanPurl {
     }
 }
 
-fn purl2osv<'a>(r#type: &'a str, name: &str, namespace: &str) -> (&'a str, String) {
-    let ecosystem = match r#type {
+fn ecosystem<'a>(r#type: &'a str) -> &'a str {
+    match r#type {
         "maven" => "Maven",
         "apk" => "Alpine",
         "cargo" => "crates.io",
@@ -143,13 +154,33 @@ fn purl2osv<'a>(r#type: &'a str, name: &str, namespace: &str) -> (&'a str, Strin
         "nuget" => "NuGet",
         "pypi" => "PyPI",
         e => e,
-    };
+    }
+}
+fn separator<'a>(r#type: &'a str) -> &'a str {
+    match r#type {
+        "maven" => ":",
+        _ => "/",
+    }
+}
 
-    let name = match r#type {
-        "maven" => format!("{}:{}", namespace, name),
-        "golang" => format!("{}/{}", namespace, name),
-        "npm" => format!("{}/{}", namespace, name),
-        _ => name.to_string(),
-    };
-    (ecosystem, name)
+#[cfg(test)]
+mod test {
+    use super::*;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn npm_without_namespace() {
+        let input = json!({
+                "type": "npm",
+                "name": "foo",
+                "version": "1.2.3",
+        });
+        let result = json_to_query(input);
+        assert!(result.is_some());
+
+        assert_eq!(
+            r#"{"version":"1.2.3","package":{"name":"foo","ecosystem":"npm"}}"#,
+            serde_json::to_string(&result.unwrap()).unwrap()
+        );
+    }
 }
