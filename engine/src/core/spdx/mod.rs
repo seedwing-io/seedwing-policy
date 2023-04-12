@@ -5,7 +5,8 @@ mod compatible;
 mod license;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["spdx"]));
+    let mut pkg = Package::new(PackagePath::from_parts(vec!["spdx"]))
+        .with_documentation("Functions and patterns for SPDX".to_string());
     pkg.register_source("license".into(), include_str!("license.dog"));
     pkg.register_source("v2_2".into(), include_str!("spdx-v2.2.dog"));
     pkg.register_source("v2_3".into(), include_str!("spdx-v2.3.dog"));

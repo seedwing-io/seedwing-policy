@@ -1,7 +1,8 @@
 = spdx
+:description: Functions and patterns for SPDX
 :sectanchors:
 
-
+Functions and patterns for SPDX
 
 [#compatible]
 == `compatible<license_id>`
