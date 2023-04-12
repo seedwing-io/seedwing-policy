@@ -46,6 +46,13 @@ pattern person = lang::traverse<"person">
 pattern name = person(lang::traverse<"name">)
 ```
 
+This can also be written as:
+```
+pattern person = lang::traverse<"person">
+
+pattern name = person(self.name)
+```
+
 Example input:
 ```
 {
