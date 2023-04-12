@@ -109,6 +109,9 @@ impl TryFrom<(&Rope, usize)> for Position {
     fn try_from((rope, position): (&Rope, usize)) -> Result<Self, Self::Error> {
         let line = rope.try_byte_to_line(position)?;
         let position = position - rope.try_line_to_byte(line)?;
-        Ok(Self { line, position })
+        Ok(Self {
+            line: line + 1,
+            position: position + 1,
+        })
     }
 }
