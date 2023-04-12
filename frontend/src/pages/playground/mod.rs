@@ -22,7 +22,7 @@ use serde_json::Value;
 use store::ExampleData;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
-use yew_hooks::{use_async, UseAsyncState};
+use yew_hooks::{use_async, UseAsyncHandle, UseAsyncState};
 
 const DOGMA_TEXTMATE: &str = include_str!("../../../textmate/dogma.tmLanguage.json");
 const DOGMA_LANGUAGE_ID: &str = "dogma";
@@ -266,7 +266,7 @@ pub fn playground() -> Html {
                         <Button label="Evaluate" disabled={eval.loading} variant={ButtonVariant::Primary} {onclick}/>
                     </ToolbarItem>
                 </Toolbar>
-                <EvalView eval={(*eval).clone()} />
+                <EvalView eval={eval.clone()} />
             </FlexItem>
 
         </Flex>
@@ -276,36 +276,29 @@ pub fn playground() -> Html {
     )
 }
 
-#[derive(PartialEq, Eq, Properties)]
+#[derive(PartialEq, Properties)]
 pub struct EvalViewProps {
-    pub eval: UseAsyncState<Response, String>,
+    pub eval: UseAsyncHandle<Response, String>,
 }
 
 #[function_component(EvalView)]
 pub fn eval_view(props: &EvalViewProps) -> Html {
-    html!(
-        <>
-        {
-            match &props.eval {
-                UseAsyncState { loading: true, .. } => {
-                    html!("Loading...")
-                }
-                UseAsyncState {
-                    error: Some(err), ..
-                } => {
-                    html!(format!("Failed: {err}"))
-                }
-                UseAsyncState {
-                    data: Some(result),
-                    ..
-                } => {
-                    html!(
-                        <ResultView result={result.clone()}/>
-                    )
-                }
-                _ => html!(""),
-            }
+    match &*props.eval {
+        UseAsyncState { loading: true, .. } => {
+            html!("Loading...")
         }
-        </>
-    )
+        UseAsyncState {
+            error: Some(err), ..
+        } => {
+            html!(format!("Failed: {err}"))
+        }
+        UseAsyncState {
+            data: Some(result), ..
+        } => {
+            html!(
+                <ResultView result={result.clone()}/>
+            )
+        }
+        _ => html!(""),
+    }
 }
