@@ -1,1 +1,22 @@
 Pattern which produces the result of traversing to the named field of an input object.
+
+Example pattern:
+```
+pattern person = lang::traverse<"person">
+
+pattern name = person(lang::traverse<"name">)
+```
+
+Example input:
+```
+{
+  "type": "something",
+  "person": { 
+    "name": "Fletch",
+    "age": 48
+  },
+  "location": "some location"
+}
+```
+
+Evaluating the `name` pattern will in this case result in "Fletch".

@@ -49,3 +49,23 @@ impl Function for Traverse {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::value::RuntimeValue;
+    use crate::{assert_satisfied, runtime::testutil::test_pattern};
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn traverse() {
+        let json = json!({
+            "person": { "name": "Fletch", "age": 48}
+        });
+        let result = test_pattern(r#"lang::traverse<"person">"#, json).await;
+        assert_satisfied!(&result);
+        assert!(result.output().is_object());
+        let person = result.output().as_json();
+        assert_eq!("Fletch", person.get("name").unwrap().as_str().unwrap());
+        assert_eq!(RuntimeValue::Integer(48), person.get("age").unwrap().into());
+    }
+}
