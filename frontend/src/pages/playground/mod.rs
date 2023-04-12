@@ -1,3 +1,6 @@
+mod store;
+
+use crate::common::editor::Generation;
 use crate::common::{
     editor::{self, ByteRange, Editor, MarkerData},
     eval::{eval, ResultView},
@@ -10,19 +13,16 @@ use monaco::{
     yew::CodeEditorLink,
 };
 use monaco_editor_textmate_web::prelude::*;
-use patternfly_yew::prelude::*;
-use seedwing_policy_engine::{lang::builder::Builder, runtime::sources::Ephemeral};
+use patternfly_yew::{next::TextInput, prelude::*};
+use seedwing_policy_engine::{
+    lang::builder::Builder,
+    runtime::{sources::Ephemeral, Response},
+};
 use serde_json::Value;
+use store::ExampleData;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew_hooks::{use_async, UseAsyncState};
-
-const INITIAL_POLICY: &str = r#"pattern dog = {
-    name: string,
-    trained: boolean
-}"#;
-const INITIAL_VALUE: &str = r#"name: goodboy
-trained: true"#;
 
 const DOGMA_TEXTMATE: &str = include_str!("../../../textmate/dogma.tmLanguage.json");
 const DOGMA_LANGUAGE_ID: &str = "dogma";
@@ -54,6 +54,11 @@ pub fn playground() -> Html {
     let markers = use_state_eq(|| Vec::<MarkerData>::new());
 
     let pattern = use_state_eq(String::new);
+    let example = use_state(|| Generation::from(ExampleData::load_default()));
+    let initial_name = use_memo(
+        |example| (*example).as_ref().map(|e| e.policy.clone()),
+        example.clone(),
+    );
 
     let on_pattern_change = {
         let pattern = pattern.clone();
@@ -75,7 +80,7 @@ pub fn playground() -> Html {
     };
 
     let policy_editor = use_memo(
-        |markers| {
+        |(markers, example)| {
             let on_editor_created = Callback::from(|editor: CodeEditorLink| {
                 // ensure language is registered
 
@@ -101,15 +106,15 @@ pub fn playground() -> Html {
             });
 
             use std::ops::Deref;
-            html!(<Editor
+            html!(<Editor<Generation<String>>
                 language={DOGMA_LANGUAGE_ID}
-                initial_content={INITIAL_POLICY}
+                initial_content={example.as_ref().map(|e|e.definition.clone())}
                 markers={markers.deref().clone()}
                 on_change={on_pattern_change}
                 {on_editor_created}
             />)
         },
-        markers,
+        (markers, example.clone()),
     );
 
     let value = use_state_eq(|| Value::Null);
@@ -121,15 +126,104 @@ pub fn playground() -> Html {
     );
 
     let value_editor = use_memo(
-        |()| html!(<Editor initial_content={INITIAL_VALUE} on_change={on_value_change} language="yaml"/>),
-        (),
+        |example| html!(<Editor<Generation<String>> initial_content={(*example).as_ref().map(|e|e.value.clone())} on_change={on_value_change} language="yaml"/>),
+        example.clone(),
     );
+
+    // eval section
+
+    let name = use_state_eq(|| example.policy.clone());
+
+    let eval = {
+        let pattern = pattern.clone();
+        let value = value.clone();
+        let name = (*name).clone();
+        use_async(async move { eval((*pattern).clone(), name, (*value).clone()).await })
+    };
+
+    let onclick = {
+        let eval = eval.clone();
+        Callback::from(move |_| {
+            eval.run();
+        })
+    };
+
+    let onchange = {
+        use_callback(
+            move |text: String, name| {
+                name.set(text);
+            },
+            name.clone(),
+        )
+    };
+
+    let policy_name_help = html_nested!(
+        <PopoverBody header={html!("Policy Name")}>
+            <Content>
+                <p>{"Enter the name of a policy to evaluate."}</p>
+                <p>{"Most likely, you want to enter the name of a pattern from the left-hand side box here."}</p>
+            </Content>
+        </PopoverBody>
+    );
+
+    // example storage
+
+    let store_cb = {
+        let pattern = pattern.clone();
+        let value = value.clone();
+        let value = serde_yaml::to_string(&*value).unwrap_or_default();
+        let policy_name = name.clone();
+        Callback::from(move |()| {
+            let example = ExampleData {
+                definition: (*pattern).clone(),
+                value: value.clone(),
+                policy: (*policy_name).clone(),
+            };
+            ExampleData::store_default(example);
+        })
+    };
+
+    let reset_cb = {
+        let example = example.clone();
+        Callback::from(move |()| {
+            let data = Generation::from(ExampleData::load_default());
+            example.set(data);
+        })
+    };
+
+    let clear_cb = {
+        let example = example.clone();
+        Callback::from(move |()| {
+            ExampleData::clear_default();
+            example.set(Generation::from(ExampleData::default()));
+        })
+    };
+
+    // render
 
     html!(
         <>
         <PageSection variant={PageSectionVariant::Light} sticky={[PageSectionSticky::Top]}>
+            <Flex>
+                <FlexItem modifiers={[FlexModifier::Grow]}>
+                    <Content>
+                        <Title size={Size::XXXXLarge}>
+                            {"Playground"}
+                        </Title>
+                    </Content>
+                </FlexItem>
+                <FlexItem modifiers={[FlexModifier::Align(Alignment::End)]}>
+                    <Dropdown position={Position::Right} toggle={html!(<DropdownToggle text="Examples"/>)}>
+                        <DropdownItem description="Reset current values to the stored default" onclick={reset_cb}>{ "Reset" }</DropdownItem>
+                        <ListDivider/>
+                        <DropdownItemGroup title="Storage">
+                            <DropdownItem description="Store the current configuration as the new default" onclick={store_cb}>{ "Store as default" }</DropdownItem>
+                            <DropdownItem description="Revert default to the system default" onclick={clear_cb}>{ "Clear default" }</DropdownItem>
+                        </DropdownItemGroup>
+                    </Dropdown>
+                </FlexItem>
+            </Flex>
             <Content>
-                <Title size={Size::XXXXLarge}>{"Playground"}</Title>
                 { Html::from_html_unchecked(r#"<p>The <b>playground</b> is a place to interactively try out policies</p>"#.into()) }
             </Content>
         </PageSection>
@@ -144,14 +238,37 @@ pub fn playground() -> Html {
                         { (*policy_editor).clone() }
                     </FlexItem>
                     <FlexItem modifiers={[FlexModifier::Flex1]}>
-                        <Title>{"Data"}</Title>
+                        <Title>{"Data "} <Label label="YAML"/></Title>
                         { (*value_editor).clone() }
                     </FlexItem>
                 </Flex>
             </FlexItem>
+
             <FlexItem modifiers={[FlexModifier::Flex2]}>
-                <EvalView pattern={(*pattern).clone()} value={(*value).clone()} />
+                <Title>
+                    {"Evaluate"}
+                </Title>
+                <Toolbar>
+                    <ToolbarItem>
+                        <Form horizontal={[FormHorizontal.all()]}>
+                            <FormGroup label="Policy" required=true
+                                label_icon={LabelIcon::Help(policy_name_help)}
+                            >
+                                <TextInput {onchange}
+                                    value={(*initial_name).clone()}
+                                    required=true
+                                    placeholder="Name of the pattern to evaluate"
+                                />
+                            </FormGroup>
+                        </Form>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button label="Evaluate" disabled={eval.loading} variant={ButtonVariant::Primary} {onclick}/>
+                    </ToolbarItem>
+                </Toolbar>
+                <EvalView eval={(*eval).clone()} />
             </FlexItem>
+
         </Flex>
         </div>
         </PageSection>
@@ -159,74 +276,17 @@ pub fn playground() -> Html {
     )
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Properties)]
+#[derive(PartialEq, Eq, Properties)]
 pub struct EvalViewProps {
-    pattern: String,
-    value: Value,
+    pub eval: UseAsyncState<Response, String>,
 }
 
 #[function_component(EvalView)]
 pub fn eval_view(props: &EvalViewProps) -> Html {
-    let name = use_state_eq(|| "dog".to_string());
-
-    let eval = {
-        let pattern = props.pattern.clone();
-        let value = props.value.clone();
-        let name = (*name).clone();
-        use_async(async move { eval(pattern, name, value).await })
-    };
-
-    let onclick = {
-        let eval = eval.clone();
-        Callback::from(move |_| {
-            eval.run();
-        })
-    };
-
-    let onchange = {
-        //let name = name.clone();
-        use_callback(
-            move |text, name| {
-                name.set(text);
-            },
-            name,
-        )
-    };
-
-    let help = html_nested!(
-        <PopoverBody header={html!("Policy Name")}>
-            <Content>
-                <p>{"Enter the name of a policy to evaluate."}</p>
-                <p>{"Most likely, you want to enter the name of a pattern from the left-hand side box here."}</p>
-            </Content>
-        </PopoverBody>
-    );
-
     html!(
         <>
-        <Title>
-            {"Evaluate"}
-        </Title>
-        <Toolbar>
-            <ToolbarItem>
-                <Form horizontal={[FormHorizontal.all()]}>
-                    <FormGroup label="Policy" required=true
-                        label_icon={LabelIcon::Help(help)}
-                    >
-                        <TextInput {onchange}
-                            value="dog"
-                            required=true
-                            placeholder="Name of the pattern to evaluate"
-                        />
-                    </FormGroup>
-                </Form>
-            </ToolbarItem>
-            <ToolbarItem>
-                <Button label="Evaluate" disabled={eval.loading} variant={ButtonVariant::Primary} {onclick}/>
-            </ToolbarItem>
-        </Toolbar>
         {
-            match &*eval {
+            match &props.eval {
                 UseAsyncState { loading: true, .. } => {
                     html!("Loading...")
                 }
