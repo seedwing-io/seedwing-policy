@@ -33,6 +33,7 @@
 ** xref:spdx/index.adoc[`spdx`]
 *** xref:spdx/license/index.adoc[`license`]
 *** xref:spdx/v2_2/index.adoc[`v2_2`]
+*** xref:spdx/v2_3/index.adoc[`v2_3`]
 ** xref:string/index.adoc[`string`]
 ** xref:timestamp/index.adoc[`timestamp`]
 ** xref:uri/index.adoc[`uri`]

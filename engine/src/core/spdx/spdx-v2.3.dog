@@ -1,0 +1,313 @@
+//! Patterns to work with SPDX 2.3 documents.
+
+/// SPDX 2.3 in-toto attestation
+pattern statement = {
+  _type: "https://in-toto.io/Statement/v0.1",
+  subject: anything,
+  predicateType: "https://spdx.dev/Document",
+  predicate: string | json::json | predicate
+}
+
+// The predicate follows the 2.3 specification:
+// https://spdx.github.io/spdx-spec/v2.3
+pattern predicate = {
+  // document-creation-information/#61-spdx-version-field
+  spdxVersion: string::regexp<"SPDX-\d.\d">,
+  // document-creation-information/#62-data-license-field
+  dataLicense: spdx::license::id,
+  // document-creation-information/#63-spdx-identifier-field
+  SPDXID: spdx_ref,
+  // document-creation-information/#64-document-name-field
+  name: string,
+  // document-creation-information/#65-spdx-document-namespace-field
+  documentNamespace: uri::url,
+  // document-creation-information/#66-external-document-references-field
+  externalDocumentRefs?: list::all<external-document-ref>,
+  // document-creation-information/#68-creator-field
+  creationInfo: creationInfo,
+  // document-creation-information/#611-document-comment-field
+  comment?: string,
+  // package-information
+  packages: list::all<package>,
+  // file-information
+  files?: list::all<file>,
+  // snippet-information
+  snippets?: list::all<snippet>,
+  // other-licensing-information-detected/
+  hasExtractedLicensingInfos?: list::all<extracted-license-info>,
+  // relationships-between-SPDX-elements/
+  relationships?: list::all<relationship>,
+  // annotations
+  annotations?: list::all<annotation>,
+}
+
+pattern relationship = {
+  // relationships-between-SPDX-elements/#111-relationship-field
+  spdxElementId?: spdx_ref,
+  relatedSpdxElement?: string::regexp<"(DocumentRef([-\w\d.]+:)+)?SPDXRef[-\w\d]+"> || "NOASSERTION",
+  relationshipType: relationship-type,
+}
+
+pattern extracted-license-info = {
+  // other-licensing-information-detected/#101-license-identifier-field
+  licenseId?: string::regexp<"LicenseRef-\w+">,
+  // other-licensing-information-detected/#102-extracted-text-field
+  extractedText?: string,
+  // other-licensing-information-detected/#103-license-name-field
+  name?: string,
+  // other-licensing-information-detected/#104-license-cross-reference-field
+  seeAlsos?: list::all<uri::url>,
+  // other-licensing-information-detected/#105-license-comment-field
+  comment?: string,
+}
+
+pattern external-document-ref = {
+  checksum: checksum,
+  externalDocumentId: string::regexp<"DocumentRef-\w+">,
+  spdxDocument?: string
+}
+
+pattern creationInfo = {
+  // document-creation-information/#69-created-field
+  created: timestamp::iso8601,
+  // document-creation-information/#68-creator-field
+  creators: list::any<string>,
+  // document-creation-information/#610-creator-comment-field
+  comment?: string,
+  // document-creation-information/#67-license-list-version-field
+  licenseListVersion?: string::regexp<"\d.\d">,
+}
+
+pattern spdx_ref = string::regexp<"SPDXRef[-\w\d.]+">
+
+pattern package = {
+  // package-information/#71-package-name-field
+  name: string,
+  // package-information/#72-package-spdx-identifier-field
+  SPDXID: spdx_ref,
+  // package-information/#73-package-version-field
+  versionInfo?: string,
+  // package-information/#74-package-file-name-field
+  packageFileName?: string,
+  // package-information/#75-package-supplier-field
+  supplier?: string,
+  // package-information/#76-package-originator-field
+  originator?: string,
+  // package-information/#77-package-download-location-field
+  downloadLocation: "NOASSERTION" || "NONE" || uri::url,
+  // package-information/#78-files-analyzed-field
+  filesAnalyzed?: boolean,
+  // verification code is required if filesAnalyzed is true.
+  // TODO: how do we handle something like this in Seedwing?
+  // package-information/#79-package-verification-code-field
+  verificationCode?: packageVerificationCode,
+  // package-information/#710-package-checksum-field
+  checksums?: list::all<checksum>,
+  // package-information/#711-package-home-page-field
+  homepage?: "NONE" || "NOASSERTION" || uri::url,
+  // package-information/#712-source-information-field
+  source?: string,
+  // package-information/#713-concluded-license-field
+  licenseConcluded: spdx::license-expr || "NONE" || "NOASSERTION",
+  // package-information/#714-all-licenses-information-from-files-field
+  // TODO: Is optional if filesAnalyzed is false.
+  licensesFromFiles?: spdx::compatible<list::any<spdx::license::id>> ||
+    string::regexp<"(Document|License)Ref[-\w\d.]+"> || "NONE" || "NOASSERTION",
+  // package-information/#715-declared-license-field
+  licenseDeclared?: spdx::license-expr || "NONE" || "NOASSERTION",
+  // package-information/#716-comments-on-license-field
+  licenseComment?: string,
+  // package-information/#717-copyright-text-field
+  copyrightText: string,
+  // package-information/#718-package-summary-description-field
+  summary?: string,
+  // package-information/#719-package-detailed-description-field
+  description?: string,
+  // package-information/#720-package-comment-field
+  comment?: string,
+  // package-information/#721-external-reference-field
+  externalRef?: external-ref,
+  // package-information/#723-package-attribution-text-field
+  attributionText?: string,
+  // annotations
+  annotations?: list::all<annotation>,
+}
+
+pattern packageVerificationCode = {
+  value: string,
+  excludedFile?: string,
+}
+
+pattern checksum = {
+  algorithm: "SHA1"   ||
+             "SHA224" ||
+             "SHA256" ||
+             "SHA384" ||
+             "SHA512" ||
+             "MD2"    ||
+             "MD4"    ||
+             "MD5"    ||
+             "MD6",
+  checksumValue: string,
+}
+
+pattern external-ref = {
+  referenceCategory: "SECURITY"        ||
+                     "PACKAGE-MANAGER" ||
+                     "PERSISTENT-ID"   ||
+                     "OTHER",
+  referenceType: "cpe22Type"           ||
+                 "cpe23Type"           ||
+                 "maven-central"       ||
+                 "npm"                 ||
+                 "nuget"               ||
+                 "bower"               ||
+                 "purl"                ||
+                 "swh"                 ||
+                 string,
+  referenceLocator: uri::url,
+  comment?: string,
+}
+
+pattern file = {
+  // file-information/#81-file-name-field
+  fileName: string,
+  // file-information/#82-file-spdx-identifier-field
+  SPDXID: spdx_ref,
+  // file-information/#83-file-type-field
+  fileTypes?: list::any<"SOURCE"        ||
+                        "BINARY"        ||
+                        "ARCHIVE"       ||
+                        "APPLICATION"   ||
+                        "AUDIO"         ||
+                        "IMAGE"         ||
+                        "TEXT"          ||
+                        "VIDEO"         ||
+                        "DOCUMENTATION" ||
+                        "SPDX"          ||
+                        "OTHER">,
+  // file-information/#84-file-checksum-field
+  checksums?: list::all<checksum>,
+  // file-information/#85-concluded-license-field
+  licenseConcluded: spdx::license-expr || "NONE" || "NOASSERTION",
+  // file-information/#86-license-information-in-file-field
+  licenseInfoInFiles?: list::any<spdx::license-expr ||
+    string::regexp<"(Document|License)Ref-\w+"> || "NONE" || "NOASSERTION">,
+  // file-information/#87-comments-on-license-field
+  licenseComment?: string,
+  // file-information/#88-copyright-text-field
+  copyrightText: string,
+  // file-information/#89-artifact-of-project-name-field-deprecated
+  artifactOf?: artifactof,
+  // file-information/#812-file-comment-field
+  fileComments?: string,
+  // file-information/#814-file-contributor-field
+  fileContributors?: list::any<string>,
+  // file-information/#815-file-attribution-text-field
+  fileAttributionText?: string,
+  // file-information/#816-file-dependencies-field-deprecated
+  fileDepencencies?: list::any<string>,
+  // annotations
+  annotations?: list::all<annotation>,
+}
+
+pattern artifactof = {
+  projectName?: string,
+  projectHomepage?: string,
+  projectUri?: uri::url,
+}
+
+pattern snippet = {
+  // snippet-information/#91-snippet-spdx-identifier-field
+  SPDXID: spdx_ref,
+  // snippet-information/#92-snippet-from-file-spdx-identifier-field
+  snippetFromFile: string::regexp<"(DocumentRef-\w+: )?\w+">,
+  // snippet-information/#93-snippet-byte-range-field
+  ranges: list::all<range>,
+  // snippet-information/#95-snippet-concluded-license-field
+  licenseConcluded: spdx::license-expr || "NONE" || "NOASSERTION",
+  // snippet-information/#96-license-information-in-snippet-field
+  licenseInfoInSnippets?: list::any<spdx::license-expr ||
+    string::regexp<"(Document|License)Ref-\w+"> || "NONE" || "NOASSERTION">,
+  // snippet-information/#97-snippet-comments-on-license-field
+  licenseComments?: string,
+  // snippet-information/#98-snippet-copyright-text-field
+  copyrightText: string,
+  // snippet-information/#99-snippet-comment-field
+  comment?: string,
+  // snippet-information/#910-snippet-name-field
+  name?: string,
+  // snippet-information/#911-snippet-attribution-text-field
+  attributionText?: string,
+  // annotations
+  annotations?: list::all<annotation>,
+}
+
+pattern range = {
+  startPointer: range_ptr,
+  endPointer: range_ptr,
+}
+
+pattern range_ptr = {
+  offset?: integer,
+  number?: integer,
+  reference: spdx_ref,
+}
+
+pattern annotation = {
+  // annotations/#121-annotator-field
+  annotator: string,
+  // annotations/#122-annotation-date-field
+  annotationDate: timestamp::iso8601,
+  // annotations/#123-annotation-type-field
+  annotationType: "REVIEW" || "OTHER",
+  // annotations/#125-annotation-comment-field
+  comment?: string,
+}
+
+pattern relationship-type =
+  "DESCRIBES" ||
+  "DESCRIBED_BY" ||
+  "CONTAINS" ||
+  "CONTAINED_BY" ||
+  "DEPENDS_ON" ||
+  "DEPENDENCY_OF" ||
+  "DEPENDENCY_MANIFEST_OF" ||
+  "BUILD_DEPENDENCY_OF" ||
+  "DEV_DEPENDENCY_OF" ||
+  "OPTIONAL_DEPENDENCY_OF" ||
+  "PROVIDED_DEPENDENCY_OF" ||
+  "TEST_DEPENDENCY_OF" ||
+  "RUNTIME_DEPENDENCY_OF" ||
+  "EXAMPLE_OF" ||
+  "GENERATES" ||
+  "GENERATED_FROM" ||
+  "ANCESTOR_OF" ||
+  "DESCENDANT_OF" ||
+  "VARIANT_OF" ||
+  "DISTRIBUTION_ARTIFACT" ||
+  "PATCH_FOR" ||
+  "PATCH_APPLIED" ||
+  "COPY_OF" ||
+  "FILE_ADDED" ||
+  "FILE_DELETED" ||
+  "FILE_MODIFIED" ||
+  "EXPANDED_FROM_ARCHIVE" ||
+  "DYNAMIC_LINK" ||
+  "STATIC_LINK" ||
+  "DATA_FILE_OF" ||
+  "TEST_CASE_OF" ||
+  "BUILD_TOOL_OF" ||
+  "DEV_TOOL_OF" ||
+  "TEST_OF" ||
+  "TEST_TOOL_OF" ||
+  "DOCUMENTATION_OF" ||
+  "OPTIONAL_COMPONENT_OF" ||
+  "METAFILE_OF" ||
+  "PACKAGE_OF" ||
+  "AMENDS" ||
+  "PREREQUISITE_FOR" ||
+  "HAS_PREREQUISITE" ||
+  "REQUIREMENT_DESCRIPTION_FOR" ||
+  "SPECIFICATION_FOR" ||
+  "OTHER"
