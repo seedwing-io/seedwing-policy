@@ -152,10 +152,19 @@ impl Response {
 
     /// Collapse the tree of reasons.
     ///
+    /// This collects the reasons using [`Self::collect`] and replaces the current rationale with
+    /// them.
+    pub fn collapse(mut self, severity: Severity) -> Self {
+        self.rationale = self.collect(severity);
+        self
+    }
+
+    /// Collect the list of reasons.
+    ///
     /// This builds a list of reasons which are reachable from the root through only failed
     /// nodes. Capturing only the deepest failed nodes, which have no more failures underneath them.
     /// But it does not capture its (succeeded) children.
-    pub fn collapse(mut self, severity: Severity) -> Self {
+    pub fn collect(&self, severity: Severity) -> Vec<Self> {
         let mut rationale = vec![];
 
         self.walk_tree(|response| {
@@ -174,8 +183,7 @@ impl Response {
             true
         });
 
-        self.rationale = rationale;
-        self
+        rationale
     }
 
     /// Walk the tree of reasons.
