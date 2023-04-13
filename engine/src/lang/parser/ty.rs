@@ -442,10 +442,22 @@ pub fn object_type(
                 .allow_trailing(),
         )
         .then(just("}").padded().map_with_span(|_, span| span))
-        .map(|((start, fields), end)| {
+        .validate(move |(tuple, end), _span, emit| {
+            let (start, fields) = tuple;
             let loc = start.start()..end.end();
             let mut ty = ObjectPattern::new();
             for f in fields {
+                for e in ty.fields() {
+                    if e.name() == f.name() {
+                        emit(ParserError::custom(
+                            f.span(),
+                            format!(
+                                "Duplicate field declared. Please remove one of {:?}",
+                                f.name()
+                            ),
+                        ));
+                    }
+                }
                 ty.add_field(f);
             }
 
