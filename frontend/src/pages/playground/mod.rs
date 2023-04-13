@@ -296,7 +296,7 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
             data: Some(result), ..
         } => {
             html!(
-                <ResultView result={result.clone()}/>
+                <ResultView result={vec![result.clone()]}/>
             )
         }
         _ => html!(""),

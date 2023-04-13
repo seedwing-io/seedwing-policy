@@ -518,7 +518,7 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
                             data: Some(result),
                             ..
                         } => {
-                            html!(<ResultView result={result.clone()}/>)
+                            html!(<ResultView result={vec![result.clone()]}/>)
                         }
                         _ => html!(),
                     }

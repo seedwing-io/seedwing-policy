@@ -14,7 +14,7 @@ const INITIAL_VALUE: &str = r#"{
 
 #[function_component(Inspector)]
 pub fn inspector() -> Html {
-    let result = use_state_eq(|| Ok(Response::default()));
+    let result = use_state_eq(|| Ok(vec![Response::default()]));
 
     let on_change = use_callback(
         |text: String, value| {

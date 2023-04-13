@@ -1,21 +1,30 @@
 use patternfly_yew::prelude::*;
-use seedwing_policy_engine::lang::Severity;
-use seedwing_policy_engine::runtime::response::{Name, Response};
+use seedwing_policy_engine::{
+    lang::Severity,
+    runtime::response::{Name, Response},
+};
 use serde_json::Value;
 use std::rc::Rc;
 use yew::prelude::*;
 
 #[derive(PartialEq, Properties)]
 pub struct ResultViewProps {
-    pub result: Response,
+    pub result: Vec<Response>,
 }
+
+#[derive(Clone, PartialEq)]
+pub struct RationaleModel(Vec<Response>);
 
 #[derive(Clone, PartialEq)]
 pub struct ResponseModel(Response);
 
-impl TreeTableModel for ResponseModel {
+impl TreeTableModel for RationaleModel {
     fn children(&self) -> Vec<Rc<dyn TreeNode>> {
-        vec![Rc::new(self.clone()) as Rc<dyn TreeNode>]
+        // vec![Rc::new(self.clone()) as Rc<dyn TreeNode>]
+        self.0
+            .iter()
+            .map(|r| Rc::new(ResponseModel(r.clone())) as Rc<dyn TreeNode>)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -88,6 +97,9 @@ pub fn result(props: &ResultViewProps) -> Html {
                 <Tab label="Response">
                     <ResultTreeView result={props.result.clone()}/>
                 </Tab>
+                <Tab label="Compact">
+                    <CompactView result={props.result.clone()}/>
+                </Tab>
                 <Tab label="JSON">
                     {
                         match serde_json::to_string_pretty(&props.result) {
@@ -104,6 +116,39 @@ pub fn result(props: &ResultViewProps) -> Html {
     )
 }
 
+#[function_component(CompactView)]
+pub fn compact(props: &ResultViewProps) -> Html {
+    let severity = use_state_eq(|| Severity::Error);
+
+    let compact = use_memo(
+        |(response, severity)| {
+            response
+                .iter()
+                .flat_map(|r| r.collect(**severity))
+                .collect::<Vec<_>>()
+        },
+        (props.result.clone(), severity.clone()),
+    );
+
+    let onselect = {
+        let severity = severity.clone();
+        Callback::from(move |item| {
+            severity.set(item);
+        })
+    };
+
+    html!(
+        <>
+            <Select<Severity> variant={SelectVariant::Single(onselect)} initial_selection={vec![*severity]}>
+                <SelectOption<Severity> value={Severity::Advice} />
+                <SelectOption<Severity> value={Severity::Warning} />
+                <SelectOption<Severity> value={Severity::Error} />
+            </Select<Severity>>
+            <ResultTreeView result={(*compact).clone()} />
+        </>
+    )
+}
+
 #[function_component(ResultTreeView)]
 pub fn result_tree(props: &ResultViewProps) -> Html {
     let header = html_nested! {
@@ -114,7 +159,7 @@ pub fn result_tree(props: &ResultViewProps) -> Html {
         </TreeTableHeader>
     };
 
-    html!(<TreeTable<ResponseModel> mode={TreeTableMode::Compact} {header} model={Rc::new(ResponseModel(props.result.clone()))}/>)
+    html!(<TreeTable<RationaleModel> mode={TreeTableMode::Compact} {header} model={Rc::new(RationaleModel(props.result.clone()))}/>)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Properties)]
