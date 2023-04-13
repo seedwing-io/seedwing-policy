@@ -143,7 +143,7 @@ impl Function for ScanPurl {
     }
 }
 
-fn ecosystem<'a>(r#type: &'a str) -> &'a str {
+fn ecosystem(r#type: &str) -> &str {
     match r#type {
         "maven" => "Maven",
         "apk" => "Alpine",
@@ -156,7 +156,7 @@ fn ecosystem<'a>(r#type: &'a str) -> &'a str {
         e => e,
     }
 }
-fn separator<'a>(r#type: &'a str) -> &'a str {
+fn separator(r#type: &str) -> &str {
     match r#type {
         "maven" => ":",
         _ => "/",
