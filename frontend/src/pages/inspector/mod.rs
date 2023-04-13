@@ -14,7 +14,7 @@ const INITIAL_VALUE: &str = r#"{
 
 #[function_component(Inspector)]
 pub fn inspector() -> Html {
-    let result = use_state_eq(|| Ok(vec![Response::default()]));
+    let result = use_state_eq(|| Ok(Response::default()));
 
     let on_change = use_callback(
         |text: String, value| {
@@ -89,7 +89,7 @@ pub fn inspector() -> Html {
             <PageSection hidden={*tab != 1} fill={PageSectionFill::Fill}>
                 {
                     match &*result {
-                        Ok(result) => html!(<ResultTreeView result={result.clone()}/>),
+                        Ok(result) => html!(<ResultTreeView result={vec![result.clone()]}/>),
                         Err(err) => html!(
                             <CodeBlock>
                                 <CodeBlockCode>
