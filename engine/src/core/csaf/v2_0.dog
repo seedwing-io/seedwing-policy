@@ -56,7 +56,7 @@ pattern publisher = {
   contact_details: uri::url,
   name: string,
   namespace: string,
-  contact_details?: string,
+  //contact_details?: string,
   issuing_authority?: string,
 }
 
