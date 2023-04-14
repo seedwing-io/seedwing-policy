@@ -161,7 +161,7 @@ pub async fn evaluate(
             log::error!("unable to build policy [{:?}]", e);
             let EvaluateRequest { value, name, .. } = body.0;
             HttpResponse::NotAcceptable().json(json!({
-                "name": { "pattern": format!("playground::{}", name)},
+                "name": { "pattern": format!("playground::{name}")},
                 "output": e.to_string(),
                 "input": value,
                 "reason": "Unable to build the policy",
