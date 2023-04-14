@@ -171,7 +171,7 @@ impl Generator {
                     writeln!(out, "==== {}", ex.summary.as_ref().unwrap_or(&ex.name))?;
                     if let Some(details) = &ex.description {
                         writeln!(out)?;
-                        writeln!(out, "{}", details)?;
+                        writeln!(out, "{details}")?;
                     }
                     writeln!(out)?;
                     writeln!(out, "[source,json]")?;

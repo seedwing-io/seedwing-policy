@@ -43,8 +43,8 @@ impl Function for Concat {
             {
                 if let Some(input) = input.try_get_string() {
                     let transformed = match self {
-                        Self::Append => format!("{}{}", input, value),
-                        Self::Prepend => format!("{}{}", value, input),
+                        Self::Append => format!("{input}{value}"),
+                        Self::Prepend => format!("{value}{input}"),
                     };
                     Ok(Output::Transform(Arc::new(transformed.into())).into())
                 } else {

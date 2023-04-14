@@ -49,11 +49,7 @@ impl OsvClient {
     }
 
     pub async fn fetch_id(&self, id: &str) -> Result<OsvVulnerability, anyhow::Error> {
-        let response = self
-            .client
-            .get(format!("{}/{id}", OSV_VULN_URL))
-            .send()
-            .await;
+        let response = self.client.get(format!("{OSV_VULN_URL}/{id}")).send().await;
         match response {
             Ok(r) if r.status() == StatusCode::OK => {
                 r.json::<OsvVulnerability>().await.map_err(|e| e.into())

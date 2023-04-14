@@ -147,7 +147,7 @@ pub async fn evaluate(
                 run_eval(
                     monitor.into_inner(),
                     &world,
-                    format!("playground::{}", name),
+                    format!("playground::{name}"),
                     value,
                     encoding,
                 )

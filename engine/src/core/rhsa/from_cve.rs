@@ -73,7 +73,7 @@ impl CvrfClient {
         let mut advisories = Vec::new();
         let response: serde_json::Value = self
             .client
-            .get(format!("{}?cve={}", BASE_URL, cve))
+            .get(format!("{BASE_URL}?cve={cve}"))
             .send()
             .await?
             .json()

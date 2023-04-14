@@ -47,7 +47,7 @@ impl Function for FromCsaf {
                                 result.push(csaf2vex(csaf));
                             }
                             Err(e) => {
-                                log::warn!("Error looking up {:?}", e);
+                                log::warn!("Error looking up {e:?}");
                                 return Ok(Severity::Error.into());
                             }
                         }
@@ -65,7 +65,7 @@ impl Function for FromCsaf {
                             Ok(Output::Transform(Arc::new(json.into())).into())
                         }
                         Err(e) => {
-                            log::warn!("Error looking up {:?}", e);
+                            log::warn!("Error looking up {e:?}");
                             Ok(Severity::Error.into())
                         }
                     }

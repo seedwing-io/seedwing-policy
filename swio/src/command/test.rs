@@ -352,11 +352,11 @@ impl TestCase {
                                             if let Err(e) =
                                                 builder.build(Ephemeral::new("test", s).iter())
                                             {
-                                                println!("unable to build policy [{:?}]", e);
+                                                println!("unable to build policy [{e:?}]");
                                             }
                                         }
                                         Err(e) => {
-                                            println!("unable to parse [{:?}]", e);
+                                            println!("unable to parse [{e:?}]");
                                         }
                                     }
                                     let world = builder.finish().await;
@@ -470,7 +470,7 @@ impl Display for TestResult {
             TestResult::Passed => write!(f, "passed"),
             TestResult::Failed => write!(f, "failed"),
             TestResult::Pending => write!(f, "pending"),
-            TestResult::Error(err) => write!(f, "error: {:?}", err),
+            TestResult::Error(err) => write!(f, "error: {err:?}"),
         }
     }
 }

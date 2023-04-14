@@ -49,7 +49,7 @@ impl Function for FromOsv {
                                 result.push(osv2vex(osv));
                             }
                             Err(e) => {
-                                log::warn!("Error looking up {:?}", e);
+                                log::warn!("Error looking up {e:?}");
                                 return Ok(Severity::Error.into());
                             }
                         }
@@ -67,7 +67,7 @@ impl Function for FromOsv {
                             Ok(Output::Transform(Arc::new(json.into())).into())
                         }
                         Err(e) => {
-                            log::warn!("Error looking up {:?}", e);
+                            log::warn!("Error looking up {e:?}");
                             Ok(Severity::Error.into())
                         }
                     }
@@ -92,7 +92,7 @@ fn osv2vex(osv: OsvResponse) -> OpenVex {
         for affected in vuln.affected.iter() {
             if let Some(purl) = &affected.package.purl {
                 for version in affected.versions.iter() {
-                    products.insert(format!("{}@{}", purl, version));
+                    products.insert(format!("{purl}@{version}"));
                 }
                 if products.is_empty() {
                     products.insert(purl.clone());

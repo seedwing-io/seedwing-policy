@@ -209,13 +209,13 @@ fn build_default_post_response() -> Responses {
             responses.insert(
                 200.to_string(),
                 RefOr::Ref(Ref {
-                    reference: format!("#/components/responses/{}", RESPONSE_SUCCESS),
+                    reference: format!("#/components/responses/{RESPONSE_SUCCESS}"),
                 }),
             );
             responses.insert(
                 422.to_string(),
                 RefOr::Ref(Ref {
-                    reference: format!("#/components/responses/{}", RESPONSE_FAILURE),
+                    reference: format!("#/components/responses/{RESPONSE_FAILURE}"),
                 }),
             );
             responses

@@ -73,10 +73,7 @@ impl RhsaClient {
     async fn find(&self, id: &AdvisoryId) -> Result<Option<Csaf>, anyhow::Error> {
         const BASE_URL: &str = "https://access.redhat.com/security/data/csaf/v2/advisories";
         let (atype, year, number) = id.unwrap();
-        let url = format!(
-            "{}/{}/{}-{}_{:04}.json",
-            BASE_URL, year, atype, year, number
-        );
+        let url = format!("{BASE_URL}/{year}/{atype}-{year}_{number:04}.json",);
 
         let response = self.client.get(url).send().await?;
         if response.status().is_success() {

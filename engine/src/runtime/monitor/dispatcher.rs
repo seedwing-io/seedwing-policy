@@ -84,7 +84,7 @@ impl Monitor {
             correlation,
             timestamp: Utc::now(),
             ty,
-            completion: Completion::Err(format!("{}", err)),
+            completion: Completion::Err(format!("{err}")),
             elapsed,
         };
         self.fanout(event.into()).await;
