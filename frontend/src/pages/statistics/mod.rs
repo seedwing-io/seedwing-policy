@@ -28,20 +28,15 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> 
         .send()
         .await;
 
-    println!("{:?}", response);
     match response {
         Ok(response) => {
-            println!("no direct error");
             if response.status() == 404 {
                 Ok(None)
             } else {
                 Ok(Some(response.json().await.map_err(|err| err.to_string())?))
             }
         }
-        Err(e) => {
-            println!("got an error {}", e);
-            Err(e.to_string())
-        }
+        Err(e) => Err(e.to_string()),
     }
 }
 

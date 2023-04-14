@@ -66,7 +66,6 @@ impl Function for FromCsaf {
                         }
                         Err(e) => {
                             log::warn!("Error looking up {:?}", e);
-                            println!("Unable to parse: {:?}", e);
                             Ok(Severity::Error.into())
                         }
                     }
