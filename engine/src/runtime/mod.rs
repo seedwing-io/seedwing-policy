@@ -814,7 +814,7 @@ pub mod testutil {
     /// This function can be used when there are multiple patterns that are
     /// being tested.
     ///
-    /// The pattern to be evaulated must be named `test-pattern`.
+    /// The pattern to be evaluated must be named `test-pattern`.
     pub(crate) async fn test_patterns<V>(patterns: &str, value: V) -> EvaluationResult
     where
         V: Into<RuntimeValue>,

@@ -72,3 +72,54 @@ impl<'r> Collector<'r> {
         rationale
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::assert_not_satisfied;
+    use crate::runtime::testutil::test_common;
+    use crate::test::Reason;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn collect_authoritative() {
+        let result = test_common(
+            r#"
+pattern test = list::all<inner>
+
+#[authoritative]
+#[explain("find me")]
+pattern inner = {
+    values?: find,
+}
+
+pattern find = list::none<predicate>
+
+pattern predicate = "foo"
+"#,
+            json!([
+                { "values": ["foo", "bar"] },
+                { "values": ["bar", "baz"] },
+                { "values": ["baz"] }
+            ]),
+        )
+        .await;
+        assert_not_satisfied!(&result);
+
+        let result = Response::new(&result);
+
+        println!("{}", serde_json::to_string_pretty(&result).unwrap());
+
+        let collect = Collector::new(&result).collect();
+        let collect = collect.into_iter().map(Reason::from).collect::<Vec<_>>();
+        assert_eq!(
+            collect.as_slice(),
+            &[Reason {
+                name: "test::inner".to_string(),
+                severity: Severity::Error,
+                reason: "find me".to_string(),
+                rationale: vec![],
+            }]
+        );
+    }
+}
