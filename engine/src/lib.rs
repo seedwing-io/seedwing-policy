@@ -9,6 +9,10 @@ mod package;
 pub mod runtime;
 pub mod value;
 
+/// Common test functionality
+#[doc(hidden)]
+pub mod test;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const TAG: Option<&str> = option_env!("TAG");
 
