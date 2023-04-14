@@ -3479,6 +3479,7 @@ dependencies = [
  "iref",
  "log",
  "num-integer",
+ "once_cell",
  "openvex",
  "prometheus",
  "rand",

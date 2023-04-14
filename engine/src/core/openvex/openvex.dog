@@ -28,6 +28,9 @@ pattern statement = {
 }
 
 /// Enforce that there are no statements considered affecting.
+
+#[explain("One or more dependencies are affected")]
+#[authoritative]
 pattern not-affected = {
     statements?: list::none<{
         status: "affected" || "under_investigation"

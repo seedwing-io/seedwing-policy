@@ -1,6 +1,7 @@
-use seedwing_policy_engine::runtime::EvalContext;
-use seedwing_policy_engine::runtime::{EvaluationResult, RuntimeError, World};
-use seedwing_policy_engine::value::RuntimeValue;
+use seedwing_policy_engine::{
+    runtime::{EvalContext, EvaluationResult, RuntimeError, World},
+    value::RuntimeValue,
+};
 
 pub struct Eval<'a> {
     world: &'a World,

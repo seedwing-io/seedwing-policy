@@ -1,5 +1,8 @@
 //! Response handling a policy decision.
 
+mod collector;
+
+use super::{rationale::Rationale, EvaluationResult, PatternName};
 use crate::{
     lang::{
         lir::{Bindings, InnerPattern, ValuePattern},
@@ -7,15 +10,17 @@ use crate::{
     },
     runtime::Output,
 };
+pub use collector::*;
+use once_cell::sync::Lazy;
 use serde::{
     ser::{self, SerializeStruct, Serializer},
     Deserialize, Serialize,
 };
 use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-
-use super::{rationale::Rationale, EvaluationResult, PatternName};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Name {
@@ -61,6 +66,13 @@ pub struct Response {
     pub severity: Severity,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub reason: String,
+    /// An indicator that this reason considers itself authoritative.
+    ///
+    /// A setting of `true` indicates that this reason is informational enough for the end-user
+    /// to understand what happened and that rationale entries below this one don't help much
+    /// in getting a better understanding (except when debugging).
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub authoritative: bool,
     #[serde(default)]
     pub rationale: Vec<Response>,
     #[serde(skip)]
@@ -78,11 +90,26 @@ impl Serialize for Response {
     where
         S: Serializer,
     {
+        static FIELDS: Lazy<Vec<String>> = Lazy::new(|| {
+            vec![
+                "name".to_string(),
+                "bindings".to_string(),
+                "input".to_string(),
+                "output".to_string(),
+                "severity".to_string(),
+                "reason".to_string(),
+                "authoritative".to_string(),
+                "rationale".to_string(),
+            ]
+        });
+
+        // check if the field will be serialized, must match the "skip_" declaration from the struct
         let check = |s| match s {
             "name" => !self.name.is_empty(),
             "bindings" => !self.bindings.is_empty(),
             "output" => self.output.is_some(),
             "reason" => !self.reason.is_empty(),
+            "authoritative" => self.authoritative,
             "rationale" => !self.rationale.is_empty(),
             _ => true,
         };
@@ -93,28 +120,18 @@ impl Serialize for Response {
             "output" => state.serialize_field("output", &self.output),
             "severity" => state.serialize_field("severity", &self.severity),
             "reason" => state.serialize_field("reason", &self.reason),
+            "authoritative" => state.serialize_field("authoritative", &self.authoritative),
             "rationale" => state.serialize_field("rationale", &self.rationale),
             _ => Err(ser::Error::custom(format!("Unknown field name: {s}"))),
         };
         let fields = if !self.fields.is_empty() {
-            self.fields.clone()
+            &self.fields
         } else {
-            [
-                "name",
-                "bindings",
-                "input",
-                "output",
-                "severity",
-                "reason",
-                "rationale",
-            ]
-            .into_iter()
-            .map(String::from)
-            .collect::<Vec<_>>()
+            &FIELDS
         };
         let count = fields.iter().filter(|s| check(s)).count();
         let mut state = serializer.serialize_struct("Response", count)?;
-        for name in &fields {
+        for name in fields {
             if check(name) {
                 write(name, &mut state)?;
             }
@@ -144,6 +161,7 @@ impl Response {
             output,
             severity,
             reason,
+            authoritative: result.ty.metadata().reporting.authoritative,
             rationale: support(rationale),
             bindings: bound(bindings),
             fields: Vec::new(),
@@ -155,35 +173,8 @@ impl Response {
     /// This collects the reasons using [`Self::collect`] and replaces the current rationale with
     /// them.
     pub fn collapse(mut self, severity: Severity) -> Self {
-        self.rationale = self.collect(severity);
+        self.rationale = Collector::new(&self).with_severity(severity).collect();
         self
-    }
-
-    /// Collect the list of reasons.
-    ///
-    /// This builds a list of reasons which are reachable from the root through only failed
-    /// nodes. Capturing only the deepest failed nodes, which have no more failures underneath them.
-    /// But it does not capture its (succeeded) children.
-    pub fn collect(&self, severity: Severity) -> Vec<Self> {
-        let mut rationale = vec![];
-
-        self.walk_tree(|response| {
-            if response.satisfied(severity) {
-                return false;
-            }
-
-            if response.rationale.iter().all(|r| r.satisfied(severity)) {
-                // capture failed leaves
-                let mut response = response.clone();
-                response.rationale = vec![];
-                rationale.push(response);
-                return false;
-            }
-
-            true
-        });
-
-        rationale
     }
 
     /// Walk the tree of reasons.

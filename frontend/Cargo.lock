@@ -1900,6 +1900,7 @@ dependencies = [
  "iref",
  "log",
  "num-integer",
+ "once_cell",
  "openvex",
  "rand",
  "regex",

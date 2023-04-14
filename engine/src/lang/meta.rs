@@ -58,13 +58,17 @@ pub struct Reporting {
     /// the severity with this value.
     pub severity: Severity,
     /// In case of a non [`Severity::None`] value, this can be used to override the "reason".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub authoritative: bool,
 }
 
+/// Convert from HIR metadata to reporting information
 impl From<&hir::Metadata> for Reporting {
     fn from(value: &hir::Metadata) -> Self {
         // try "explain", then "warning", then "advice"
-        value
+        let mut reporting = value
             .attributes
             .get("explain")
             .map(|attr| (Severity::Error, attr))
@@ -83,8 +87,15 @@ impl From<&hir::Metadata> for Reporting {
             .map(|(severity, attr)| Reporting {
                 severity,
                 explanation: attr.flags().next().map(ToString::to_string),
+                authoritative: false,
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // fill in authoritative flag
+        reporting.authoritative = value.attributes.get("authoritative").is_some();
+
+        // done
+        reporting
     }
 }
 

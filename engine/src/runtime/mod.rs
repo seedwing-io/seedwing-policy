@@ -132,14 +132,6 @@ pub enum Output {
     Transform(Arc<RuntimeValue>),
 }
 
-/*
-impl Output {
-    pub fn is_some(&self) -> bool {
-        !matches!(self, Self::None(_))
-    }
-}
-*/
-
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
     input: Arc<RuntimeValue>,
@@ -319,44 +311,6 @@ impl World {
 
     pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {
         self.packages.get(&name.into()).cloned()
-
-        /*
-        let name = name.into();
-
-        let pkg_meta = self.packages.get(&name).cloned().unwrap_or_default();
-
-        let path = name.to_string();
-        let mut meta = PackageMetadata::new(name);
-
-        meta.documentation = pkg_meta.documentation;
-
-        for (name, slot) in &self.types {
-            let pkg = name.package.clone();
-            let name = name.as_type_str();
-            if let Some(relative_name) = name.strip_prefix(&path) {
-                let relative_name = relative_name.strip_prefix("::").unwrap_or(relative_name);
-                let parts: Vec<&str> = relative_name.split("::").collect();
-                if parts.len() == 1 {
-                    let pattern = self.type_slots[*slot].clone();
-                    if let Ok(pattern) = pattern.to_meta(self) {
-                        meta.add_pattern(pattern);
-                    }
-                } else {
-                    let pkg_meta = pkg
-                        .as_ref()
-                        .and_then(|pkg| self.packages.get(pkg).cloned())
-                        .unwrap_or_default();
-
-                    meta.add_subpackage(PackageName::new(parts[0].into()), pkg_meta);
-                }
-            }
-        }
-
-        if meta.packages.is_empty() && meta.patterns.is_empty() {
-            None
-        } else {
-            Some(meta.sort())
-        }*/
     }
 
     pub fn get_pattern_meta<S: Into<PatternName>>(&self, name: S) -> Option<PatternMetadata> {
