@@ -1,7 +1,7 @@
 use patternfly_yew::prelude::*;
 use seedwing_policy_engine::{
     lang::Severity,
-    runtime::response::{Name, Response},
+    runtime::response::{Collector, Name, Response},
 };
 use serde_json::Value;
 use std::rc::Rc;
@@ -124,7 +124,7 @@ pub fn compact(props: &ResultViewProps) -> Html {
         |(response, severity)| {
             response
                 .iter()
-                .flat_map(|r| r.collect(**severity))
+                .flat_map(|r| Collector::new(r).with_severity(**severity).collect())
                 .collect::<Vec<_>>()
         },
         (props.result.clone(), severity.clone()),
