@@ -679,7 +679,7 @@ impl<'b> Lowerer<'b> {
         }
 
         for unit in self.units.iter() {
-            log::info!("Unit: {}: {:?}", unit.source(), unit.documentation());
+            log::debug!("Unit: {}: {:?}", unit.source(), unit.documentation());
             if let Some(docs) = unit.documentation() {
                 let unit_path = PackagePath::from(unit.source());
                 let pkg = packages.entry(unit_path).or_default();
