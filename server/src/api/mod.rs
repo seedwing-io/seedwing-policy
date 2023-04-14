@@ -59,6 +59,8 @@ pub struct PolicyQuery {
     collapse: Option<bool>,
     format: Option<Format>,
     select: Option<String>, // for minimal, pass 'select=output'
+    /// don't respond with HTTP errors in case of a failed policy
+    no_error: Option<bool>,
 }
 
 #[derive(Clone)]
@@ -67,6 +69,8 @@ pub enum OutputEncoding {
         format: Format,
         collapse: bool,
         select: Option<String>,
+        /// only return an HTTP error code when processing (not the policy itself) failed
+        no_error: bool,
     },
     Opa,
 }
@@ -77,6 +81,7 @@ impl Default for OutputEncoding {
             format: Format::Html,
             collapse: false,
             select: None,
+            no_error: false,
         }
     }
 }
@@ -88,11 +93,12 @@ impl OutputEncoding {
         }
 
         let mime = accept.preference();
-        let format = query.format.unwrap_or(mime.to_string().into());
+        let format = query.format.unwrap_or_else(|| mime.to_string().into());
         Self::Seedwing {
             format,
             collapse: query.collapse.unwrap_or_default(),
             select: query.select,
+            no_error: query.no_error.unwrap_or_default(),
         }
     }
 }
@@ -199,9 +205,10 @@ fn return_rationale(result: EvaluationResult, encoding: OutputEncoding) -> HttpR
             format,
             collapse,
             select,
+            no_error,
         } => match format.format(&result, collapse, select) {
             Ok(rationale) => {
-                if result.severity() < Severity::Error {
+                if no_error || result.severity() < Severity::Error {
                     HttpResponse::Ok()
                         .content_type(format.content_type())
                         .body(rationale)

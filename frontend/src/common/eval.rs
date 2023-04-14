@@ -199,10 +199,22 @@ pub async fn eval(policy: String, name: String, value: Value) -> Result<Response
         .await
         .map_err(|err| format!("Failed to send eval request: {err}"))?;
 
-    response
-        .json::<Response>()
-        .await
-        .map_err(|err| format!("Failed to read response: {err}"))
+    match response.ok() {
+        true => response
+            .json::<Response>()
+            .await
+            .map_err(|err| format!("Failed to read response: {err}")),
+        false => {
+            let cause = response
+                .text()
+                .await
+                .map_err(|err| format!("Failed to read error response: {err}"))?;
+            Err(match cause.is_empty() {
+                true => format!("{} ({})", response.status_text(), response.status()),
+                false => cause,
+            })
+        }
+    }
 }
 
 /// Validate a remote policy

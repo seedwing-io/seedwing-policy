@@ -1,8 +1,7 @@
 mod store;
 
-use crate::common::editor::Generation;
 use crate::common::{
-    editor::{self, ByteRange, Editor, MarkerData},
+    editor::{self, ByteRange, Editor, Generation, MarkerData},
     eval::{eval, ResultView},
 };
 use monaco::{
@@ -55,10 +54,7 @@ pub fn playground() -> Html {
 
     let pattern = use_state_eq(String::new);
     let example = use_state(|| Generation::from(ExampleData::load_default()));
-    let initial_name = use_memo(
-        |example| (*example).as_ref().map(|e| e.policy.clone()),
-        example.clone(),
-    );
+    let policy_name = use_state_eq(|| example.policy.clone());
 
     let on_pattern_change = {
         let pattern = pattern.clone();
@@ -132,13 +128,11 @@ pub fn playground() -> Html {
 
     // eval section
 
-    let name = use_state_eq(|| example.policy.clone());
-
     let eval = {
         let pattern = pattern.clone();
         let value = value.clone();
-        let name = (*name).clone();
-        use_async(async move { eval((*pattern).clone(), name, (*value).clone()).await })
+        let policy_name = (*policy_name).clone();
+        use_async(async move { eval((*pattern).clone(), policy_name, (*value).clone()).await })
     };
 
     let onclick = {
@@ -149,12 +143,10 @@ pub fn playground() -> Html {
     };
 
     let onchange = {
-        use_callback(
-            move |text: String, name| {
-                name.set(text);
-            },
-            name.clone(),
-        )
+        let policy_name = policy_name.clone();
+        Callback::from(move |data| {
+            policy_name.set(data);
+        })
     };
 
     let policy_name_help = html_nested!(
@@ -172,7 +164,7 @@ pub fn playground() -> Html {
         let pattern = pattern.clone();
         let value = value.clone();
         let value = serde_yaml::to_string(&*value).unwrap_or_default();
-        let policy_name = name.clone();
+        let policy_name = policy_name.clone();
         Callback::from(move |()| {
             let example = ExampleData {
                 definition: (*pattern).clone(),
@@ -185,17 +177,22 @@ pub fn playground() -> Html {
 
     let reset_cb = {
         let example = example.clone();
+        let policy_name = policy_name.clone();
         Callback::from(move |()| {
             let data = Generation::from(ExampleData::load_default());
+            policy_name.set(data.policy.clone());
             example.set(data);
         })
     };
 
     let clear_cb = {
         let example = example.clone();
+        let policy_name = policy_name.clone();
         Callback::from(move |()| {
             ExampleData::clear_default();
-            example.set(Generation::from(ExampleData::default()));
+            let data = Generation::from(ExampleData::default());
+            policy_name.set(data.policy.clone());
+            example.set(data);
         })
     };
 
@@ -255,7 +252,7 @@ pub fn playground() -> Html {
                                 label_icon={LabelIcon::Help(policy_name_help)}
                             >
                                 <TextInput {onchange}
-                                    value={(*initial_name).clone()}
+                                    value={(*policy_name).clone()}
                                     required=true
                                     placeholder="Name of the pattern to evaluate"
                                 />
@@ -290,7 +287,9 @@ pub fn eval_view(props: &EvalViewProps) -> Html {
         UseAsyncState {
             error: Some(err), ..
         } => {
-            html!(format!("Failed: {err}"))
+            html!(
+                <CodeBlock> <CodeBlockCode> { err } </CodeBlockCode> </CodeBlock>
+            )
         }
         UseAsyncState {
             data: Some(result), ..
