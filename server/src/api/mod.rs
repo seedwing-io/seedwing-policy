@@ -156,7 +156,7 @@ pub async fn evaluate(
             let EvaluateRequest { value, name, .. } = body.0;
             HttpResponse::NotAcceptable().json(json!({
                 "name": { "pattern": format!("playground::{name}")},
-                "output": e.to_string(),
+                "output": e,
                 "input": value,
                 "reason": "Unable to build the policy",
                 "severity": "error"
