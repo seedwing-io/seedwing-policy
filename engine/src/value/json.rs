@@ -30,7 +30,7 @@ impl From<JsonValue> for RuntimeValue {
                     .map(|(k, v)| (k, Arc::new(RuntimeValue::from(v))))
                     .collect();
 
-                RuntimeValue::Object(Object { fields })
+                RuntimeValue::Object(Object(fields))
             }
         }
     }
@@ -63,7 +63,7 @@ impl From<&JsonValue> for RuntimeValue {
                     .map(|(k, v)| (k.clone(), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
-                RuntimeValue::Object(Object { fields })
+                RuntimeValue::Object(Object(fields))
             }
         }
     }
