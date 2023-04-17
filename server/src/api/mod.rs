@@ -39,18 +39,6 @@ pub async fn get_policy(world: web::Data<World>, path: web::Path<String>) -> imp
     } else {
         HttpResponse::NotFound().finish()
     }
-
-    /*
-    match world.get_pattern_meta(path) {
-        Some(component) => match component.to_meta(&world) {
-            Ok(info) => HttpResponse::Ok().json(info),
-            Err(err) => HttpResponse::InternalServerError().json(json!({
-                "message": err.to_string(),
-            })),
-        },
-        None => HttpResponse::NotFound().finish(),
-    }
-     */
 }
 
 #[derive(serde::Deserialize)]

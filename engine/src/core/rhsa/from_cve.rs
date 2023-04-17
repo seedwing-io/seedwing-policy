@@ -20,6 +20,7 @@ impl Function for FromCve {
     fn order(&self) -> u8 {
         132
     }
+
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
             documentation: DOCUMENTATION.into(),
