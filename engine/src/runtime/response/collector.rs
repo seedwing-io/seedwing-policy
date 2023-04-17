@@ -30,6 +30,17 @@ impl<'r> Collector<'r> {
         self
     }
 
+    /// Use the severity of the response.
+    ///
+    /// This helps getting the "highest" severity entries automatically.
+    ///
+    /// **NOTE:** This will only work properly of the severity of the response is higher than
+    /// [`Severity::None`], otherwise you will get all leaf entries.
+    pub fn highest_severity(mut self) -> Self {
+        self.severity = self.response.severity;
+        self
+    }
+
     /// Ignore the authoritative flag.
     pub fn ignore_authoritative(self) -> Self {
         self.with_ignore_authoritative(true)
