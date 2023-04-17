@@ -1,7 +1,8 @@
 = string
+:description: Utilities for working with strings
 :sectanchors:
 
-
+Utilities for working with strings
 
 [#append]
 == `append<value>`

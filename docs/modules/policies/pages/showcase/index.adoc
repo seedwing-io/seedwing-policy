@@ -1,7 +1,8 @@
 = showcase
+:description: Showcase a few features of seedwing
 :sectanchors:
 
-
+Showcase a few features of seedwing
 
 [#builtin]
 == `builtin`
