@@ -221,7 +221,7 @@ impl Pattern {
         match &self.inner {
             InnerPattern::Anything => trace.run(Box::pin(async move {
                 Ok(EvaluationResult::new(
-                    value.clone(),
+                    value,
                     self.clone(),
                     Rationale::Anything,
                     Output::Identity,
@@ -253,7 +253,7 @@ impl Pattern {
                         })?;
                     if let SyntacticSugar::Chain = sugar {
                         Ok(EvaluationResult::new(
-                            value.clone(),
+                            value,
                             self.clone(),
                             result.rationale().clone(),
                             result.raw_output().clone(),
@@ -266,17 +266,17 @@ impl Pattern {
                 }
             })),
             InnerPattern::Deref(inner) => trace.run(Box::pin(async move {
-                inner.evaluate(value.clone(), ctx, bindings, world).await
+                inner.evaluate(value, ctx, bindings, world).await
             })),
             InnerPattern::Bound(ty, bindings) => trace.run(Box::pin(async move {
                 ty.evaluate(value, ctx, bindings, world).await
             })),
             InnerPattern::Argument(name) => trace.run(Box::pin(async move {
                 if let Some(bound) = bindings.get(name) {
-                    bound.evaluate(value.clone(), ctx, bindings, world).await
+                    bound.evaluate(value, ctx, bindings, world).await
                 } else {
                     Ok(EvaluationResult::new(
-                        value.clone(),
+                        value,
                         self.clone(),
                         Rationale::InvalidArgument(name.clone()),
                         Output::Identity,
@@ -300,7 +300,7 @@ impl Pattern {
                     trace.run(Box::pin(async move {
                         let result = func.call(value.clone(), ctx, bindings, world).await?;
                         Ok(EvaluationResult::new(
-                            value.clone(),
+                            value,
                             self.clone(),
                             Rationale::Function {
                                 severity: result.severity,
@@ -354,14 +354,14 @@ impl Pattern {
                     }
 
                     Ok(EvaluationResult::new(
-                        value.clone(),
+                        value,
                         self.clone(),
                         Rationale::Object(result),
                         Output::Identity,
                     ))
                 } else {
                     Ok(EvaluationResult::new(
-                        value.clone(),
+                        value,
                         self.clone(),
                         Rationale::NotAnObject,
                         Output::Identity,
@@ -374,14 +374,14 @@ impl Pattern {
                 let locked_result = (*result).borrow();
                 if let Some(true) = locked_result.try_get_boolean() {
                     Ok(EvaluationResult::new(
-                        value.clone(),
+                        value,
                         self.clone(),
                         Rationale::Expression(true),
                         Output::Identity,
                     ))
                 } else {
                     Ok(EvaluationResult::new(
-                        value.clone(),
+                        value,
                         self.clone(),
                         Rationale::Expression(false),
                         Output::Identity,
@@ -397,7 +397,7 @@ impl Pattern {
                                 .push(term.evaluate(element.clone(), ctx, bindings, world).await?);
                         }
                         return Ok(EvaluationResult::new(
-                            value.clone(),
+                            value,
                             self.clone(),
                             Rationale::List(result),
                             Output::Identity,
@@ -405,7 +405,7 @@ impl Pattern {
                     }
                 }
                 Ok(EvaluationResult::new(
-                    value.clone(),
+                    value,
                     self.clone(),
                     Rationale::NotAList,
                     Output::Identity,
@@ -413,7 +413,7 @@ impl Pattern {
             })),
             InnerPattern::Nothing => trace.run(Box::pin(async move {
                 Ok(EvaluationResult::new(
-                    value.clone(),
+                    value,
                     self.clone(),
                     Rationale::Nothing,
                     Output::Identity,
