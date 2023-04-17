@@ -47,7 +47,7 @@ impl From<YamlValue> for RuntimeValue {
                     .map(|(k, v)| (to_key(k), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
-                RuntimeValue::Object(Object { fields })
+                RuntimeValue::Object(Object(fields))
             }
             YamlValue::Tagged(inner) => {
                 let mut o = Object::new();

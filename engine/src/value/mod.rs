@@ -2,7 +2,7 @@
 //!
 //! Values are inputs or outputs from patterns, and can be serialized and deserialized from different types.
 
-use ::serde::Serialize;
+use ::serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
 use serde_json::{json, Map, Number};
 
@@ -21,6 +21,13 @@ pub mod serde;
 
 mod json;
 mod yaml;
+
+// the base64 type for serde, used by RuntimeValue
+use base64_serde::base64_serde_type;
+base64_serde_type!(
+    RuntimeValueBase64,
+    base64::engine::general_purpose::STANDARD
+);
 
 #[derive(Debug, Clone)]
 pub enum RationaleResult {
@@ -229,7 +236,8 @@ where
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum RuntimeValue {
     Null,
     String(String),
@@ -237,8 +245,8 @@ pub enum RuntimeValue {
     Decimal(f64),
     Boolean(bool),
     Object(Object),
-    List(#[serde(skip)] Vec<Arc<RuntimeValue>>),
-    Octets(Vec<u8>),
+    List(Vec<Arc<RuntimeValue>>),
+    Octets(#[serde(with = "RuntimeValueBase64")] Vec<u8>),
 }
 
 impl Display for RuntimeValue {
@@ -405,15 +413,12 @@ impl RuntimeValue {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Default, PartialEq)]
-pub struct Object {
-    #[serde(skip)]
-    fields: IndexMap<String, Arc<RuntimeValue>>,
-}
+#[derive(Deserialize, Serialize, Debug, Clone, Default, PartialEq)]
+pub struct Object(IndexMap<String, Arc<RuntimeValue>>);
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for (name, value) in &self.fields {
+        for (name, value) in &self.0 {
             writeln!(f, "{}: <<{}>>", name, value.type_name())?;
         }
 
@@ -423,14 +428,12 @@ impl Display for Object {
 
 impl Object {
     pub fn new() -> Self {
-        Self {
-            fields: Default::default(),
-        }
+        Self(Default::default())
     }
 
     pub fn as_json(&self) -> serde_json::Value {
         let mut inner = Map::new();
-        for (name, value) in &self.fields {
+        for (name, value) in &self.0 {
             inner.insert(name.clone(), (**value).borrow().as_json());
         }
 
@@ -441,7 +444,7 @@ impl Object {
     where
         N: AsRef<str>,
     {
-        self.fields.get(name.as_ref()).cloned()
+        self.0.get(name.as_ref()).cloned()
     }
 
     pub fn set<N, V>(&mut self, name: N, value: V)
@@ -449,11 +452,20 @@ impl Object {
         N: Into<String>,
         V: Into<RuntimeValue>,
     {
-        self.fields.insert(name.into(), Arc::new(value.into()));
+        self.0.insert(name.into(), Arc::new(value.into()));
+    }
+
+    pub fn with<N, V>(mut self, name: N, value: V) -> Self
+    where
+        N: Into<String>,
+        V: Into<RuntimeValue>,
+    {
+        self.set(name, value);
+        self
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<RuntimeValue>)> {
-        self.fields.iter()
+        self.0.iter()
     }
 
     pub fn has_attr<A, F>(&self, name: A, f: F) -> bool
@@ -485,13 +497,14 @@ impl Index<&str> for Object {
 
     fn index(&self, index: &str) -> &Self::Output {
         const NULL: RuntimeValue = RuntimeValue::Null;
-        self.fields.get(index).map(|s| s.as_ref()).unwrap_or(&NULL)
+        self.0.get(index).map(|s| s.as_ref()).unwrap_or(&NULL)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use serde_json::Value;
 
     pub(crate) fn assert_yaml<F, E>(f: F)
     where
@@ -545,5 +558,134 @@ here:
         assert!(!o.has_str("bar", "1"));
         assert!(!o.has_str("baz", ""));
         assert!(!o.has_str("null", ""));
+    }
+
+    #[test]
+    fn test_serde_rv_boolean() {
+        assert_eq_and_back_again(RuntimeValue::Boolean(true), json!({"boolean": true}));
+        assert_eq_and_back_again(RuntimeValue::Boolean(false), json!({"boolean": false}));
+    }
+
+    #[test]
+    fn test_serde_rv_integer() {
+        assert_eq_and_back_again(RuntimeValue::Integer(42), json!({"integer": 42}));
+        assert_eq_and_back_again(RuntimeValue::Integer(0), json!({"integer": 0}));
+        assert_eq_and_back_again(RuntimeValue::Integer(-42), json!({"integer": -42}));
+    }
+
+    #[test]
+    fn test_serde_rv_decimal() {
+        assert_eq_and_back_again(RuntimeValue::Decimal(2.3), json!({"decimal": 2.3}));
+        assert_eq_and_back_again(RuntimeValue::Decimal(0.0), json!({"decimal": 0.0}));
+        assert_eq_and_back_again(RuntimeValue::Decimal(-2.3), json!({"decimal": -2.3}));
+    }
+
+    #[test]
+    fn test_serde_rv_string() {
+        assert_eq_and_back_again(
+            RuntimeValue::String("2.3".to_string()),
+            json!({"string": "2.3"}),
+        );
+        assert_eq_and_back_again(
+            RuntimeValue::String("null".to_string()),
+            json!({"string": "null"}),
+        );
+        assert_eq_and_back_again(
+            RuntimeValue::String("-norway".to_string()),
+            json!({"string": "-norway"}),
+        );
+    }
+
+    #[test]
+    fn test_serde_rv_null() {
+        assert_eq_and_back_again(RuntimeValue::Null, json!("null"));
+    }
+
+    #[test]
+    fn test_serde_rv_octets() {
+        assert_eq_and_back_again(
+            RuntimeValue::Octets(b"Foo Bar".to_vec()),
+            json!({"octets": "Rm9vIEJhcg=="}),
+        );
+    }
+
+    #[test]
+    fn test_serde_rv_list() {
+        assert_eq_and_back_again(
+            RuntimeValue::from(vec![
+                RuntimeValue::Null,
+                RuntimeValue::String("1.2".to_string()),
+                RuntimeValue::Boolean(true),
+                RuntimeValue::Integer(42),
+                RuntimeValue::from(vec![
+                    RuntimeValue::Null,
+                    RuntimeValue::String("1.2".to_string()),
+                    RuntimeValue::Boolean(true),
+                    RuntimeValue::Integer(42),
+                ]),
+            ]),
+            json!({
+                "list": [
+                    "null",
+                    {"string": "1.2"},
+                    {"boolean": true},
+                    {"integer":  42},
+                    { "list": [
+                        "null",
+                        {"string": "1.2"},
+                        {"boolean": true},
+                        {"integer": 42}]
+                    }
+                ]
+            }),
+        );
+    }
+
+    #[test]
+    fn test_serde_rv_object() {
+        assert_eq_and_back_again(
+            RuntimeValue::from(
+                Object::new()
+                    .with("f_null", RuntimeValue::Null)
+                    .with("f_integer", 42)
+                    .with("f_boolean", false)
+                    .with("f_string", "foo")
+                    .with("f_list", vec![RuntimeValue::from(42)])
+                    .with(
+                        "f_object",
+                        Object::new()
+                            .with("f_boolean", false)
+                            .with("f_list", vec![RuntimeValue::Decimal(2.3f64)]),
+                    )
+                    .with("f_emptyObject", Object::new())
+                    .with("f_emptyList", RuntimeValue::List(vec![])),
+            ),
+            json!({
+                "object": {
+                    "f_boolean": { "boolean": false },
+                    "f_emptyList": { "list": [] },
+                    "f_emptyObject": { "object": {} },
+                    "f_integer": { "integer": 42 },
+                    "f_list": { "list": [ { "integer": 42 } ] },
+                    "f_null": "null",
+                    "f_object": {
+                        "object": {
+                            "f_boolean": { "boolean": false },
+                            "f_list": { "list": [ { "decimal": 2.3f64 } ] },
+                        }
+                    },
+                    "f_string": { "string": "foo" }
+                }
+            }),
+        );
+    }
+
+    /// test that serializing an deserializing a value yields the same result
+    fn assert_eq_and_back_again(value: RuntimeValue, expected_json: Value) {
+        let json = serde_json::to_value(&value).unwrap();
+        assert_eq!(expected_json, json);
+        let json = serde_json::to_string(&json).unwrap();
+        let deserialized = serde_json::from_str(&json).unwrap();
+        assert_eq!(value, deserialized);
     }
 }
