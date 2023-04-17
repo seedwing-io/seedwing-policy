@@ -21,15 +21,15 @@ impl Function for Eval {
         192
     }
 
-    fn parameters(&self) -> Vec<String> {
-        vec![URL.into()]
-    }
-
     fn metadata(&self) -> PatternMeta {
         PatternMeta {
             documentation: DOCUMENTATION.into(),
             ..Default::default()
         }
+    }
+
+    fn parameters(&self) -> Vec<String> {
+        vec![URL.into()]
     }
 
     fn call<'v>(
