@@ -67,9 +67,9 @@ impl Function for Chain {
                     }
 
                     return Ok(FunctionEvaluationResult {
-                        function_severity: cur_severity,
-                        function_output: cur_output,
-                        function_rationale: None,
+                        severity: cur_severity,
+                        output: cur_output,
+                        rationale: None,
                         supporting,
                     });
                 }

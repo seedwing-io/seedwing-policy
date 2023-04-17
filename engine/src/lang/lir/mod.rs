@@ -1,12 +1,13 @@
 pub mod json_schema;
 
-use crate::lang::Severity::Error;
 use crate::{
     core::Example,
-    lang::{lir, meta::PatternMeta, mir, parser::Located, PrimordialPattern, SyntacticSugar},
+    lang::{
+        lir, meta::PatternMeta, mir, parser::Located, PrimordialPattern, Severity, SyntacticSugar,
+    },
     runtime::{
         rationale::Rationale, EvalContext, EvaluationResult, Output, PatternName, RuntimeError,
-        World,
+        TraceHandle, World,
     },
     value::RuntimeValue,
 };
@@ -283,79 +284,18 @@ impl Pattern {
                 }
             })),
             InnerPattern::Primordial(inner) => match inner {
-                PrimordialPattern::Integer => trace.run(Box::pin(async move {
-                    let locked_value = (*value).borrow();
-                    if locked_value.is_integer() {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(true),
-                            Output::Identity,
-                        ))
-                    } else {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(false),
-                            Output::Identity,
-                        ))
-                    }
-                })),
-                PrimordialPattern::Decimal => trace.run(Box::pin(async move {
-                    let locked_value = (*value).borrow();
-                    if locked_value.is_decimal() {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(true),
-                            Output::Identity,
-                        ))
-                    } else {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(false),
-                            Output::Identity,
-                        ))
-                    }
-                })),
-                PrimordialPattern::Boolean => trace.run(Box::pin(async move {
-                    let locked_value = (*value).borrow();
-
-                    if locked_value.is_boolean() {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(true),
-                            Output::Identity,
-                        ))
-                    } else {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(false),
-                            Output::Identity,
-                        ))
-                    }
-                })),
-                PrimordialPattern::String => trace.run(Box::pin(async move {
-                    let locked_value = (*value).borrow();
-                    if locked_value.is_string() {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(true),
-                            Output::Identity,
-                        ))
-                    } else {
-                        Ok(EvaluationResult::new(
-                            value.clone(),
-                            self.clone(),
-                            Rationale::Primordial(false),
-                            Output::Identity,
-                        ))
-                    }
-                })),
+                PrimordialPattern::Integer => {
+                    self.eval_primordial(trace, value, RuntimeValue::is_integer)
+                }
+                PrimordialPattern::Decimal => {
+                    self.eval_primordial(trace, value, RuntimeValue::is_decimal)
+                }
+                PrimordialPattern::Boolean => {
+                    self.eval_primordial(trace, value, RuntimeValue::is_boolean)
+                }
+                PrimordialPattern::String => {
+                    self.eval_primordial(trace, value, RuntimeValue::is_string)
+                }
                 PrimordialPattern::Function(_sugar, _name, func) => {
                     trace.run(Box::pin(async move {
                         let result = func.call(value.clone(), ctx, bindings, world).await?;
@@ -363,11 +303,11 @@ impl Pattern {
                             value.clone(),
                             self.clone(),
                             Rationale::Function {
-                                severity: result.severity(),
-                                rationale: result.rationale().map(Box::new),
-                                supporting: result.supporting(),
+                                severity: result.severity,
+                                rationale: result.rationale.map(Box::new),
+                                supporting: result.supporting,
                             },
-                            result.output(),
+                            result.output,
                         ))
                     }))
                 }
@@ -480,6 +420,36 @@ impl Pattern {
                 ))
             })),
         }
+    }
+
+    fn eval_primordial<'ctx, 'v, F>(
+        self: &'v Arc<Self>,
+        trace: TraceHandle<'ctx>,
+        value: Arc<RuntimeValue>,
+        f: F,
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
+    where
+        F: FnOnce(&RuntimeValue) -> bool + 'v,
+        'ctx: 'v,
+    {
+        trace.run(Box::pin(async move {
+            let locked_value = (*value).borrow();
+            if f(locked_value) {
+                Ok(EvaluationResult::new(
+                    value.clone(),
+                    self.clone(),
+                    Rationale::Primordial(true),
+                    Output::Identity,
+                ))
+            } else {
+                Ok(EvaluationResult::new(
+                    value.clone(),
+                    self.clone(),
+                    Rationale::Primordial(false),
+                    Output::Identity,
+                ))
+            }
+        }))
     }
 }
 
@@ -908,7 +878,7 @@ fn possibly_deref<'b>(
                 .evaluate(value.clone(), ctx, &Bindings::default(), world)
                 .await?;
 
-            if !matches!(result.severity(), Error) {
+            if !matches!(result.severity(), Severity::Error) {
                 Ok(Arc::new(result.output().into()))
             } else {
                 Ok(Arc::new(Pattern::new(

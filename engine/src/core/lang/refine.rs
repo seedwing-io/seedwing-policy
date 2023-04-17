@@ -40,9 +40,9 @@ impl Function for Refine {
                 let refinement_severity = refinement_result.severity();
 
                 Ok(FunctionEvaluationResult {
-                    function_severity: refinement_severity,
-                    function_rationale: None,
-                    function_output: refinement_result.raw_output().clone(),
+                    severity: refinement_severity,
+                    rationale: None,
+                    output: refinement_result.raw_output().clone(),
                     supporting: vec![refinement_result],
                 })
             } else {
