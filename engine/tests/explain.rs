@@ -8,7 +8,7 @@ use common::*;
 async fn simple_pattern() -> anyhow::Result<()> {
     assert_eval(
         r#"
-#[explain("Not foo")]
+#[reason("Not foo")]
 pattern test = {}
 "#,
         json!(false),
@@ -28,7 +28,7 @@ async fn simple_field() -> anyhow::Result<()> {
     assert_eval(
         r#"
 pattern test = {
-  #[explain("Not baz")]
+  #[reason("Not baz")]
   bar: "baz"
 }
 "#,
@@ -60,9 +60,9 @@ async fn fields_ok_and_nok() -> anyhow::Result<()> {
     assert_eval(
         r#"
 pattern test = {
-    #[explain("Not bar")]
+    #[reason("Not bar")]
     foo: "bar",
-    #[explain("Not baz")]
+    #[reason("Not baz")]
     bar: "baz"
 }
 "#,

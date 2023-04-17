@@ -14,7 +14,7 @@ pattern test = {
     #[warning("warning")]
     warning: false,
     // defaults to #[error]
-    #[explain("error")]
+    #[reason("error")]
     error: false,
 }
 "#,
@@ -73,7 +73,7 @@ pattern test = {
     #[warning("warning")]
     warning: false,
     // defaults to #[error]
-    #[explain("error")]
+    #[reason("error")]
     error: false,
 }
 "#,

@@ -67,10 +67,10 @@ pub struct Reporting {
 /// Convert from HIR metadata to reporting information
 impl From<&hir::Metadata> for Reporting {
     fn from(value: &hir::Metadata) -> Self {
-        // try "explain", then "warning", then "advice"
+        // try "reason", then "warning", then "advice"
         let mut reporting = value
             .attributes
-            .get("explain")
+            .get("reason")
             .map(|attr| (Severity::Error, attr))
             .or_else(|| {
                 value

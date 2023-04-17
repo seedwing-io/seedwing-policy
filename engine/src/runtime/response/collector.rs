@@ -99,7 +99,7 @@ mod test {
 pattern test = list::all<inner>
 
 #[authoritative]
-#[explain("find me")]
+#[reason("find me")]
 pattern inner = {
     values?: find,
 }
