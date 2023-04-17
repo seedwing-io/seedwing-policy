@@ -1,0 +1,27 @@
+= Installing
+
+Seedwing Policy can run both as a one-shot command line utility evaluating policies, or as a server for hosting
+the centralized configuration for your organization.
+
+The server can run on any of the following platforms:
+
+* Mac OS X (Intel and ARM)
+* Windows
+* Linux
+
+== Bare metal
+
+Running on bare metal requires downloading the `swio` binary from the link:https://github.com/seedwing-io/seedwing-policy/releases[releases]. Nightly releases are available as well if you need features that are not part of an official release.
+
+Simply running `swio serve` will run the server. Use `swio serve --help` to get a list of the configuration knobs that can be tweaked.
+
+== Container Image
+
+The `swio` command line utility is published as a container image at `ghcr.io/seedwing-io/swio`, tagged with the release (or nightly) version.
+
+== Kubernetes
+
+Since Kubernetes runs containers, running the server on Kubernetes is easy! Since it's so easy, we don't provide any out of the box manifest, since lots of the configuration options
+would be specific to the environment in which the server is run.
+
+For a real world example, the link:https://github.com/seedwing-io/playground.seedwing.io[playground GitHub repository] contains a full example.
