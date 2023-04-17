@@ -14,7 +14,8 @@ use crate::package::Package;
 use crate::runtime::PackagePath;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["string"]));
+    let mut pkg = Package::new(PackagePath::from_parts(vec!["string"]))
+        .with_documentation("Utilities for working with strings");
     pkg.register_function("length".into(), Length);
     pkg.register_function("count".into(), Length);
     pkg.register_function("regexp".into(), Regexp);

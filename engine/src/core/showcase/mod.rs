@@ -8,7 +8,8 @@ use crate::value::RuntimeValue;
 use std::sync::Arc;
 
 pub fn package() -> Package {
-    let mut pkg = Package::new(PackagePath::from_parts(vec!["showcase"]));
+    let mut pkg = Package::new(PackagePath::from_parts(vec!["showcase"]))
+        .with_documentation("Showcase a few features of seedwing");
     pkg.register_function("builtin".into(), BuiltIn);
     pkg.register_source("".into(), include_str!("meta.dog"));
     pkg
