@@ -1,0 +1,25 @@
+Invoke a remote policy.
+
+[source]
+----
+pattern my-remote-pattern = remote<"https://server/policy/v1alpha1/the-remote-policy">
+----
+
+== Example
+
+The following example demonstrates using the same policy, either remotely or locally.
+
+NOTE: Of course this is a simple example. A real example might be more complex, but would work the same way.
+
+[source]
+----
+pattern remote = external::remote<"https://playground.seedwing.io/api/policy/v1alpha1/maven::GAV">
+pattern local = maven::GAV
+----
+
+The value:
+
+[source,yaml]
+----
+"org.eclipse.packager:packager-rpm:0.19.0"
+----

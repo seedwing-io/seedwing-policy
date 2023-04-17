@@ -2,6 +2,7 @@
 //#![deny(warnings)]
 //#![warn(missing_docs)]
 
+pub mod client;
 mod core;
 pub mod data;
 pub mod lang;

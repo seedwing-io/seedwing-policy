@@ -246,6 +246,8 @@ pub enum RuntimeError {
     YamlError(PathBuf, serde_yaml::Error),
     #[error("error reading file: {0}")]
     FileUnreadable(PathBuf),
+    #[error("remote client failed: {0}")]
+    RemoteClient(#[from] crate::client::Error),
 }
 
 #[derive(Clone, Debug)]
