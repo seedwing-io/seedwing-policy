@@ -1,10 +1,10 @@
-use std::fmt::{self, Display};
-
 use crate::ui::rationale::Rationalizer;
-use actix_web::http::header::ContentType;
-use seedwing_policy_engine::lang::Severity;
-use seedwing_policy_engine::runtime::{EvaluationResult, Response};
+use seedwing_policy_engine::{
+    lang::Severity,
+    runtime::{EvaluationResult, Response},
+};
 use serde::Deserialize;
+use std::fmt::{self, Display};
 
 #[derive(Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -36,6 +36,7 @@ impl Format {
         fields: Option<String>,
     ) -> Result<String, FormatError> {
         let mut response = if let Self::Html = self {
+            // in case it's HTML, this value will be ignored later on
             Response::default()
         } else if collapse {
             Response::new(result).collapse(Severity::Error)
@@ -46,17 +47,18 @@ impl Format {
             response.filter(&s);
         }
         match self {
+            // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag
             Self::Html => Ok(Rationalizer::new(result).rationale()),
             Self::Json => serde_json::to_string_pretty(&response).map_err(FormatError::Json),
             Self::Yaml => serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         }
     }
 
-    pub fn content_type(&self) -> ContentType {
+    pub fn content_type(&self) -> &'static str {
         match self {
-            Self::Html => ContentType::html(),
-            Self::Json => ContentType::json(),
-            Self::Yaml => ContentType::plaintext(), // TODO: not this?
+            Self::Html => "text/html; charset=utf-8",
+            Self::Json => "application/json",
+            Self::Yaml => "application/yaml",
         }
     }
 }
