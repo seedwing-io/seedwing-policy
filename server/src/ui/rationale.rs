@@ -15,8 +15,7 @@ impl<'r> Rationalizer<'r> {
         let mut html = String::new();
         html.push_str("<div>");
         Self::rationale_inner(&mut html, self.result);
-
-        html.push_str("<div>");
+        html.push_str("</div>");
         html
     }
 
