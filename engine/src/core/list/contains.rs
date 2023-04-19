@@ -34,37 +34,31 @@ impl Function for ContainsAll {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: ExecutionContext<'v>,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
-        _world: &'v World,
+        world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             if let Some(binding) = bindings.get(PARAMETER) {
                 if let InnerPattern::List(items) = binding.inner() {
                     if let Some(list) = input.try_get_list() {
-                        // We could make this more efficient using a HashSet, but
-                        // that would require us excluding f64 values from the set or live with a string hash.
-                        //
-                        // This should be benchmarked with more realistic input data but for small amounts it's
-                        // likely to not matter.
-                        for item in items.iter() {
-                            if let Some(item) = item.try_get_resolved_value() {
-                                let item: RuntimeValue = (&item).into();
-                                let mut found = false;
-                                for s in list {
-                                    if item.eq(s) {
-                                        found = true;
-                                        break;
-                                    }
+                        // Iterate over the list items first because they are more likely to be long.
+                        let mut matched: Vec<bool> = vec![false; items.len()];
+                        for s in list {
+                            for (idx, item) in items.iter().enumerate() {
+                                let result = item
+                                    .evaluate(s.clone(), ctx.push()?, bindings, world)
+                                    .await?;
+                                if result.severity() != Severity::Error {
+                                    matched[idx] = true;
+                                    break;
                                 }
-                                if !found {
-                                    return Ok(Severity::Error.into());
-                                }
-                            } else {
-                                return Err(RuntimeError::InvalidState);
+                            }
+                            if matched.iter().filter(|v| **v).count() == matched.len() {
+                                return Ok(Output::Identity.into());
                             }
                         }
-                        return Ok(Output::Identity.into());
+                        return Ok(Severity::Error.into());
                     }
                 }
             }
@@ -81,6 +75,17 @@ mod test {
     async fn list_contains() {
         let json = serde_json::json!(["foo", "bar", "baz"]);
         let result = test_pattern(r#"list::contains-all<["foo", "bar"]>"#, json).await;
+        assert_satisfied!(result);
+    }
+
+    #[tokio::test]
+    async fn list_contains_patterns() {
+        let json = serde_json::json!(["foo", "bar", "baz"]);
+        let result = test_pattern(r#"list::contains-all<[string, integer]>"#, json).await;
+        assert_not_satisfied!(result);
+
+        let json = serde_json::json!(["foo", "bar", 2]);
+        let result = test_pattern(r#"list::contains-all<[string, integer]>"#, json).await;
         assert_satisfied!(result);
     }
 
