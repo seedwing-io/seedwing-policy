@@ -220,7 +220,7 @@ impl World {
     ) {
         log::debug!("declare {}", path);
         if metadata.documentation.is_none() {
-            log::warn!("{} is not documented", path.as_type_str());
+            log::info!("{} is not documented", path.as_type_str());
         }
 
         let runtime_type = Arc::new(
