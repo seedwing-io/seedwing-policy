@@ -11,16 +11,26 @@ use crate::{
     runtime::Output,
 };
 pub use collector::*;
-use once_cell::sync::Lazy;
-use serde::{
-    ser::{self, SerializeStruct, Serializer},
-    Deserialize, Serialize,
-};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
 };
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum Field {
+    Name,
+    Bindings,
+    Input,
+    Output,
+    Severity,
+    Reason,
+    Authoritative,
+    Rationale,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Name {
@@ -52,91 +62,15 @@ impl Display for Name {
     }
 }
 
-/// A response is used to transform a policy result into different formats.
-#[derive(Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Response {
-    #[serde(default)]
-    pub name: Name,
-    #[serde(default)]
-    pub bindings: HashMap<String, Value>,
-    pub input: Value,
-    #[serde(default)]
-    pub output: Option<Value>,
-    #[serde(default)]
-    pub severity: Severity,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub reason: String,
-    /// An indicator that this reason considers itself authoritative.
-    ///
-    /// A setting of `true` indicates that this reason is informational enough for the end-user
-    /// to understand what happened and that rationale entries below this one don't help much
-    /// in getting a better understanding (except when debugging).
-    #[serde(default, skip_serializing_if = "is_default")]
-    pub authoritative: bool,
-    #[serde(default)]
-    pub rationale: Vec<Response>,
-    #[serde(skip)]
-    fields: Vec<String>,
+    #[serde(flatten)]
+    data: IndexMap<Field, Value>,
 }
 
 impl From<EvaluationResult> for Response {
     fn from(result: EvaluationResult) -> Self {
         Self::new(&result)
-    }
-}
-
-impl Serialize for Response {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        static FIELDS: Lazy<Vec<String>> = Lazy::new(|| {
-            vec![
-                "name".to_string(),
-                "bindings".to_string(),
-                "input".to_string(),
-                "output".to_string(),
-                "severity".to_string(),
-                "reason".to_string(),
-                "authoritative".to_string(),
-                "rationale".to_string(),
-            ]
-        });
-
-        // check if the field will be serialized, must match the "skip_" declaration from the struct
-        let check = |s| match s {
-            "name" => !self.name.is_empty(),
-            "bindings" => !self.bindings.is_empty(),
-            "output" => self.output.is_some(),
-            "reason" => !self.reason.is_empty(),
-            "authoritative" => self.authoritative,
-            "rationale" => !self.rationale.is_empty(),
-            _ => true,
-        };
-        let write = |s, state: &mut S::SerializeStruct| match s {
-            "name" => state.serialize_field("name", &self.name),
-            "bindings" => state.serialize_field("bindings", &self.bindings),
-            "input" => state.serialize_field("input", &self.input),
-            "output" => state.serialize_field("output", &self.output),
-            "severity" => state.serialize_field("severity", &self.severity),
-            "reason" => state.serialize_field("reason", &self.reason),
-            "authoritative" => state.serialize_field("authoritative", &self.authoritative),
-            "rationale" => state.serialize_field("rationale", &self.rationale),
-            _ => Err(ser::Error::custom(format!("Unknown field name: {s}"))),
-        };
-        let fields = if !self.fields.is_empty() {
-            &self.fields
-        } else {
-            &FIELDS
-        };
-        let count = fields.iter().filter(|s| check(s)).count();
-        let mut state = serializer.serialize_struct("Response", count)?;
-        for name in fields {
-            if check(name) {
-                write(name, &mut state)?;
-            }
-        }
-        state.end()
     }
 }
 
@@ -155,16 +89,77 @@ impl Response {
             Rationale::Bound(i, b) => (i.as_ref(), b),
             r => (r, &none),
         };
-        Self {
-            name: Name::Pattern(result.ty().name()),
-            input: result.input().as_json(),
-            output,
-            severity,
-            reason,
-            authoritative: result.ty.metadata().reporting.authoritative,
-            rationale: support(rationale),
-            bindings: bound(bindings),
-            fields: Vec::new(),
+        let mut response = Response::default();
+        response.set_name(Name::Pattern(result.ty().name()));
+        response.set_bindings(bound(bindings));
+        response.set_input(result.input().as_json());
+        response.set_output(output);
+        response.set_severity(severity);
+        response.set_reason(reason);
+        response.set_authoritative(result.ty.metadata().reporting.authoritative);
+        response.set_rationale(support(rationale));
+        response
+            .filter("name,bindings,input,output,severity,reason,authoritative,rationale")
+            .unwrap()
+    }
+
+    pub fn name(&self) -> Name {
+        serde_json::from_value((&self.data[&Field::Name]).clone()).unwrap()
+    }
+    pub fn reason(&self) -> String {
+        serde_json::from_value((&self.data[&Field::Reason]).clone()).unwrap()
+    }
+    pub fn output(&self) -> Option<Value> {
+        self.data.get(&Field::Output).cloned()
+    }
+    pub fn severity(&self) -> Severity {
+        serde_json::from_value((&self.data[&Field::Severity]).clone()).unwrap()
+    }
+    pub fn authoritative(&self) -> bool {
+        serde_json::from_value((&self.data[&Field::Authoritative]).clone()).unwrap()
+    }
+    pub fn rationale(&self) -> Vec<Response> {
+        if let Some(v) = self.data.get(&Field::Rationale) {
+            serde_json::from_value(v.clone()).unwrap()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn set_name(&mut self, v: Name) {
+        if !v.is_empty() {
+            self.data.insert(Field::Name, json!(v));
+        }
+    }
+    pub fn set_input(&mut self, v: Value) {
+        self.data.insert(Field::Input, v);
+    }
+    pub fn set_output(&mut self, v: Option<Value>) {
+        if v.is_some() {
+            self.data.insert(Field::Output, json!(v));
+        }
+    }
+    pub fn set_severity(&mut self, v: Severity) {
+        self.data.insert(Field::Severity, json!(v));
+    }
+    pub fn set_reason(&mut self, v: String) {
+        if !v.is_empty() {
+            self.data.insert(Field::Reason, json!(v));
+        }
+    }
+    pub fn set_authoritative(&mut self, v: bool) {
+        if v {
+            self.data.insert(Field::Authoritative, json!(v));
+        }
+    }
+    pub fn set_rationale(&mut self, v: Vec<Response>) {
+        if !v.is_empty() {
+            self.data.insert(Field::Rationale, json!(v));
+        }
+    }
+    pub fn set_bindings(&mut self, v: HashMap<String, Value>) {
+        if !v.is_empty() {
+            self.data.insert(Field::Bindings, json!(v));
         }
     }
 
@@ -173,7 +168,7 @@ impl Response {
     /// This collects the reasons using [`Self::collect`] and replaces the current rationale with
     /// them.
     pub fn collapse(mut self, severity: Severity) -> Self {
-        self.rationale = Collector::new(&self).with_severity(severity).collect();
+        self.set_rationale(Collector::new(&self).with_severity(severity).collect());
         self
     }
 
@@ -195,26 +190,38 @@ impl Response {
         F: FnMut(&Response) -> bool,
     {
         if f(self) {
-            for x in &self.rationale {
+            for x in &self.rationale() {
                 x.walk_tree_internal(f);
             }
         }
     }
 
     /// Expects a comma-delimited list, e.g. "name,bindings,input,output,severity,reason,rationale"
-    pub fn filter(&mut self, fields: &str) -> &mut Self {
+    pub fn filter(&self, fields: &str) -> serde_json::Result<Self> {
         let fields = fields.trim().to_lowercase();
-        if !fields.is_empty() {
-            self.fields = fields.split(',').map(String::from).collect();
+        let mut result = Response::default();
+        for f in fields.split(',') {
+            let field = serde_json::from_str(&format!("\"{f}\""))?;
+            if let Some(v) = self.data.get(&field) {
+                if let Field::Rationale = field {
+                    let mut rat = self.rationale();
+                    for i in 0..rat.len() {
+                        rat[i] = rat[i].filter(&fields)?;
+                    }
+                    result.set_rationale(rat);
+                } else {
+                    result.data.insert(field, v.clone());
+                }
+            }
         }
-        self
+        Ok(result)
     }
 
     /// Evaluate if the reason is "satisfied"
     ///
     /// A reason is satisfied if its severity is lower than the requested severity.
     fn satisfied(&self, severity: Severity) -> bool {
-        self.severity < severity
+        self.severity() < severity
     }
 }
 
@@ -288,13 +295,13 @@ fn support(rationale: &Rationale) -> Vec<Response> {
                 .filter_map(|(n, r)| {
                     r.as_ref().map(|er| {
                         let v = Response::new(er);
-                        if v.rationale.is_empty() {
+                        if v.rationale().is_empty() {
                             let mut x = v.clone();
                             let (severity, reason) = er.outcome();
-                            x.name = Name::Field(n.to_string());
-                            x.severity = severity;
-                            x.reason = reason;
-                            x.rationale = vec![v];
+                            x.set_name(Name::Field(n.to_string()));
+                            x.set_severity(severity);
+                            x.set_reason(reason);
+                            x.set_rationale(vec![v]);
                             x
                         } else {
                             v
@@ -303,7 +310,7 @@ fn support(rationale: &Rationale) -> Vec<Response> {
                 })
                 .collect::<Vec<_>>();
 
-            result.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+            result.sort_unstable_by(|a, b| a.name().cmp(&b.name()));
 
             result
         }
@@ -361,7 +368,8 @@ mod test {
         assert_satisfied!(&result);
         assert_eq!(
             r#"{"name":{"pattern":"list::any"},"reason":"The input satisfies the function","input":[1,42,99]}"#,
-            serde_json::to_string(&Response::new(&result).filter("name,reason,input")).unwrap()
+            serde_json::to_string(&Response::new(&result).filter("name,reason,input").unwrap())
+                .unwrap()
         );
         assert_eq!(
             r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"severity":"none"}"#,
@@ -369,6 +377,7 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .filter("name,bindings,severity")
+                    .unwrap()
             )
             .unwrap()
         );
@@ -388,6 +397,7 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .filter("name,bindings,reason,rationale")
+                    .unwrap()
             )
             .unwrap()
         );
@@ -471,6 +481,7 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .filter("name,bindings,severity")
+                    .unwrap()
             )
             .unwrap()
         );

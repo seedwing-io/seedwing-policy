@@ -27,15 +27,15 @@ impl TryFrom<Value> for Reason {
 impl From<Response> for Reason {
     fn from(value: Response) -> Self {
         Self {
-            name: match value.name {
+            name: match value.name() {
                 Name::Field(field) => format!("field:{field}"),
                 Name::Pattern(Some(pattern)) => pattern.to_string(),
                 Name::Pattern(None) => String::new(),
             },
-            severity: value.severity,
-            reason: value.reason,
+            severity: value.severity(),
+            reason: value.reason(),
             rationale: value
-                .rationale
+                .rationale()
                 .into_iter()
                 .map(|s| s.into())
                 .collect::<Vec<_>>(),

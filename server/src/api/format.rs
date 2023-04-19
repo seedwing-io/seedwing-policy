@@ -35,7 +35,7 @@ impl Format {
         collapse: bool,
         fields: Option<String>,
     ) -> Result<String, FormatError> {
-        let mut response = if let Self::Html = self {
+        let response = if let Self::Html = self {
             // in case it's HTML, this value will be ignored later on
             Response::default()
         } else if collapse {
@@ -44,7 +44,7 @@ impl Format {
             Response::new(result)
         };
         if let Some(s) = fields {
-            response.filter(&s);
+            response.filter(&s).map_err(FormatError::Json)?;
         }
         match self {
             // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag

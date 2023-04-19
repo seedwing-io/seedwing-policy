@@ -57,12 +57,12 @@ impl Eval {
                 let eval = util::eval::Eval::new(&world, name, value.clone());
 
                 let result = eval.run().await?;
-                let mut response = if self.verbose {
+                let response = if self.verbose {
                     Response::new(&result)
                 } else {
                     Response::new(&result).collapse(Severity::Error)
-                };
-                response.filter(&self.select);
+                }
+                .filter(&self.select)?;
 
                 println!("{}", serde_json::to_string_pretty(&response).unwrap());
                 if result.severity() >= Severity::Error {

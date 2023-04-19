@@ -37,7 +37,7 @@ impl<'r> Collector<'r> {
     /// **NOTE:** This will only work properly of the severity of the response is higher than
     /// [`Severity::None`], otherwise you will get all leaf entries.
     pub fn highest_severity(mut self) -> Self {
-        self.severity = self.response.severity;
+        self.severity = self.response.severity();
         self
     }
 
@@ -62,16 +62,16 @@ impl<'r> Collector<'r> {
                 return false;
             }
 
-            if response.authoritative
+            if response.authoritative()
                 || response
-                    .rationale
+                    .rationale()
                     .iter()
                     .all(|r| r.satisfied(self.severity))
             {
                 // we are not satisfied, but all our children are, or we are authoritative
                 // -> record ourself as an outer most (failed) entry
                 let mut response = response.clone();
-                response.rationale = vec![];
+                response.set_rationale(vec![]);
                 rationale.push(response);
                 return false;
             }

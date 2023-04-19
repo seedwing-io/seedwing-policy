@@ -47,14 +47,14 @@ impl Remote {
         // execute request
         let response = client.evaluate(url, input).await?;
 
-        let output = match response.output {
+        let output = match response.output() {
             Some(output) => Output::Transform(Arc::new(output.into())),
             None => Output::Identity,
         };
 
         // convert the response
         let response = FunctionEvaluationResult {
-            severity: response.severity,
+            severity: response.severity(),
             output,
             rationale: None,
             supporting: vec![],

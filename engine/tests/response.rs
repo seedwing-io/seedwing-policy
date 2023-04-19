@@ -8,12 +8,12 @@ fn test_collapse() {
         serde_json::from_str(include_str!("response-data/proxy-jdom.json")).unwrap();
 
     // should be error
-    assert_eq!(response.severity, Severity::Error);
+    assert_eq!(response.severity(), Severity::Error);
 
     let response = response.collapse(Severity::Error);
 
     // should still be error after collapsing
-    assert_eq!(response.severity, Severity::Error);
+    assert_eq!(response.severity(), Severity::Error);
     assert_eq!(
         serde_json::to_value(&response).unwrap(),
         json!({
