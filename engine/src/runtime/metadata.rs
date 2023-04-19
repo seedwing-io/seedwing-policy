@@ -199,7 +199,7 @@ pub enum PrimordialPattern {
     Decimal,
     Boolean,
     String,
-    Function(SyntacticSugar, PatternRef),
+    Function(PatternRef),
 }
 
 /// Reference to a pattern in another package.
@@ -310,9 +310,7 @@ impl ToMetadata<PrimordialPattern> for lang::PrimordialPattern {
             Self::Decimal => PrimordialPattern::Decimal,
             Self::Boolean => PrimordialPattern::Boolean,
             Self::String => PrimordialPattern::String,
-            Self::Function(sugar, r#type, _) => {
-                PrimordialPattern::Function(sugar.clone(), r#type.to_meta(world)?)
-            }
+            Self::Function(r#type, _) => PrimordialPattern::Function(r#type.to_meta(world)?),
         })
     }
 }

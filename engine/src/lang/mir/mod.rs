@@ -258,11 +258,7 @@ impl World {
     pub(crate) fn define_function(&mut self, path: PatternName, func: Arc<dyn Function>) {
         log::debug!("define function {}", path);
         let runtime_type = Located::new(
-            mir::Pattern::Primordial(PrimordialPattern::Function(
-                SyntacticSugar::from(path.clone()),
-                path.clone(),
-                func,
-            )),
+            mir::Pattern::Primordial(PrimordialPattern::Function(path.clone(), func)),
             0..0,
         );
 

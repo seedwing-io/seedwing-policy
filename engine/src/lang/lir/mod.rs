@@ -296,21 +296,19 @@ impl Pattern {
                 PrimordialPattern::String => {
                     self.eval_primordial(trace, value, RuntimeValue::is_string)
                 }
-                PrimordialPattern::Function(_sugar, _name, func) => {
-                    trace.run(Box::pin(async move {
-                        let result = func.call(value.clone(), ctx, bindings, world).await?;
-                        Ok(EvaluationResult::new(
-                            value,
-                            self.clone(),
-                            Rationale::Function {
-                                severity: result.severity,
-                                rationale: result.rationale.map(Box::new),
-                                supporting: result.supporting,
-                            },
-                            result.output,
-                        ))
-                    }))
-                }
+                PrimordialPattern::Function(_name, func) => trace.run(Box::pin(async move {
+                    let result = func.call(value.clone(), ctx, bindings, world).await?;
+                    Ok(EvaluationResult::new(
+                        value,
+                        self.clone(),
+                        Rationale::Function {
+                            severity: result.severity,
+                            rationale: result.rationale.map(Box::new),
+                            supporting: result.supporting,
+                        },
+                        result.output,
+                    ))
+                })),
             },
             InnerPattern::Const(inner) => trace.run(Box::pin(async move {
                 let locked_value = (*value).borrow();

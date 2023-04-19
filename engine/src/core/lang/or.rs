@@ -28,7 +28,7 @@ impl Function for Or {
                         PrimordialPattern::Decimal => Some(FunctionInput::Decimal),
                         PrimordialPattern::Boolean => Some(FunctionInput::Boolean),
                         PrimordialPattern::String => Some(FunctionInput::String),
-                        PrimordialPattern::Function(_, _, func) => Some(func.input(bindings)),
+                        PrimordialPattern::Function(_, func) => Some(func.input(bindings)),
                     },
                     _ => None,
                 })

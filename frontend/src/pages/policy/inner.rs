@@ -212,7 +212,7 @@ fn render_primordial(primordial: &PrimordialPattern) -> Html {
         PrimordialPattern::Decimal => "decimal".into(),
         PrimordialPattern::Boolean => "boolean".into(),
         PrimordialPattern::String => "string".into(),
-        PrimordialPattern::Function(_sugar, _type) => "built-in function".into(),
+        PrimordialPattern::Function(_type) => "built-in function".into(),
     }
 }
 

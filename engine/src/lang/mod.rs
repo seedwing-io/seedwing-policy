@@ -78,17 +78,13 @@ pub enum PrimordialPattern {
     String,
 
     /// Match builtin sugared functions.
-    Function(
-        SyntacticSugar,
-        PatternName,
-        #[serde(skip)] Arc<dyn Function>,
-    ),
+    Function(PatternName, #[serde(skip)] Arc<dyn Function>),
 }
 
 impl PrimordialPattern {
     fn order(&self) -> u8 {
         match self {
-            Self::Function(_, _, f) => f.order(),
+            Self::Function(_, f) => f.order(),
             Self::String => 2,
             Self::Decimal => 1,
             _ => 0,
@@ -103,7 +99,7 @@ impl Hash for PrimordialPattern {
             PrimordialPattern::Decimal => "decimal".hash(state),
             PrimordialPattern::Boolean => "boolean".hash(state),
             PrimordialPattern::String => "string".hash(state),
-            PrimordialPattern::Function(_, name, _) => name.hash(state),
+            PrimordialPattern::Function(name, _) => name.hash(state),
         }
     }
 }
@@ -115,7 +111,7 @@ impl PartialEq for PrimordialPattern {
             (Self::Decimal, Self::Decimal) => true,
             (Self::Boolean, Self::Boolean) => true,
             (Self::String, Self::String) => true,
-            (Self::Function(_, lhs, _), Self::Function(_, rhs, _)) => lhs.eq(rhs),
+            (Self::Function(lhs, _), Self::Function(rhs, _)) => lhs.eq(rhs),
             _ => false,
         }
     }

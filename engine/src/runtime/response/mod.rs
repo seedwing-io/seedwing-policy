@@ -273,7 +273,7 @@ fn display(inner: &InnerPattern) -> Value {
             Some(name) => json!(HashMap::from([(name, display(p.inner()))])),
             None => display(p.inner()),
         },
-        InnerPattern::Primordial(PrimordialPattern::Function(_, name, _)) => {
+        InnerPattern::Primordial(PrimordialPattern::Function(name, _)) => {
             json!(name.as_type_str())
         }
         ip => json!(ip),
