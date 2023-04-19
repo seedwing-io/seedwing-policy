@@ -3,13 +3,13 @@
 //! All policies are parsed and compiled into a `World` used to evaluate policy decisions for different inputs.
 use crate::lang::lir::Bindings;
 use crate::lang::parser::{Located, ParserError, SourceLocation, SourceSpan};
+use crate::lang::Severity;
+use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata, WorldLike};
 use crate::runtime::{cache::SourceCache, rationale::Rationale};
 use crate::value::RuntimeValue;
 use ariadne::{Label, Report, ReportKind};
 use chumsky::error::SimpleReason;
 use config::EvalConfig;
-use core::future::Future;
-use core::pin::Pin;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
@@ -19,10 +19,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-#[cfg(feature = "monitor")]
-use {monitor::dispatcher::Monitor, tokio::sync::Mutex};
-
+pub use crate::core::Example;
 pub use crate::lang::lir::Pattern;
+pub use response::Response;
 
 pub mod cache;
 pub mod config;
@@ -33,13 +32,11 @@ pub mod response;
 pub mod sources;
 pub mod statistics;
 
-pub use crate::core::Example;
-use crate::runtime::metadata::{PackageMetadata, PatternMetadata, ToMetadata, WorldLike};
-pub use response::Response;
-
 mod utils;
-use crate::lang::Severity;
 pub use utils::is_default;
+
+mod trace;
+pub use trace::*;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum BuildError {
@@ -609,18 +606,6 @@ impl From<SourceLocation> for PackagePath {
     }
 }
 
-/// Tracing information such as evaluation time.
-#[derive(Debug, Clone, Copy)]
-pub struct TraceResult {
-    pub duration: Duration,
-}
-
-impl TraceResult {
-    pub fn new(duration: Duration) -> Self {
-        Self { duration }
-    }
-}
-
 impl Default for EvalContext {
     fn default() -> Self {
         Self {
@@ -729,68 +714,9 @@ impl EvalContext {
     }
 }
 
-#[derive(Clone)]
-pub enum TraceConfig {
-    #[cfg(feature = "monitor")]
-    Enabled(Arc<Mutex<Monitor>>),
-    Disabled,
-}
-
-impl Debug for TraceConfig {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(_) => {
-                write!(f, "Trace::Enabled")
-            }
-            TraceConfig::Disabled => {
-                write!(f, "Trace::Disabled")
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TraceHandle<'ctx> {
-    context: &'ctx EvalContext,
-    ty: Arc<Pattern>,
-    input: Arc<RuntimeValue>,
-    start: Option<Instant>,
-}
-
 impl From<EvaluationResult> for (Rationale, Output) {
     fn from(result: EvaluationResult) -> Self {
         (result.rationale().clone(), result.raw_output().clone())
-    }
-}
-
-impl<'ctx> TraceHandle<'ctx> {
-    pub(crate) fn run<'v>(
-        self,
-        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
-    where
-        'ctx: 'v,
-    {
-        if self.start.is_some() {
-            Box::pin(async move {
-                if let Some(correlation) = self.context.correlation().await {
-                    self.context
-                        .start(correlation, self.input.clone(), self.ty.clone())
-                        .await;
-                    let mut result = block.await;
-                    let elapsed = self.start.map(|e| e.elapsed());
-                    self.context
-                        .complete(correlation, self.ty.clone(), &mut result, elapsed)
-                        .await;
-                    result
-                } else {
-                    block.await
-                }
-            })
-        } else {
-            block
-        }
     }
 }
 
