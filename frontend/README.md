@@ -44,10 +44,8 @@ In order to work on the frontend you need to:
 
   ```shell
   cd frontend
-  trunk serve
+  trunk serve --open
   ```
-
-* Navigate to the URL exposed by `trunk`. Normally this is http://localhost:8010.
 
 Trunk will proxy all API requests to the server on `localhost:8080`, which is the one run by `cargo run`. It will
 also pick up changes in the code base of the frontend crate, recompile, and reload.
