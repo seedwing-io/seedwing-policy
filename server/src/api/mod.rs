@@ -7,10 +7,9 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
-use seedwing_policy_engine::runtime::config::EvalConfig;
-use seedwing_policy_engine::runtime::statistics::monitor::Statistics;
 use seedwing_policy_engine::runtime::{
-    monitor::dispatcher::Monitor, EvalContext, EvaluationResult, RuntimeError, World,
+    monitor::dispatcher::Monitor, statistics::monitor::Statistics, EvalContext, EvalOptions,
+    EvaluationResult, RuntimeError, World,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -22,6 +21,7 @@ mod openapi;
 
 pub use openapi::*;
 use seedwing_policy_engine::lang::Severity;
+use seedwing_policy_engine::runtime::config::ConfigContext;
 use seedwing_policy_engine::runtime::metadata::ComponentMetadata;
 
 #[get("/policy/v1alpha1/{path:.*}")]
@@ -174,7 +174,8 @@ async fn run_eval(
 ) -> HttpResponse {
     let context = EvalContext::new(
         seedwing_policy_engine::runtime::TraceConfig::Enabled(monitor.clone()),
-        EvalConfig::default(),
+        ConfigContext::default(),
+        EvalOptions::new(),
     );
 
     match world.evaluate(path, value, context).await {

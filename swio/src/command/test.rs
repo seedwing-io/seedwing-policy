@@ -2,8 +2,8 @@ use crate::cli::Context;
 use seedwing_policy_engine::{
     lang::builder::Builder,
     runtime::{
-        config::EvalConfig, sources::Ephemeral, BuildError, EvalContext, Output, PatternName,
-        RuntimeError, World,
+        config::ConfigContext, sources::Ephemeral, BuildError, EvalContext, EvalOptions, Output,
+        PatternName, RuntimeError, World,
     },
     value::RuntimeValue,
 };
@@ -266,7 +266,7 @@ impl TestPattern {
 }
 
 impl TestCase {
-    async fn load_config(&self) -> EvalConfig {
+    async fn load_config(&self) -> ConfigContext {
         let config = if let Some(config_path) = &self.config {
             if let Ok(mut config_file) = File::open(&config_path).await {
                 let mut config = Vec::new();
@@ -306,7 +306,7 @@ impl TestCase {
         } else {
             None
         }
-        .unwrap_or(EvalConfig::default());
+        .unwrap_or(ConfigContext::default());
 
         config
     }
@@ -336,7 +336,7 @@ impl TestCase {
                                 .evaluate(
                                     pattern_name.as_type_str(),
                                     input,
-                                    EvalContext::new_with_config(config),
+                                    EvalContext::new_with_config(config, EvalOptions::new()),
                                 )
                                 .await
                         }
@@ -366,7 +366,10 @@ impl TestCase {
                                                 .evaluate(
                                                     "test::test",
                                                     input,
-                                                    EvalContext::new_with_config(config),
+                                                    EvalContext::new_with_config(
+                                                        config,
+                                                        EvalOptions::new(),
+                                                    ),
                                                 )
                                                 .await
                                         }

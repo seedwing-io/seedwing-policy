@@ -1,4 +1,4 @@
-use seedwing_policy_engine::runtime::config::EvalConfig;
+use seedwing_policy_engine::runtime::config::ConfigContext;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use toml::Table;
@@ -27,11 +27,11 @@ impl Config {
         }
     }
 
-    pub fn eval_config(&self) -> EvalConfig {
+    pub fn eval_config(&self) -> ConfigContext {
         if let Some(config) = &self.config {
             toml::Value::Table(config.clone()).into()
         } else {
-            EvalConfig::default()
+            ConfigContext::default()
         }
     }
 

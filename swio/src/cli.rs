@@ -10,7 +10,7 @@ use anyhow::bail;
 use clap::ValueEnum;
 use seedwing_policy_engine::data::DirectoryDataSource;
 use seedwing_policy_engine::lang::builder::Builder;
-use seedwing_policy_engine::runtime::config::EvalConfig;
+use seedwing_policy_engine::runtime::config::ConfigContext;
 use seedwing_policy_engine::runtime::sources::Directory;
 use seedwing_policy_engine::runtime::{ErrorPrinter, World};
 use std::path::PathBuf;
@@ -65,7 +65,7 @@ pub struct Context {
 
     pub data_directories: Vec<PathBuf>,
 
-    pub eval_config: Option<EvalConfig>,
+    pub eval_config: Option<ConfigContext>,
 
     pub required_policies: Vec<String>,
 }
@@ -110,7 +110,7 @@ impl Cli {
 }
 
 impl Context {
-    async fn load_config_file(&mut self) -> Result<EvalConfig, ConfigError> {
+    async fn load_config_file(&mut self) -> Result<ConfigContext, ConfigError> {
         let (explicit, path) = if let Some(path) = &self.config_file {
             if path.is_dir() {
                 (true, path.join("Seedwing.toml"))
@@ -152,7 +152,7 @@ impl Context {
         } else if explicit {
             Err(ConfigError::FileNotFound(path))
         } else {
-            Ok(EvalConfig::default())
+            Ok(ConfigContext::default())
         }
     }
 
