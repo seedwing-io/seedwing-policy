@@ -27,7 +27,7 @@ impl Pattern {
                     instance_type: Some(SingleOrVec::Single(Box::new(InstanceType::String))),
                     ..Default::default()
                 },
-                PrimordialPattern::Function(_, _name, func) => match &func.input(bindings) {
+                PrimordialPattern::Function(_name, func) => match &func.input(bindings) {
                     FunctionInput::Anything => Schema::Bool(true).into_object(),
                     FunctionInput::String => SchemaObject {
                         instance_type: Some(SingleOrVec::Single(Box::new(InstanceType::String))),
