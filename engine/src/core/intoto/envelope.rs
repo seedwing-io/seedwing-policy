@@ -12,6 +12,7 @@ use in_toto::crypto::{KeyType, SignatureScheme};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha2::Sha256;
+use sha2::Sha512;
 use sigstore::cosign::client::Client as Cosign;
 use sigstore::cosign::CosignCapabilities;
 use sigstore::errors::SigstoreError;
@@ -334,6 +335,12 @@ fn hash(blob: &Vec<u8>, alg: &str) -> Result<String, anyhow::Error> {
     match alg {
         "sha256" => {
             let mut hasher = Sha256::new();
+            hasher.update(blob);
+            let hash = format!("{:x}", hasher.finalize());
+            Ok(hash)
+        }
+        "sha512" => {
+            let mut hasher = Sha512::new();
             hasher.update(blob);
             let hash = format!("{:x}", hasher.finalize());
             Ok(hash)
