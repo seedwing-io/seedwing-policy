@@ -111,9 +111,7 @@ impl TraceContext {
         block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
         match self.0.clone() {
-            TraceConfig::Disabled => {
-                return block;
-            }
+            TraceConfig::Disabled => block,
             #[cfg(feature = "monitor")]
             TraceConfig::Enabled(monitor) => {
                 let runner = TraceRunner { monitor, input, ty };
