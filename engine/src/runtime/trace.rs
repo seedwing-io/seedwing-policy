@@ -7,11 +7,11 @@ use std::{
     future::Future,
     pin::Pin,
     sync::Arc,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 #[cfg(feature = "monitor")]
-use {super::monitor::dispatcher::Monitor, tokio::sync::Mutex};
+use {super::monitor::dispatcher::Monitor, std::time::Instant, tokio::sync::Mutex};
 
 /// Tracing information such as evaluation time.
 #[derive(Debug, Clone, Copy)]
@@ -46,12 +46,14 @@ impl Debug for TraceConfig {
     }
 }
 
+#[cfg(feature = "monitor")]
 struct TraceRunner {
     pub monitor: Arc<Mutex<Monitor>>,
     pub input: Arc<RuntimeValue>,
     pub ty: Arc<Pattern>,
 }
 
+#[cfg(feature = "monitor")]
 impl TraceRunner {
     async fn run(
         self,
@@ -104,17 +106,19 @@ pub struct TraceContext(pub TraceConfig);
 impl TraceContext {
     pub fn run<'v>(
         &self,
-        input: Arc<RuntimeValue>,
-        ty: Arc<Pattern>,
+        #[allow(unused)] input: Arc<RuntimeValue>,
+        #[allow(unused)] ty: Arc<Pattern>,
         block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
-        let runner = match self.0.clone() {
+        match self.0.clone() {
             TraceConfig::Disabled => {
                 return block;
             }
-            TraceConfig::Enabled(monitor) => TraceRunner { monitor, input, ty },
-        };
-
-        Box::pin(runner.run(block))
+            #[cfg(feature = "monitor")]
+            TraceConfig::Enabled(monitor) => {
+                let runner = TraceRunner { monitor, input, ty };
+                Box::pin(runner.run(block))
+            }
+        }
     }
 }
