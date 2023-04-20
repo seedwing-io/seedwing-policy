@@ -2,7 +2,7 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
 use std::cmp::max;
 
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
@@ -32,7 +32,7 @@ impl Function for Chain {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -46,7 +46,9 @@ impl Function for Chain {
                     let mut cur_severity = Severity::None;
 
                     for term in terms {
-                        let result = term.evaluate(cur.clone(), ctx, bindings, world).await?;
+                        let result = term
+                            .evaluate(cur.clone(), ctx.push()?, bindings, world)
+                            .await?;
 
                         let severity = result.severity();
                         let output = result.raw_output().clone();

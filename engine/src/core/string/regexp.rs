@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, ValuePattern};
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use regex::Regex;
 use std::future::Future;
@@ -34,7 +34,7 @@ impl Function for Regexp {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -57,9 +57,9 @@ impl Function for Regexp {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

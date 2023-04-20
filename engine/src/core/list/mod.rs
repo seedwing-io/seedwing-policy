@@ -1,9 +1,7 @@
-use crate::lang::Severity;
-use crate::runtime::EvalContext;
 use crate::{
-    lang::lir::Pattern,
+    lang::{lir::Pattern, Severity},
     package::Package,
-    runtime::{PackagePath, RuntimeError, World},
+    runtime::{ExecutionContext, PackagePath, RuntimeError, World},
     value::RuntimeValue,
 };
 use std::sync::Arc;
@@ -48,7 +46,7 @@ pub fn package() -> Package {
 /// This takes an iterator of values, splitting it in two lists. Filling the first one until the
 /// pattern in `count` is satisfied. Adding the remainder to the second one.
 pub(crate) async fn split_fill<I>(
-    ctx: &EvalContext,
+    ctx: ExecutionContext<'_>,
     world: &World,
     mut i: I,
     count: Option<Arc<Pattern>>,
@@ -64,7 +62,7 @@ where
                 let expected_result = expected_count
                     .evaluate(
                         Arc::new((greedy.len()).into()),
-                        ctx,
+                        ctx.push()?,
                         &Default::default(),
                         world,
                     )

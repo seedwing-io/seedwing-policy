@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
@@ -30,7 +30,7 @@ impl Function for Concat {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

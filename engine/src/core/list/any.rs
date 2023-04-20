@@ -1,6 +1,6 @@
 use crate::core::{list::PATTERN, Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, RuntimeError, World};
+use crate::runtime::{ExecutionContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
@@ -30,7 +30,7 @@ impl Function for Any {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -41,7 +41,7 @@ impl Function for Any {
                 for item in list {
                     supporting.push(
                         pattern
-                            .evaluate(item.clone(), ctx, &Default::default(), world)
+                            .evaluate(item.clone(), ctx.push()?, &Default::default(), world)
                             .await?,
                     );
                 }
@@ -60,9 +60,9 @@ impl Function for Any {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

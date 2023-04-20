@@ -6,7 +6,7 @@ use crate::lang::hir;
 use crate::lang::parser::SourceLocation;
 use crate::runtime;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::config::{ConfigValue, EvalConfig};
+use crate::runtime::config::{ConfigContext, ConfigValue};
 use crate::runtime::BuildError;
 
 /// Builder representing the entire world of policies.
@@ -29,7 +29,7 @@ impl Builder {
         }
     }
 
-    pub fn new_with_config(config: EvalConfig) -> Self {
+    pub fn new_with_config(config: ConfigContext) -> Self {
         Self {
             hir: hir::World::new_with_config(config),
         }

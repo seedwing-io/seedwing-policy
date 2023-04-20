@@ -1,6 +1,6 @@
 use crate::core::{BlockingFunction, FunctionEvaluationResult};
 use crate::lang::{lir::Bindings, PatternMeta, Severity};
-use crate::runtime::{rationale::Rationale, EvalContext, Output, RuntimeError, World};
+use crate::runtime::{rationale::Rationale, ExecutionContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ impl BlockingFunction for Url {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        _ctx: &EvalContext,
+        _ctx: ExecutionContext<'_>,
         _bindings: &Bindings,
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {

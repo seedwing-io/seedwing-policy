@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
@@ -35,7 +35,7 @@ impl Function for Filter {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -46,7 +46,7 @@ impl Function for Filter {
                         let mut result = Vec::new();
                         for input in inputs.iter() {
                             let eval = binding
-                                .evaluate(input.clone(), ctx, bindings, world)
+                                .evaluate(input.clone(), ctx.push()?, bindings, world)
                                 .await?;
                             match eval.severity() {
                                 Severity::Error => {

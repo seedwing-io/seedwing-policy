@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult, FunctionInput};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, Pattern, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, Pattern, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
@@ -29,7 +29,7 @@ impl Function for SemverParse {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

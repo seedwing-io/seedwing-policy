@@ -2,7 +2,7 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
 use crate::runtime::World;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
@@ -33,7 +33,7 @@ impl Function for FromCsaf {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

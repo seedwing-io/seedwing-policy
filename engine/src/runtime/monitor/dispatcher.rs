@@ -41,11 +41,9 @@ impl Monitor {
         receiver
     }
 
-    pub fn init(&self) -> u64 {
-        self.correlation.fetch_add(1, Ordering::Relaxed)
-    }
+    pub async fn start(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> u64 {
+        let correlation = self.correlation.fetch_add(1, Ordering::Relaxed);
 
-    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
         let event = StartEvent {
             correlation,
             timestamp: Utc::now(),
@@ -53,6 +51,8 @@ impl Monitor {
             ty,
         };
         self.fanout(event.into()).await;
+
+        correlation
     }
 
     pub async fn complete_ok(

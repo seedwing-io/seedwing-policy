@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult, FunctionInput, FunctionInputPattern};
 use crate::lang::lir::{Bindings, InnerPattern};
-use crate::runtime::{EvalContext, Pattern, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Pattern, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::cmp::max;
 use std::future::Future;
@@ -50,7 +50,7 @@ impl Function for Or {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -66,7 +66,9 @@ impl Function for Or {
 
                     for term in terms {
                         // eval term
-                        let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
+                        let result = term
+                            .evaluate(input.clone(), ctx.push()?, bindings, world)
+                            .await?;
 
                         let severity = result.severity();
                         if !matches!(severity, Severity::Error) {
@@ -97,10 +99,10 @@ impl Function for Or {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::assert_satisfied;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use serde_json::json;
 
     #[tokio::test]

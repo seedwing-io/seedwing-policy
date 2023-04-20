@@ -1,17 +1,14 @@
+use super::merge;
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::lang::PatternMeta;
 use crate::runtime::World;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::value::RuntimeValue;
-
+use openvex::*;
 use std::future::Future;
 use std::pin::Pin;
-
 use std::sync::Arc;
-
-use super::merge;
-use crate::lang::PatternMeta;
-use openvex::*;
 
 #[derive(Debug)]
 pub struct Merge;
@@ -32,7 +29,7 @@ impl Function for Merge {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

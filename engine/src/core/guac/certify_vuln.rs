@@ -1,15 +1,12 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-
-use crate::runtime::{EvalContext, World};
+use crate::lang::{PatternMeta, Severity};
+use crate::runtime::{ExecutionContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
-
+use guac_rs::client::{certify_vuln::*, GuacClient};
 use std::future::Future;
 use std::pin::Pin;
-
-use crate::lang::{PatternMeta, Severity};
-use guac_rs::client::{certify_vuln::*, GuacClient};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -98,7 +95,7 @@ impl Function for CertifyVuln {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

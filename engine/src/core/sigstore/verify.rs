@@ -1,14 +1,13 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
+use crate::lang::PatternMeta;
 use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
-use sigstore::cosign::client::Client as Cosign;
-use sigstore::cosign::CosignCapabilities;
-
-use crate::lang::PatternMeta;
-use crate::runtime::{EvalContext, World};
+use crate::runtime::{ExecutionContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
+use sigstore::cosign::client::Client as Cosign;
+use sigstore::cosign::CosignCapabilities;
 use sigstore::tuf::SigstoreRepository;
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -42,7 +41,7 @@ impl Function for VerifyBlob {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

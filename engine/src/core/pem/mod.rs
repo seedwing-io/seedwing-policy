@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 
@@ -31,7 +31,7 @@ impl Function for AsCertificate {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

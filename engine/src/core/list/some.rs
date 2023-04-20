@@ -1,7 +1,7 @@
 use crate::core::list::{COUNT, PATTERN};
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, EvaluationResult, RuntimeError, World};
+use crate::runtime::{EvaluationResult, ExecutionContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 
 use std::future::Future;
@@ -22,7 +22,7 @@ impl Function for Some {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -50,7 +50,7 @@ impl Function for Some {
                 for item in list {
                     let item_result = pattern
                         .clone()
-                        .evaluate(item.clone(), ctx, &Default::default(), world)
+                        .evaluate(item.clone(), ctx.push()?, &Default::default(), world)
                         .await?;
 
                     supporting.push(item_result.clone());
@@ -66,7 +66,7 @@ impl Function for Some {
                         let expected_result = expected_count
                             .evaluate(
                                 Arc::new((count as i64).into()),
-                                ctx,
+                                ctx.push()?,
                                 &Default::default(),
                                 world,
                             )
@@ -92,9 +92,9 @@ impl Function for Some {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

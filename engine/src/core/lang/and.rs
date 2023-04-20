@@ -3,7 +3,7 @@ use crate::lang::{
     lir::{Bindings, InnerPattern},
     PatternMeta, Severity,
 };
-use crate::runtime::{EvalContext, RuntimeError, World};
+use crate::runtime::{ExecutionContext, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::cmp::max;
 use std::future::Future;
@@ -32,7 +32,7 @@ impl Function for And {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -45,7 +45,9 @@ impl Function for And {
                     terms.sort_by_key(|a| a.order(world));
 
                     for term in terms {
-                        let result = term.evaluate(input.clone(), ctx, bindings, world).await?;
+                        let result = term
+                            .evaluate(input.clone(), ctx.push()?, bindings, world)
+                            .await?;
                         severity = max(severity, result.severity());
                         supporting.push(result)
                     }
@@ -61,9 +63,9 @@ impl Function for And {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

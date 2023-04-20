@@ -6,8 +6,8 @@ use crate::{
         lir, meta::PatternMeta, mir, parser::Located, PrimordialPattern, Severity, SyntacticSugar,
     },
     runtime::{
-        rationale::Rationale, EvalContext, EvaluationResult, Output, PatternName, RuntimeError,
-        TraceHandle, World,
+        rationale::Rationale, EvaluationResult, ExecutionContext, Output, PatternName,
+        RuntimeError, World,
     },
     value::RuntimeValue,
 };
@@ -213,243 +213,255 @@ impl Pattern {
     pub fn evaluate<'v>(
         self: &'v Arc<Self>,
         value: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
-        let trace = ctx.trace(value.clone(), self.clone());
-        match &self.inner {
-            InnerPattern::Anything => trace.run(Box::pin(async move {
-                Ok(EvaluationResult::new(
-                    value,
-                    self.clone(),
-                    Rationale::Anything,
-                    Output::Identity,
-                ))
-            })),
-            InnerPattern::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
-                if let Some(ty) = world.get_by_slot(*slot) {
-                    let bindings = build_bindings(
-                        value.clone(),
-                        bindings.clone(),
-                        ctx,
-                        ty.parameters(),
-                        arguments,
-                        world,
-                    )
-                    .await;
+        ctx.trace.clone().run(
+            value.clone(),
+            self.clone(),
+            Box::pin(async move {
+                // increment recursions
+                let ctx = ctx.push()?;
 
-                    let bindings = bindings.unwrap();
-                    let result = ty
-                        .evaluate(value.clone(), ctx, &bindings, world)
-                        .await
-                        .map(|x| {
-                            EvaluationResult::new(
-                                x.input(),
-                                x.ty(),
-                                Rationale::Bound(Box::new(x.rationale().clone()), bindings.clone()),
-                                x.raw_output().clone(),
+                match &self.inner {
+                    InnerPattern::Anything => Ok(EvaluationResult::new(
+                        value,
+                        self.clone(),
+                        Rationale::Anything,
+                        Output::Identity,
+                    )),
+                    InnerPattern::Ref(sugar, slot, arguments) => {
+                        if let Some(ty) = world.get_by_slot(*slot) {
+                            let bindings = build_bindings(
+                                value.clone(),
+                                bindings.clone(),
+                                ctx.push()?,
+                                ty.parameters(),
+                                arguments,
+                                world,
                             )
-                        })?;
-                    if let SyntacticSugar::Chain = sugar {
-                        Ok(EvaluationResult::new(
-                            value,
-                            self.clone(),
-                            result.rationale().clone(),
-                            result.raw_output().clone(),
-                        ))
-                    } else {
-                        Ok(result)
+                            .await;
+
+                            let bindings = bindings.unwrap();
+                            let result = ty
+                                .evaluate(value.clone(), ctx, &bindings, world)
+                                .await
+                                .map(|x| {
+                                    EvaluationResult::new(
+                                        x.input(),
+                                        x.ty(),
+                                        Rationale::Bound(
+                                            Box::new(x.rationale().clone()),
+                                            bindings.clone(),
+                                        ),
+                                        x.raw_output().clone(),
+                                    )
+                                })?;
+                            if let SyntacticSugar::Chain = sugar {
+                                Ok(EvaluationResult::new(
+                                    value,
+                                    self.clone(),
+                                    result.rationale().clone(),
+                                    result.raw_output().clone(),
+                                ))
+                            } else {
+                                Ok(result)
+                            }
+                        } else {
+                            Err(RuntimeError::NoSuchPatternSlot(*slot))
+                        }
                     }
-                } else {
-                    Err(RuntimeError::NoSuchPatternSlot(*slot))
-                }
-            })),
-            InnerPattern::Deref(inner) => trace.run(Box::pin(async move {
-                inner.evaluate(value, ctx, bindings, world).await
-            })),
-            InnerPattern::Bound(ty, bindings) => trace.run(Box::pin(async move {
-                ty.evaluate(value, ctx, bindings, world).await
-            })),
-            InnerPattern::Argument(name) => trace.run(Box::pin(async move {
-                if let Some(bound) = bindings.get(name) {
-                    bound.evaluate(value, ctx, bindings, world).await
-                } else {
-                    Ok(EvaluationResult::new(
-                        value,
-                        self.clone(),
-                        Rationale::InvalidArgument(name.clone()),
-                        Output::Identity,
-                    ))
-                }
-            })),
-            InnerPattern::Primordial(inner) => match inner {
-                PrimordialPattern::Integer => {
-                    self.eval_primordial(trace, value, RuntimeValue::is_integer)
-                }
-                PrimordialPattern::Decimal => {
-                    self.eval_primordial(trace, value, RuntimeValue::is_decimal)
-                }
-                PrimordialPattern::Boolean => {
-                    self.eval_primordial(trace, value, RuntimeValue::is_boolean)
-                }
-                PrimordialPattern::String => {
-                    self.eval_primordial(trace, value, RuntimeValue::is_string)
-                }
-                PrimordialPattern::Function(_sugar, _name, func) => {
-                    trace.run(Box::pin(async move {
-                        let result = func.call(value.clone(), ctx, bindings, world).await?;
-                        Ok(EvaluationResult::new(
-                            value,
-                            self.clone(),
-                            Rationale::Function {
-                                severity: result.severity,
-                                rationale: result.rationale.map(Box::new),
-                                supporting: result.supporting,
-                            },
-                            result.output,
-                        ))
-                    }))
-                }
-            },
-            InnerPattern::Const(inner) => trace.run(Box::pin(async move {
-                let locked_value = (*value).borrow();
-                if inner.is_equal(locked_value) {
-                    Ok(EvaluationResult::new(
-                        value.clone(),
-                        self.clone(),
-                        Rationale::Const(true),
-                        Output::Identity,
-                    ))
-                } else {
-                    Ok(EvaluationResult::new(
-                        value.clone(),
-                        self.clone(),
-                        Rationale::Const(false),
-                        Output::Identity,
-                    ))
-                }
-            })),
-            InnerPattern::Object(inner) => trace.run(Box::pin(async move {
-                let locked_value = (*value).borrow();
-                if let Some(obj) = locked_value.try_get_object() {
-                    let mut result = HashMap::new();
+                    InnerPattern::Deref(inner) => inner.evaluate(value, ctx, bindings, world).await,
+                    InnerPattern::Bound(ty, bindings) => {
+                        ty.evaluate(value, ctx, bindings, world).await
+                    }
+                    InnerPattern::Argument(name) => {
+                        if let Some(bound) = bindings.get(name) {
+                            bound.evaluate(value, ctx, bindings, world).await
+                        } else {
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::InvalidArgument(name.clone()),
+                                Output::Identity,
+                            ))
+                        }
+                    }
+                    InnerPattern::Primordial(inner) => match inner {
+                        PrimordialPattern::Integer => {
+                            self.eval_primordial(value, RuntimeValue::is_integer)
+                        }
+                        PrimordialPattern::Decimal => {
+                            self.eval_primordial(value, RuntimeValue::is_decimal)
+                        }
+                        PrimordialPattern::Boolean => {
+                            self.eval_primordial(value, RuntimeValue::is_boolean)
+                        }
+                        PrimordialPattern::String => {
+                            self.eval_primordial(value, RuntimeValue::is_string)
+                        }
+                        PrimordialPattern::Function(_sugar, _name, func) => {
+                            let result = func.call(value.clone(), ctx, bindings, world).await?;
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::Function {
+                                    severity: result.severity,
+                                    rationale: result.rationale.map(Box::new),
+                                    supporting: result.supporting,
+                                },
+                                result.output,
+                            ))
+                        }
+                    },
+                    InnerPattern::Const(inner) => {
+                        let locked_value = (*value).borrow();
+                        if inner.is_equal(locked_value) {
+                            Ok(EvaluationResult::new(
+                                value.clone(),
+                                self.clone(),
+                                Rationale::Const(true),
+                                Output::Identity,
+                            ))
+                        } else {
+                            Ok(EvaluationResult::new(
+                                value.clone(),
+                                self.clone(),
+                                Rationale::Const(false),
+                                Output::Identity,
+                            ))
+                        }
+                    }
+                    InnerPattern::Object(inner) => {
+                        let locked_value = (*value).borrow();
+                        if let Some(obj) = locked_value.try_get_object() {
+                            let mut result = HashMap::new();
 
-                    // TODO: think about pre-aggregating the severity to later on just use the result
+                            // TODO: think about pre-aggregating the severity to later on just use the result
 
-                    for field in &inner.fields {
-                        if let Some(ref field_value) = obj.get(field.name()) {
-                            result.insert(
-                                field.name(),
-                                Some(
-                                    field
-                                        .ty()
-                                        .evaluate(field_value.clone(), ctx, bindings, world)
+                            for field in &inner.fields {
+                                if let Some(ref field_value) = obj.get(field.name()) {
+                                    result.insert(
+                                        field.name(),
+                                        Some(
+                                            field
+                                                .ty()
+                                                .evaluate(
+                                                    field_value.clone(),
+                                                    ctx.push()?,
+                                                    bindings,
+                                                    world,
+                                                )
+                                                .await?,
+                                        ),
+                                    );
+                                } else if !field.optional() {
+                                    result.insert(field.name(), None);
+                                }
+                            }
+
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::Object(result),
+                                Output::Identity,
+                            ))
+                        } else {
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::NotAnObject,
+                                Output::Identity,
+                            ))
+                        }
+                    }
+                    InnerPattern::Expr(expr) => {
+                        let result = expr.evaluate(value.clone()).await?;
+                        let _locked_value = (*value).borrow();
+                        let locked_result = (*result).borrow();
+                        if let Some(true) = locked_result.try_get_boolean() {
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::Expression(true),
+                                Output::Identity,
+                            ))
+                        } else {
+                            Ok(EvaluationResult::new(
+                                value,
+                                self.clone(),
+                                Rationale::Expression(false),
+                                Output::Identity,
+                            ))
+                        }
+                    }
+                    InnerPattern::List(terms) => {
+                        if let Some(list_value) = value.try_get_list() {
+                            if list_value.len() == terms.len() {
+                                let mut result = Vec::new();
+                                for (term, element) in terms.iter().zip(list_value.iter()) {
+                                    result.push(
+                                        term.evaluate(
+                                            element.clone(),
+                                            ctx.push()?,
+                                            bindings,
+                                            world,
+                                        )
                                         .await?,
-                                ),
-                            );
-                        } else if !field.optional() {
-                            result.insert(field.name(), None);
+                                    );
+                                }
+                                return Ok(EvaluationResult::new(
+                                    value,
+                                    self.clone(),
+                                    Rationale::List(result),
+                                    Output::Identity,
+                                ));
+                            }
                         }
-                    }
-
-                    Ok(EvaluationResult::new(
-                        value,
-                        self.clone(),
-                        Rationale::Object(result),
-                        Output::Identity,
-                    ))
-                } else {
-                    Ok(EvaluationResult::new(
-                        value,
-                        self.clone(),
-                        Rationale::NotAnObject,
-                        Output::Identity,
-                    ))
-                }
-            })),
-            InnerPattern::Expr(expr) => trace.run(Box::pin(async move {
-                let result = expr.evaluate(value.clone()).await?;
-                let _locked_value = (*value).borrow();
-                let locked_result = (*result).borrow();
-                if let Some(true) = locked_result.try_get_boolean() {
-                    Ok(EvaluationResult::new(
-                        value,
-                        self.clone(),
-                        Rationale::Expression(true),
-                        Output::Identity,
-                    ))
-                } else {
-                    Ok(EvaluationResult::new(
-                        value,
-                        self.clone(),
-                        Rationale::Expression(false),
-                        Output::Identity,
-                    ))
-                }
-            })),
-            InnerPattern::List(terms) => trace.run(Box::pin(async move {
-                if let Some(list_value) = value.try_get_list() {
-                    if list_value.len() == terms.len() {
-                        let mut result = Vec::new();
-                        for (term, element) in terms.iter().zip(list_value.iter()) {
-                            result
-                                .push(term.evaluate(element.clone(), ctx, bindings, world).await?);
-                        }
-                        return Ok(EvaluationResult::new(
+                        Ok(EvaluationResult::new(
                             value,
                             self.clone(),
-                            Rationale::List(result),
+                            Rationale::NotAList,
                             Output::Identity,
-                        ));
+                        ))
                     }
+                    InnerPattern::Nothing => Ok(EvaluationResult::new(
+                        value,
+                        self.clone(),
+                        Rationale::Nothing,
+                        Output::Identity,
+                    )),
                 }
-                Ok(EvaluationResult::new(
-                    value,
-                    self.clone(),
-                    Rationale::NotAList,
-                    Output::Identity,
-                ))
-            })),
-            InnerPattern::Nothing => trace.run(Box::pin(async move {
-                Ok(EvaluationResult::new(
-                    value,
-                    self.clone(),
-                    Rationale::Nothing,
-                    Output::Identity,
-                ))
-            })),
-        }
+            }),
+        )
     }
 
     fn eval_primordial<'ctx, 'v, F>(
         self: &'v Arc<Self>,
-        trace: TraceHandle<'ctx>,
         value: Arc<RuntimeValue>,
         f: F,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
+    ) -> Result<EvaluationResult, RuntimeError>
     where
         F: FnOnce(&RuntimeValue) -> bool + 'v,
         'ctx: 'v,
     {
-        trace.run(Box::pin(async move {
-            let locked_value = (*value).borrow();
-            if f(locked_value) {
-                Ok(EvaluationResult::new(
-                    value.clone(),
-                    self.clone(),
-                    Rationale::Primordial(true),
-                    Output::Identity,
-                ))
-            } else {
-                Ok(EvaluationResult::new(
-                    value.clone(),
-                    self.clone(),
-                    Rationale::Primordial(false),
-                    Output::Identity,
-                ))
-            }
-        }))
+        let locked_value = (*value).borrow();
+        if f(locked_value) {
+            Ok(EvaluationResult::new(
+                value.clone(),
+                self.clone(),
+                Rationale::Primordial(true),
+                Output::Identity,
+            ))
+        } else {
+            Ok(EvaluationResult::new(
+                value.clone(),
+                self.clone(),
+                Rationale::Primordial(false),
+                Output::Identity,
+            ))
+        }
     }
 }
 
@@ -817,7 +829,7 @@ pub(crate) fn convert(
 fn build_bindings<'b>(
     value: Arc<RuntimeValue>,
     mut bindings: Bindings,
-    ctx: &'b EvalContext,
+    ctx: ExecutionContext<'b>,
     parameters: Vec<String>,
     arguments: &'b [Arc<Pattern>],
     world: &'b World,
@@ -832,7 +844,7 @@ fn build_bindings<'b>(
                         let resolved_bindings = build_bindings(
                             value.clone(),
                             bindings.clone(),
-                            ctx,
+                            ctx.push()?,
                             resolved_type.parameters(),
                             unresolved_bindings,
                             world,
@@ -855,7 +867,7 @@ fn build_bindings<'b>(
             } else if let InnerPattern::Deref(_) | InnerPattern::List(_) = &arg.inner {
                 bindings.bind(
                     param.clone(),
-                    possibly_deref(value.clone(), arg.clone(), ctx, world).await?,
+                    possibly_deref(value.clone(), arg.clone(), ctx.push()?, world).await?,
                 );
             } else {
                 bindings.bind(param.clone(), arg.clone())
@@ -869,13 +881,13 @@ fn build_bindings<'b>(
 fn possibly_deref<'b>(
     value: Arc<RuntimeValue>,
     arg: Arc<Pattern>,
-    ctx: &'b EvalContext,
+    ctx: ExecutionContext<'b>,
     world: &'b World,
 ) -> Pin<Box<dyn Future<Output = Result<Arc<Pattern>, RuntimeError>> + 'b>> {
     Box::pin(async move {
         if let InnerPattern::Deref(_inner) = &arg.inner {
             let result = arg
-                .evaluate(value.clone(), ctx, &Bindings::default(), world)
+                .evaluate(value.clone(), ctx.push()?, &Bindings::default(), world)
                 .await?;
 
             if !matches!(result.severity(), Severity::Error) {
@@ -892,7 +904,8 @@ fn possibly_deref<'b>(
         } else if let InnerPattern::List(terms) = &arg.inner {
             let mut replacement = Vec::new();
             for term in terms {
-                replacement.push(possibly_deref(value.clone(), term.clone(), ctx, world).await?);
+                replacement
+                    .push(possibly_deref(value.clone(), term.clone(), ctx.push()?, world).await?);
             }
 
             Ok(Arc::new(Pattern::new(

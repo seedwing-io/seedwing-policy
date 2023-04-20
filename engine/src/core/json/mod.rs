@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 use std::borrow::Borrow;
@@ -36,7 +36,7 @@ impl Function for JSON {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -59,9 +59,9 @@ impl Function for JSON {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

@@ -1,5 +1,5 @@
 use crate::{
-    runtime::{EvalContext, EvaluationResult, Pattern, RuntimeError},
+    runtime::{EvaluationResult, Pattern, RuntimeError},
     value::RuntimeValue,
 };
 use std::{
@@ -46,40 +46,75 @@ impl Debug for TraceConfig {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct TraceHandle<'ctx> {
-    pub context: &'ctx EvalContext,
-    pub ty: Arc<Pattern>,
+struct TraceRunner {
+    pub monitor: Arc<Mutex<Monitor>>,
     pub input: Arc<RuntimeValue>,
-    pub start: Option<Instant>,
+    pub ty: Arc<Pattern>,
 }
 
-impl<'ctx> TraceHandle<'ctx> {
-    pub(crate) fn run<'v>(
+impl TraceRunner {
+    async fn run(
         self,
-        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
-    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
-    where
-        'ctx: 'v,
-    {
-        if self.start.is_some() {
-            Box::pin(async move {
-                if let Some(correlation) = self.context.correlation().await {
-                    self.context
-                        .start(correlation, self.input.clone(), self.ty.clone())
-                        .await;
-                    let mut result = block.await;
-                    let elapsed = self.start.map(|e| e.elapsed());
-                    self.context
-                        .complete(correlation, self.ty.clone(), &mut result, elapsed)
-                        .await;
-                    result
-                } else {
-                    block.await
-                }
-            })
-        } else {
-            block
+        block: impl Future<Output = Result<EvaluationResult, RuntimeError>>,
+    ) -> Result<EvaluationResult, RuntimeError> {
+        let start = Instant::now();
+
+        let correlation = {
+            self.monitor
+                .lock()
+                .await
+                .start(self.input, self.ty.clone())
+                .await
+        };
+
+        let mut result = block.await;
+        let elapsed = start.elapsed();
+
+        match &mut result {
+            Ok(result) => {
+                result.with_trace_result(TraceResult { duration: elapsed });
+                self.monitor
+                    .lock()
+                    .await
+                    .complete_ok(
+                        correlation,
+                        self.ty,
+                        result.severity(),
+                        result.raw_output().clone(),
+                        Some(elapsed),
+                    )
+                    .await;
+            }
+            Err(err) => {
+                self.monitor
+                    .lock()
+                    .await
+                    .complete_err(correlation, self.ty, &err, Some(elapsed))
+                    .await;
+            }
         }
+
+        result
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TraceContext(pub TraceConfig);
+
+impl TraceContext {
+    pub fn run<'v>(
+        &self,
+        input: Arc<RuntimeValue>,
+        ty: Arc<Pattern>,
+        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+        let runner = match self.0.clone() {
+            TraceConfig::Disabled => {
+                return block;
+            }
+            TraceConfig::Enabled(monitor) => TraceRunner { monitor, input, ty },
+        };
+
+        Box::pin(runner.run(block))
     }
 }
