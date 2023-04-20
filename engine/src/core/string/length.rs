@@ -1,6 +1,6 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
@@ -24,7 +24,7 @@ impl Function for Length {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -40,9 +40,9 @@ impl Function for Length {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

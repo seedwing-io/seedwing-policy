@@ -9,7 +9,6 @@ use crate::runtime::{cache::SourceCache, rationale::Rationale};
 use crate::value::RuntimeValue;
 use ariadne::{Label, Report, ReportKind};
 use chumsky::error::SimpleReason;
-use config::EvalConfig;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
@@ -17,7 +16,6 @@ use std::io;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 pub use crate::core::Example;
 pub use crate::lang::lir::Pattern;
@@ -36,6 +34,7 @@ mod utils;
 pub use utils::is_default;
 
 mod trace;
+use crate::runtime::config::ConfigContext;
 pub use trace::*;
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -245,11 +244,13 @@ pub enum RuntimeError {
     FileUnreadable(PathBuf),
     #[error("remote client failed: {0}")]
     RemoteClient(#[from] crate::client::Error),
+    #[error("recursion limit reached: {0}")]
+    RecursionLimit(usize),
 }
 
 #[derive(Clone, Debug)]
 pub struct World {
-    config: EvalConfig,
+    config: ConfigContext,
     types: HashMap<PatternName, usize>,
     type_slots: Vec<Arc<Pattern>>,
 
@@ -264,7 +265,7 @@ impl WorldLike for World {
 
 impl World {
     pub(crate) fn new(
-        config: EvalConfig,
+        config: ConfigContext,
         types: HashMap<PatternName, usize>,
         type_slots: Vec<Arc<Pattern>>,
         packages: HashMap<PackagePath, PackageMetadata>,
@@ -299,10 +300,11 @@ impl World {
         let value = Arc::new(value.into());
         let path = PatternName::from(path.into());
         let slot = self.types.get(&path);
+        let ctx = ExecutionContext::new(&ctx);
         if let Some(slot) = slot {
             let ty = self.type_slots[*slot].clone();
             let bindings = Bindings::default();
-            ty.evaluate(value.clone(), &ctx, &bindings, self).await
+            ty.evaluate(value.clone(), ctx, &bindings, self).await
         } else {
             Err(RuntimeError::NoSuchPattern(path))
         }
@@ -609,108 +611,133 @@ impl From<SourceLocation> for PackagePath {
 impl Default for EvalContext {
     fn default() -> Self {
         Self {
-            trace: TraceConfig::Disabled,
-            config: EvalConfig::default(),
+            trace: TraceContext(TraceConfig::Disabled),
+            config: ConfigContext::default(),
+            options: EvalOptions::new(),
+        }
+    }
+}
+
+/// A context when executing an evaluation step
+pub struct ExecutionContext<'c> {
+    /// The context of the overall evaluation
+    eval: &'c EvalContext,
+    /// the recursion level
+    remaining_recursions: usize,
+}
+
+impl Deref for ExecutionContext<'_> {
+    type Target = EvalContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.eval
+    }
+}
+
+impl<'c> ExecutionContext<'c> {
+    pub fn new(eval: &'c EvalContext) -> Self {
+        Self {
+            eval,
+            remaining_recursions: eval.options.max_recursions,
+        }
+    }
+
+    /// Create a new instance for descending into the evaluation tree.
+    ///
+    /// This creates a new instance with a decreased count of remaining recursions, or fail
+    /// if the counter reached zero.
+    ///
+    /// **NOTE:** This must be called every time an operation can possibly call another one.
+    pub fn push(&self) -> Result<Self, RuntimeError> {
+        match self.remaining_recursions == 0 {
+            true => Err(RuntimeError::RecursionLimit(
+                self.eval.options.max_recursions,
+            )),
+            false => Ok(Self {
+                eval: self.eval,
+                remaining_recursions: self.remaining_recursions - 1,
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EvalOptions {
+    pub max_recursions: usize,
+}
+
+impl EvalOptions {
+    const DEFAULT_MAX_RECURSIONS: usize = 128;
+
+    /// Create a new instance
+    ///
+    /// This creates a new instance, possibly consulting configuration from the environment.
+    ///
+    /// **NOTE:** Using [`EvalOptions::default`] always return the same settings and **not** pull in
+    /// information from the environment, or other sources.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn new() -> Self {
+        let max_recursions = match std::env::var("SEEDWING_RECURSION_LIMIT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+        {
+            Some(max_recursions) if max_recursions > 0 => max_recursions,
+            _ => Self::DEFAULT_MAX_RECURSIONS,
+        };
+
+        Self { max_recursions }
+    }
+
+    /// Create a new instance.
+    ///
+    /// **NOTE:** On `wasm32`, this falls back to [`EvalOptions::default`].
+    #[cfg(target_arch = "wasm32")]
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for EvalOptions {
+    fn default() -> Self {
+        Self {
+            max_recursions: Self::DEFAULT_MAX_RECURSIONS,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct EvalContext {
-    trace: TraceConfig,
-    config: EvalConfig,
+    /// The trace aspect of the context
+    pub trace: TraceContext,
+    /// The configuration data aspect of the context
+    pub config: ConfigContext,
+    /// Options for running the evaluation
+    pub options: EvalOptions,
 }
 
 impl EvalContext {
-    pub fn new(trace: TraceConfig, config: EvalConfig) -> Self {
-        Self { trace, config }
-    }
-
-    pub fn new_with_config(config: EvalConfig) -> Self {
+    pub fn new(trace: TraceConfig, config: ConfigContext, options: EvalOptions) -> Self {
         Self {
-            trace: TraceConfig::Disabled,
+            trace: TraceContext(trace),
             config,
+            options,
         }
     }
 
-    pub fn config(&self) -> &EvalConfig {
+    pub fn new_with_config(config: ConfigContext, options: EvalOptions) -> Self {
+        Self {
+            trace: TraceContext(TraceConfig::Disabled),
+            config,
+            options,
+        }
+    }
+
+    pub fn config(&self) -> &ConfigContext {
         &self.config
     }
 
-    pub fn merge_config(&mut self, defaults: &EvalConfig) {
+    pub fn merge_config(&mut self, defaults: &ConfigContext) {
         self.config.merge_defaults(defaults);
-    }
-
-    pub fn trace(&self, input: Arc<RuntimeValue>, ty: Arc<Pattern>) -> TraceHandle {
-        match &self.trace {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(_monitor) => TraceHandle {
-                context: self,
-                ty,
-                input,
-                start: Some(Instant::now()),
-            },
-            TraceConfig::Disabled => TraceHandle {
-                context: self,
-                ty,
-                input,
-                start: None,
-            },
-        }
-    }
-
-    async fn correlation(&self) -> Option<u64> {
-        match &self.trace {
-            #[cfg(feature = "monitor")]
-            TraceConfig::Enabled(monitor) => Some(monitor.lock().await.init()),
-            TraceConfig::Disabled => None,
-        }
-    }
-
-    #[allow(unused_variables)]
-    pub async fn start(&self, correlation: u64, input: Arc<RuntimeValue>, ty: Arc<Pattern>) {
-        #[cfg(feature = "monitor")]
-        if let TraceConfig::Enabled(monitor) = &self.trace {
-            monitor.lock().await.start(correlation, input, ty).await;
-        }
-    }
-
-    #[allow(unused_variables)]
-    async fn complete(
-        &self,
-        correlation: u64,
-        ty: Arc<Pattern>,
-        result: &mut Result<EvaluationResult, RuntimeError>,
-        elapsed: Option<Duration>,
-    ) {
-        #[cfg(feature = "monitor")]
-        if let TraceConfig::Enabled(monitor) = &self.trace {
-            match result {
-                Ok(ref mut result) => {
-                    if let Some(elapsed) = elapsed {
-                        result.with_trace_result(TraceResult { duration: elapsed });
-                    }
-                    monitor
-                        .lock()
-                        .await
-                        .complete_ok(
-                            correlation,
-                            ty,
-                            result.severity(),
-                            result.raw_output().clone(),
-                            elapsed,
-                        )
-                        .await
-                }
-                Err(err) => {
-                    monitor
-                        .lock()
-                        .await
-                        .complete_err(correlation, ty, err, elapsed)
-                        .await
-                }
-            }
-        }
     }
 }
 
@@ -1047,5 +1074,53 @@ mod test {
             PackagePath::from("foo::bar").split_name(),
             Some((PackagePath::from(vec!["foo".to_string()]), "bar".into()))
         );
+    }
+
+    #[tokio::test]
+    async fn fail_infinite_recursion() {
+        let mut builder = Builder::new();
+        builder
+            .build(Ephemeral::new("test", "pattern foo = foo").iter())
+            .unwrap();
+        let runtime = builder.finish().await.unwrap();
+        let result = runtime
+            .evaluate("test::foo", RuntimeValue::Null, EvalContext::default())
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(RuntimeError::RecursionLimit(
+                EvalOptions::DEFAULT_MAX_RECURSIONS
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn fail_circular_dependency() {
+        let mut builder = Builder::new();
+        builder
+            .build(
+                Ephemeral::new(
+                    "test",
+                    r#"
+pattern foo = bar
+pattern bar = foo
+"#,
+                )
+                .iter(),
+            )
+            .unwrap();
+        let runtime = builder.finish().await.unwrap();
+
+        let result = runtime
+            .evaluate("test::foo", RuntimeValue::Null, EvalContext::default())
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(RuntimeError::RecursionLimit(
+                EvalOptions::DEFAULT_MAX_RECURSIONS
+            ))
+        ));
     }
 }

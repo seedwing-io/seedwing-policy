@@ -1,6 +1,6 @@
 use crate::lang::lir::Bindings;
 use crate::runtime::{
-    rationale::Rationale, EvalContext, EvaluationResult, Output, Pattern, PatternName,
+    rationale::Rationale, EvaluationResult, ExecutionContext, Output, Pattern, PatternName,
     RuntimeError, World,
 };
 use crate::value::RuntimeValue;
@@ -164,7 +164,7 @@ pub trait Function: Sync + Send + Debug {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
@@ -199,7 +199,7 @@ pub trait BlockingFunction: Sync + Send + Debug {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        ctx: &EvalContext,
+        ctx: ExecutionContext<'_>,
         bindings: &Bindings,
         world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError>;
@@ -228,7 +228,7 @@ where
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

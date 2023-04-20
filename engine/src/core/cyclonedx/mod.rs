@@ -2,7 +2,7 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::package::Package;
 use crate::runtime::World;
-use crate::runtime::{EvalContext, PackagePath};
+use crate::runtime::{ExecutionContext, PackagePath};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
 
@@ -41,7 +41,7 @@ impl Function for ComponentPurls {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

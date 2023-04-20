@@ -1,17 +1,13 @@
+use super::client::*;
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-
-use crate::runtime::{EvalContext, World};
+use crate::lang::{PatternMeta, Severity};
+use crate::runtime::{ExecutionContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
-
 use std::future::Future;
 use std::pin::Pin;
-
-use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
-
-use super::client::*;
 
 #[derive(Debug)]
 pub struct ScanPurl;
@@ -130,7 +126,7 @@ impl Function for ScanPurl {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

@@ -3,7 +3,7 @@ use crate::core::{BlockingFunction, Example, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::{PatternMeta, Severity};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use serde_json::json;
 use std::sync::Arc;
@@ -45,7 +45,7 @@ impl BlockingFunction for Purl {
     fn call(
         &self,
         input: Arc<RuntimeValue>,
-        _ctx: &EvalContext,
+        _ctx: ExecutionContext<'_>,
         _bindings: &Bindings,
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {

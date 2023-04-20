@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
@@ -31,7 +31,7 @@ impl Function for Map {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -41,7 +41,9 @@ impl Function for Map {
                     RuntimeValue::List(inputs) => {
                         let mut result = Vec::new();
                         for input in inputs.iter() {
-                            let eval = map_fn.evaluate(input.clone(), ctx, bindings, world).await?;
+                            let eval = map_fn
+                                .evaluate(input.clone(), ctx.push()?, bindings, world)
+                                .await?;
                             match eval.severity() {
                                 Severity::Error => {
                                     result.push(RuntimeValue::Null.into());

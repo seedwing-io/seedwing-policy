@@ -1,7 +1,7 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::{lir::Bindings, Severity};
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, PackagePath, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, PackagePath, RuntimeError, World};
 use crate::value::RuntimeValue;
 use std::future::Future;
 use std::pin::Pin;
@@ -28,7 +28,7 @@ impl Function for PEM {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -75,7 +75,7 @@ impl Function for DER {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

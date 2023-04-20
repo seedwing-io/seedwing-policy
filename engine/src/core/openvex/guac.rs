@@ -1,17 +1,14 @@
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
+use crate::lang::{PatternMeta, Severity};
 use crate::runtime::rationale::Rationale;
 use crate::runtime::World;
-use crate::runtime::{EvalContext, Output, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::value::RuntimeValue;
-
 use guac_rs::client::certify_vuln::allCertifyVuln;
 use guac_rs::client::vulns2vex;
-
 use std::future::Future;
 use std::pin::Pin;
-
-use crate::lang::{PatternMeta, Severity};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -33,7 +30,7 @@ impl Function for FromGuac {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

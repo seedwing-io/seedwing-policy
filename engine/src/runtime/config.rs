@@ -2,9 +2,9 @@ use crate::value::RuntimeValue;
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone)]
-pub struct EvalConfig(HashMap<String, ConfigValue>);
+pub struct ConfigContext(HashMap<String, ConfigValue>);
 
-impl EvalConfig {
+impl ConfigContext {
     pub fn get(&self, key: &String) -> Option<&ConfigValue> {
         self.0.get(key)
     }
@@ -13,7 +13,7 @@ impl EvalConfig {
         self.0.insert(key, val);
     }
 
-    pub(crate) fn merge_defaults(&mut self, defaults: &EvalConfig) {
+    pub(crate) fn merge_defaults(&mut self, defaults: &Self) {
         for (k, v) in defaults.0.iter() {
             if !self.0.contains_key(k) {
                 self.0.insert(k.clone(), v.clone());
@@ -22,7 +22,7 @@ impl EvalConfig {
     }
 }
 
-impl EvalConfig {
+impl ConfigContext {
     fn parse_json_object(
         prefix: String,
         config: &mut HashMap<String, ConfigValue>,
@@ -113,23 +113,23 @@ impl EvalConfig {
     }
 }
 
-impl From<serde_json::Value> for EvalConfig {
+impl From<serde_json::Value> for ConfigContext {
     fn from(json: serde_json::Value) -> Self {
         let prefix: String = "".into();
         let mut config = HashMap::new();
         if let serde_json::Value::Object(obj) = &json {
-            EvalConfig::parse_json_object(prefix, &mut config, obj)
+            Self::parse_json_object(prefix, &mut config, obj)
         }
         Self(config)
     }
 }
 
-impl From<toml::Value> for EvalConfig {
+impl From<toml::Value> for ConfigContext {
     fn from(toml: toml::Value) -> Self {
         let prefix: String = "".into();
         let mut config = HashMap::new();
         if let toml::Value::Table(table) = &toml {
-            EvalConfig::parse_toml_table(prefix, &mut config, table)
+            Self::parse_toml_table(prefix, &mut config, table)
         }
         Self(config)
     }

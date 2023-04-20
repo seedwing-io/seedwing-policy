@@ -1,7 +1,7 @@
 use crate::core::{Example, Function, FunctionEvaluationResult, FunctionInput};
 use crate::lang::{lir::Bindings, PatternMeta, Severity};
 use crate::package::Package;
-use crate::runtime::{EvalContext, Output, Pattern, RuntimeError};
+use crate::runtime::{ExecutionContext, Output, Pattern, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -95,7 +95,7 @@ impl Function for Base64 {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -138,7 +138,7 @@ impl Function for Base64Encode {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         _bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

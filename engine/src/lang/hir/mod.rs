@@ -5,7 +5,7 @@ use crate::lang::parser::{CompilationUnit, Located, Location, PolicyParser, Sour
 use crate::lang::{lir, mir, SyntacticSugar};
 use crate::package::Package;
 use crate::runtime::cache::SourceCache;
-use crate::runtime::config::{ConfigValue, EvalConfig};
+use crate::runtime::config::{ConfigContext, ConfigValue};
 use crate::runtime::{BuildError, PackagePath, PatternName};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -339,7 +339,7 @@ pub struct World {
     packages: Vec<Package>,
     source_cache: SourceCache,
     data_sources: Vec<Arc<dyn DataSource>>,
-    config: EvalConfig,
+    config: ConfigContext,
 }
 
 impl Default for World {
@@ -360,10 +360,10 @@ impl Clone for World {
 
 impl World {
     pub fn new() -> Self {
-        Self::new_with_config(EvalConfig::default())
+        Self::new_with_config(ConfigContext::default())
     }
 
-    pub fn new_with_config(config: EvalConfig) -> Self {
+    pub fn new_with_config(config: ConfigContext) -> Self {
         let mut world = Self {
             units: Default::default(),
             packages: Default::default(),
@@ -502,14 +502,14 @@ impl World {
 struct Lowerer<'b> {
     units: &'b mut Vec<CompilationUnit>,
     packages: &'b mut Vec<Package>,
-    config: EvalConfig,
+    config: ConfigContext,
 }
 
 impl<'b> Lowerer<'b> {
     pub fn new(
         units: &'b mut Vec<CompilationUnit>,
         packages: &'b mut Vec<Package>,
-        config: EvalConfig,
+        config: ConfigContext,
     ) -> Self {
         Self {
             units,

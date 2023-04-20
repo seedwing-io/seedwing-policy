@@ -1,5 +1,5 @@
 use crate::lang::{PatternMeta, Severity};
-use crate::runtime::EvalContext;
+use crate::runtime::ExecutionContext;
 use crate::{
     core::{Function, FunctionEvaluationResult},
     lang::lir::{Bindings, ValuePattern},
@@ -31,7 +31,7 @@ impl Function for Inet4Addr {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -91,6 +91,7 @@ mod test {
     use super::*;
     use crate::lang::builder::Builder;
     use crate::runtime::sources::Ephemeral;
+    use crate::runtime::EvalContext;
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
 

@@ -2,7 +2,7 @@ use crate::core::{BlockingFunction, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::{PatternMeta, Severity};
 use crate::package::Package;
-use crate::runtime::{EvalContext, RuntimeError};
+use crate::runtime::{ExecutionContext, RuntimeError};
 use crate::runtime::{PackagePath, World};
 use crate::value::RuntimeValue;
 use std::sync::Arc;
@@ -32,7 +32,7 @@ impl BlockingFunction for BuiltIn {
     fn call(
         &self,
         _input: Arc<RuntimeValue>,
-        _ctx: &EvalContext,
+        _ctx: ExecutionContext<'_>,
         _bindings: &Bindings,
         _world: &World,
     ) -> Result<FunctionEvaluationResult, RuntimeError> {

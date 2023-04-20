@@ -6,7 +6,7 @@ use crate::lang::{lir, SyntacticSugar};
 use crate::lang::{PackageMeta, PrimordialPattern};
 use crate::lang::{PatternMeta, ValuePattern};
 use crate::runtime;
-use crate::runtime::config::EvalConfig;
+use crate::runtime::config::ConfigContext;
 use crate::runtime::metadata::{PackageMetadata, SubpackageMetadata, ToMetadata, WorldLike};
 use crate::runtime::PatternName;
 use crate::runtime::{BuildError, PackagePath};
@@ -172,14 +172,14 @@ impl ObjectPattern {
 
 #[derive(Debug)]
 pub struct World {
-    config: EvalConfig,
+    config: ConfigContext,
     type_slots: Vec<Arc<PatternHandle>>,
     types: HashMap<PatternName, usize>,
     packages: HashMap<PackagePath, PackageMeta>,
 }
 
 impl World {
-    pub(crate) fn new(config: EvalConfig) -> Self {
+    pub(crate) fn new(config: ConfigContext) -> Self {
         let mut this = Self {
             config,
             type_slots: vec![],

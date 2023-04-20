@@ -2,7 +2,7 @@ use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::{Bindings, InnerPattern};
 use crate::lang::{Severity, ValuePattern};
 use crate::runtime::rationale::Rationale;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::Object;
 use crate::value::RuntimeValue;
 use anyhow::Result;
@@ -113,7 +113,7 @@ impl Function for Verify {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
@@ -352,12 +352,12 @@ fn hash(blob: &Vec<u8>, alg: &str) -> Result<String, anyhow::Error> {
 async fn get_blob<'v>(
     input: &Arc<RuntimeValue>,
     bindings: &Bindings,
-    ctx: &'v EvalContext,
+    ctx: ExecutionContext<'v>,
     world: &'v World,
 ) -> Result<Vec<u8>, anyhow::Error> {
     if let Some(pattern) = bindings.get(BLOB) {
         let result = pattern
-            .evaluate(input.clone(), ctx, bindings, world)
+            .evaluate(input.clone(), ctx.push()?, bindings, world)
             .await?;
 
         if result.severity() < Severity::Error {

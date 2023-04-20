@@ -2,7 +2,7 @@ use super::COUNT;
 use crate::core::list::split_fill;
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
-use crate::runtime::{EvalContext, Output, RuntimeError, World};
+use crate::runtime::{ExecutionContext, Output, RuntimeError, World};
 use crate::value::{Object, RuntimeValue};
 use std::future::Future;
 use std::pin::Pin;
@@ -31,7 +31,7 @@ impl Function for Head {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        ctx: &'v EvalContext,
+        ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {

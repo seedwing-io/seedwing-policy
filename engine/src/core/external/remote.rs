@@ -1,9 +1,8 @@
-use crate::core::Example;
 use crate::{
     client::RemoteClientBuilder,
-    core::{Function, FunctionEvaluationResult},
+    core::{Example, Function, FunctionEvaluationResult},
     lang::{lir::Bindings, PatternMeta, Severity, ValuePattern},
-    runtime::{rationale::Rationale, EvalContext, Output, RuntimeError, World},
+    runtime::{rationale::Rationale, ExecutionContext, Output, RuntimeError, World},
     value::RuntimeValue,
 };
 use std::{future::Future, pin::Pin, sync::Arc};
@@ -92,10 +91,11 @@ impl Function for Remote {
     fn call<'v>(
         &'v self,
         input: Arc<RuntimeValue>,
-        _ctx: &'v EvalContext,
+        _ctx: ExecutionContext<'v>,
         bindings: &'v Bindings,
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+        // FIXME: propagate trace context, config context, and execution context
         Box::pin(async move { self.execute(&input, bindings).await })
     }
 }
