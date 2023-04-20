@@ -2,9 +2,9 @@
 
 /// SLSA 1.0 build provenance statement.
 pattern provenance = {
-  _type: "https://in-toto.io/Statement/v0.1",
+  _type: "https://in-toto.io/Statement/v1",
   subject: anything,
-  predicateType: "https://slsa.dev/provenance/v1-rc1",
+  predicateType: "https://slsa.dev/provenance/v1",
   predicate: predicate,
 }
 
@@ -29,7 +29,7 @@ pattern build-definition = {
   // The parameters that are under the control of the entity represented by builder.id. The primary intention of this field is for debugging, incident
   // response, and vulnerability management. The values here MAY be necessary for reproducing the build. There is no need to verify these parameters
   // because the build system is already trusted, and in many cases it is not practical to do so.
-  systemParameters?: anything,
+  internalParameters?: anything,
 
   // Unordered collection of artifacts needed at build time. Completeness is best effort, at least through SLSA Build L3. For example, if the build
   // script fetches and executes “example.com/foo.sh”, which in turn fetches “example.com/bar.tar.gz”, then both “foo.sh” and “bar.tar.gz” SHOULD be
@@ -57,7 +57,7 @@ pattern builder = {
   // URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
   id: builder-id,
   // Version numbers of components of the builder.
-  version?: string,
+  version?: {},
   // Dependencies used by the orchestrator that are not run within the workload and that do not affect the build, but might affect the
   // provenance generation or security guarantees.
   builderDependencies?: list::all<artifact-reference>,
@@ -89,9 +89,13 @@ pattern artifact-reference = {
   // One or more cryptographic digests of the contents of this artifact.
   digest?: anything,
   // The name for this artifact local to the build.
-  localName?: string,
+  name?: string,
+  // The contents of the resource or artifact.
+  content?: base64::base64,
   // URI identifying the location that this artifact was downloaded from, if different and not derivable from uri.
   downloadLocation?: string,
   // Media type (aka MIME type) of this artifact was interpreted.
-  mediaType?: string
+  mediaType?: string,
+  // Annotations provide additional information or metadata about the resource or artifact.
+  annotations?: {},
 }
