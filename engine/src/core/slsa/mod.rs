@@ -16,7 +16,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_valid_provenance_1_0() {
-        let input = include_str!("example1.json");
+        let input = include_str!("../../../test-data/slsa/example1.json");
         let json: serde_json::Value = serde_json::from_str(input).unwrap();
         let result = test_pattern(r#"slsa::v1_0::provenance"#, json).await;
 
@@ -25,7 +25,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_github_provenance_1_0() {
-        let input = include_str!("example2.json");
+        let input = include_str!("../../../test-data/slsa/example2.json");
         let json: serde_json::Value = serde_json::from_str(input).unwrap();
         let result = test_pattern(r#"slsa::github::provenance"#, json).await;
 
@@ -34,7 +34,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_valid_provenance_0_2() {
-        let input = include_str!("example3.json");
+        let input = include_str!("../../../test-data/slsa/example3.json");
         let json: serde_json::Value = serde_json::from_str(input).unwrap();
         let result = test_pattern(r#"slsa::v0_2::provenance"#, json).await;
 
