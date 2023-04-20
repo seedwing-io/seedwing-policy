@@ -1,7 +1,7 @@
 {
-  "_type": "https://in-toto.io/Statement/v0.1",
+  "_type": "https://in-toto.io/Statement/v1",
   "subject": [{"name": "a", "digest": {"sha256": "5678..."}}],
-  "predicateType": "https://slsa.dev/provenance/v1-rc1",
+  "predicateType": "https://slsa.dev/provenance/v1",
   "predicate": {
     "buildDefinition": {
       "buildType": "https://example.com/Makefile",
@@ -10,7 +10,7 @@
         "digest": {"sha256": "1234..."},
         "entryPoint": "src:foo"
       },
-      "systemParameters": {"CFLAGS": "-O3"}
+      "internalParameters": {"CFLAGS": "-O3"}
     },
     "runDetails": {
       "builder":  {
