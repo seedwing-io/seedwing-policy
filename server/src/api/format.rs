@@ -4,7 +4,8 @@ use seedwing_policy_engine::{
     runtime::{response::ResponseFields, EvaluationResult, Response},
 };
 use serde::Deserialize;
-use serde_view::{View, ViewFields};
+use serde_view::View;
+use std::collections::HashSet;
 use std::fmt::{self, Display};
 
 #[derive(Deserialize, Copy, Clone)]
@@ -18,6 +19,7 @@ pub enum Format {
 pub enum FormatError {
     Json(serde_json::Error),
     Yaml(serde_yaml::Error),
+    InvalidViewField,
 }
 
 impl Display for FormatError {
@@ -25,6 +27,7 @@ impl Display for FormatError {
         match self {
             Self::Json(e) => e.fmt(f),
             Self::Yaml(e) => e.fmt(f),
+            Self::InvalidViewField => write!(f, "Invalid view field"),
         }
     }
 }
@@ -49,7 +52,14 @@ impl Format {
         };
 
         let fields = fields
-            .map(|fields| ResponseFields::from_str_iter(fields.split(",")))
+            .map(|fields| {
+                fields
+                    .split(",")
+                    .map(std::str::FromStr::from_str)
+                    .collect::<Result<HashSet<ResponseFields>, _>>()
+            })
+            .transpose()
+            .map_err(|()| FormatError::InvalidViewField)?
             .unwrap_or_default();
 
         formatter(&response.as_view().with_fields(fields))
