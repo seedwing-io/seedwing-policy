@@ -161,7 +161,7 @@ fn display(inner: &InnerPattern) -> Value {
         InnerPattern::Object(p) => json!(p
             .fields()
             .iter()
-            .map(|f| (f.name(), display(f.ty().inner())))
+            .map(|f| (f.name().to_string(), display(f.ty().inner())))
             .collect::<HashMap<String, Value>>()),
         InnerPattern::Ref(_, _, v) | InnerPattern::List(v) => {
             json!(v
