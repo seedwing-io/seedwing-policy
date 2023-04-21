@@ -130,11 +130,11 @@ pub enum Output {
 
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
-    input: Arc<RuntimeValue>,
-    ty: Arc<Pattern>,
-    rationale: Rationale,
-    output: Output,
-    trace: Option<TraceResult>,
+    pub(crate) input: Arc<RuntimeValue>,
+    pub(crate) ty: Arc<Pattern>,
+    pub(crate) rationale: Rationale,
+    pub(crate) output: Output,
+    pub(crate) trace: Option<TraceResult>,
 }
 
 impl EvaluationResult {
@@ -742,7 +742,7 @@ impl EvalContext {
 
 impl From<EvaluationResult> for (Rationale, Output) {
     fn from(result: EvaluationResult) -> Self {
-        (result.rationale().clone(), result.raw_output().clone())
+        (result.rationale, result.output)
     }
 }
 
