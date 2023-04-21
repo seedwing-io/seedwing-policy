@@ -11,12 +11,41 @@ dirs = [
   "path/to/policies/",
   "another/path/to/policies/",
 ]
+
+required = [
+  "policy_name",
+  "another_policy_name",
+]
+
+inputs = [
+  "path/to/input/file",
+  "another/path/to/input/file",
+]
 ----
 
 === Policy directories: `dirs = [ ... ]`
 
 The `dirs` key may specify an array of directories to be loaded as pattern definitions.
 Any path specified will be resolved relative to the configuration file itself.
+
+=== Required policies: `required = [ ... ]`
+
+Note: This is only evaluated when using xref:eval.adoc['swio eval'].
+
+The `required` key may specify an array of policy names to evaluate input(s) with.
+If not specified through the config file, it must be defined as a command line argument.
+See the `-n <name>` command line argument in xref:eval.adoc['eval subcommand'].
+
+=== Input directories: `inputs = [ ... ]`
+
+Note: This is only evaluated when using xref:eval.adoc['swio eval'].
+
+The `inputs` key may specify an array of path to files to be loaded as input data to be evaluated.
+The files can be in the YAML or JSON format, defaulting to JSON.
+See the `-t <type>` command line argument to override with the xref:eval.adoc['eval subcommand'].
+If not specified through the config file, it must be defined as a command line argument.
+Any path specified will be resolved relative to the configuration file itself.
+
 
 == `[data]` section
 
