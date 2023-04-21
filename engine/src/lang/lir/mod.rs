@@ -244,26 +244,20 @@ impl Pattern {
                             .await;
 
                             let bindings = bindings.unwrap();
-                            let result = ty
-                                .evaluate(value.clone(), ctx, &bindings, world)
-                                .await
-                                .map(|x| {
-                                    EvaluationResult::new(
-                                        x.input(),
-                                        x.ty(),
-                                        Rationale::Bound(
-                                            Box::new(x.rationale().clone()),
-                                            bindings.clone(),
-                                        ),
-                                        x.raw_output().clone(),
-                                    )
-                                })?;
+                            let x = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
+                            let result = EvaluationResult::new(
+                                x.input,
+                                x.ty,
+                                Rationale::Bound(Box::new(x.rationale), bindings.clone()),
+                                x.output,
+                            );
+
                             if let SyntacticSugar::Chain = sugar {
                                 Ok(EvaluationResult::new(
                                     value,
                                     self.clone(),
-                                    result.rationale().clone(),
-                                    result.raw_output().clone(),
+                                    result.rationale,
+                                    result.output,
                                 ))
                             } else {
                                 Ok(result)
@@ -316,8 +310,7 @@ impl Pattern {
                         }
                     },
                     InnerPattern::Const(inner) => {
-                        let locked_value = (*value).borrow();
-                        if inner.is_equal(locked_value) {
+                        if inner.is_equal(value.borrow()) {
                             Ok(EvaluationResult::new(
                                 value.clone(),
                                 self.clone(),
@@ -334,8 +327,7 @@ impl Pattern {
                         }
                     }
                     InnerPattern::Object(inner) => {
-                        let locked_value = (*value).borrow();
-                        if let Some(obj) = locked_value.try_get_object() {
+                        if let Some(obj) = value.try_get_object() {
                             let mut result = HashMap::new();
 
                             // TODO: think about pre-aggregating the severity to later on just use the result
@@ -378,9 +370,7 @@ impl Pattern {
                     }
                     InnerPattern::Expr(expr) => {
                         let result = expr.evaluate(value.clone()).await?;
-                        let _locked_value = (*value).borrow();
-                        let locked_result = (*result).borrow();
-                        if let Some(true) = locked_result.try_get_boolean() {
+                        if let Some(true) = result.try_get_boolean() {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
@@ -399,7 +389,7 @@ impl Pattern {
                     InnerPattern::List(terms) => {
                         if let Some(list_value) = value.try_get_list() {
                             if list_value.len() == terms.len() {
-                                let mut result = Vec::new();
+                                let mut result = Vec::with_capacity(terms.len());
                                 for (term, element) in terms.iter().zip(list_value.iter()) {
                                     result.push(
                                         term.evaluate(
