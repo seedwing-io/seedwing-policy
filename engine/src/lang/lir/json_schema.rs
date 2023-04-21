@@ -129,7 +129,7 @@ impl Pattern {
                 let mut validation = ObjectValidation::default();
                 for field in obj.fields() {
                     validation.properties.insert(
-                        field.name(),
+                        field.name().to_string(),
                         field.ty().as_json_schema(world, bindings).into(),
                     );
                 }
