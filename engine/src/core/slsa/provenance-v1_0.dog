@@ -57,7 +57,7 @@ pattern builder = {
   // URI indicating the transitive closure of the trusted builder. This is intended to be the sole determiner of the SLSA Build level.
   id: builder-id,
   // Version numbers of components of the builder.
-  version?: list::any<{component: string, version: string}>,
+  version?: {},
   // Dependencies used by the orchestrator that are not run within the workload and that do not affect the build, but might affect the
   // provenance generation or security guarantees.
   builderDependencies?: list::all<artifact-reference>,
@@ -97,5 +97,5 @@ pattern artifact-reference = {
   // Media type (aka MIME type) of this artifact was interpreted.
   mediaType?: string,
   // Annotations provide additional information or metadata about the resource or artifact.
-  annotations?: list::all<{key: string, value: anything}>,
+  annotations?: {},
 }
