@@ -363,7 +363,7 @@ impl ToMetadata<Field> for lir::Field {
         Ok(Field {
             ty: self.ty().to_meta(world)?,
             optional: self.optional(),
-            name: self.name(),
+            name: self.name().to_string(),
         })
     }
 }

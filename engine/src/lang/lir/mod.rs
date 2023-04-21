@@ -335,7 +335,7 @@ impl Pattern {
                             for field in &inner.fields {
                                 if let Some(ref field_value) = obj.get(field.name()) {
                                     result.insert(
-                                        field.name(),
+                                        field.name().to_string(),
                                         Some(
                                             field
                                                 .ty()
@@ -349,7 +349,7 @@ impl Pattern {
                                         ),
                                     );
                                 } else if !field.optional() {
-                                    result.insert(field.name(), None);
+                                    result.insert(field.name().to_string(), None);
                                 }
                             }
 
@@ -502,8 +502,8 @@ impl Bindings {
     }
 
     /// Get the binding for a given name.
-    pub fn get<S: Into<String>>(&self, name: S) -> Option<Arc<Pattern>> {
-        self.bindings.get(&name.into()).cloned()
+    pub fn get(&self, name: &str) -> Option<Arc<Pattern>> {
+        self.bindings.get(name).cloned()
     }
 
     /// Iterator over all bindings.
@@ -564,8 +564,8 @@ impl Field {
         Self { name, ty, optional }
     }
 
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn ty(&self) -> Arc<Pattern> {
