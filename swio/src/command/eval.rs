@@ -1,10 +1,10 @@
-use crate::cli::{Context, InputType};
-use crate::util;
-use crate::util::load_values;
-use seedwing_policy_engine::lang::Severity;
-use seedwing_policy_engine::runtime::Response;
-use std::path::PathBuf;
-use std::process::ExitCode;
+use crate::{
+    cli::{Context, InputType},
+    util::{self, load_values},
+};
+use seedwing_policy_engine::{lang::Severity, runtime::Response};
+use serde_view::View;
+use std::{path::PathBuf, process::ExitCode};
 
 #[derive(clap::Args, Debug)]
 #[command(
@@ -23,7 +23,7 @@ pub struct Eval {
     #[arg(
         short = 's',
         long = "select",
-	help = "comma-delimited list of 'name,bindings,input,output,severity,reason,rationale'",
+        help = "comma-delimited list of 'name,bindings,input,output,severity,reason,rationale'",
         default_value_t = String::from("name,severity,reason,rationale")
     )]
     select: String,
@@ -57,12 +57,12 @@ impl Eval {
                 let eval = util::eval::Eval::new(&world, name, value.clone());
 
                 let result = eval.run().await?;
-                let mut response = if self.verbose {
-                    Response::new(&result)
-                } else {
-                    Response::new(&result).collapse(Severity::Error)
-                };
-                response.filter(&self.select);
+                let mut response = Response::new(&result);
+                if self.verbose {
+                    response = response.collapse(Severity::Error);
+                }
+
+                let response = response.as_view().with_fields(self.select.split(","));
 
                 println!("{}", serde_json::to_string_pretty(&response).unwrap());
                 if result.severity() >= Severity::Error {

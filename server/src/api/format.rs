@@ -1,9 +1,10 @@
 use crate::ui::rationale::Rationalizer;
 use seedwing_policy_engine::{
     lang::Severity,
-    runtime::{EvaluationResult, Response},
+    runtime::{response::ResponseFields, EvaluationResult, Response},
 };
 use serde::Deserialize;
+use serde_view::{View, ViewFields};
 use std::fmt::{self, Display};
 
 #[derive(Deserialize, Copy, Clone)]
@@ -35,23 +36,23 @@ impl Format {
         collapse: bool,
         fields: Option<String>,
     ) -> Result<String, FormatError> {
-        let mut response = if let Self::Html = self {
-            // in case it's HTML, this value will be ignored later on
-            Response::default()
-        } else if collapse {
-            Response::new(result).collapse(Severity::Error)
-        } else {
-            Response::new(result)
-        };
-        if let Some(s) = fields {
-            response.filter(&s);
+        let mut response = Response::new(result);
+        if collapse {
+            response = response.collapse(Severity::Error);
         }
-        match self {
+
+        let formatter = match self {
             // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag
-            Self::Html => Ok(Rationalizer::new(result).rationale()),
-            Self::Json => serde_json::to_string_pretty(&response).map_err(FormatError::Json),
-            Self::Yaml => serde_yaml::to_string(&response).map_err(FormatError::Yaml),
-        }
+            Self::Html => return Ok(Rationalizer::new(result).rationale()),
+            Self::Json => |response| serde_json::to_string(&response).map_err(FormatError::Json),
+            Self::Yaml => |response| serde_yaml::to_string(&response).map_err(FormatError::Yaml),
+        };
+
+        let fields = fields
+            .map(|fields| ResponseFields::from_str_iter(fields.split(",")))
+            .unwrap_or_default();
+
+        formatter(&response.as_view().with_fields(fields))
     }
 
     pub fn content_type(&self) -> &'static str {
