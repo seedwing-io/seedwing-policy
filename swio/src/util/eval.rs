@@ -2,11 +2,12 @@ use seedwing_policy_engine::{
     runtime::{EvalContext, EvaluationResult, RuntimeError, World},
     value::RuntimeValue,
 };
+use std::sync::Arc;
 
 pub struct Eval<'a> {
     world: &'a World,
     name: &'a str,
-    value: RuntimeValue,
+    value: Arc<RuntimeValue>,
 }
 
 impl<'a> Eval<'a> {
@@ -14,7 +15,7 @@ impl<'a> Eval<'a> {
         Self {
             world,
             name,
-            value: value.into(),
+            value: Arc::new(value.into()),
         }
     }
 

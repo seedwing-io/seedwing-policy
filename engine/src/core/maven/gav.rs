@@ -34,7 +34,7 @@ impl Function for GAV {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(gav) = input.try_get_string() {
+            if let Some(gav) = input.try_get_str() {
                 let parts: Vec<&str> = gav.split(':').collect();
                 if parts.len() >= 3 && parts.len() <= 5 {
                     let group_id = parts[0];

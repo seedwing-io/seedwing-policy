@@ -335,7 +335,7 @@ impl TestCase {
                             world
                                 .evaluate(
                                     pattern_name.as_type_str(),
-                                    input,
+                                    std::sync::Arc::new(input.into()),
                                     EvalContext::new_with_config(config, EvalOptions::new()),
                                 )
                                 .await
@@ -365,7 +365,7 @@ impl TestCase {
                                             world
                                                 .evaluate(
                                                     "test::test",
-                                                    input,
+                                                    std::sync::Arc::new(input.into()),
                                                     EvalContext::new_with_config(
                                                         config,
                                                         EvalOptions::new(),

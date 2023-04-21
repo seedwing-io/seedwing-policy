@@ -259,7 +259,7 @@ impl ToMetadata<PatternMetadata> for Pattern {
     fn to_meta<W: WorldLike>(&self, world: &W) -> Result<PatternMetadata, Error> {
         Ok(PatternMetadata {
             metadata: self.metadata().clone(),
-            parameters: self.parameters(),
+            parameters: self.parameters().clone(),
             name: self.name().map(|name| name.name().into()),
             path: self.name().map(|name| name.as_type_str()),
             inner: self.inner().to_meta(world)?,

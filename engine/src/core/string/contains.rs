@@ -36,7 +36,7 @@ impl Function for Contains {
         Box::pin(async move {
             if let Some(pattern) = bindings.get(SUBSTRING) {
                 if let InnerPattern::Const(ValuePattern::String(substring)) = pattern.inner() {
-                    if let Some(string) = input.try_get_string() {
+                    if let Some(string) = input.try_get_str() {
                         return Ok(
                             Output::Transform(Arc::new(string.contains(substring).into())).into(),
                         );

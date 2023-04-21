@@ -30,8 +30,8 @@ impl Function for Expression {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(value) = input.try_get_string() {
-                if spdx::Expression::parse(value.as_str()).is_ok() {
+            if let Some(value) = input.try_get_str() {
+                if spdx::Expression::parse(value).is_ok() {
                     return Ok(Output::Identity.into());
                 }
             }

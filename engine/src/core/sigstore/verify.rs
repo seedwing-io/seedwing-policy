@@ -46,7 +46,7 @@ impl Function for VerifyBlob {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Option::Some(blob) = input.try_get_string() {
+            if let Option::Some(blob) = input.try_get_str() {
                 let cert = match get_parameter(CERTIFICATE, bindings) {
                     Ok(value) => value,
                     Err(msg) => {
