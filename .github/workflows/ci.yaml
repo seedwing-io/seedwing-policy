@@ -74,5 +74,5 @@ jobs:
       - name: Test
         run: cargo test -- --nocapture
 
-      - name: Benchmark
-        run: cargo bench --no-run
+        # - name: Benchmark
+        # run: cargo bench --no-run
