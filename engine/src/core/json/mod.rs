@@ -42,7 +42,7 @@ impl Function for JSON {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
-            if let Some(inner) = input.try_get_string() {
+            if let Some(inner) = input.try_get_str() {
                 let json_value: Result<serde_json::Value, _> =
                     serde_json::from_slice(inner.as_bytes());
                 if let Ok(json_value) = json_value {

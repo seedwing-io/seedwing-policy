@@ -29,7 +29,7 @@ impl Function for Length {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(value) = input.try_get_string() {
+            if let Some(value) = input.try_get_str() {
                 Ok(Output::Transform(Arc::new(value.len().into())).into())
             } else {
                 Ok(Severity::Error.into())

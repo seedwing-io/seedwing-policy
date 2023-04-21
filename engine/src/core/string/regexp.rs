@@ -41,9 +41,9 @@ impl Function for Regexp {
         Box::pin(async move {
             if let Some(regexp) = bindings.get(REGEXP) {
                 if let Some(ValuePattern::String(regexp)) = regexp.try_get_resolved_value() {
-                    if let Some(value) = input.try_get_string() {
+                    if let Some(value) = input.try_get_str() {
                         if let Ok(regexp) = Regex::new(regexp.as_str()) {
-                            if regexp.is_match(value.as_str()) {
+                            if regexp.is_match(value) {
                                 return Ok(Output::Identity.into());
                             }
                         }

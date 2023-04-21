@@ -52,12 +52,12 @@ impl Function for SHA256 {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
-            if let Some(digest) = input.try_get_string() {
+            if let Some(digest) = input.try_get_str() {
                 let configuration = Configuration::default();
                 let query = SearchIndex {
                     email: None,
                     public_key: None,
-                    hash: Some(digest),
+                    hash: Some(digest.to_string()),
                 };
                 let uuid_vec = index_api::search_index(&configuration, query).await;
                 if let Ok(uuid_vec) = uuid_vec {

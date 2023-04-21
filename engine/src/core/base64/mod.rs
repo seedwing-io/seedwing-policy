@@ -101,7 +101,7 @@ impl Function for Base64 {
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
             let input = (*input).borrow();
-            if let Some(inner) = input.try_get_string() {
+            if let Some(inner) = input.try_get_str() {
                 let result = self.alphabet.decoder().decode(inner);
 
                 if let Ok(decoded) = result {

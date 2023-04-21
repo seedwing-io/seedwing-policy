@@ -36,7 +36,7 @@ impl Function for Split {
         Box::pin(async move {
             if let Some(pattern) = bindings.get(PATTERN) {
                 if let InnerPattern::Const(ValuePattern::String(pattern)) = pattern.inner() {
-                    if let Some(string) = input.try_get_string() {
+                    if let Some(string) = input.try_get_str() {
                         let list = string
                             .split(pattern)
                             .map(|s| Arc::new(RuntimeValue::String(s.to_string())))

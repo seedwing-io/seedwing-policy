@@ -34,8 +34,8 @@ impl Function for SemverParse {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(value) = input.try_get_string() {
-                if let Ok(version) = Version::parse(value.as_str()) {
+            if let Some(value) = input.try_get_str() {
+                if let Ok(version) = Version::parse(value) {
                     let mut semantic_version = Object::new();
                     semantic_version.set::<&str, u64>("major", version.major);
                     semantic_version.set::<&str, u64>("minor", version.minor);

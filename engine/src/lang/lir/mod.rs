@@ -196,8 +196,8 @@ impl Pattern {
     }
 
     /// Parameters accepted by this pattern.
-    pub fn parameters(&self) -> Vec<String> {
-        self.parameters.clone()
+    pub fn parameters(&self) -> &Vec<String> {
+        &self.parameters
     }
 
     /// Attempt to retrieve a const-ish value from this type.
@@ -446,8 +446,7 @@ impl Pattern {
         F: FnOnce(&RuntimeValue) -> bool + 'v,
         'ctx: 'v,
     {
-        let locked_value = (*value).borrow();
-        if f(locked_value) {
+        if f(value.borrow()) {
             Ok(EvaluationResult::new(
                 value.clone(),
                 self.clone(),
@@ -830,7 +829,7 @@ fn build_bindings<'b>(
     value: Arc<RuntimeValue>,
     mut bindings: Bindings,
     ctx: ExecutionContext<'b>,
-    parameters: Vec<String>,
+    parameters: &'b Vec<String>,
     arguments: &'b [Arc<Pattern>],
     world: &'b World,
 ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>> {
@@ -856,7 +855,7 @@ fn build_bindings<'b>(
                                 resolved_type.name(),
                                 resolved_type.metadata().clone(),
                                 resolved_type.examples(),
-                                resolved_type.parameters(),
+                                resolved_type.parameters().clone(),
                                 InnerPattern::Bound(resolved_type, resolved_bindings),
                             )),
                         )
