@@ -22,7 +22,7 @@ pub struct MonitorProps {
 pub fn monitor(props: &MonitorProps) -> Html {
     let parent = use_memo(
         |path| {
-            let path = path.trim_start_matches(":");
+            let path = path.trim_start_matches(':');
             path.split("::").map(|s| s.to_string()).collect::<Vec<_>>()
         },
         props.path.clone(),
@@ -65,7 +65,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                     .filter(|(n, segment)| *n == 0 || !segment.is_empty() )
                     .map(|(_, segment)|{
 
-                path.push_str(&segment);
+                path.push_str(segment);
                 path.push_str("::");
 
                 let target = AppRoute::Policy { path: path.clone() };
@@ -77,7 +77,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                         { if segment.is_empty() {
                             "Monitor"
                         } else {
-                            &segment
+                            segment
                         } }
                     </BreadcrumbRouterItem<AppRoute>>
                 )

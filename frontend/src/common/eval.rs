@@ -191,7 +191,7 @@ pub async fn eval(policy: String, name: String, value: Value) -> Result<Response
         value,
     };
 
-    let response = gloo_net::http::Request::post(&format!("/api/playground/v1alpha1/evaluate"))
+    let response = gloo_net::http::Request::post("/api/playground/v1alpha1/evaluate")
         .query([("format", "json"), ("no_error", "true")])
         .json(&request)
         .map_err(|err| format!("Failed to encode request: {err}"))?

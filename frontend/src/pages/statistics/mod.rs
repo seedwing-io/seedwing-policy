@@ -23,7 +23,7 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> 
     // FIXME: urlencode segments
     let path = path.join("/");
 
-    let response = Request::get(&format!("/api/statistics/v1alpha1/{}", path))
+    let response = Request::get(&format!("/api/statistics/v1alpha1/{path}"))
         .header("Accept", "application/json")
         .send()
         .await;
@@ -44,7 +44,7 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<Vec<Snapshot>>, String> 
 pub fn statistics(props: &Props) -> Html {
     let parent = use_memo(
         |path| {
-            let path = path.trim_start_matches(":");
+            let path = path.trim_start_matches(':');
             path.split("::").map(|s| s.to_string()).collect::<Vec<_>>()
         },
         props.path.clone(),
@@ -117,7 +117,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                     .filter(|(n, segment)| *n == 0 || !segment.is_empty() )
                     .map(|(_, segment)|{
 
-                path.push_str(&segment);
+                path.push_str(segment);
                 path.push_str("::");
 
                 let target = AppRoute::Policy { path: path.clone() };
@@ -129,7 +129,7 @@ fn render_breadcrumbs(props: &BreadcrumbsProps) -> Html {
                         { if segment.is_empty() {
                             "Statistics"
                         } else {
-                            &segment
+                            segment
                         } }
                     </BreadcrumbRouterItem<AppRoute>>
                 )

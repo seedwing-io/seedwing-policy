@@ -27,10 +27,10 @@ pub struct Props {
     pub path: AttrValue,
 }
 
-pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentMetadata>, String> {
+pub async fn fetch(path: &[String]) -> Result<Option<ComponentMetadata>, String> {
     let path = path.join("/");
 
-    let response = Request::get(&format!("/api/policy/v1alpha1/{}", path))
+    let response = Request::get(&format!("/api/policy/v1alpha1/{path}"))
         .send()
         .await
         .map_err(|err| err.to_string())?;
@@ -42,12 +42,11 @@ pub async fn fetch(path: &Vec<String>) -> Result<Option<ComponentMetadata>, Stri
     }
 }
 
-fn last(parent: &Vec<String>) -> String {
+fn last(parent: &[String]) -> String {
     parent
         .iter()
         .rev()
-        .filter(|s| !s.is_empty())
-        .next()
+        .find(|s| !s.is_empty())
         .map(|s| s.as_str().trim_end_matches(':'))
         .unwrap_or("Root")
         .to_string()
@@ -57,7 +56,7 @@ fn last(parent: &Vec<String>) -> String {
 pub fn repository(props: &Props) -> Html {
     let parent = use_memo(
         |path| {
-            let path = path.trim_start_matches(":");
+            let path = path.trim_start_matches(':');
             vec![path.to_string()]
         },
         props.path.clone(),
@@ -135,9 +134,7 @@ pub fn component_title(props: &ComponentProps) -> Html {
     let monitor = AppRoute::Monitor {
         path: nav_path.clone(),
     };
-    let statistics = AppRoute::Statistics {
-        path: nav_path.clone(),
-    };
+    let statistics = AppRoute::Statistics { path: nav_path };
 
     html!(
         <>
@@ -246,7 +243,7 @@ fn render_full_type(pattern: &PatternMetadata) -> Html {
         {pattern.name.as_deref().unwrap_or_default()}
         if !pattern.parameters.is_empty() {
             {"<"}
-            { for pattern.parameters.iter().map(|s|Html::from(s)) }
+            { for pattern.parameters.iter().map(Html::from) }
             {">"}
         }
     </>)
@@ -262,19 +259,19 @@ fn render_type(pattern: Rc<PatternMetadata>) -> Html {
 
                 <Flex modifiers={[FlexModifier::Column, FlexModifier::Flex1]}>
 
-                    {if let Some(deprecation) = &pattern.metadata.deprecation {
-                        Some(html_nested!(
+                    {pattern.metadata.deprecation.as_ref().map(|deprecation|
+                        html_nested!(
                             <FlexItem>
                                 <Alert
                                     inline=true
                                     r#type={AlertType::Warning}
-                                    title={format!("Deprecated{}", deprecation.since.as_deref().map(|s|format!(" since {}", s)).unwrap_or_default())}
+                                    title={format!("Deprecated{}", deprecation.since.as_deref().map(|s|format!(" since {s}")).unwrap_or_default())}
                                 >
                                     if let Some(reason) = &deprecation.reason { {reason} }
                                 </Alert>
                             </FlexItem>
-                        ))
-                    } else { None }}
+                        )
+                    )}
 
                     <FlexItem>
                         <Title level={Level::H2}> { "Documentation" } </Title>
@@ -444,7 +441,7 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
     );
 
     let eval = {
-        let value = value.clone();
+        let value = value;
         let path = props.path.clone();
         use_async(async move { validate(&path, (*value).clone()).await })
     };
@@ -464,7 +461,7 @@ pub fn experiment(props: &ExperimentProperties) -> Html {
             <Title level={Level::H2}> { "Experiment" } </Title>
         </ToolbarItem>));
     if !props.examples.is_empty() {
-        let initial_content = initial_content.clone();
+        let initial_content = initial_content;
         let onselect = Callback::from(move |example: ExampleEntry| {
             // set editor
             if let Ok(value) = serde_json::to_string_pretty(&example.0.value) {

@@ -140,7 +140,7 @@ where
         }
 
         monaco::sys::editor::set_model_markers(
-            self.model.as_ref().as_ref(),
+            self.model.as_ref(),
             &ctx.props().language,
             &MarkerData::array(&ctx.props().markers),
         );

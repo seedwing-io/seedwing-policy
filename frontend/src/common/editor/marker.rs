@@ -65,7 +65,7 @@ impl TryFrom<MarkerData> for Object {
     type Error = JsValue;
 
     fn try_from(value: MarkerData) -> Result<Self, Self::Error> {
-        Ok(value.to_object()?)
+        value.to_object()
     }
 }
 

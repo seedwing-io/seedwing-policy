@@ -44,7 +44,7 @@ pub fn inspector() -> Html {
 
     let editor = use_memo(
         |initial| html!(<Editor initial_content={(**initial).clone()} on_change={on_change} language="json"/>),
-        initial.clone(),
+        initial,
     );
 
     let tab = use_state_eq(|| 0);
