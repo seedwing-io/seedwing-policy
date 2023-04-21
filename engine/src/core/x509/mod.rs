@@ -35,7 +35,7 @@ impl Function for PEM {
         Box::pin(async move {
             let mut bytes = Vec::new();
 
-            if let Some(inner) = input.try_get_string() {
+            if let Some(inner) = input.try_get_str() {
                 bytes.extend_from_slice(inner.as_bytes());
             } else if let Some(inner) = input.try_get_octets() {
                 bytes.extend_from_slice(inner);

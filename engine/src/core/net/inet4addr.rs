@@ -41,7 +41,7 @@ impl Function for Inet4Addr {
                 {
                     match Ipv4Cidr::from_str(&range) {
                         Ok(range) => {
-                            if let Some(addr) = input.try_get_string() {
+                            if let Some(addr) = input.try_get_str() {
                                 return match Ipv4Addr::from_str(&addr) {
                                     Ok(addr) => {
                                         if range.contains(&addr) {

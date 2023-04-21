@@ -41,7 +41,7 @@ impl Function for Concat {
             if let Some(Some(ValuePattern::String(value))) =
                 bindings.get(VALUE).map(|m| m.try_get_resolved_value())
             {
-                if let Some(input) = input.try_get_string() {
+                if let Some(input) = input.try_get_str() {
                     let transformed = match self {
                         Self::Append => format!("{input}{value}"),
                         Self::Prepend => format!("{value}{input}"),

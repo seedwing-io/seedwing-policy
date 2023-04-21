@@ -29,7 +29,7 @@ impl Function for Rfc3339 {
         _world: &'v World,
     ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
         Box::pin(async move {
-            if let Some(value) = input.try_get_string() {
+            if let Some(value) = input.try_get_str() {
                 match ::chrono::DateTime::parse_from_rfc3339(&value) {
                     Ok(_) => Ok(Output::Identity.into()),
                     Err(_) => Ok(Severity::Error.into()),

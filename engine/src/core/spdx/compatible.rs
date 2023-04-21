@@ -56,8 +56,8 @@ impl Function for Compatible {
             };
 
             // the input should be a string
-            if let Some(value) = input.try_get_string() {
-                if let Ok(license) = spdx::Expression::parse(value.as_str()) {
+            if let Some(value) = input.try_get_str() {
+                if let Ok(license) = spdx::Expression::parse(value) {
                     for license_req in authorized_licenses {
                         if let Ok(license_id) = spdx::Licensee::parse(license_req.as_str()) {
                             if license.evaluate(|req| license_id.satisfies(req)) {

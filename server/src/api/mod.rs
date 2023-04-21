@@ -178,7 +178,7 @@ async fn run_eval(
         EvalOptions::new(),
     );
 
-    match world.evaluate(path, value, context).await {
+    match world.evaluate(path, Arc::new(value.into()), context).await {
         Ok(result) => return_rationale(result, encoding),
         Err(RuntimeError::NoSuchPattern(name)) => HttpResponse::BadRequest().json(json!({
             "reason": "NoSuchPattern",

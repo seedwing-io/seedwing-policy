@@ -290,14 +290,13 @@ impl World {
         self.type_slots.get(slot).cloned()
     }
 
-    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
+    pub async fn evaluate<P: Into<String>>(
         &self,
         path: P,
-        value: V,
+        value: Arc<RuntimeValue>,
         mut ctx: EvalContext,
     ) -> Result<EvaluationResult, RuntimeError> {
         ctx.merge_config(&self.config);
-        let value = Arc::new(value.into());
         let path = PatternName::from(path.into());
         let slot = self.types.get(&path);
         let ctx = ExecutionContext::new(&ctx);

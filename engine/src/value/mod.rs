@@ -324,14 +324,6 @@ impl RuntimeValue {
         matches!(self, Self::String(_))
     }
 
-    pub fn try_get_string(&self) -> Option<String> {
-        if let Self::String(inner) = self {
-            Some(inner.clone())
-        } else {
-            None
-        }
-    }
-
     pub fn try_get_str(&self) -> Option<&str> {
         if let Self::String(inner) = self {
             Some(inner)
