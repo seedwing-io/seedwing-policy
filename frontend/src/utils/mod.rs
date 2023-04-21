@@ -9,7 +9,7 @@ where
 {
     use_callback(
         |_, (url, target)| {
-            let _ = gloo_utils::window().open_with_url_and_target(&url, &target);
+            let _ = gloo_utils::window().open_with_url_and_target(url, target);
         },
         (url.into(), target.into()),
     )
@@ -40,10 +40,10 @@ pub fn format_ns(ns: u128) -> String {
     let ms = ms - (sec * 1_000);
 
     if sec > 0 {
-        format!("{}s {}ms", sec, ms)
+        format!("{sec}s {ms}ms")
     } else if ms > 0 {
-        format!("{}ms", ms)
+        format!("{ms}ms")
     } else {
-        format!("{}ns", ns)
+        format!("{ns}ns")
     }
 }

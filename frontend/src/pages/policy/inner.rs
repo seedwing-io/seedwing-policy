@@ -77,14 +77,14 @@ fn render_val(val: &ValuePattern) -> Html {
                 ValuePattern::Null => "null".into(),
                 ValuePattern::String(val) => {
                     html!(<>
-                        {"\""} { val.replace("\\","\\\\").replace("\"", "\\\"") } {"\""}
+                        {"\""} { val.replace('\\',"\\\\").replace('\"', "\\\"") } {"\""}
                     </>)
                 }
                 ValuePattern::Integer(val) => val.into(),
                 ValuePattern::Decimal(val) => val.into(),
                 ValuePattern::Boolean(val) => val.into(),
                 ValuePattern::List(val) => html!(<>
-                    { for intersperse(val.iter().map(|v| render_val(&v)), html!(", ")) }
+                    { for intersperse(val.iter().map(|v| render_val(v)), html!(", ")) }
                 </>),
                 ValuePattern::Octets(val) => html!(<span>{ val.len() } { "octets"}</span>),
             }
@@ -92,7 +92,7 @@ fn render_val(val: &ValuePattern) -> Html {
     )
 }
 
-fn render_list(terms: &Vec<PatternOrReference>) -> Html {
+fn render_list(terms: &[PatternOrReference]) -> Html {
     html!(
         <span>
         { "[" }
@@ -106,7 +106,7 @@ fn render_ty_and_bindings<'a, I>(ty: &PatternOrReference, bindings: I) -> Html
 where
     I: Iterator<Item = &'a PatternOrReference>,
 {
-    let bindings: Vec<_> = bindings.map(|v| render_type(v)).collect();
+    let bindings: Vec<_> = bindings.map(render_type).collect();
 
     html!(
         <>
@@ -121,25 +121,25 @@ where
 fn render_ref(
     sugar: &SyntacticSugar,
     ty: &PatternOrReference,
-    bindings: &Vec<PatternOrReference>,
+    bindings: &[PatternOrReference],
 ) -> Html {
     match sugar {
         SyntacticSugar::None => render_ty_and_bindings(ty, bindings.iter()),
         SyntacticSugar::Or => {
             html!(if let Some(terms) = terms(bindings) {
-                { for intersperse(terms.iter().map(|t|render_type(t)), html!(" || ")) }
+                { for intersperse(terms.iter().map(render_type), html!(" || ")) }
             })
         }
         SyntacticSugar::And => {
             html!(if let Some(terms) = terms(bindings) {
-                { for intersperse(terms.iter().map(|t|render_type(t)), html!(" && ")) }
+                { for intersperse(terms.iter().map(render_type), html!(" && ")) }
             })
         }
         #[rustfmt::skip]
         SyntacticSugar::Refine => {
             html!(if let Some(refinement) = bindings.first() {
                 {"("}
-                {render_type(&refinement)}
+                {render_type(refinement)}
                 {")"}
             })
         }
@@ -162,15 +162,15 @@ fn render_ref(
     }
 }
 
-fn inner(bindings: &Vec<PatternOrReference>) -> Option<&InnerPatternMetadata> {
+fn inner(bindings: &[PatternOrReference]) -> Option<&InnerPatternMetadata> {
     if let Some(PatternOrReference::Pattern(rc)) = bindings.first() {
-        Some(&rc)
+        Some(rc)
     } else {
         None
     }
 }
 
-fn terms(bindings: &Vec<PatternOrReference>) -> Option<&Vec<PatternOrReference>> {
+fn terms(bindings: &[PatternOrReference]) -> Option<&Vec<PatternOrReference>> {
     if let Some(InnerPatternMetadata::List(terms)) = inner(bindings) {
         Some(terms)
     } else {
@@ -218,7 +218,7 @@ fn render_primordial(primordial: &PrimordialPattern) -> Html {
 
 fn render_type(ty: &PatternOrReference) -> Html {
     match ty {
-        PatternOrReference::Pattern(inner) => render_inner(&inner),
+        PatternOrReference::Pattern(inner) => render_inner(inner),
         PatternOrReference::Ref(reference) => render_type_ref(reference),
     }
 }

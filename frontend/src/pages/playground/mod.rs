@@ -50,7 +50,7 @@ fn test_compile(value: &str) -> Result<(), Vec<MarkerData>> {
 
 #[function_component(Playground)]
 pub fn playground() -> Html {
-    let markers = use_state_eq(|| Vec::<MarkerData>::new());
+    let markers = use_state_eq(Vec::<MarkerData>::new);
 
     let pattern = use_state_eq(String::new);
     let example = use_state(|| Generation::from(ExampleData::load_default()));
@@ -161,8 +161,8 @@ pub fn playground() -> Html {
     // example storage
 
     let store_cb = {
-        let pattern = pattern.clone();
-        let value = value.clone();
+        let pattern = pattern;
+        let value = value;
         let value = serde_yaml::to_string(&*value).unwrap_or_default();
         let policy_name = policy_name.clone();
         Callback::from(move |()| {
