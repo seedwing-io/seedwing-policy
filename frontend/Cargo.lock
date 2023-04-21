@@ -1919,6 +1919,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "serde_view",
  "serde_yaml",
  "sha2",
  "spdx",
@@ -2054,6 +2055,29 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_view"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b07a5f95f51b0c7703899687cbda893409bb55c92ebe0e42e16be79dd61f4b6"
+dependencies = [
+ "serde",
+ "serde_view_macros",
+]
+
+[[package]]
+name = "serde_view_macros"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f73d42b43947e2388a37d56217c78b5d42fb59131842ebeee1bf72168fa5a26d"
+dependencies = [
+ "convert_case",
+ "darling 0.14.4",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
 ]
 
 [[package]]

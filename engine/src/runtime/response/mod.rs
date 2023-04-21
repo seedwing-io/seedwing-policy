@@ -2,31 +2,28 @@
 
 mod collector;
 
+pub use collector::*;
+
 use super::{rationale::Rationale, EvaluationResult, PatternName};
 use crate::{
     lang::{
         lir::{Bindings, InnerPattern, ValuePattern},
         PrimordialPattern, Severity,
     },
-    runtime::Output,
+    runtime::{is_default, Output},
 };
-pub use collector::*;
-use once_cell::sync::Lazy;
-use serde::{
-    ser::{self, SerializeStruct, Serializer},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use serde_view::View;
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[serde(rename_all = "lowercase")]
 pub enum Name {
-    #[serde(rename = "pattern")]
     Pattern(Option<PatternName>),
-    #[serde(rename = "field")]
     Field(String),
 }
 
@@ -53,14 +50,15 @@ impl Display for Name {
 }
 
 /// A response is used to transform a policy result into different formats.
-#[derive(Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, View)]
 pub struct Response {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Name::is_empty")]
     pub name: Name,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub bindings: HashMap<String, Value>,
+    #[serde(default, skip_serializing_if = "Value::is_null")]
     pub input: Value,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<Value>,
     #[serde(default)]
     pub severity: Severity,
@@ -73,70 +71,13 @@ pub struct Response {
     /// in getting a better understanding (except when debugging).
     #[serde(default, skip_serializing_if = "is_default")]
     pub authoritative: bool,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rationale: Vec<Response>,
-    #[serde(skip)]
-    fields: Vec<String>,
 }
 
 impl From<EvaluationResult> for Response {
     fn from(result: EvaluationResult) -> Self {
         Self::new(&result)
-    }
-}
-
-impl Serialize for Response {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        static FIELDS: Lazy<Vec<String>> = Lazy::new(|| {
-            vec![
-                "name".to_string(),
-                "bindings".to_string(),
-                "input".to_string(),
-                "output".to_string(),
-                "severity".to_string(),
-                "reason".to_string(),
-                "authoritative".to_string(),
-                "rationale".to_string(),
-            ]
-        });
-
-        // check if the field will be serialized, must match the "skip_" declaration from the struct
-        let check = |s| match s {
-            "name" => !self.name.is_empty(),
-            "bindings" => !self.bindings.is_empty(),
-            "output" => self.output.is_some(),
-            "reason" => !self.reason.is_empty(),
-            "authoritative" => self.authoritative,
-            "rationale" => !self.rationale.is_empty(),
-            _ => true,
-        };
-        let write = |s, state: &mut S::SerializeStruct| match s {
-            "name" => state.serialize_field("name", &self.name),
-            "bindings" => state.serialize_field("bindings", &self.bindings),
-            "input" => state.serialize_field("input", &self.input),
-            "output" => state.serialize_field("output", &self.output),
-            "severity" => state.serialize_field("severity", &self.severity),
-            "reason" => state.serialize_field("reason", &self.reason),
-            "authoritative" => state.serialize_field("authoritative", &self.authoritative),
-            "rationale" => state.serialize_field("rationale", &self.rationale),
-            _ => Err(ser::Error::custom(format!("Unknown field name: {s}"))),
-        };
-        let fields = if !self.fields.is_empty() {
-            &self.fields
-        } else {
-            &FIELDS
-        };
-        let count = fields.iter().filter(|s| check(s)).count();
-        let mut state = serializer.serialize_struct("Response", count)?;
-        for name in fields {
-            if check(name) {
-                write(name, &mut state)?;
-            }
-        }
-        state.end()
     }
 }
 
@@ -164,7 +105,6 @@ impl Response {
             authoritative: result.ty.metadata().reporting.authoritative,
             rationale: support(rationale),
             bindings: bound(bindings),
-            fields: Vec::new(),
         }
     }
 
@@ -199,15 +139,6 @@ impl Response {
                 x.walk_tree_internal(f);
             }
         }
-    }
-
-    /// Expects a comma-delimited list, e.g. "name,bindings,input,output,severity,reason,rationale"
-    pub fn filter(&mut self, fields: &str) -> &mut Self {
-        let fields = fields.trim().to_lowercase();
-        if !fields.is_empty() {
-            self.fields = fields.split(',').map(String::from).collect();
-        }
-        self
     }
 
     /// Evaluate if the reason is "satisfied"
@@ -332,6 +263,7 @@ mod test {
     use crate::runtime::{response::Name, testutil::test_pattern, PatternName};
     use crate::{assert_not_satisfied, assert_satisfied};
     use serde_json::json;
+    use serde_view::View;
 
     #[tokio::test]
     async fn bindings() {
@@ -360,15 +292,21 @@ mod test {
         let result = test_pattern("list::any<42>", json!([1, 42, 99])).await;
         assert_satisfied!(&result);
         assert_eq!(
-            r#"{"name":{"pattern":"list::any"},"reason":"The input satisfies the function","input":[1,42,99]}"#,
-            serde_json::to_string(&Response::new(&result).filter("name,reason,input")).unwrap()
+            r#"{"name":{"pattern":"list::any"},"input":[1,42,99],"reason":"The input satisfies the function"}"#,
+            serde_json::to_string(
+                &Response::new(&result)
+                    .as_view()
+                    .with_fields("name,reason,input".split(","))
+            )
+            .unwrap()
         );
         assert_eq!(
             r#"{"name":{"pattern":"list::any"},"bindings":{"pattern":42},"severity":"none"}"#,
             serde_json::to_string(
                 &Response::new(&result)
                     .collapse(Severity::Error)
-                    .filter("name,bindings,severity")
+                    .as_view()
+                    .with_fields("name,bindings,severity".split(","))
             )
             .unwrap()
         );
@@ -387,7 +325,8 @@ mod test {
             serde_json::to_string(
                 &Response::new(&result)
                     .collapse(Severity::Error)
-                    .filter("name,bindings,reason,rationale")
+                    .as_view()
+                    .with_fields("name,bindings,reason,rationale".split(","))
             )
             .unwrap()
         );
@@ -470,7 +409,8 @@ mod test {
             serde_json::to_string(
                 &Response::new(&result)
                     .collapse(Severity::Error)
-                    .filter("name,bindings,severity")
+                    .as_view()
+                    .with_fields("name,bindings,severity".split(","))
             )
             .unwrap()
         );
