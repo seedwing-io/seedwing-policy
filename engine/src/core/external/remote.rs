@@ -20,7 +20,7 @@ pub struct Remote {
 impl Remote {
     pub fn new() -> Self {
         Self {
-            builder: RemoteClientBuilder::new(),
+            builder: Default::default(),
         }
     }
 

@@ -43,6 +43,12 @@ impl RemoteClientBuilder {
     }
 }
 
+impl Default for RemoteClientBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RemoteClient(reqwest::Client);
 
