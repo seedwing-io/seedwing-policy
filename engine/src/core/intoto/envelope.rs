@@ -420,11 +420,13 @@ fn get_attesters(param: &str, bindings: &Bindings) -> HashMap<String, FieldType>
     map
 }
 
-fn base64_decode_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+fn base64_decode_error(
+    field: impl Into<Arc<str>>,
+) -> Result<FunctionEvaluationResult, RuntimeError> {
     error(format!("Could not decode {} field to base64", field.into()))
 }
 
-fn json_parse_error(field: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+fn json_parse_error(field: impl Into<Arc<str>>) -> Result<FunctionEvaluationResult, RuntimeError> {
     error(format!("Could not parse {}", field.into()))
 }
 
@@ -436,16 +438,16 @@ fn blob_error() -> Result<FunctionEvaluationResult, RuntimeError> {
     error("Blob could not be parsed. Please check if a data source directory was set.")
 }
 
-fn error(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+fn error(msg: impl Into<Arc<str>>) -> Result<FunctionEvaluationResult, RuntimeError> {
     Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 fn invalid_type(
-    field: impl Into<String>,
-    value: impl Into<String>,
+    field: impl Into<Arc<str>>,
+    value: impl Into<Arc<str>>,
 ) -> Result<FunctionEvaluationResult, RuntimeError> {
     let msg = format!("invalid {} specified {}", field.into(), value.into());
-    Ok((Severity::Error, Rationale::InvalidArgument(msg)).into())
+    Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 
 #[cfg(test)]

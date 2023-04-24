@@ -49,7 +49,7 @@ impl Function for And {
                             .evaluate(input.clone(), ctx.push()?, bindings, world)
                             .await?;
                         severity = max(severity, result.severity());
-                        supporting.push(result)
+                        supporting.push(result);
                     }
 
                     return Ok((severity, supporting).into());

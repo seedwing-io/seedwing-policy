@@ -177,3 +177,9 @@ impl<'a> FromIterator<&'a EvaluationResult> for Severity {
         iter.into_iter().map(EvaluationResult::severity).collect()
     }
 }
+
+impl<'a> FromIterator<&'a Arc<EvaluationResult>> for Severity {
+    fn from_iter<T: IntoIterator<Item = &'a Arc<EvaluationResult>>>(iter: T) -> Self {
+        iter.into_iter().map(|r| r.severity()).collect()
+    }
+}

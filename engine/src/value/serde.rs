@@ -86,7 +86,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        Ok(RuntimeValue::String(v.to_string()))
+        Ok(RuntimeValue::String(v.to_string().into()))
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
@@ -122,7 +122,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Ok(RuntimeValue::String(variant.to_string()))
+        Ok(RuntimeValue::String(variant.into()))
     }
 
     fn serialize_newtype_struct<T: ?Sized>(

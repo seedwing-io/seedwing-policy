@@ -451,7 +451,7 @@ impl World {
     }
 
     pub fn config(&mut self, key: String, val: ConfigValue) {
-        self.config.insert(key, val);
+        self.config.insert(key.into(), val);
     }
 
     fn add_compilation_unit(&mut self, unit: CompilationUnit) {

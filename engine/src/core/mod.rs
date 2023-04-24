@@ -54,9 +54,9 @@ pub struct FunctionEvaluationResult {
     /// The output of the function
     pub output: Output,
     /// The rationale, including if we succeeded or not
-    pub rationale: Option<Rationale>,
+    pub rationale: Option<Arc<Rationale>>,
     /// Supporting information
-    pub supporting: Vec<EvaluationResult>,
+    pub supporting: Arc<Vec<EvaluationResult>>,
 }
 
 impl From<Output> for FunctionEvaluationResult {
@@ -65,7 +65,7 @@ impl From<Output> for FunctionEvaluationResult {
             severity: Severity::None,
             output,
             rationale: None,
-            supporting: vec![],
+            supporting: Arc::new(vec![]),
         }
     }
 }
@@ -76,7 +76,18 @@ impl From<Severity> for FunctionEvaluationResult {
             severity,
             output: Output::Identity,
             rationale: None,
-            supporting: vec![],
+            supporting: Arc::new(vec![]),
+        }
+    }
+}
+
+impl From<(Severity, Arc<Vec<EvaluationResult>>)> for FunctionEvaluationResult {
+    fn from((severity, supporting): (Severity, Arc<Vec<EvaluationResult>>)) -> Self {
+        Self {
+            severity,
+            output: Output::Identity,
+            rationale: None,
+            supporting,
         }
     }
 }
@@ -87,7 +98,7 @@ impl From<(Severity, Vec<EvaluationResult>)> for FunctionEvaluationResult {
             severity,
             output: Output::Identity,
             rationale: None,
-            supporting,
+            supporting: Arc::new(supporting),
         }
     }
 }
@@ -97,8 +108,19 @@ impl From<(Severity, Rationale)> for FunctionEvaluationResult {
         Self {
             severity,
             output: Output::Identity,
+            rationale: Some(Arc::new(rationale)),
+            supporting: Arc::new(vec![]),
+        }
+    }
+}
+
+impl From<(Severity, Arc<Rationale>)> for FunctionEvaluationResult {
+    fn from((severity, rationale): (Severity, Arc<Rationale>)) -> Self {
+        Self {
+            severity,
+            output: Output::Identity,
             rationale: Some(rationale),
-            supporting: vec![],
+            supporting: Arc::new(vec![]),
         }
     }
 }

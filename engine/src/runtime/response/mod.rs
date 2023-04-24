@@ -18,6 +18,7 @@ use serde_view::View;
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
+    sync::Arc,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -55,7 +56,7 @@ pub struct Response {
     #[serde(default, skip_serializing_if = "Name::is_empty")]
     pub name: Name,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub bindings: HashMap<String, Value>,
+    pub bindings: HashMap<Arc<str>, Value>,
     #[serde(default, skip_serializing_if = "Value::is_null")]
     pub input: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -149,7 +150,7 @@ impl Response {
     }
 }
 
-fn bound(bindings: &Bindings) -> HashMap<String, Value> {
+fn bound(bindings: &Bindings) -> HashMap<Arc<str>, Value> {
     bindings
         .iter()
         .map(|(k, v)| (k.clone(), display(v.inner())))
@@ -161,8 +162,8 @@ fn display(inner: &InnerPattern) -> Value {
         InnerPattern::Object(p) => json!(p
             .fields()
             .iter()
-            .map(|f| (f.name().to_string(), display(f.ty().inner())))
-            .collect::<HashMap<String, Value>>()),
+            .map(|f| (f.name().into(), display(f.ty().inner())))
+            .collect::<HashMap<Arc<str>, Value>>()),
         InnerPattern::Ref(_, _, v) | InnerPattern::List(v) => {
             json!(v
                 .iter()
@@ -198,7 +199,7 @@ fn display(inner: &InnerPattern) -> Value {
             json!(b
                 .iter()
                 .map(|(n, i)| (n, display(i.inner())))
-                .collect::<HashMap<&String, Value>>())
+                .collect::<HashMap<&Arc<str>, Value>>())
         ]),
         InnerPattern::Deref(p) => match p.name() {
             Some(name) => json!(HashMap::from([(name, display(p.inner()))])),
@@ -242,7 +243,7 @@ fn support(rationale: &Rationale) -> Vec<Response> {
         | Rationale::Chain(terms)
         | Rationale::Function {
             supporting: terms, ..
-        } => terms.iter().map(Response::new).collect(),
+        } => terms.iter().map(|r| Response::new(&r)).collect(),
         Rationale::Bound(inner, _) => support(inner),
         Rationale::Anything
         | Rationale::Nothing

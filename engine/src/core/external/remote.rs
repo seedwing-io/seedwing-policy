@@ -56,7 +56,7 @@ impl Remote {
             severity: response.severity,
             output,
             rationale: None,
-            supporting: vec![],
+            supporting: Arc::new(vec![]),
         };
 
         // done
@@ -64,7 +64,7 @@ impl Remote {
     }
 }
 
-fn error(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+fn error(msg: impl Into<Arc<str>>) -> Result<FunctionEvaluationResult, RuntimeError> {
     Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 

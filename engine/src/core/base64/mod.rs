@@ -109,14 +109,14 @@ impl Function for Base64 {
                 } else {
                     Ok((
                         Severity::Error,
-                        Rationale::InvalidArgument("Invalid base64 encoding".to_string()),
+                        Rationale::InvalidArgument("Invalid base64 encoding".into()),
                     )
                         .into())
                 }
             } else {
                 Ok((
                     Severity::Error,
-                    Rationale::InvalidArgument("Expected a string".to_string()),
+                    Rationale::InvalidArgument("Expected a string".into()),
                 )
                     .into())
             }

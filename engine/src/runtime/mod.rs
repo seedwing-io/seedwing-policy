@@ -132,7 +132,7 @@ pub enum Output {
 pub struct EvaluationResult {
     pub(crate) input: Arc<RuntimeValue>,
     pub(crate) ty: Arc<Pattern>,
-    pub(crate) rationale: Rationale,
+    pub(crate) rationale: Arc<Rationale>,
     pub(crate) output: Output,
     pub(crate) trace: Option<TraceResult>,
 }
@@ -141,7 +141,7 @@ impl EvaluationResult {
     pub fn new(
         input: Arc<RuntimeValue>,
         ty: Arc<Pattern>,
-        rationale: Rationale,
+        rationale: Arc<Rationale>,
         output: Output,
     ) -> Self {
         Self {
@@ -737,12 +737,6 @@ impl EvalContext {
 
     pub fn merge_config(&mut self, defaults: &ConfigContext) {
         self.config.merge_defaults(defaults);
-    }
-}
-
-impl From<EvaluationResult> for (Rationale, Output) {
-    fn from(result: EvaluationResult) -> Self {
-        (result.rationale, result.output)
     }
 }
 

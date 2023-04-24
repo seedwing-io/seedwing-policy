@@ -46,7 +46,7 @@ impl Function for Eval {
                     if let Ok(_ext_input) = serde_json::to_string(&ext_input) {
                         let client = reqwest::Client::new();
                         let res = client
-                            .post(url)
+                            .post(url.to_string())
                             .body("the exact body that is sent")
                             .send()
                             .await;

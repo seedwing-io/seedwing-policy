@@ -14,7 +14,6 @@ use std::fmt::{Debug, Display, Formatter};
 
 use std::ops::Index;
 
-use std::rc::Rc;
 use std::sync::Arc;
 
 pub mod serde;
@@ -34,9 +33,9 @@ pub enum RationaleResult {
     // No result.
     None,
     // There was a result.
-    Same(Rc<RuntimeValue>),
+    Same(Arc<RuntimeValue>),
     // Result was transformed.
-    Transform(Rc<RuntimeValue>),
+    Transform(Arc<RuntimeValue>),
 }
 
 impl Display for RationaleResult {
@@ -165,19 +164,25 @@ impl From<bool> for RuntimeValue {
 
 impl From<&str> for RuntimeValue {
     fn from(inner: &str) -> Self {
-        Self::String(inner.to_string())
+        Self::String(inner.into())
+    }
+}
+
+impl From<Arc<str>> for RuntimeValue {
+    fn from(inner: Arc<str>) -> Self {
+        Self::String(inner)
     }
 }
 
 impl<'a> From<Cow<'a, str>> for RuntimeValue {
     fn from(inner: Cow<'a, str>) -> Self {
-        Self::String(inner.to_string())
+        Self::String(inner.into())
     }
 }
 
 impl From<String> for RuntimeValue {
     fn from(inner: String) -> Self {
-        Self::String(inner)
+        Self::String(inner.into())
     }
 }
 
@@ -240,7 +245,7 @@ where
 #[serde(rename_all = "camelCase")]
 pub enum RuntimeValue {
     Null,
-    String(String),
+    String(Arc<str>),
     Integer(i64),
     Decimal(f64),
     Boolean(bool),
@@ -281,7 +286,7 @@ impl RuntimeValue {
     pub fn as_json(&self) -> serde_json::Value {
         match self {
             Self::Null => serde_json::Value::Null,
-            Self::String(val) => serde_json::Value::String(val.clone()),
+            Self::String(val) => serde_json::Value::String(val.to_string()),
             Self::Integer(val) => serde_json::Value::Number(Number::from(*val)),
             Self::Decimal(val) => json!(val),
             Self::Boolean(val) => serde_json::Value::Bool(*val),
@@ -406,7 +411,7 @@ impl RuntimeValue {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default, PartialEq)]
-pub struct Object(IndexMap<String, Arc<RuntimeValue>>);
+pub struct Object(IndexMap<Arc<str>, Arc<RuntimeValue>>);
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -426,7 +431,7 @@ impl Object {
     pub fn as_json(&self) -> serde_json::Value {
         let mut inner = Map::new();
         for (name, value) in &self.0 {
-            inner.insert(name.clone(), (**value).borrow().as_json());
+            inner.insert(name.clone().to_string(), (**value).borrow().as_json());
         }
 
         serde_json::Value::Object(inner)
@@ -441,7 +446,7 @@ impl Object {
 
     pub fn set<N, V>(&mut self, name: N, value: V)
     where
-        N: Into<String>,
+        N: Into<Arc<str>>,
         V: Into<RuntimeValue>,
     {
         self.0.insert(name.into(), Arc::new(value.into()));
@@ -449,14 +454,14 @@ impl Object {
 
     pub fn with<N, V>(mut self, name: N, value: V) -> Self
     where
-        N: Into<String>,
+        N: Into<Arc<str>>,
         V: Into<RuntimeValue>,
     {
         self.set(name, value);
         self
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<RuntimeValue>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &Arc<RuntimeValue>)> {
         self.0.iter()
     }
 
@@ -479,7 +484,7 @@ impl Object {
     {
         self.has_attr(
             name,
-            |v| matches!(v, RuntimeValue::String(actual) if actual == expected.as_ref()),
+            |v| matches!(v, RuntimeValue::String(actual) if actual.as_ref() == expected.as_ref()),
         )
     }
 }

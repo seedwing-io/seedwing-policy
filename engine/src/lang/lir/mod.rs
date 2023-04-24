@@ -149,7 +149,7 @@ pub struct Pattern {
     name: Option<PatternName>,
     metadata: PatternMeta,
     examples: Vec<Example>,
-    parameters: Vec<String>,
+    parameters: Vec<Arc<str>>,
     inner: InnerPattern,
 }
 
@@ -158,7 +158,7 @@ impl Pattern {
         name: Option<PatternName>,
         metadata: PatternMeta,
         examples: Vec<Example>,
-        parameters: Vec<String>,
+        parameters: Vec<Arc<str>>,
         inner: InnerPattern,
     ) -> Self {
         Self {
@@ -196,7 +196,7 @@ impl Pattern {
     }
 
     /// Parameters accepted by this pattern.
-    pub fn parameters(&self) -> &Vec<String> {
+    pub fn parameters(&self) -> &Vec<Arc<str>> {
         &self.parameters
     }
 
@@ -228,7 +228,7 @@ impl Pattern {
                     InnerPattern::Anything => Ok(EvaluationResult::new(
                         value,
                         self.clone(),
-                        Rationale::Anything,
+                        Arc::new(Rationale::Anything),
                         Output::Identity,
                     )),
                     InnerPattern::Ref(sugar, slot, arguments) => {
@@ -248,7 +248,7 @@ impl Pattern {
                             let result = EvaluationResult::new(
                                 x.input,
                                 x.ty,
-                                Rationale::Bound(Box::new(x.rationale), bindings.clone()),
+                                Arc::new(Rationale::Bound(x.rationale.clone(), bindings.clone())),
                                 x.output,
                             );
 
@@ -256,7 +256,7 @@ impl Pattern {
                                 Ok(EvaluationResult::new(
                                     value,
                                     self.clone(),
-                                    result.rationale,
+                                    result.rationale.clone(),
                                     result.output,
                                 ))
                             } else {
@@ -277,7 +277,7 @@ impl Pattern {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::InvalidArgument(name.clone()),
+                                Arc::new(Rationale::InvalidArgument(name.clone())),
                                 Output::Identity,
                             ))
                         }
@@ -300,11 +300,11 @@ impl Pattern {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::Function {
+                                Arc::new(Rationale::Function {
                                     severity: result.severity,
-                                    rationale: result.rationale.map(Box::new),
+                                    rationale: result.rationale,
                                     supporting: result.supporting,
-                                },
+                                }),
                                 result.output,
                             ))
                         }
@@ -314,29 +314,30 @@ impl Pattern {
                             Ok(EvaluationResult::new(
                                 value.clone(),
                                 self.clone(),
-                                Rationale::Const(true),
+                                Arc::new(Rationale::Const(true)),
                                 Output::Identity,
                             ))
                         } else {
                             Ok(EvaluationResult::new(
                                 value.clone(),
                                 self.clone(),
-                                Rationale::Const(false),
+                                Arc::new(Rationale::Const(false)),
                                 Output::Identity,
                             ))
                         }
                     }
                     InnerPattern::Object(inner) => {
                         if let Some(obj) = value.try_get_object() {
-                            let mut result = HashMap::new();
+                            let mut result: HashMap<Arc<str>, Option<Arc<EvaluationResult>>> =
+                                HashMap::new();
 
                             // TODO: think about pre-aggregating the severity to later on just use the result
 
                             for field in &inner.fields {
                                 if let Some(ref field_value) = obj.get(field.name()) {
                                     result.insert(
-                                        field.name().to_string(),
-                                        Some(
+                                        field.name().into(),
+                                        Some(Arc::new(
                                             field
                                                 .ty()
                                                 .evaluate(
@@ -346,24 +347,24 @@ impl Pattern {
                                                     world,
                                                 )
                                                 .await?,
-                                        ),
+                                        )),
                                     );
                                 } else if !field.optional() {
-                                    result.insert(field.name().to_string(), None);
+                                    result.insert(field.name().into(), None);
                                 }
                             }
 
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::Object(result),
+                                Arc::new(Rationale::Object(result)),
                                 Output::Identity,
                             ))
                         } else {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::NotAnObject,
+                                Arc::new(Rationale::NotAnObject),
                                 Output::Identity,
                             ))
                         }
@@ -374,14 +375,14 @@ impl Pattern {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::Expression(true),
+                                Arc::new(Rationale::Expression(true)),
                                 Output::Identity,
                             ))
                         } else {
                             Ok(EvaluationResult::new(
                                 value,
                                 self.clone(),
-                                Rationale::Expression(false),
+                                Arc::new(Rationale::Expression(false)),
                                 Output::Identity,
                             ))
                         }
@@ -404,7 +405,7 @@ impl Pattern {
                                 return Ok(EvaluationResult::new(
                                     value,
                                     self.clone(),
-                                    Rationale::List(result),
+                                    Arc::new(Rationale::List(Arc::new(result))),
                                     Output::Identity,
                                 ));
                             }
@@ -412,14 +413,14 @@ impl Pattern {
                         Ok(EvaluationResult::new(
                             value,
                             self.clone(),
-                            Rationale::NotAList,
+                            Arc::new(Rationale::NotAList),
                             Output::Identity,
                         ))
                     }
                     InnerPattern::Nothing => Ok(EvaluationResult::new(
                         value,
                         self.clone(),
-                        Rationale::Nothing,
+                        Arc::new(Rationale::Nothing),
                         Output::Identity,
                     )),
                 }
@@ -440,14 +441,14 @@ impl Pattern {
             Ok(EvaluationResult::new(
                 value.clone(),
                 self.clone(),
-                Rationale::Primordial(true),
+                Arc::new(Rationale::Primordial(true)),
                 Output::Identity,
             ))
         } else {
             Ok(EvaluationResult::new(
                 value.clone(),
                 self.clone(),
-                Rationale::Primordial(false),
+                Arc::new(Rationale::Primordial(false)),
                 Output::Identity,
             ))
         }
@@ -461,7 +462,7 @@ pub(crate) enum InnerPattern {
     Bound(Arc<Pattern>, Bindings),
     Ref(SyntacticSugar, usize, Vec<Arc<Pattern>>),
     Deref(Arc<Pattern>),
-    Argument(String),
+    Argument(Arc<str>),
     Const(ValuePattern),
     Object(ObjectPattern),
     Expr(Arc<Expr>),
@@ -493,11 +494,11 @@ impl InnerPattern {
 /// Bindings from names to patterns.
 #[derive(Serialize, Default, Debug, Clone)]
 pub struct Bindings {
-    bindings: HashMap<String, Arc<Pattern>>,
+    bindings: HashMap<Arc<str>, Arc<Pattern>>,
 }
 
 impl Bindings {
-    pub(crate) fn bind(&mut self, name: String, ty: Arc<Pattern>) {
+    pub(crate) fn bind(&mut self, name: Arc<str>, ty: Arc<Pattern>) {
         self.bindings.insert(name, ty);
     }
 
@@ -507,7 +508,7 @@ impl Bindings {
     }
 
     /// Iterator over all bindings.
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<Pattern>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &Arc<Pattern>)> {
         self.bindings.iter()
     }
 
@@ -548,7 +549,7 @@ impl Debug for InnerPattern {
 /// A field within an object pattern.
 #[derive(Serialize, Debug)]
 pub struct Field {
-    name: String,
+    name: Arc<str>,
     ty: Arc<Pattern>,
     optional: bool,
 }
@@ -560,7 +561,7 @@ impl Display for Field {
 }
 
 impl Field {
-    pub fn new(name: String, ty: Arc<Pattern>, optional: bool) -> Self {
+    pub fn new(name: Arc<str>, ty: Arc<Pattern>, optional: bool) -> Self {
         Self { name, ty, optional }
     }
 
@@ -581,7 +582,7 @@ impl Field {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum ValuePattern {
     Null,
-    String(String),
+    String(Arc<str>),
     Integer(i64),
     Decimal(f64),
     Boolean(bool),
@@ -593,7 +594,7 @@ impl From<&ValuePattern> for RuntimeValue {
     fn from(ty: &ValuePattern) -> Self {
         match ty {
             ValuePattern::Null => RuntimeValue::null(),
-            ValuePattern::String(val) => val.clone().into(),
+            ValuePattern::String(val) => RuntimeValue::String(val.clone()),
             ValuePattern::Integer(val) => (*val).into(),
             ValuePattern::Decimal(val) => (*val).into(),
             ValuePattern::Boolean(val) => (*val).into(),
@@ -690,6 +691,7 @@ pub(crate) fn convert(
     parameters: Vec<String>,
     ty: &Arc<Located<mir::Pattern>>,
 ) -> Arc<Pattern> {
+    let parameters = parameters.iter().map(|s| s.clone().into()).collect();
     match &***ty {
         mir::Pattern::Anything => Arc::new(lir::Pattern::new(
             name,
@@ -743,7 +745,7 @@ pub(crate) fn convert(
             metadata,
             examples,
             parameters,
-            lir::InnerPattern::Argument(arg_name.clone()),
+            lir::InnerPattern::Argument(arg_name.clone().into()),
         )),
         mir::Pattern::Const(value) => Arc::new(lir::Pattern::new(
             name,
@@ -757,7 +759,7 @@ pub(crate) fn convert(
             for f in mir_object.fields().iter() {
                 let ty = f.ty();
                 let field = Arc::new(lir::Field::new(
-                    f.name().inner(),
+                    f.name().inner().into(),
                     convert(
                         ty.name(),
                         ty.metadata().clone(),
@@ -819,7 +821,7 @@ fn build_bindings<'b>(
     value: Arc<RuntimeValue>,
     mut bindings: Bindings,
     ctx: ExecutionContext<'b>,
-    parameters: &'b Vec<String>,
+    parameters: &'b Vec<Arc<str>>,
     arguments: &'b [Arc<Pattern>],
     world: &'b World,
 ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>> {

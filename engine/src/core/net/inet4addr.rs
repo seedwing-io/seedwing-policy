@@ -56,7 +56,9 @@ impl Function for Inet4Addr {
                                             vec![EvaluationResult::new(
                                                 input,
                                                 address_pattern,
-                                                Rationale::InvalidArgument(e.to_string()),
+                                                Arc::new(Rationale::InvalidArgument(
+                                                    e.to_string().into(),
+                                                )),
                                                 Output::Identity,
                                             )],
                                         )
@@ -72,7 +74,7 @@ impl Function for Inet4Addr {
                                 vec![EvaluationResult::new(
                                     input,
                                     address_pattern,
-                                    Rationale::InvalidArgument(e),
+                                    Arc::new(Rationale::InvalidArgument(e.into())),
                                     Output::Identity,
                                 )],
                             )

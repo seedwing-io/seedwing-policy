@@ -55,7 +55,7 @@ impl Function for Chain {
                         supporting.push(result);
 
                         if matches!(severity, Severity::Error) {
-                            return Ok((Severity::Error, supporting).into());
+                            return Ok((Severity::Error, Arc::new(supporting)).into());
                         }
                         cur_severity = max(cur_severity, severity);
 
@@ -72,7 +72,7 @@ impl Function for Chain {
                         severity: cur_severity,
                         output: cur_output,
                         rationale: None,
-                        supporting,
+                        supporting: Arc::new(supporting),
                     });
                 }
             }

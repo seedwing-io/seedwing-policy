@@ -3,28 +3,29 @@ use crate::{
     runtime::EvaluationResult,
 };
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Rationale for a policy decision.
 #[derive(Debug, Clone)]
 pub enum Rationale {
     Anything,
     Nothing,
-    Chain(Vec<EvaluationResult>),
-    Object(HashMap<String, Option<EvaluationResult>>),
-    List(Vec<EvaluationResult>),
+    Chain(Arc<Vec<EvaluationResult>>),
+    Object(HashMap<Arc<str>, Option<Arc<EvaluationResult>>>),
+    List(Arc<Vec<EvaluationResult>>),
     NotAnObject,
     NotAList,
-    MissingField(String),
-    InvalidArgument(String),
+    MissingField(Arc<str>),
+    InvalidArgument(Arc<str>),
     Const(bool),
     Primordial(bool),
     Expression(bool),
     Function {
         severity: Severity,
-        rationale: Option<Box<Rationale>>,
-        supporting: Vec<EvaluationResult>,
+        rationale: Option<Arc<Rationale>>,
+        supporting: Arc<Vec<EvaluationResult>>,
     },
-    Bound(Box<Rationale>, Bindings),
+    Bound(Arc<Rationale>, Bindings),
 }
 
 impl Rationale {

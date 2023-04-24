@@ -149,7 +149,7 @@ pub struct PatternMetadata {
     pub name: Option<String>,
     pub path: Option<String>,
     pub metadata: PatternMeta,
-    pub parameters: Vec<String>,
+    pub parameters: Vec<Arc<str>>,
     pub inner: InnerPatternMetadata,
     pub examples: Vec<Example>,
 }
@@ -172,7 +172,7 @@ pub enum InnerPatternMetadata {
     /// Deref.
     Deref(PatternOrReference),
     /// Argument.
-    Argument(String),
+    Argument(Arc<str>),
     /// Const.
     Const(ValuePattern),
     /// Object.
@@ -340,7 +340,7 @@ impl ToMetadata<Bindings> for lir::Bindings {
         Ok(Bindings {
             bindings: self
                 .iter()
-                .map(|(k, v)| v.to_meta(world).map(|v| (k.clone(), v)))
+                .map(|(k, v)| v.to_meta(world).map(|v| (k.to_string().into(), v)))
                 .collect::<Result<_, _>>()?,
         })
     }

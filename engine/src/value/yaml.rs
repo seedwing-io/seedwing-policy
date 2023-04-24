@@ -34,7 +34,7 @@ impl From<YamlValue> for RuntimeValue {
                     todo!("u64 is needed, I guess")
                 }
             }
-            YamlValue::String(inner) => RuntimeValue::String(inner),
+            YamlValue::String(inner) => RuntimeValue::String(inner.into()),
             YamlValue::Sequence(inner) => RuntimeValue::List(
                 inner
                     .into_iter()
@@ -44,7 +44,7 @@ impl From<YamlValue> for RuntimeValue {
             YamlValue::Mapping(inner) => {
                 let fields = inner
                     .into_iter()
-                    .map(|(k, v)| (to_key(k), Arc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (to_key(k).into(), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object(fields))

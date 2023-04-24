@@ -72,7 +72,7 @@ pub fn string_literal() -> impl Parser<ParserInput, Located<Expr>, Error = Parse
         .padded()
         .map_with_span(|((_, x), _), span: SourceSpan| {
             Located::new(
-                Expr::Value(Located::new(ValuePattern::String(x), span.clone())),
+                Expr::Value(Located::new(ValuePattern::String(x.into()), span.clone())),
                 span,
             )
         })
