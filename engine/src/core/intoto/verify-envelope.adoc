@@ -1,4 +1,4 @@
-This function Verifies an in-toto envelope.
+This function verifies an in-toto envelope.
 
 
 

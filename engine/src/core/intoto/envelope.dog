@@ -1,7 +1,9 @@
+/// Pattern that matches an in-toto envelope.
+
 pattern envelope = {
   payloadType: "application/vnd.in-toto+json",
   payload: base64::base64,
-  signatures: list::any<{
+  signatures: list::all<{
     keyid?: string,
     sig: base64::base64,
   }>,
