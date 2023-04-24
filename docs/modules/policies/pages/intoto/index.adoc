@@ -1,17 +1,18 @@
 = intoto
+:description: Functions and patterns related to in-toto
 :sectanchors:
 
-
+Functions and patterns related to in-toto
 
 [#envelope]
 == `envelope`
 
-
+Pattern that matches an in-toto envelope.
 
 [#verify-envelope]
 == `verify-envelope<attesters, blob>`
 
-This function Verifies an in-toto envelope.
+This function verifies an in-toto envelope.
 
 
 
