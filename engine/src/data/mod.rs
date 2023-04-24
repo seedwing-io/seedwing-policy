@@ -12,7 +12,7 @@ use std::path::PathBuf;
 /// A source of data can be used when evaluating policies.
 pub trait DataSource: Send + Sync + Debug {
     /// Retrieve the data at the provided path, if found.
-    fn get(&self, path: String) -> Result<Option<RuntimeValue>, RuntimeError>;
+    fn get(&self, path: &str) -> Result<Option<RuntimeValue>, RuntimeError>;
 }
 
 /// A source of data read from a directory.
@@ -31,7 +31,7 @@ impl DirectoryDataSource {
 }
 
 impl DataSource for DirectoryDataSource {
-    fn get(&self, path: String) -> Result<Option<RuntimeValue>, RuntimeError> {
+    fn get(&self, path: &str) -> Result<Option<RuntimeValue>, RuntimeError> {
         let target = self.root.join(path);
 
         if target.exists() {

@@ -405,7 +405,7 @@ impl World {
                     let primary_type_handle = self.types[&(String::from("lang::traverse").into())];
 
                     let bindings = vec![Arc::new(PatternHandle::new(None).with(Located::new(
-                        mir::Pattern::Const(ValuePattern::String(step.inner())),
+                        mir::Pattern::Const(ValuePattern::String(step.inner().into())),
                         step.location(),
                     )))];
 

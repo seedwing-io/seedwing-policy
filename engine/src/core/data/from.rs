@@ -58,7 +58,7 @@ impl Function for From {
             if let Some(val) = bindings.get(PATH) {
                 if let Some(ValuePattern::String(path)) = val.try_get_resolved_value() {
                     for ds in &*self.data_sources {
-                        if let Ok(Some(value)) = ds.get(path.clone()) {
+                        if let Ok(Some(value)) = ds.get(&path) {
                             return Ok(Output::Transform(Arc::new(value)).into());
                         }
                     }

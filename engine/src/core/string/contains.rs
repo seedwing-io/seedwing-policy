@@ -37,9 +37,8 @@ impl Function for Contains {
             if let Some(pattern) = bindings.get(SUBSTRING) {
                 if let InnerPattern::Const(ValuePattern::String(substring)) = pattern.inner() {
                     if let Some(string) = input.try_get_str() {
-                        return Ok(
-                            Output::Transform(Arc::new(string.contains(substring).into())).into(),
-                        );
+                        let s = substring.as_ref();
+                        return Ok(Output::Transform(Arc::new(string.contains(s).into())).into());
                     }
                 }
             }

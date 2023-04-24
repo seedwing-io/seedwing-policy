@@ -38,8 +38,8 @@ impl Function for Split {
                 if let InnerPattern::Const(ValuePattern::String(pattern)) = pattern.inner() {
                     if let Some(string) = input.try_get_str() {
                         let list = string
-                            .split(pattern)
-                            .map(|s| Arc::new(RuntimeValue::String(s.to_string())))
+                            .split(pattern.as_ref())
+                            .map(|s| Arc::new(RuntimeValue::String(s.into())))
                             .collect();
                         return Ok(Output::Transform(Arc::new(RuntimeValue::List(list))).into());
                     }

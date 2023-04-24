@@ -47,7 +47,7 @@ impl Function for Compatible {
                             ValuePattern::String(val) => Some(val),
                             _ => None,
                         })
-                        .collect::<Vec<String>>(),
+                        .collect::<Vec<Arc<str>>>(),
                     InnerPattern::Const(ValuePattern::String(license)) => vec![license.clone()],
                     _ => return Ok(Severity::Error.into()),
                 }
@@ -59,7 +59,7 @@ impl Function for Compatible {
             if let Some(value) = input.try_get_str() {
                 if let Ok(license) = spdx::Expression::parse(value) {
                     for license_req in authorized_licenses {
-                        if let Ok(license_id) = spdx::Licensee::parse(license_req.as_str()) {
+                        if let Ok(license_id) = spdx::Licensee::parse(&license_req) {
                             if license.evaluate(|req| license_id.satisfies(req)) {
                                 return Ok(Output::Identity.into());
                             }

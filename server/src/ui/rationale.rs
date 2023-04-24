@@ -68,8 +68,8 @@ impl<'r> Rationalizer<'r> {
                     rationale: _,
                     supporting,
                 } => {
-                    for each in supporting {
-                        Self::rationale_inner(html, each);
+                    for each in supporting.iter() {
+                        Self::rationale_inner(html, &each);
                     }
                 }
             }
@@ -119,7 +119,7 @@ impl<'r> Rationalizer<'r> {
                             html.push_str("<div class='field unsatisfied'>");
                         }
                         html.push_str("<div class='field-name'>field <code>");
-                        html.push_str(name.as_str());
+                        html.push_str(name.as_ref());
                         html.push_str("</code></div>");
                         Self::rationale_inner(html, result);
                         html.push_str("</div>");
@@ -140,7 +140,7 @@ impl<'r> Rationalizer<'r> {
                         "<div class='reason'>because not all members were satisfied:</div>",
                     );
                 }
-                for element in terms {
+                for element in terms.iter() {
                     if result.severity() < Severity::Error {
                         html.push_str("<div class='element satisfied'>");
                     } else {
@@ -158,7 +158,7 @@ impl<'r> Rationalizer<'r> {
                 } else {
                     html.push_str("<div class='reason'>because the chain was not satisfied:</div>");
                 }
-                for element in terms {
+                for element in terms.iter() {
                     if result.severity() < Severity::Error {
                         html.push_str("<div class='element satisfied'>");
                     } else {

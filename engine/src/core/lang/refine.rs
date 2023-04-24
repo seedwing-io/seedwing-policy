@@ -45,7 +45,7 @@ impl Function for Refine {
                     severity: refinement_severity,
                     rationale: None,
                     output: refinement_result.raw_output().clone(),
-                    supporting: vec![refinement_result],
+                    supporting: Arc::new(vec![refinement_result]),
                 })
             } else {
                 Ok(Severity::Error.into())

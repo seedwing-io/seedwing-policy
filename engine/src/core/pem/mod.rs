@@ -41,7 +41,7 @@ impl Function for AsCertificate {
             } else {
                 return Ok((
                     Severity::Error,
-                    Rationale::InvalidArgument("Requires octets as input".to_string()),
+                    Rationale::InvalidArgument("Requires octets as input".into()),
                 )
                     .into());
             };

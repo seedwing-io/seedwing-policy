@@ -17,7 +17,7 @@ impl From<JsonValue> for RuntimeValue {
                     todo!("u64 is needed, I guess")
                 }
             }
-            JsonValue::String(inner) => RuntimeValue::String(inner),
+            JsonValue::String(inner) => RuntimeValue::String(inner.into()),
             JsonValue::Array(inner) => RuntimeValue::List(
                 inner
                     .into_iter()
@@ -27,7 +27,7 @@ impl From<JsonValue> for RuntimeValue {
             JsonValue::Object(inner) => {
                 let fields = inner
                     .into_iter()
-                    .map(|(k, v)| (k, Arc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (k.into(), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object(fields))
@@ -50,7 +50,7 @@ impl From<&JsonValue> for RuntimeValue {
                     todo!("u64 is needed, I guess")
                 }
             }
-            JsonValue::String(inner) => RuntimeValue::String(inner.clone()),
+            JsonValue::String(inner) => RuntimeValue::String(inner.clone().into()),
             JsonValue::Array(inner) => RuntimeValue::List(
                 inner
                     .iter()
@@ -60,7 +60,7 @@ impl From<&JsonValue> for RuntimeValue {
             JsonValue::Object(inner) => {
                 let fields = inner
                     .iter()
-                    .map(|(k, v)| (k.clone(), Arc::new(RuntimeValue::from(v))))
+                    .map(|(k, v)| (k.clone().into(), Arc::new(RuntimeValue::from(v))))
                     .collect();
 
                 RuntimeValue::Object(Object(fields))

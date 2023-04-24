@@ -42,7 +42,7 @@ impl Function for FromCve {
                     if let Ok(mut output) = client.find(cve).await {
                         let output: Vec<Arc<RuntimeValue>> = output
                             .drain(..)
-                            .map(|v| Arc::new(RuntimeValue::String(v)))
+                            .map(|v| Arc::new(RuntimeValue::String(v.into())))
                             .collect();
                         Ok(Output::Transform(Arc::new(RuntimeValue::List(output))).into())
                     } else {

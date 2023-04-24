@@ -58,7 +58,7 @@ impl Url {
             }
             Err(err) => Err((
                 Severity::Error,
-                Rationale::InvalidArgument(format!("input is not a URL: {err}")),
+                Rationale::InvalidArgument(format!("input is not a URL: {err}").into()),
             )
                 .into()),
         }

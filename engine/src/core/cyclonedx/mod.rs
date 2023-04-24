@@ -53,7 +53,7 @@ impl Function for ComponentPurls {
                         for component in components.iter() {
                             if let serde_json::Value::Object(c) = component {
                                 if let Some(serde_json::Value::String(s)) = c.get("purl") {
-                                    purls.push(Arc::new(RuntimeValue::String(s.clone())));
+                                    purls.push(Arc::new(RuntimeValue::String(s.clone().into())));
                                 }
                             }
                         }

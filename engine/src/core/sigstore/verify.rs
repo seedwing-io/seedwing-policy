@@ -103,7 +103,7 @@ fn get_parameter(param: &str, bindings: &Bindings) -> Result<String, String> {
     }
 }
 
-fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+fn invalid_arg(msg: impl Into<Arc<str>>) -> Result<FunctionEvaluationResult, RuntimeError> {
     Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
 }
 

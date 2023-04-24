@@ -124,7 +124,7 @@ impl Purl {
         Ok(Output::Transform(Arc::new(result.into())).into())
     }
 
-    fn invalid_arg(msg: impl Into<String>) -> Result<FunctionEvaluationResult, RuntimeError> {
+    fn invalid_arg(msg: impl Into<Arc<str>>) -> Result<FunctionEvaluationResult, RuntimeError> {
         Ok((Severity::Error, Rationale::InvalidArgument(msg.into())).into())
     }
 }

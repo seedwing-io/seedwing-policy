@@ -39,7 +39,7 @@ pub fn boolean_literal(
 
 pub fn string_literal(
 ) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
-    raw_string_literal().map(|s| s.map(ValuePattern::String))
+    raw_string_literal().map(|s| s.map(|s| ValuePattern::String(s.into())))
 }
 
 pub fn raw_string_literal() -> impl Parser<ParserInput, Located<String>, Error = ParserError> + Clone
