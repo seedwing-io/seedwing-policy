@@ -37,3 +37,4 @@ debug = [
     "seedwing-policy-server/debug",
 ]
 frontend = ["seedwing-policy-server/frontend"]
+

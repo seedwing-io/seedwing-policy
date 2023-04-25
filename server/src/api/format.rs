@@ -101,11 +101,7 @@ mod test {
         let _ = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
         let result = runtime
-            .evaluate(
-                "test::fubar",
-                Arc::new(json!("foo").into()),
-                EvalContext::default(),
-            )
+            .evaluate("test::fubar", json!("foo"), EvalContext::default())
             .await
             .unwrap();
         assert!(Format::Json
