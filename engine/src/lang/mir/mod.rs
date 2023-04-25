@@ -18,7 +18,7 @@ use std::sync::Arc;
 #[derive(Default, Debug)]
 pub struct PatternHandle {
     name: Option<PatternName>,
-    metadata: PatternMeta,
+    metadata: Arc<PatternMeta>,
     examples: Vec<Example>,
     ty: RefCell<Option<Arc<Located<Pattern>>>>,
     parameters: Vec<Located<String>>,
@@ -35,7 +35,7 @@ impl PatternHandle {
         }
     }
 
-    pub fn metadata(&self) -> &PatternMeta {
+    pub fn metadata(&self) -> &Arc<PatternMeta> {
         &self.metadata
     }
 
@@ -50,11 +50,11 @@ impl PatternHandle {
     }
 
     pub fn set_metadata(&mut self, metadata: PatternMeta) {
-        self.metadata = metadata;
+        self.metadata = Arc::new(metadata);
     }
 
     pub fn with_metadata(mut self, metadata: PatternMeta) -> Self {
-        self.metadata = metadata;
+        self.metadata = Arc::new(metadata);
         self
     }
 

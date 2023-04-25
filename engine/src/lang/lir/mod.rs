@@ -147,7 +147,7 @@ impl Expr {
 #[derive(Debug, Serialize)]
 pub struct Pattern {
     name: Option<PatternName>,
-    metadata: PatternMeta,
+    metadata: Arc<PatternMeta>,
     examples: Vec<Example>,
     parameters: Vec<Arc<str>>,
     inner: InnerPattern,
@@ -156,7 +156,7 @@ pub struct Pattern {
 impl Pattern {
     pub(crate) fn new(
         name: Option<PatternName>,
-        metadata: PatternMeta,
+        metadata: Arc<PatternMeta>,
         examples: Vec<Example>,
         parameters: Vec<Arc<str>>,
         inner: InnerPattern,
@@ -181,7 +181,7 @@ impl Pattern {
     }
 
     /// Documentation for the pattern.
-    pub fn metadata(&self) -> &PatternMeta {
+    pub fn metadata(&self) -> &Arc<PatternMeta> {
         &self.metadata
     }
 
@@ -329,7 +329,7 @@ impl Pattern {
                     InnerPattern::Object(inner) => {
                         if let Some(obj) = value.try_get_object() {
                             let mut result: HashMap<Arc<str>, Option<Arc<EvaluationResult>>> =
-                                HashMap::new();
+                                HashMap::with_capacity(inner.fields.len());
 
                             // TODO: think about pre-aggregating the severity to later on just use the result
 
@@ -528,18 +528,18 @@ impl Debug for InnerPattern {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             InnerPattern::Anything => write!(f, "anything"),
-            InnerPattern::Primordial(inner) => write!(f, "{:?}", inner),
-            InnerPattern::Const(inner) => write!(f, "{:?}", inner),
-            InnerPattern::Object(inner) => write!(f, "{:?}", inner),
-            InnerPattern::Expr(inner) => write!(f, "$({:?})", inner),
-            InnerPattern::List(inner) => write!(f, "[{:?}]", inner),
-            InnerPattern::Argument(name) => write!(f, "{:?}", name),
+            InnerPattern::Primordial(inner) => write!(f, "{:#?}", inner),
+            InnerPattern::Const(inner) => write!(f, "{:#?}", inner),
+            InnerPattern::Object(inner) => write!(f, "{:#?}", inner),
+            InnerPattern::Expr(inner) => write!(f, "$({:#?})", inner),
+            InnerPattern::List(inner) => write!(f, "[{:#?}]", inner),
+            InnerPattern::Argument(name) => write!(f, "{:#?}", name),
             InnerPattern::Ref(_sugar, slot, bindings) => {
-                write!(f, "ref {:?}<{:?}>", slot, bindings)
+                write!(f, "ref {:#?}<{:#?}>", slot, bindings)
             }
-            InnerPattern::Deref(inner) => write!(f, "* {:?}", inner),
+            InnerPattern::Deref(inner) => write!(f, "* {:#?}", inner),
             InnerPattern::Bound(primary, bindings) => {
-                write!(f, "bound {:?}<{:?}>", primary, bindings)
+                write!(f, "bound {:#?}<{:#?}>", primary, bindings)
             }
             InnerPattern::Nothing => write!(f, "nothing"),
         }
@@ -686,7 +686,7 @@ impl ObjectPattern {
 
 pub(crate) fn convert(
     name: Option<PatternName>,
-    metadata: PatternMeta,
+    metadata: Arc<PatternMeta>,
     examples: Vec<Example>,
     parameters: Vec<String>,
     ty: &Arc<Located<mir::Pattern>>,
