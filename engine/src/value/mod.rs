@@ -579,10 +579,7 @@ here:
 
     #[test]
     fn test_serde_rv_string() {
-        assert_eq_and_back_again(
-            RuntimeValue::String("2.3".into()),
-            json!({"string": "2.3"}),
-        );
+        assert_eq_and_back_again(RuntimeValue::String("2.3".into()), json!({"string": "2.3"}));
         assert_eq_and_back_again(
             RuntimeValue::String("null".into()),
             json!({"string": "null"}),
