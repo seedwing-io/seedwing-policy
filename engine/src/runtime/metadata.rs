@@ -148,7 +148,7 @@ impl SubpackageMetadata {
 pub struct PatternMetadata {
     pub name: Option<String>,
     pub path: Option<String>,
-    pub metadata: PatternMeta,
+    pub metadata: Arc<PatternMeta>,
     pub parameters: Vec<Arc<str>>,
     pub inner: InnerPatternMetadata,
     pub examples: Vec<Example>,
