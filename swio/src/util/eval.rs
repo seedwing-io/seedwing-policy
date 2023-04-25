@@ -21,7 +21,7 @@ impl<'a> Eval<'a> {
 
     pub async fn run(&self) -> Result<EvaluationResult, RuntimeError> {
         self.world
-            .evaluate_fast(self.name, self.value.clone(), EvalContext::default())
+            .evaluate_nocopy(self.name, self.value.clone(), EvalContext::default())
             .await
     }
 }
