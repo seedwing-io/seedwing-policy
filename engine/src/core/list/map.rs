@@ -94,8 +94,7 @@ mod tests {
             r#"list::map<uri::purl>"#,
             vec![
                 RuntimeValue::String(
-                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
-                        .into(),
+                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".into(),
                 ),
                 RuntimeValue::String("nomatch".into()),
             ],
@@ -124,12 +123,10 @@ mod tests {
             r#"list::map<uri::purl>"#,
             vec![
                 RuntimeValue::String(
-                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
-                        .into(),
+                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".into(),
                 ),
                 RuntimeValue::String(
-                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/cats"
-                        .into(),
+                    "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/cats".into(),
                 ),
             ],
         )
