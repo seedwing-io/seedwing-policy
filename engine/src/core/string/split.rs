@@ -81,10 +81,10 @@ mod test {
         let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 4);
-        assert!(list.contains(&Arc::new(RuntimeValue::String("1".to_string()))));
-        assert!(list.contains(&Arc::new(RuntimeValue::String("2".to_string()))));
-        assert!(list.contains(&Arc::new(RuntimeValue::String("3".to_string()))));
-        assert!(list.contains(&Arc::new(RuntimeValue::String("4".to_string()))));
+        assert!(list.contains(&Arc::new(RuntimeValue::String("1".into()))));
+        assert!(list.contains(&Arc::new(RuntimeValue::String("2".into()))));
+        assert!(list.contains(&Arc::new(RuntimeValue::String("3".into()))));
+        assert!(list.contains(&Arc::new(RuntimeValue::String("4".into()))));
     }
 
     #[tokio::test]
@@ -131,6 +131,6 @@ mod test {
         let output = result.output();
         let list = output.try_get_list().unwrap();
         assert_eq!(list.len(), 1);
-        assert!(list.contains(&Arc::new(RuntimeValue::String("1:2:3:4".to_string()))));
+        assert!(list.contains(&Arc::new(RuntimeValue::String("1:2:3:4".into()))));
     }
 }

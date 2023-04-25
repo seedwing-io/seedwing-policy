@@ -126,7 +126,7 @@ mod test {
         } = result.rationale()
         {
             if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid type specified for list parameter")
+                assert_eq!(msg.as_ref(), "invalid type specified for list parameter")
             }
         }
     }

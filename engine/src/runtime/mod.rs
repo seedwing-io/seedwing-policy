@@ -290,7 +290,7 @@ impl World {
         self.type_slots.get(slot).cloned()
     }
 
-    pub async fn evaluate<P: Into<String>>(
+    pub async fn evaluate_nocopy<P: Into<String>>(
         &self,
         path: P,
         value: Arc<RuntimeValue>,
@@ -307,6 +307,16 @@ impl World {
         } else {
             Err(RuntimeError::NoSuchPattern(path))
         }
+    }
+
+    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
+        &self,
+        path: P,
+        value: V,
+        ctx: EvalContext,
+    ) -> Result<EvaluationResult, RuntimeError> {
+        let value = Arc::new(value.into());
+        self.evaluate_nocopy(path, value, ctx).await
     }
 
     pub fn get_package_meta<S: Into<PackagePath>>(&self, name: S) -> Option<PackageMetadata> {

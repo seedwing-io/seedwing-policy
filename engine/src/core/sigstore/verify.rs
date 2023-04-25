@@ -122,7 +122,7 @@ mod test {
 
             pattern test-pattern = sigstore::verify-blob<certificate, signature>
         "#,
-            RuntimeValue::String("something\n".to_string()),
+            RuntimeValue::String("something\n".into()),
         )
         .await;
         assert_satisfied!(&result);
