@@ -80,7 +80,7 @@ mod tests {
         let result = test_pattern(
             r#"list::map<uri::purl>"#,
             RuntimeValue::String(
-                "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".to_string(),
+                "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs".into(),
             ),
         )
         .await;
@@ -95,9 +95,9 @@ mod tests {
             vec![
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
-                        .to_string(),
+                        .into(),
                 ),
-                RuntimeValue::String("nomatch".to_string()),
+                RuntimeValue::String("nomatch".into()),
             ],
         )
         .await;
@@ -125,11 +125,11 @@ mod tests {
             vec![
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/dogs"
-                        .to_string(),
+                        .into(),
                 ),
                 RuntimeValue::String(
                     "pkg:github/package-url/purl-spec@244fd47e07d1004#everybody/loves/cats"
-                        .to_string(),
+                        .into(),
                 ),
             ],
         )

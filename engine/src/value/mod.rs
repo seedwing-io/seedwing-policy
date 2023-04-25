@@ -580,15 +580,15 @@ here:
     #[test]
     fn test_serde_rv_string() {
         assert_eq_and_back_again(
-            RuntimeValue::String("2.3".to_string()),
+            RuntimeValue::String("2.3".into()),
             json!({"string": "2.3"}),
         );
         assert_eq_and_back_again(
-            RuntimeValue::String("null".to_string()),
+            RuntimeValue::String("null".into()),
             json!({"string": "null"}),
         );
         assert_eq_and_back_again(
-            RuntimeValue::String("-norway".to_string()),
+            RuntimeValue::String("-norway".into()),
             json!({"string": "-norway"}),
         );
     }
@@ -611,12 +611,12 @@ here:
         assert_eq_and_back_again(
             RuntimeValue::from(vec![
                 RuntimeValue::Null,
-                RuntimeValue::String("1.2".to_string()),
+                RuntimeValue::String("1.2".into()),
                 RuntimeValue::Boolean(true),
                 RuntimeValue::Integer(42),
                 RuntimeValue::from(vec![
                     RuntimeValue::Null,
-                    RuntimeValue::String("1.2".to_string()),
+                    RuntimeValue::String("1.2".into()),
                     RuntimeValue::Boolean(true),
                     RuntimeValue::Integer(42),
                 ]),

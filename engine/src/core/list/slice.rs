@@ -136,7 +136,7 @@ mod test {
         } = result.rationale()
         {
             if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid start index specified")
+                assert_eq!(msg.as_ref(), "invalid start index specified")
             }
         }
     }
@@ -165,7 +165,7 @@ mod test {
         } = result.rationale()
         {
             if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "invalid end index specified");
+                assert_eq!(msg.as_ref(), "invalid end index specified");
             }
         }
     }
@@ -194,7 +194,7 @@ mod test {
         } = result.rationale()
         {
             if let Rationale::InvalidArgument(msg) = &**(out.as_ref().unwrap()) {
-                assert_eq!(msg, "start index cannot be greater than end index")
+                assert_eq!(msg.as_ref(), "start index cannot be greater than end index")
             }
         }
     }
