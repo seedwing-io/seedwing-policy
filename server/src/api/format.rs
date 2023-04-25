@@ -92,6 +92,7 @@ mod test {
         runtime::{sources::Ephemeral, EvalContext},
     };
     use serde_json::json;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn unknown_field() {
@@ -100,7 +101,7 @@ mod test {
         let _ = builder.build(src.iter());
         let runtime = builder.finish().await.unwrap();
         let result = runtime
-            .evaluate("test::fubar", json!("foo"), EvalContext::default())
+            .evaluate("test::fubar", Arc::new(json!("foo").into()), EvalContext::default())
             .await
             .unwrap();
         assert!(Format::Json
