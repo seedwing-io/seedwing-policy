@@ -233,22 +233,21 @@ impl Pattern {
                     )),
                     InnerPattern::Ref(sugar, slot, arguments) => {
                         if let Some(ty) = world.get_by_slot(*slot) {
-                            let bindings = build_bindings(
+                            let mut bindings = bindings.clone();
+                            build_bindings(
                                 value.clone(),
-                                bindings.clone(),
+                                &mut bindings,
                                 ctx.push()?,
                                 ty.parameters(),
                                 arguments,
                                 world,
                             )
-                            .await;
-
-                            let bindings = bindings.unwrap();
+                            .await?;
                             let x = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
                             let result = EvaluationResult::new(
                                 x.input,
                                 x.ty,
-                                Arc::new(Rationale::Bound(x.rationale.clone(), bindings.clone())),
+                                Arc::new(Rationale::Bound(x.rationale.clone(), bindings)),
                                 x.output,
                             );
 
@@ -819,12 +818,12 @@ pub(crate) fn convert(
 
 fn build_bindings<'b>(
     value: Arc<RuntimeValue>,
-    mut bindings: Bindings,
+    bindings: &'b mut Bindings,
     ctx: ExecutionContext<'b>,
     parameters: &'b Vec<Arc<str>>,
     arguments: &'b [Arc<Pattern>],
     world: &'b World,
-) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>> {
+) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + 'b>> {
     Box::pin(async move {
         for (param, arg) in parameters.iter().zip(arguments.iter()) {
             if let InnerPattern::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
@@ -832,9 +831,9 @@ fn build_bindings<'b>(
                     if resolved_type.parameters().is_empty() {
                         bindings.bind(param.clone(), resolved_type.clone())
                     } else {
-                        let resolved_bindings = build_bindings(
+                        build_bindings(
                             value.clone(),
-                            bindings.clone(),
+                            bindings,
                             ctx.push()?,
                             resolved_type.parameters(),
                             unresolved_bindings,
@@ -848,7 +847,7 @@ fn build_bindings<'b>(
                                 resolved_type.metadata().clone(),
                                 resolved_type.examples(),
                                 resolved_type.parameters().clone(),
-                                InnerPattern::Bound(resolved_type, resolved_bindings),
+                                InnerPattern::Bound(resolved_type, bindings.clone()),
                             )),
                         )
                     }
@@ -865,7 +864,7 @@ fn build_bindings<'b>(
             }
         }
 
-        Ok(bindings)
+        Ok(())
     })
 }
 
