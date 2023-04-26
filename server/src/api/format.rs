@@ -92,7 +92,6 @@ mod test {
         runtime::{sources::Ephemeral, EvalContext},
     };
     use serde_json::json;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn unknown_field() {
