@@ -44,8 +44,8 @@ impl Function for ContainsAll {
                     if let Some(list) = input.try_get_list() {
                         // Iterate over the list items first because they are more likely to be long.
                         let mut matched: Vec<bool> = vec![false; items.len()];
-                        for s in list {
-                            for (idx, item) in items.iter().enumerate() {
+                        for (idx, item) in items.iter().enumerate() {
+                            for s in list {
                                 let result = item
                                     .evaluate(s.clone(), ctx.push()?, bindings, world)
                                     .await?;
