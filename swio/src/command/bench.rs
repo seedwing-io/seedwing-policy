@@ -49,10 +49,11 @@ impl Bench {
         for _iter in 0..self.count {
             let start = Instant::now();
             match eval.run().await {
-                Ok(_result) => {
+                Ok(result) => {
                     let end = Instant::now();
                     let duration = end - start;
                     hist.record(duration.as_nanos() as u64).unwrap();
+                    drop(result);
                 }
                 Err(e) => {
                     match e {

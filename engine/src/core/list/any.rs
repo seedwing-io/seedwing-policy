@@ -37,19 +37,18 @@ impl Function for Any {
         Box::pin(async move {
             if let Some(list) = input.try_get_list() {
                 let pattern = bindings.get(PATTERN).unwrap();
-                let mut supporting = Vec::new();
+                let mut supporting = Vec::with_capacity(list.len());
+                let mut severity = Severity::Error;
                 for item in list {
-                    supporting.push(
-                        pattern
-                            .evaluate(item.clone(), ctx.push()?, &Default::default(), world)
-                            .await?,
-                    );
+                    let result = pattern
+                        .evaluate(item.clone(), ctx.push()?, &Default::default(), world)
+                        .await?;
+                    if result.severity() < Severity::Error {
+                        severity = Severity::None;
+                    }
+                    supporting.push(result);
                 }
 
-                let severity = match supporting.iter().any(|e| e.severity() < Severity::Error) {
-                    true => Severity::None,
-                    false => Severity::Error,
-                };
                 Ok((severity, supporting).into())
             } else {
                 Ok((Severity::Error, Rationale::NotAList).into())
