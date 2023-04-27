@@ -11,6 +11,9 @@ exclude = [
     "frontend"
 ]
 
+[workspace.dependencies]
+serde_view = { git = "https://github.com/ctron/serde-view.git", rev = "05aad15bcf14ee0023fe493f32fa8b36f16323f3" }
+
 [profile.bench]
 debug = true
 

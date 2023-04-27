@@ -1,11 +1,10 @@
 use crate::ui::rationale::Rationalizer;
 use seedwing_policy_engine::{
     lang::Severity,
-    runtime::{response::ResponseFields, EvaluationResult, Response},
+    runtime::{EvaluationResult, Response},
 };
 use serde::Deserialize;
 use serde_view::View;
-use std::collections::HashSet;
 use std::fmt::{self, Display};
 
 #[derive(Deserialize, Copy, Clone)]
@@ -20,6 +19,12 @@ pub enum FormatError {
     Json(serde_json::Error),
     Yaml(serde_yaml::Error),
     InvalidViewField,
+}
+
+impl From<serde_view::Error> for FormatError {
+    fn from(_: serde_view::Error) -> Self {
+        FormatError::InvalidViewField
+    }
 }
 
 impl Display for FormatError {
@@ -43,26 +48,14 @@ impl Format {
         if collapse {
             response = response.collapse(Severity::Error);
         }
-
         let formatter = match self {
             // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag
             Self::Html => return Ok(Rationalizer::new(result).rationale()),
             Self::Json => |response| serde_json::to_string(&response).map_err(FormatError::Json),
             Self::Yaml => |response| serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         };
-
-        let fields = fields
-            .map(|fields| {
-                fields
-                    .split(",")
-                    .map(std::str::FromStr::from_str)
-                    .collect::<Result<HashSet<ResponseFields>, _>>()
-            })
-            .transpose()
-            .map_err(|()| FormatError::InvalidViewField)?
-            .unwrap_or_default();
-
-        formatter(&response.as_view().with_fields(fields))
+        let fields = fields.unwrap_or_default();
+        formatter(&response.as_view().with_fields(fields.split(','))?)
     }
 
     pub fn content_type(&self) -> &'static str {
