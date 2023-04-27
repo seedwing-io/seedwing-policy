@@ -11,6 +11,9 @@ exclude = [
     "frontend"
 ]
 
+[workspace.dependencies]
+serde_view = "0.1.6"
+
 [profile.bench]
 debug = true
 

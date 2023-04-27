@@ -297,7 +297,8 @@ mod test {
             serde_json::to_string(
                 &Response::new(&result)
                     .as_view()
-                    .with_fields("name,reason,input".split(","))
+                    .with_fields("name,reason,input".split(','))
+                    .unwrap()
             )
             .unwrap()
         );
@@ -307,7 +308,8 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .as_view()
-                    .with_fields("name,bindings,severity".split(","))
+                    .with_fields("name,bindings,severity".split(','))
+                    .unwrap()
             )
             .unwrap()
         );
@@ -327,7 +329,8 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .as_view()
-                    .with_fields("name,bindings,reason,rationale".split(","))
+                    .with_fields("name,bindings,reason,rationale".split(','))
+                    .unwrap()
             )
             .unwrap()
         );
@@ -411,7 +414,8 @@ mod test {
                 &Response::new(&result)
                     .collapse(Severity::Error)
                     .as_view()
-                    .with_fields("name,bindings,severity".split(","))
+                    .with_fields("name,bindings,severity".split(','))
+                    .unwrap()
             )
             .unwrap()
         );
