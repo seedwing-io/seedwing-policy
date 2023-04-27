@@ -2059,8 +2059,9 @@ dependencies = [
 
 [[package]]
 name = "serde_view"
-version = "0.1.5"
-source = "git+https://github.com/ctron/serde-view.git?rev=05aad15bcf14ee0023fe493f32fa8b36f16323f3#05aad15bcf14ee0023fe493f32fa8b36f16323f3"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4630cf03d2915800b89fb6f31ce71d0b91c70487fb1b94b3af6c59e8266750bc"
 dependencies = [
  "serde",
  "serde_view_macros",
@@ -2068,8 +2069,9 @@ dependencies = [
 
 [[package]]
 name = "serde_view_macros"
-version = "0.1.5"
-source = "git+https://github.com/ctron/serde-view.git?rev=05aad15bcf14ee0023fe493f32fa8b36f16323f3#05aad15bcf14ee0023fe493f32fa8b36f16323f3"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46e499ffc5aad5fc28f667f6b3790e7579c7af776eb1d548e8694df6779031c0"
 dependencies = [
  "convert_case",
  "darling 0.14.4",
