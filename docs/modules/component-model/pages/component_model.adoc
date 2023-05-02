@@ -1,0 +1,79 @@
+= WebAssembly Component Model
+
+This is a work in progress with the goal being to provide a WebAssembly
+component for the policy engine.
+
+This example uses wit-bindgen macros to generate the Rust types, but this can
+also be done manually using the wit-bindgen-cli. First we need to install
+wit-bindgen-cli:
+[listing]
+$ cargo install --git https://github.com/bytecodealliance/wit-bindgen wit-bindgen-cli
+
+== WebAssembly Interface Types
+The main interface is defined in link:https://github.com/seedwing-io/seedwing-policy/tree/main/engine/wit/engine-world.wit[wit/engine-world.wit]
+which contains on the exposed functions. The data types are defined in 
+link:https://github.com/seedwing-io/seedwing-policy/tree/main/engine/wit/engine-types.wit[wit/engine-types.wit].
+
+== Building
+To build the WebAssembly component:
+[listing]
+$ make wit-compile 
+cargo b -p seedwing-policy-engine --target=wasm32-wasi --no-default-features --features=""
+
+Note that `wit` stands for `WebAssembly Interface Types`.
+
+The above compilation will generate a core WebAssembly module which can be found
+in the `target` directory in the root of the checked out github repository.
+
+The next step is to create the WebAssembly component using this core WebAssembly
+module:
+[listing]
+$ make wit-component
+wasm-tools component new -v ../target/wasm32-wasi/debug/seedwing_policy_engine.wasm --adapt wasi_snapshot_preview1.wasm -o seedwing_policy-engine-component.wasm
+
+The above will build an optimized release build which is needed or the execution
+of the Rust example will be very slow. But is can be nice to build an
+unopptimized version:
+[listing]
+$ make wit-compile Build=debug
+
+Just make sure to also use `Build=debug` for the Rust targets or it will default
+to a release build and you might get an runtime error depending on what changes
+that have been made to the source code.
+
+== JavaScript example
+The directory link:https://github.com/seedwing-io/seedwing-policy/tree/main/engine/wit-examples/javascript/README.md[javascript]
+contains a JavaScript example of using the webassembly component. There are more
+details in the readme, but the example can be run directly using:
+[listing]
+$ make wit-java-bindings
+$ make wit-java-run
+
+== Python example
+The directory link:https://github.com/seedwing-io/seedwing-policy/tree/main/engine/wit-examples/python/README.md[python] contains a Python example of using
+the webassembly component. There are more details in the readme, but the example
+can be run directly
+using:
+[listing]
+$ make wit-python-bindings
+$ make wit-python-run
+
+== Rust example
+The directory link:https://github.com/seedwing-io/seedwing-policy/tree/main/engine/wit-examples/rust/README.md[rust] contains
+a Rust example of using the webassembly component. There are more details in the
+readme, but the example can be run directly
+using:
+[listing]
+$ make wit-rust-bindings
+$ make wit-rust-run
+
+This example uses wit-bindgen macros so the bindings step is not required here
+which is done for the other examples.
+
+== Go example
+There is project named https://github.com/bytecodealliance/wasmtime-go[wasmtime-go]
+which looked like it would be able to to do the same/simlar thing as the other
+examples. But it turns out that it does not support the WebAssembly Component
+Model yet as mentioned in
+https://github.com/bytecodealliance/wasmtime-go/issues/170[issue-170].
+

@@ -1,0 +1,35 @@
+/// Sweedwing Policy Engine WebAssembly Interface Types (wit)
+//package seedwing:policy@0.1.0
+package seedwing:policy
+
+world engine-world {
+  export engine
+}
+
+interface engine {
+
+  use types.{data-type, evaluation-result-outer, runtime-value}
+
+  /// Returns the version of the Policy Engine.
+  version: func() -> string
+
+  /// Evaluate a policy.
+  ///
+  /// policies: additional policies to be include/available to the policy rules.
+  ///
+  /// data: this is a list of tuples the first element is the path of a policy
+  /// file, and the second the contents. This can be used to support data::from
+  /// in a pattern. For example:
+  /// pattern blob = *data::from<"intoto/binary-linux-amd64"> 
+  ///
+  /// policy: the policy containing the patterns to be evaluated.
+  ///
+  /// name: the name of the pattern to evaluate.
+  /// input: the input to be evaluated.
+  eval: func(policies: list<string>,
+            data: list<tuple<string, data-type>>,
+            policy: string,
+            name: string,
+            input: runtime-value) -> result<evaluation-result-outer, string>
+
+}

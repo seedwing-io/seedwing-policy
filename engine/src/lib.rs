@@ -1,7 +1,10 @@
 #![doc = include_str!("../../README.md")]
 //#![deny(warnings)]
 //#![warn(missing_docs)]
+#[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
+mod wit;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub mod client;
 mod core;
 pub mod data;

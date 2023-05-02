@@ -243,9 +243,12 @@ pub enum RuntimeError {
     #[error("error reading file: {0}")]
     FileUnreadable(PathBuf),
     #[error("remote client failed: {0}")]
+    #[cfg(not(target_arch = "wasm32"))]
     RemoteClient(#[from] crate::client::Error),
     #[error("recursion limit reached: {0}")]
     RecursionLimit(usize),
+    #[error("no such path: {0}")]
+    NoSuchPath(String),
 }
 
 #[derive(Clone, Debug)]

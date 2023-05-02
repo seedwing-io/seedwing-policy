@@ -3,6 +3,7 @@
 //! A data source is a way to provide mostly static data available to the engine to use during evaluation.
 use crate::runtime::RuntimeError;
 use crate::value::RuntimeValue;
+use std::collections::HashMap;
 
 use std::fmt::Debug;
 use std::fs::File;
@@ -13,6 +14,37 @@ use std::path::PathBuf;
 pub trait DataSource: Send + Sync + Debug {
     /// Retrieve the data at the provided path, if found.
     fn get(&self, path: &str) -> Result<Option<RuntimeValue>, RuntimeError>;
+}
+
+#[derive(Debug)]
+pub enum MemDataSourceType {
+    String(String),
+    Bytes(Vec<u8>),
+}
+
+/// A source of data read from a strings.
+///
+#[derive(Debug)]
+pub struct MemDataSource {
+    map: HashMap<String, MemDataSourceType>,
+}
+
+impl MemDataSource {
+    pub fn new(map: HashMap<String, MemDataSourceType>) -> Self {
+        Self { map }
+    }
+}
+
+impl DataSource for MemDataSource {
+    fn get(&self, path: &str) -> Result<Option<RuntimeValue>, RuntimeError> {
+        match self.map.get(path) {
+            Some(dst) => match dst {
+                MemDataSourceType::String(string) => Ok(Some(string.as_str().into())),
+                MemDataSourceType::Bytes(bytes) => Ok(Some(RuntimeValue::Octets(bytes.clone()))),
+            },
+            None => Err(RuntimeError::NoSuchPath(path.to_string())),
+        }
+    }
 }
 
 /// A source of data read from a directory.

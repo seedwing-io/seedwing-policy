@@ -19,7 +19,9 @@ pub mod cyclonedx;
 pub mod data;
 #[cfg(feature = "debug")]
 pub mod debug;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod external;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod guac;
 #[cfg(feature = "intoto")]
 pub mod intoto;
@@ -31,9 +33,12 @@ pub mod lang;
 pub mod list;
 pub mod maven;
 pub mod net;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod openvex;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod osv;
 pub mod pem;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod rhsa;
 pub mod semver;
 #[cfg(feature = "showcase")]

@@ -1,0 +1,231 @@
+//package seedwing:policy@0.1.0
+package seedwing:policy
+
+/// Types for the Policy Engine
+interface types {
+
+  type package-name = string
+
+  record package-path {
+    path: list<package-name>
+  }
+
+  record pattern-name {
+    %package: option<package-path>,
+    name: string
+  }
+
+  record deprecation {
+    reason: option<string>,
+    since: option<string>,
+  }
+
+  enum severity {
+    none,
+    advice,
+    warning,
+    error,
+  }
+  
+  record reporting {
+    severity: severity,
+    explanation: option<string>,
+    authoritative: bool,
+  }
+
+  record pattern-meta {
+    documentation: option<string>,
+    unstable: bool,
+    deprecation: option<deprecation>,
+    reporting: reporting
+  }
+
+  record example {
+    name: string,
+    summary: option<string>,
+    description: option<string>,
+    /// This is of type serde_json::Value in the Rust implementation
+    /// TODO: figure out if this is ok.
+    value: string,
+  }
+
+  variant syntactic-sugar {
+    none,
+    and,
+    or,
+    refine,
+    traverse,
+    chain,
+    not,
+  }
+
+  variant primordial-pattern {
+    integer,
+    decimal,
+    boolean,
+    %string,
+    // Skipping the actual function for simplicity
+    function(tuple<syntactic-sugar, pattern-name>),
+  }
+
+  variant value-pattern {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    boolean(bool),
+    %list(list<base-value>),
+    octets(list<u8>),
+  }
+
+  record bindings {
+    bindings-map: list<tuple<string, pattern-ref>>,
+  }
+
+  record field {
+    name: string,
+    ty: pattern-ref,
+    optional: bool,
+  }
+  
+  record object-pattern {
+    fields: list<field>
+  }
+
+  variant expr {
+    self-literal,
+    value(value-pattern),
+    function(tuple<string, expr-ref>),
+    add(tuple<expr-ref, expr-ref>),
+    subtract(tuple<expr-ref, expr-ref>),
+    multiply(tuple<expr-ref, expr-ref>),
+    divide(tuple<expr-ref, expr-ref>),
+    less-than(tuple<expr-ref, expr-ref>),
+    less-than-equal(tuple<expr-ref, expr-ref>),
+    greater-than(tuple<expr-ref, expr-ref>),
+    greater-than-equal(tuple<expr-ref, expr-ref>),
+    equal(tuple<expr-ref, expr-ref>),
+    not-equal(tuple<expr-ref, expr-ref>),
+    not(expr-ref),
+    logical-and(tuple<expr-ref, expr-ref>),
+    logical-or(tuple<expr-ref, expr-ref>),
+  }
+
+  record expr-ref {
+    expr-id: string
+  }
+
+  variant inner-pattern {
+    anything, 
+    primordial(primordial-pattern),
+    bound(tuple<pattern-ref, bindings>),
+    ref(tuple<syntactic-sugar, u32, list<pattern-ref>>),
+    deref(pattern-ref),
+    argument(string), 
+    const(value-pattern),
+    object(object-pattern),
+    expr(expr),
+    %list(list<pattern-ref>),
+    nothing,
+  }
+
+  record pattern {
+    id: string,
+    name: option<pattern-name>,
+    metadata: pattern-meta,
+    examples: list<example>,
+    parameters: list<string>,
+    inner: inner-pattern,
+  }
+
+  record pattern-ref {
+    pattern-id: string
+  }
+
+  variant rationale {
+    anything, 
+    nothing, 
+    chain(list<evaluation-result-ref>),
+    object(list<tuple<string, option<evaluation-result-ref>>>),
+    %list(list<evaluation-result-ref>),
+    not-an-object,
+    not-a-list,
+    missing-field(string),
+    invalid-argument(string),
+    const(bool),
+    primordial(bool),
+    expression(bool),
+    function(function),
+    bound(tuple<rationale-ref, bindings>),
+  }
+
+  record function {
+    severity: severity,
+    rationale: option<rationale-ref>,
+    supporting: list<evaluation-result-ref>,
+  }
+
+  record rationale-ref {
+    rationale-id: string
+  }
+
+  record evaluation-result {
+    input: runtime-value,
+    ty: pattern,
+    rationale: rationale,
+    output: string,
+  }
+
+  record evaluation-result-outer {
+    evaluation-result: evaluation-result,
+    pattern-map: list<tuple<string, pattern>>,
+    evaluation-result-map: list<tuple<string, evaluation-result>>,
+    rationale-map: list<tuple<string, rationale>>,
+    expr-map: list<tuple<string, expr>>,
+  }
+
+  record evaluation-result-ref {
+    eval-id: string
+  }
+
+  variant base-value {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    boolean(bool),
+    octets(list<u8>),
+  }
+
+  variant runtime-value {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    boolean(bool),
+    %list(list<base-value>),
+    object(list<object>),
+    octets(list<u8>),
+  }
+
+  variant object-value {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    boolean(bool),
+    octets(list<u8>),
+    %list(list<base-value>),
+  }
+
+  record object {
+     key: string,
+     value: object-value, 
+  }
+
+  variant data-type {
+    %string(string),
+    bytes(list<u8>),
+  }
+
+}

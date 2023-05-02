@@ -387,11 +387,14 @@ impl World {
         world.add_package(crate::core::kafka::package());
         world.add_package(crate::core::pem::package());
         world.add_package(crate::core::net::package());
+        #[cfg(not(target_arch = "wasm32"))]
         world.add_package(crate::core::openvex::package());
+        #[cfg(not(target_arch = "wasm32"))]
         world.add_package(crate::core::osv::package());
         world.add_package(crate::core::uri::package());
         world.add_package(crate::core::timestamp::package());
         world.add_package(crate::core::csaf::package());
+        #[cfg(not(target_arch = "wasm32"))]
         world.add_package(crate::core::rhsa::package());
         world.add_package(crate::core::slsa::package());
         #[cfg(feature = "intoto")]
@@ -401,7 +404,9 @@ impl World {
         world.add_package(crate::core::debug::package());
 
         world.add_package(crate::core::maven::package());
+        #[cfg(not(target_arch = "wasm32"))]
         world.add_package(crate::core::external::package());
+        #[cfg(not(target_arch = "wasm32"))]
         world.add_package(crate::core::guac::package());
         world.add_package(crate::core::semver::package());
 

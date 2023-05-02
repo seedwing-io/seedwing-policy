@@ -11,6 +11,8 @@ nav:
 
   - modules/policies/nav.adoc
 
+  - modules/component-model/nav.adoc
+
   - modules/examples/nav.adoc
 
   - modules/faq/nav.adoc
