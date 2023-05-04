@@ -12,6 +12,8 @@ use std::fmt::{self, Display};
 pub enum Format {
     Html,
     Json,
+    #[serde(alias = "pretty")]
+    JsonPretty,
     Yaml,
 }
 
@@ -52,6 +54,9 @@ impl Format {
             // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag
             Self::Html => return Ok(Rationalizer::new(result).rationale()),
             Self::Json => |response| serde_json::to_string(&response).map_err(FormatError::Json),
+            Self::JsonPretty => {
+                |response| serde_json::to_string_pretty(&response).map_err(FormatError::Json)
+            }
             Self::Yaml => |response| serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         };
         let fields = fields.unwrap_or_default();
@@ -61,7 +66,7 @@ impl Format {
     pub fn content_type(&self) -> &'static str {
         match self {
             Self::Html => "text/html; charset=utf-8",
-            Self::Json => "application/json",
+            Self::Json | Self::JsonPretty => "application/json",
             Self::Yaml => "application/yaml",
         }
     }
@@ -71,6 +76,7 @@ impl From<String> for Format {
     fn from(name: String) -> Self {
         match name.as_str() {
             "json" | "application/json" => Self::Json,
+            "pretty" => Self::JsonPretty,
             "yaml" | "application/yaml" | "application/x-yaml" | "text/x-yaml" => Self::Yaml,
             _ => Self::Html,
         }
