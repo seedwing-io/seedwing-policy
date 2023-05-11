@@ -5,7 +5,10 @@ use seedwing_policy_engine::{
 };
 use serde::Deserialize;
 use serde_view::View;
-use std::{fmt::{self, Display}, collections::HashSet};
+use std::{
+    collections::HashSet,
+    fmt::{self, Display},
+};
 
 #[derive(Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -73,7 +76,7 @@ impl Format {
 
         // TODO fix with_fields() to work nicely with empty values
         // let fields = fields.unwrap_or_default();
-        // formatter(&response.as_view().with_fields(fields.split(','))?)    
+        // formatter(&response.as_view().with_fields(fields.split(','))?)
     }
 
     pub fn content_type(&self) -> &'static str {
