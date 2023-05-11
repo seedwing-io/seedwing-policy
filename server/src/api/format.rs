@@ -1,11 +1,11 @@
 use crate::ui::rationale::Rationalizer;
 use seedwing_policy_engine::{
     lang::Severity,
-    runtime::{EvaluationResult, Response},
+    runtime::{response::ResponseFields, EvaluationResult, Response},
 };
 use serde::Deserialize;
 use serde_view::View;
-use std::fmt::{self, Display};
+use std::{fmt::{self, Display}, collections::HashSet};
 
 #[derive(Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -59,8 +59,21 @@ impl Format {
             }
             Self::Yaml => |response| serde_yaml::to_string(&response).map_err(FormatError::Yaml),
         };
-        let fields = fields.unwrap_or_default();
-        formatter(&response.as_view().with_fields(fields.split(','))?)
+        let fields = fields
+            .map(|fields| {
+                fields
+                    .split(",")
+                    .map(std::str::FromStr::from_str)
+                    .collect::<Result<HashSet<ResponseFields>, _>>()
+            })
+            .transpose()
+            .map_err(|_| FormatError::InvalidViewField)?
+            .unwrap_or_default();
+        formatter(&response.as_view().add_fields(fields)?)
+
+        // TODO fix with_fields() to work nicely with empty values
+        // let fields = fields.unwrap_or_default();
+        // formatter(&response.as_view().with_fields(fields.split(','))?)    
     }
 
     pub fn content_type(&self) -> &'static str {
