@@ -1,14 +1,11 @@
 use crate::ui::rationale::Rationalizer;
 use seedwing_policy_engine::{
     lang::Severity,
-    runtime::{response::ResponseFields, EvaluationResult, Response},
+    runtime::{EvaluationResult, Response},
 };
 use serde::Deserialize;
 use serde_view::View;
-use std::{
-    collections::HashSet,
-    fmt::{self, Display},
-};
+use std::fmt::{self, Display};
 
 #[derive(Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -56,27 +53,14 @@ impl Format {
         let formatter = match self {
             // FIXME: Rationalizer should use `response` too, currently it ignored the collapse flag
             Self::Html => return Ok(Rationalizer::new(result).rationale()),
-            Self::Json => |response| serde_json::to_string(&response).map_err(FormatError::Json),
-            Self::JsonPretty => {
-                |response| serde_json::to_string_pretty(&response).map_err(FormatError::Json)
-            }
-            Self::Yaml => |response| serde_yaml::to_string(&response).map_err(FormatError::Yaml),
+            Self::Json => |r| serde_json::to_string(&r).map_err(FormatError::Json),
+            Self::JsonPretty => |r| serde_json::to_string_pretty(&r).map_err(FormatError::Json),
+            Self::Yaml => |r| serde_yaml::to_string(&r).map_err(FormatError::Yaml),
         };
-        let fields = fields
-            .map(|fields| {
-                fields
-                    .split(",")
-                    .map(std::str::FromStr::from_str)
-                    .collect::<Result<HashSet<ResponseFields>, _>>()
-            })
-            .transpose()
-            .map_err(|_| FormatError::InvalidViewField)?
-            .unwrap_or_default();
-        formatter(&response.as_view().add_fields(fields)?)
-
-        // TODO fix with_fields() to work nicely with empty values
-        // let fields = fields.unwrap_or_default();
-        // formatter(&response.as_view().with_fields(fields.split(','))?)
+        match fields {
+            None => formatter(&response.as_view()),
+            Some(s) => formatter(&response.as_view().with_fields(s.split(','))?),
+        }
     }
 
     pub fn content_type(&self) -> &'static str {
@@ -124,5 +108,6 @@ mod test {
         assert!(Format::Json
             .format(&result, true, Some(String::from("fart")))
             .is_err());
+        assert!(Format::Json.format(&result, true, None).is_ok());
     }
 }
