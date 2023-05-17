@@ -1869,9 +1869,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "guac-rs"
+name = "guac"
 version = "0.1.0"
-source = "git+https://github.com/dejanb/guac-rs.git?rev=67a70e98ffaa17200d256e1afc5c88756b56d5e2#67a70e98ffaa17200d256e1afc5c88756b56d5e2"
+source = "git+https://github.com/dejanb/guac-rs.git?rev=e5310f6a89a45e980bb0e0cf6416fab286483040#e5310f6a89a45e980bb0e0cf6416fab286483040"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1879,6 +1879,7 @@ dependencies = [
  "graphql_client",
  "log",
  "openvex",
+ "packageurl",
  "reqwest",
  "serde",
  "uuid",
@@ -3708,7 +3709,7 @@ dependencies = [
  "csaf",
  "env_logger 0.10.0",
  "futures-util",
- "guac-rs",
+ "guac",
  "home",
  "http",
  "in-toto",
@@ -3718,6 +3719,7 @@ dependencies = [
  "num-integer",
  "once_cell",
  "openvex",
+ "packageurl",
  "prometheus",
  "rand 0.8.5",
  "regex",

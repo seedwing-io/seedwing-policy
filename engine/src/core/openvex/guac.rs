@@ -1,3 +1,5 @@
+use guac::Vulnerability;
+
 use crate::core::{Function, FunctionEvaluationResult};
 use crate::lang::lir::Bindings;
 use crate::lang::{PatternMeta, Severity};
@@ -5,8 +7,6 @@ use crate::runtime::rationale::Rationale;
 use crate::runtime::World;
 use crate::runtime::{ExecutionContext, Output, RuntimeError};
 use crate::value::RuntimeValue;
-use guac_rs::client::certify_vuln::allCertifyVuln;
-use guac_rs::client::vulns2vex;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -39,7 +39,7 @@ impl Function for FromGuac {
                 RuntimeValue::List(items) => {
                     let mut vulns = Vec::new();
                     for item in items.iter() {
-                        match serde_json::from_value::<allCertifyVuln>(item.as_json()) {
+                        match serde_json::from_value::<Vulnerability>(item.as_json()) {
                             Ok(vuln) => {
                                 vulns.push(vuln);
                             }
@@ -50,7 +50,7 @@ impl Function for FromGuac {
                         }
                     }
 
-                    let vex = vulns2vex(vulns);
+                    let vex = guac::vulns2vex(vulns);
                     let json: serde_json::Value = serde_json::to_value(vex).unwrap();
                     Ok(Output::Transform(Arc::new(json.into())).into())
                 }
