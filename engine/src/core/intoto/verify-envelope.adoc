@@ -35,10 +35,10 @@ The type of the predicate.
 === `predicate`
 The predicate itself.
 
-=== `attesters_names`
+=== `attester_names`
 The attesters names that verified the signature.
 
-=== `artifact_names`
+=== `matched_subjects`
 The artifact names that were verified.
 
 This data can then be passed onto other pattens for further evaluating rules
@@ -80,7 +80,7 @@ Example output:
 [source,json]
 ----
 {
-  "attesters_names": [
+  "attester_names": [
     "dan"
   ],
   "predicate": {

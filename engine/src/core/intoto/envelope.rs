@@ -203,10 +203,9 @@ impl Function for Verify {
 
                         match verify_result {
                             Ok(_) => {
-                                let mut attesters_names: Vec<Arc<RuntimeValue>> = Vec::new();
-                                let mut artifact_names: Vec<Arc<RuntimeValue>> = Vec::new();
-                                attesters_names
-                                    .push(Arc::new(RuntimeValue::from(name.to_string())));
+                                let mut attester_names: Vec<Arc<RuntimeValue>> = Vec::new();
+                                let mut matched_subjects: Vec<Arc<RuntimeValue>> = Vec::new();
+                                attester_names.push(Arc::new(RuntimeValue::from(name.to_string())));
                                 log::debug!("Verification succeeded!");
                                 let Ok(statement) =
                                     serde_json::from_str::<Statement>(&decoded_payload) else {
@@ -221,19 +220,19 @@ impl Function for Verify {
                                     for (alg, digest) in &subject.digest {
                                         if let Ok(hash) = hash(&blob, alg) {
                                             if &hash == digest {
-                                                artifact_names.push(Arc::new(RuntimeValue::from(
-                                                    subject.name.to_string(),
-                                                )));
+                                                matched_subjects.push(Arc::new(
+                                                    RuntimeValue::from(subject.name.to_string()),
+                                                ));
                                             }
                                         }
                                     }
                                 }
-                                if !artifact_names.is_empty() {
+                                if !matched_subjects.is_empty() {
                                     let mut output = Object::new();
                                     output.set("predicate_type", statement.predicate_type);
                                     output.set("predicate", statement.predicate.clone());
-                                    output.set("attesters_names", attesters_names.clone());
-                                    output.set("artifact_names", artifact_names.clone());
+                                    output.set("attester_names", attester_names.clone());
+                                    output.set("matched_subjects", matched_subjects.clone());
                                     verified.push(Arc::new(RuntimeValue::Object(output)));
                                 }
                             }
@@ -280,7 +279,6 @@ async fn public_key_for_keyid(envelope: &str, keyid: &str) -> Result<String> {
                     let Ok(decoded_pub_str) = std::str::from_utf8(&decoded_pub) else {
                         continue;
                     };
-                    log::debug!("pub_key decoded: {:?}", decoded_pub_str);
                     // We have base64 decoded the public key which we want to
                     // generate a fingerprint for so that we can compare to the
                     // keyid that was specified in the attesters field.
@@ -303,7 +301,10 @@ async fn public_key_for_keyid(envelope: &str, keyid: &str) -> Result<String> {
                                     log::info!("calculated fingerprint: {}", fp.to_string());
                                     log::info!("keyid      fingerprint: {}", keyid);
                                     if fp.to_string() == *keyid.to_string() {
-                                        log::debug!("Found public_key: {:?}", decoded_pub_str);
+                                        log::debug!(
+                                            "Found public_key: {:?}",
+                                            decoded_pub_str.replace("\n", "")
+                                        );
                                         return Ok(decoded_pub_str.to_string());
                                     }
                                 }
@@ -495,9 +496,9 @@ mod test {
             output.get("predicate").unwrap(),
             input_payload.get("predicate").unwrap(),
         );
-        assert_eq!(output.get("attesters_names").unwrap()[0], "dan");
+        assert_eq!(output.get("attester_names").unwrap()[0], "dan");
         assert_eq!(
-            output.get("artifact_names").unwrap()[0],
+            output.get("matched_subjects").unwrap()[0],
             "binary-linux-amd64"
         );
     }
@@ -614,7 +615,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqiLuArRcZCY1s650rgKUDpj7f+b8
             output.get("predicate").unwrap(),
             input_payload.get("predicate").unwrap(),
         );
-        assert_eq!(output.get("attesters_names").unwrap()[0], "dan");
+        assert_eq!(output.get("attester_names").unwrap()[0], "dan");
     }
 
     #[actix_rt::test]
@@ -653,7 +654,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqiLuArRcZCY1s650rgKUDpj7f+b8
             output.get("predicate").unwrap(),
             input_payload.get("predicate").unwrap(),
         );
-        assert_eq!(output.get("attesters_names").unwrap()[0], "dan");
+        assert_eq!(output.get("attester_names").unwrap()[0], "dan");
     }
 
     #[actix_rt::test]
