@@ -1,14 +1,13 @@
 This function verifies an in-toto envelope.
 
-
-
-
 The https://github.com/in-toto/attestation/blob/main/spec/v1.0/envelope.md[envelope]
 validation follows the in-toto https://github.com/in-toto/attestation/blob/main/docs/validation.md[validation model].
 
-The parameters to this function are as follows:
 
-* attesters
+== `Parameters`
+The parameters to this function are as follows.
+
+==== `attesters`
 This is list of which attesters that should verify the envelope. Each entry in
 the list consists of a `name`, and either a `public_key`, a `certificate`, or
 a `spki_keyid`. In the case of a `spki_keyid` this value consists of an
@@ -19,25 +18,33 @@ validation. Please note that this is an expensive operation as it calls out to
 Rekor, but it can be useful when working in the playground and one does not
 have to figure out how to get the public key to try things out.
 
-* `blob` (binary large object) is the artifact for the `digest` in
-the `subject` object of the payload, and this is used to verify the digest.
-
+==== `blob`
+blob (binary large object) is the artifact for the `digest` in the `subject`
+object of the payload, and this is used to verify the digest.
 
 After this function has executed sucessfully the signature of the envelope will
 have been verified using the `attesters` specified, and the subject in the
 payload will also have been verified. 
 
-The ouptut of this function contains the following fields:
+== `Output`
+The ouptut of this function contains the following fields.
 
-* predicate_type     The type of the predicate.
-* predicate          The predicate itself.
-* attesters_names    The attesters names that verified the signature.
-* artifact_names     The artifact names that were verified.
+=== `predicate_type`
+The type of the predicate.
+
+=== `predicate`
+The predicate itself.
+
+=== `attesters_names`
+The attesters names that verified the signature.
+
+=== `artifact_names`
+The artifact names that were verified.
 
 This data can then be passed onto other pattens for further evaluating rules
 for different predicate types.
 
-Example pattern:
+== Example pattern
 
 [source]
 ----
