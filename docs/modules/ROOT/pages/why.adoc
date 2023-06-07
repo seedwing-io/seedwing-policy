@@ -34,7 +34,7 @@ Generally, though, soft policies revolve around the actions of humans:
 A policy that is absolutely enforced is a _hard_ policy.
 Configuring GitHub to not allow commits directly to the main branch, but instead requiring sign-offs and reviews ensures that our process is as we expect it to be.
 
-Hard policies are capable of not only evaluating what a huamn does, but evaluating the qualitative aspects of the output of the aforementioned human.
+Hard policies are capable of not only evaluating what a human does, but evaluating the qualitative aspects of the output of the aforementioned human.
 
 With enough information conveyed alongside the code, policies can enforce aspects such as:
 
