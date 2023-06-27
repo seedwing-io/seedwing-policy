@@ -61,7 +61,7 @@ jobs:
           - linux-amd64
           - macos-amd64
           - macos-aarch64
-          - windows-amd64
+       #   - windows-amd64
         include:
           - target: linux-amd64
             os: ubuntu-22.04
@@ -71,9 +71,9 @@ jobs:
             os: macos-12
             rustTarget: "aarch64-apple-darwin"
             xcode: "true"
-          - target: windows-amd64
-            os: windows-2022
-            exe: ".exe"
+      #    - target: windows-amd64
+      #      os: windows-2022
+      #      exe: ".exe"
     runs-on: ${{ matrix.os }}
 
     steps:
