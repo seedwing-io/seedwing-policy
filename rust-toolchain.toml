@@ -2,4 +2,5 @@
 # https://rust-lang.github.io/rustup-components-history
 [toolchain]
 channel = "1.70.0"
+components = ["rustfmt"]
 targets = ["wasm32-unknown-unknown"]
