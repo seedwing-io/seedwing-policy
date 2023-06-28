@@ -1,3 +1,5 @@
+cargo-features = ["workspace-inheritance"]
+
 [package]
 name = "seedwing-policy-engine"
 version = "0.1.0"
