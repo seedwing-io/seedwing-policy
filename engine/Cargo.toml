@@ -50,7 +50,8 @@ uuid = { version = "1.3.0", features = ["v4"] }
 openvex = "0.1.0"
 spdx = "0.10.0"
 csaf = { version = "0.4.0", default-features = false }
-guac-rs = { git = "https://github.com/dejanb/guac-rs.git", rev = "67a70e98ffaa17200d256e1afc5c88756b56d5e2" }
+guac = { git = "https://github.com/dejanb/guac-rs.git", rev = "e5310f6a89a45e980bb0e0cf6416fab286483040" }
+packageurl = "0.3.0"
 semver = "1.0"
 
 

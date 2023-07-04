@@ -4,7 +4,8 @@ use crate::lang::{PatternMeta, Severity};
 use crate::runtime::{ExecutionContext, World};
 use crate::runtime::{Output, RuntimeError};
 use crate::value::RuntimeValue;
-use guac_rs::client::{certify_vuln::*, GuacClient};
+use guac::client::GuacClient;
+use packageurl::PackageUrl;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -14,26 +15,33 @@ pub struct CertifyVuln;
 
 const DOCUMENTATION: &str = include_str!("certify-vulnerability.adoc");
 
-fn json_to_pkg(input: serde_json::Value) -> Option<PkgSpec> {
+fn json_to_pkg(input: serde_json::Value) -> Option<String> {
     use serde_json::Value as JsonValue;
     match input {
+        JsonValue::String(purl) => Some(purl),
         JsonValue::Object(input) => {
-            let pkg = PkgSpec {
-                type_: input.get("type").map(|val| val.to_string()),
-                namespace: input.get("namespace").map(|val| val.to_string()),
-                name: input.get("name").map(|val| val.to_string()),
-                subpath: None,
-                version: input.get("version").map(|val| val.to_string()),
-                qualifiers: None, //TODO fix qualifiers
-                match_only_empty_qualifiers: Some(false),
-            };
-
-            Some(pkg)
+            match (
+                input.get("name"),
+                input.get("namespace"),
+                input.get("type"),
+                input.get("version"),
+            ) {
+                (
+                    Some(JsonValue::String(name)),
+                    Some(JsonValue::String(namespace)),
+                    Some(JsonValue::String(r#type)),
+                    Some(JsonValue::String(version)),
+                ) => Some(
+                    PackageUrl::new(r#type, name)
+                        .unwrap()
+                        .with_namespace(namespace)
+                        .with_version(version)
+                        .to_string(),
+                ),
+                _ => None,
+            }
         }
-        _ => {
-            log::warn!("Unknown package spec {:?}", input);
-            None
-        }
+        _ => None,
     }
 }
 
@@ -48,7 +56,7 @@ impl CertifyVuln {
                 let mut vulns = Vec::new();
                 for item in items.iter() {
                     if let Some(value) = json_to_pkg(item.clone()) {
-                        match guac.certify_vuln(value).await {
+                        match guac.certify_vuln(&value).await {
                             Ok(transform) => {
                                 let json: serde_json::Value =
                                     serde_json::to_value(transform).unwrap();
@@ -64,7 +72,7 @@ impl CertifyVuln {
                 Ok(Some(json))
             }
             input => match json_to_pkg(input) {
-                Some(value) => match guac.certify_vuln(value).await {
+                Some(value) => match guac.certify_vuln(&value).await {
                     Ok(transform) => {
                         let json: serde_json::Value = serde_json::to_value(transform).unwrap();
                         Ok(Some(json))
