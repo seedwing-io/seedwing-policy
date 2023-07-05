@@ -61,7 +61,7 @@ reqwest = { version = "0.11.14", features = ["json"] }
 guac-rs = { git = "https://github.com/dejanb/guac-rs.git", rev = "67a70e98ffaa17200d256e1afc5c88756b56d5e2" }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "wasi"))'.dependencies]
-wit-bindgen = { version = "0.8.0", default-features = true, features = ['macros'] }
+wit-bindgen = { version = "0.9.0", default-features = true, features = ['macros'] }
 futures = "0.3"
 
 [features]

@@ -8,7 +8,7 @@ world engine-world {
 
 interface engine {
 
-  use types.{data-type, evaluation-result-outer, runtime-value}
+  use types.{data-type, evaluation-result-context, runtime-value}
 
   /// Returns the version of the Policy Engine.
   version: func() -> string
@@ -27,9 +27,31 @@ interface engine {
   /// name: the name of the pattern to evaluate.
   /// input: the input to be evaluated.
   eval: func(policies: list<string>,
-            data: list<tuple<string, data-type>>,
-            policy: string,
-            name: string,
-            input: runtime-value) -> result<evaluation-result-outer, string>
+             data: list<tuple<string, data-type>>,
+             policy: string,
+             name: string,
+             input: runtime-value) -> result<evaluation-result-context, string>
 
+}
+
+world static-evaluator {
+  import engine
+  import static-config
+  export run: func() -> string
+}
+
+interface static-types {
+  record config {
+    policy: string,
+    policy-name: string,
+  }
+}
+
+interface static-config {
+  use static-types.{config}
+  policy-config: func() -> config
+}
+
+world static-world {
+  export static-config
 }

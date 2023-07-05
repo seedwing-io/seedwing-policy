@@ -99,7 +99,7 @@ def main():
         Object("name", ObjectValueString("goodboy")),
         Object("trained", ObjectValueBoolean(True))])
 
-    result: EvaluationResultOuter = engine.eval(store, policies, data, policy, policy_name, input)
+    result: EvaluationResultContext = engine.eval(store, policies, data, policy, policy_name, input)
 
     if result.value:
         print('EvaluationResult:')

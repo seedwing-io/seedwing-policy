@@ -42,7 +42,7 @@ objdump-component:
 # Can be used to generate the Rust source for that the bindgen::generate
 # macro will produce.
 wit-bindgen:
-	wit-bindgen rust wit/
+	wit-bindgen rust wit/ -w engine-world
 
 # Can be useful to inspect the expanded wit-bindgen macros
 cargo-expand:

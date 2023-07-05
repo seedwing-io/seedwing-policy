@@ -1,0 +1,4 @@
+pattern cat = {
+    name: string,
+    trained: false,
+}
