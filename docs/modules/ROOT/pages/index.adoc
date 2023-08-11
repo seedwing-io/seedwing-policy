@@ -14,7 +14,7 @@ With Seedwing, you can:
 
 * Validate, destructure and inspect payload according to standards like CycloneDX, SPDX, OpenVEX, PEM and more.
 * Check for permitted licenses according to organization policy.
-* Check for trusted signatures against link:https://sigstore.dev)[Sigstore].
+* Check for trusted signatures against link:https://sigstore.dev[Sigstore].
 * Check SBOM dependencies for vulnerabilities against link:https://osv.dev[OSV].
 
 Additionally, Seedwing provides detailed explanations of the decision process.
