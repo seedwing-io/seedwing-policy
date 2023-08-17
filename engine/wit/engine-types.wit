@@ -176,8 +176,10 @@ interface types {
     output: string,
   }
 
-  record evaluation-result-outer {
+  record evaluation-result-context {
     evaluation-result: evaluation-result,
+    severity: severity,
+    reason: string,
     pattern-map: list<tuple<string, pattern>>,
     evaluation-result-map: list<tuple<string, evaluation-result>>,
     rationale-map: list<tuple<string, rationale>>,

@@ -2,7 +2,7 @@ import { engine } from '../dist/seedwing-policy-engine-component.js';
 import { RuntimeValueObject,
 	 Object,
 	 ObjectValueString,
-	 EvaluationResultOuter,
+	 EvaluationResultContext,
 	 EvaluationResult,
          DataType} from '../dist/imports/policy-types';
 
@@ -23,7 +23,7 @@ const input: RuntimeValueObject = {
   ]
 };
 
-const outer: EvaluationResultOuter = engine.eval(policies, data, policy, name, input);
+const outer: EvaluationResultContext = engine.eval(policies, data, policy, name, input);
 const result = outer.evaluationResult;
 
 console.log('EvaluationResult:');

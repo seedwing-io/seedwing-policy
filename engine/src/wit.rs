@@ -55,7 +55,7 @@ impl Engine for Exports {
         policy: String,
         name: String,
         input: wit_types::RuntimeValue,
-    ) -> Result<wit_types::EvaluationResultOuter, String> {
+    ) -> Result<wit_types::EvaluationResultContext, String> {
         let mut builder = Builder::new();
         builder.data(MemDataSource::from(data));
         let _res = builder.build(Ephemeral::new("wit", policy).iter()).unwrap();
@@ -71,9 +71,12 @@ impl Engine for Exports {
                 let mut eval_context = WitContext::new();
                 let wit_evaluation_result =
                     wit_types::EvaluationResult::from_with_context(&result, &mut eval_context);
+                let (severity, reason) = result.outcome();
 
-                let wit_result_outer = wit_types::EvaluationResultOuter {
+                let wit_result_outer = wit_types::EvaluationResultContext {
                     evaluation_result: wit_evaluation_result,
+                    severity: severity.into(),
+                    reason,
                     pattern_map: Vec::from_iter(eval_context.pattern_map.into_iter()),
                     evaluation_result_map: Vec::from_iter(
                         eval_context.evaluation_result_map.into_iter(),
@@ -235,7 +238,6 @@ impl wit_types::EvaluationResult {
         let wit_ty = wit_types::Pattern::from_with_context(ty, context);
         let wit_rationale =
             wit_types::Rationale::from_with_context(&evaluation_result.rationale, context);
-
         Self {
             input: (&(*evaluation_result.input)).into(),
             ty: wit_ty,

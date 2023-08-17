@@ -79,8 +79,8 @@ async fn main() -> wasmtime::Result<()> {
         .await?;
 
     match result {
-        Ok(outer) => {
-            let evaluation_result = outer.evaluation_result;
+        Ok(context) => {
+            let evaluation_result = context.evaluation_result;
             println!("EvaluationResult:");
             let input: types::RuntimeValue = evaluation_result.input;
             println!("input: {:#?}\n", input);
@@ -95,7 +95,7 @@ async fn main() -> wasmtime::Result<()> {
             println!("output: {:#?}\n", output);
 
             let pattern_map: HashMap<String, types::Pattern> =
-                outer.pattern_map.into_iter().collect();
+                context.pattern_map.into_iter().collect();
             println!("pattern_map: {:#?}\n", pattern_map.keys());
 
             Ok(())
